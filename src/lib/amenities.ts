@@ -1,0 +1,111 @@
+
+import {
+  Wifi,
+  Sun,
+  Snowflake,
+  ParkingCircle,
+  Soup,
+  Tv,
+  WashingMachine,
+  Thermometer,
+  Zap,
+  Bath,
+  Bell,
+  Flame,
+  User,
+  Users,
+  Utensils,
+} from 'lucide-react';
+
+export const AMENITIES = [
+  {
+    id: 1,
+    name: 'Wi-Fi',
+    icon: Wifi,
+    description: 'High-speed internet access',
+  },
+  {
+    id: 2,
+    name: 'Swimming Pool',
+    icon: Sun,
+    description: 'Private or shared swimming pool',
+  },
+  {
+    id: 3,
+    name: 'Air Conditioning',
+    icon: Snowflake,
+    description: 'Keep cool with air conditioning',
+  },
+  {
+    id: 4,
+    name: 'Parking',
+    icon: ParkingCircle,
+    description: 'Free parking on premises',
+  },
+  {
+    id: 5,
+    name: 'Kitchen',
+    icon: Soup,
+    description: 'Fully equipped kitchen',
+  },
+  {
+    id: 6,
+    name: 'TV',
+    icon: Tv,
+    description: 'Cable or satellite TV',
+  },
+  {
+    id: 7,
+    name: 'Washer',
+    icon: WashingMachine,
+    description: 'In-unit washing machine',
+  },
+  {
+    id: 8,
+    name: 'Heating',
+    icon: Thermometer,
+    description: 'Central heating or a heater',
+  },
+  {
+    id: 9,
+    name: 'Power Backup',
+    icon: Zap,
+    description: 'Reliable power backup',
+  },
+  {
+    id: 10,
+    name: 'Geyser',
+    icon: Bath,
+    description: 'Hot water available',
+  },
+  {
+    id: 11,
+    name: 'Room Service',
+    icon: Bell,
+    description: 'In-room dining service',
+  },
+  {
+    id: 12,
+    name: 'Bonfire',
+    icon: Flame,
+    description: 'Enjoy a bonfire in the evening',
+  },
+  {
+    id: 13,
+    name: 'Cook',
+    icon: User,
+    description: 'A cook is available',
+  },
+  {
+    id: 14,
+    name: 'Servant',
+    icon: Users,
+    description: 'A servant is available',
+  },
+  {
+    id: 15,
+    name: 'Food',
+    icon: Utensils,
+    description: 'Food is available',
+  },
+];

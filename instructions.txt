@@ -1,0 +1,5 @@
+To further diagnose, I need to inspect the 'properties' table in your Supabase database. Please run the following command directly in your terminal (assuming you have the Supabase CLI installed and configured) and share the output:
+
+supabase psql -c "SELECT id, host_id, name, status FROM public.properties;"
+
+This will help us inspect the properties in your database.

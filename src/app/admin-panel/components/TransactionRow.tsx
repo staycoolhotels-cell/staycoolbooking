@@ -1,0 +1,72 @@
+import React from 'react';
+import Icon from '@/components/ui/AppIcon';
+
+interface Transaction {
+  id: string;
+  transactionId: string;
+  date: string;
+  guestName: string;
+  hostName: string;
+  propertyName: string;
+  amount: number;
+  status: 'completed' | 'pending' | 'failed' | 'refunded';
+  paymentMethod: string;
+}
+
+interface TransactionRowProps {
+  transaction: Transaction;
+  onViewDetails: (id: string) => void;
+}
+
+const TransactionRow = ({ transaction, onViewDetails }: TransactionRowProps) => {
+  const statusConfig = {
+    completed: { bg: 'bg-success/10', text: 'text-success', icon: 'CheckCircleIcon' },
+    pending: { bg: 'bg-warning/10', text: 'text-warning', icon: 'ClockIcon' },
+    failed: { bg: 'bg-error/10', text: 'text-error', icon: 'XCircleIcon' },
+    refunded: { bg: 'bg-primary/10', text: 'text-primary', icon: 'ArrowUturnLeftIcon' },
+  };
+
+  const config = statusConfig[transaction.status];
+
+  return (
+    <tr className="border-b border-border hover:bg-muted/50 transition-colors duration-200">
+      <td className="px-4 py-4">
+        <div className="font-heading font-medium text-foreground">{transaction.transactionId}</div>
+        <div className="text-sm text-text-secondary">{transaction.date}</div>
+      </td>
+      <td className="px-4 py-4">
+        <div className="text-foreground">{transaction.guestName}</div>
+      </td>
+      <td className="px-4 py-4">
+        <div className="text-foreground">{transaction.hostName}</div>
+      </td>
+      <td className="px-4 py-4">
+        <div className="text-sm text-foreground">{transaction.propertyName}</div>
+      </td>
+      <td className="px-4 py-4">
+        <div className="font-heading font-semibold text-foreground">
+          ₹{transaction.amount.toLocaleString('en-IN')}
+        </div>
+        <div className="text-xs text-text-secondary">{transaction.paymentMethod}</div>
+      </td>
+      <td className="px-4 py-4">
+        <span
+          className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-heading font-medium ${config.bg} ${config.text}`}
+        >
+          <Icon name={config.icon} size={14} />
+          <span>{transaction.status.toUpperCase()}</span>
+        </span>
+      </td>
+      <td className="px-4 py-4">
+        <button
+          onClick={() => onViewDetails(transaction.id)}
+          className="text-brand-deep hover:text-brand-deep/80 transition-colors duration-200"
+        >
+          <Icon name="EyeIcon" size={20} />
+        </button>
+      </td>
+    </tr>
+  );
+};
+
+export default TransactionRow;

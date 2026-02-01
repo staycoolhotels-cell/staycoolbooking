@@ -1,0 +1,105 @@
+@import './tailwind.css';
+
+:root {
+  --color-border: 59 78 102;
+  --color-input: 40 53 66;
+  --color-ring: 30 144 255;
+  --color-foreground: 224 231 235;
+  --color-primary: 0 191 255;
+  --color-primary-r: 0;
+  --color-primary-g: 191;
+  --color-primary-b: 255;
+  --color-primary-foreground: 255 255 255;
+  --color-secondary: 128 168 191;
+  --color-secondary-foreground: 26 37 51;
+  --color-accent: 30 144 255;
+  --color-accent-foreground: 255 255 255;
+  --color-muted: 45 62 80;
+  --color-muted-foreground: 170 187 203;
+  --color-destructive: 255 99 71;
+  --color-destructive-foreground: 255 255 255;
+  --color-success: 60 179 113;
+  --color-success-foreground: 255 255 255;
+  --color-warning: 255 215 0;
+  --color-warning-foreground: 255 255 255;
+  --color-error: 255 99 71;
+  --color-error-foreground: 255 255 255;
+  --color-brand-deep: 0 122 204;
+  --color-brand-deep-foreground: 255 255 255;
+  --color-brand-energetic: 30 144 255;
+  --color-brand-energetic-foreground: 255 255 255;
+  --color-text-primary: 224 231 235;
+  --color-text-secondary: 155 172 191;
+  --radius: 0.75rem;
+}
+
+.dark {
+  --color-border: 59 78 102;
+  --color-input: 40 53 66;
+  --color-ring: 30 144 255;
+  --color-foreground: 224 231 235;
+  --color-primary: 0 191 255;
+  --color-primary-r: 0;
+  --color-primary-g: 191;
+  --color-primary-b: 255;
+  --color-primary-foreground: 255 255 255;
+  --color-secondary: 128 168 191;
+  --color-secondary-foreground: 224 231 235;
+  --color-accent: 30 144 255;
+  --color-accent-foreground: 224 231 235;
+  --color-muted: 45 62 80;
+  --color-muted-foreground: 170 187 203;
+  --color-destructive: 255 99 71;
+  --color-destructive-foreground: 255 255 255;
+  --color-success: 60 179 113;
+  --color-success-foreground: 255 255 255;
+  --color-warning: 255 215 0;
+  --color-warning-foreground: 255 255 255;
+  --color-error: 255 99 71;
+  --color-error-foreground: 255 255 255;
+  --color-brand-deep: 0 122 204;
+  --color-brand-deep-foreground: 255 255 255;
+  --color-brand-energetic: 30 144 255;
+  --color-brand-energetic-foreground: 255 255 255;
+  --color-text-primary: 224 231 235;
+  --color-text-secondary: 155 172 191;
+}
+
+.hero-swiper .swiper-pagination-bullet {
+  background-color: rgba(255, 255, 255, 0.5);
+  opacity: 1;
+  transition: all 0.3s ease;
+  width: 8px;
+  height: 8px;
+}
+
+.hero-swiper .swiper-pagination-bullet-active {
+  background-color: var(--color-accent);
+  width: 24px;
+  border-radius: 8px;
+}
+
+/* Custom Scrollbar for invisible scrolling */
+.custom-scrollbar {
+  /* For Firefox */
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+}
+
+/* For Webkit browsers (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 0px; /* Hide scrollbar completely */
+  height: 0px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; /* Make track invisible */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: transparent; /* Make thumb invisible */
+}
+
+.custom-scrollbar::-webkit-scrollbar-button {
+  display: none; /* Hide scroll buttons/arrows */
+}

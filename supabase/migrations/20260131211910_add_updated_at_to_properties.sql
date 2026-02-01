@@ -1,0 +1,2 @@
+ALTER TABLE public.properties
+ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
