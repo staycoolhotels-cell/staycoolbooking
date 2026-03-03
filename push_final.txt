@@ -1,0 +1,45 @@
+﻿supabase.exe : 
+Initialising login 
+role...
+At line:1 char:1
++ & "C:\Users\VSHARE\s
+coop\apps\supabase\cur
+rent\supabase.exe" db 
+push  ...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (Initialisi   
+ ng login role...:    
+String) [], Remot    
+eException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+Connecting to remote 
+database...
+Remote migration 
+versions not found in 
+local migrations 
+directory.
+
+Make sure your local 
+git repo is 
+up-to-date. If the 
+error persists, try 
+repairing the 
+migration history 
+table:
+supabase migration 
+repair --status 
+reverted 20260219
+
+And update local 
+migrations to match 
+remote database:
+supabase db pull
+

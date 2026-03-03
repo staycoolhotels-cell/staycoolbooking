@@ -1,12 +1,76 @@
 import React from 'react';
 import Sidebar from './components/Sidebar';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing user sessions.
+          }
+        },
+      },
+    }
+  );
+
+  // Use getUser() for better security instead of getSession()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    redirect('/auth');
+  }
+
+  // Check user role from public.users table
+  const { data: userProfile, error: profileError } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !userProfile) {
+    // User exists in auth but not in public.users - sign out and redirect
+    await supabase.auth.signOut();
+    redirect('/auth');
+  }
+
+  // Redirect non-admin users to their appropriate dashboards
+  if (userProfile.role === 'host') {
+    redirect('/host-dashboard');
+  }
+
+  if (userProfile.role === 'guest') {
+    redirect('/user-profile');
+  }
+
+  // Only admins can proceed
+  if (userProfile.role !== 'admin') {
+    redirect('/');
+  }
+
   return (
-    <div className="flex h-screen bg-background pt-[100px]">
+    <div className="flex h-[calc(100vh-100px)] bg-[#050505]">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background p-4 sm:p-6 md:p-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#050505] p-4 sm:p-6 md:p-8">
           {children}
         </main>
       </div>

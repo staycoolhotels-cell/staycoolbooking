@@ -20,10 +20,14 @@ import {
   FolderKanban,
   Gift,
   ClipboardList,
-} from 'lucide-react'; // Changed CurrencyDollar to DollarSign
+  Scale,
+  LifeBuoy,
+} from 'lucide-react';
 import Overview from './Overview';
 import Properties from './Properties';
 import Bookings from './Bookings';
+import RealTimeChat from '@/components/chat/RealTimeChat';
+import { supabase as libSupabase } from '@/lib/supabaseClient';
 import Earnings from './Earnings';
 import Profile from './Profile';
 import OccupancyPulse from './OccupancyPulse'; // Imported OccupancyPulse
@@ -34,11 +38,14 @@ import UnifiedInbox from './UnifiedInbox'; // Imported UnifiedInbox
 import AuraQualityScore from './AuraQualityScore'; // Imported AuraQualityScore
 import SmartDocumentVault from './SmartDocumentVault'; // Imported SmartDocumentVault
 import DynamicAmenityUpsell from './DynamicAmenityUpsell'; // Imported DynamicAmenityUpsell
-import CleaningMaintenanceLog from './CleaningMaintenanceLog'; // Imported CleaningMaintenanceLog
+import CleaningMaintenanceLog from './CleaningMaintenanceLog';
+import DisputesList from './DisputesList';
 import AddPropertyModal, { FormData } from './AddPropertyModal';
-import { Property } from '@/lib/types';
+import { Property, Transaction } from '@/lib/types';
 import { createBrowserClient } from '@supabase/ssr';
 import { AMENITIES } from '@/lib/amenities';
+import AnimatedLoader from '@/components/ui/AnimatedLoader';
+import AvailabilityCalendar from './AvailabilityCalendar';
 
 const HostDashboardInteractive = ({
   hostData,
@@ -60,10 +67,34 @@ const HostDashboardInteractive = ({
       },
     }
   );
-  const [activeTab, setActiveTab] = useState('overview');
+
+  type TabType =
+    | 'overview'
+    | 'properties'
+    | 'bookings'
+    | 'earnings'
+    | 'profile'
+    | 'occupancy-pulse'
+    | 'revenue-velocity'
+    | 'smart-estate'
+    | 'financial-treasury'
+    | 'unified-inbox'
+    | 'aura-quality'
+    | 'document-vault'
+    | 'amenity-upsell'
+    | 'cleaning-maintenance'
+    | 'disputes'
+    | 'availability'
+    | 'support-chat';
+
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [properties, setProperties] = useState<Property[]>(hostData.properties);
   const [propertyToEdit, setPropertyToEdit] = useState<Property | null>(null);
+  const [disputes, setDisputes] = useState<any[]>([]);
+  const [isLoadingDisputes, setIsLoadingDisputes] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     const newProperty = searchParams.get('new_property');
@@ -75,6 +106,89 @@ const HostDashboardInteractive = ({
   useEffect(() => {
     setProperties(hostData.properties);
   }, [hostData.properties]);
+
+  // Real-time unread message count
+  useEffect(() => {
+    const fetchUnread = async () => {
+      const { count } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('receiver_id', hostData.id)
+        .eq('is_read', false);
+      setUnreadMessages(count ?? 0);
+    };
+
+    fetchUnread();
+
+    const channel = supabase
+      .channel('host-unread-msgs')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'messages',
+        filter: `receiver_id=eq.${hostData.id}`,
+      }, () => fetchUnread())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [hostData.id]);
+
+  // Clear badge when inbox is viewed
+  useEffect(() => {
+    if (activeTab === 'unified-inbox') {
+      const t = setTimeout(() => setUnreadMessages(0), 800);
+      return () => clearTimeout(t);
+    }
+  }, [activeTab]);
+
+  // Real-time subscription for property updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('host-properties-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'properties',
+          filter: `host_id=eq.${hostData.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setProperties((prev) => [...prev, payload.new as Property]);
+          } else if (payload.eventType === 'UPDATE') {
+            setProperties((prev) =>
+              prev.map((p) => (p.id === payload.new.id ? (payload.new as Property) : p))
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setProperties((prev) => prev.filter((p) => p.id !== (payload.old as Property).id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [hostData.id, supabase]);
+
+  const fetchDisputes = useCallback(async () => {
+    setIsLoadingDisputes(true);
+    const { data, error } = await supabase
+      .from('disputes')
+      .select('*')
+      .eq('host_id', hostData.id)
+      .order('createdDate', { ascending: false });
+
+    if (!error) {
+      setDisputes(data || []);
+    }
+    setIsLoadingDisputes(false);
+  }, [hostData.id, supabase]);
+
+  useEffect(() => {
+    fetchDisputes();
+  }, [fetchDisputes]);
 
   const fetchProperties = async () => {
     const { data: properties, error: propertiesError } = await supabase
@@ -98,91 +212,133 @@ const HostDashboardInteractive = ({
   const handleSaveProperty = React.useCallback(
     async (formData: FormData) => {
       // Validate documents
-      const uploadedDocsCount = [formData.license[0], formData.taxBill[0], formData.currentBill[0]].filter(Boolean).length;
+      const uploadedDocsCount = [
+        formData.license_url,
+        formData.tax_bill_url,
+        formData.current_bill_url
+      ].filter(Boolean).length;
+
       if (uploadedDocsCount < 2) {
         alert('Please upload at least two of the following documents: Property License, Tax Bill, or Current Bill.');
         return;
       }
 
-      const uploadFile = async (file: File, bucket: string) => {
-        if (!file) return null;
-        const { data, error } = await supabase.storage
-          .from(bucket)
-          .upload(`${hostData.id}/${file.name}`, file, {
-            cacheControl: '3600',
-            upsert: true,
-          });
-        if (error) {
-          console.error('Error uploading file:', error);
-          return null;
-        }
-        const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(data.path);
-        return publicUrlData.publicUrl;
-      };
-
-      const imageUrls = await Promise.all(formData.photos.map(file => uploadFile(file, 'images')));
-
       const amenities = formData.amenities.map((amenityId) => {
         const amenity = AMENITIES.find((a) => a.id === amenityId);
+        if (!amenity) return null;
         return {
           id: amenity.id,
           name: amenity.name,
           description: amenity.description,
           available: true,
         };
-      });
-
-      const licenseUrl = await uploadFile(formData.license[0], 'documents');
-      const taxBillUrl = await uploadFile(formData.taxBill[0], 'documents');
-      const currentBillUrl = await uploadFile(formData.currentBill[0], 'documents');
+      }).filter((a): a is NonNullable<typeof a> => a !== null);
 
       if (propertyToEdit) {
         // Editing existing property
-        const { data, error } = await supabase
-          .from('properties')
-          .update({
-            name: formData.name,
-            title: formData.name,
-            description: formData.description,
-            price_per_night: formData.price,
-            weekend_price_per_night: formData.weekendPrice,
-            location: formData.location,
-            tier: formData.type,
-            amenities,
-            license_url: licenseUrl,
-            tax_bill_url: taxBillUrl,
-            current_bill_url: currentBillUrl,
-            image_url: imageUrls.filter(Boolean)[0] || '',
-          })
-          .eq('id', propertyToEdit.id)
-          .select();
+        const rpcParams = {
+          p_id: propertyToEdit.id,
+          p_name: String(formData.name),
+          p_title: String(formData.name),
+          p_description: String(formData.description),
+          p_price_per_night: parseFloat(String(formData.price)) || 0,
+          p_weekend_price_per_night: parseFloat(String(formData.weekendPrice)) || 0,
+          p_tier: String(formData.type),
+          p_amenities: amenities.length > 0 ? amenities : [],
+          p_license_url: formData.license_url || '',
+          p_tax_bill_url: formData.tax_bill_url || '',
+          p_current_bill_url: formData.current_bill_url || '',
+          p_image_url: formData.photo_urls[0] || '',
+          p_images: formData.photo_urls.map((url, index) => ({ url, alt: `${formData.name} Photo ${index + 1}` })),
+          p_cancellation_policy: formData.cancellationPolicy,
+          p_rules: formData.rules,
+          p_safety_items: formData.safetyItems,
+          p_bedrooms: Number(formData.bedrooms) || 0,
+          p_beds: Number(formData.beds) || 0,
+          p_bathrooms: Number(formData.bathrooms) || 0,
+          p_max_guests: Number(formData.maxGuests) || 0,
+          p_area: Number(formData.area) || 0,
+          p_co_host_name: formData.coHostName,
+          p_co_host_email: formData.coHostEmail,
+          p_address_line1: formData.addressLine1,
+          p_address_line2: formData.addressLine2,
+          p_landmark: formData.landmark,
+          p_district: formData.district,
+          p_city: formData.city,
+          p_state: formData.state,
+          p_postal_code: formData.postalCode,
+          p_country: formData.country,
+          p_show_specific_location: formData.showSpecificLocation,
+          p_location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
+          p_total_rooms: Number(formData.totalRooms) || 0,
+          p_room_type: formData.roomType,
+        };
+
+        const { data, error } = await supabase.rpc('update_property', rpcParams);
 
         if (!error && data) {
           setProperties(
             properties.map((p) => (p.id === propertyToEdit.id ? (data[0] as Property) : p))
           );
           fetchProperties();
+        } else if (error) {
+          console.error('Error updating property via RPC:', error);
+          alert(`Failed to update property: ${error.message || 'Unknown error'} (${error.code || 'N/A'})\n\nDetails: ${error.details || 'None'}\nHint: ${error.hint || 'None'}`);
         }
         setPropertyToEdit(null);
       } else {
         // Adding new property
-        const { data, error } = await supabase.rpc('create_property', {
-          name: formData.name,
-          title: formData.name,
-          description: formData.description,
-          price_per_night: formData.price,
-          weekend_price_per_night: formData.weekendPrice,
-          location: formData.location,
-          tier: formData.type,
-          amenities,
-          license_url: licenseUrl,
-          tax_bill_url: taxBillUrl,
-          current_bill_url: currentBillUrl,
-          image_url: imageUrls.filter(Boolean)[0] || '',
-        });
+        try {
+          const rpcParams = {
+            p_name: String(formData.name),
+            p_title: String(formData.name),
+            p_description: String(formData.description),
+            p_price_per_night: parseFloat(String(formData.price)) || 0,
+            p_weekend_price_per_night: parseFloat(String(formData.weekendPrice)) || 0,
+            p_tier: String(formData.type),
+            p_amenities: amenities.length > 0 ? amenities : [],
+            p_license_url: formData.license_url || '',
+            p_tax_bill_url: formData.tax_bill_url || '',
+            p_current_bill_url: formData.current_bill_url || '',
+            p_image_url: formData.photo_urls[0] || '',
+            p_images: formData.photo_urls.map((url, index) => ({ url, alt: `${formData.name} Photo ${index + 1}` })),
+            p_cancellation_policy: formData.cancellationPolicy,
+            p_rules: formData.rules,
+            p_safety_items: formData.safetyItems,
+            p_bedrooms: Number(formData.bedrooms) || 0,
+            p_beds: Number(formData.beds) || 0,
+            p_bathrooms: Number(formData.bathrooms) || 0,
+            p_max_guests: Number(formData.maxGuests) || 0,
+            p_area: Number(formData.area) || 0,
+            p_co_host_name: formData.coHostName,
+            p_co_host_email: formData.coHostEmail,
+            p_address_line1: formData.addressLine1,
+            p_address_line2: formData.addressLine2,
+            p_landmark: formData.landmark,
+            p_district: formData.district,
+            p_city: formData.city,
+            p_state: formData.state,
+            p_postal_code: formData.postalCode,
+            p_country: formData.country,
+            p_show_specific_location: formData.showSpecificLocation,
+            p_location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
+            p_total_rooms: Number(formData.totalRooms) || 0,
+            p_room_type: formData.roomType,
+          };
 
-        if (!error) {
-          fetchProperties();
+          const { data: newPropertyId, error } = await supabase.rpc('create_property', rpcParams);
+
+          if (error) {
+            console.error('Error creating property via RPC:', error);
+            alert(`Failed to create property: ${error.message || 'Unknown error'} (${error.code || 'N/A'})\n\nDetails: ${error.details || 'None'}\nHint: ${error.hint || 'None'}`);
+            return;
+          }
+
+          console.log('Property created successfully via RPC, ID:', newPropertyId);
+          await fetchProperties();
+        } catch (err) {
+          console.error('Unexpected error creating property:', err);
+          alert(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       }
       setIsModalOpen(false);
@@ -205,18 +361,74 @@ const HostDashboardInteractive = ({
     { id: 'aura-quality', label: 'Aura Quality', icon: Star },
     { id: 'document-vault', label: 'Document Vault', icon: FolderKanban },
     { id: 'amenity-upsell', label: 'Amenity Upsell', icon: Gift },
-    { id: 'cleaning-maintenance', label: 'Cleaning & Maintenance', icon: ClipboardList }, // Added Cleaning & Maintenance
+    { id: 'cleaning-maintenance', label: 'Cleaning & Maintenance', icon: ClipboardList },
+    { id: 'support-chat', label: 'Support Chat', icon: LifeBuoy },
+    { id: 'disputes', label: 'Disputes', icon: Scale },
+    { id: 'availability', label: 'Availability', icon: CalendarCheck },
     { id: 'properties', label: 'Properties', icon: Building2 },
     { id: 'bookings', label: 'Reserve', icon: CalendarCheck },
     { id: 'earnings', label: 'Treasury', icon: Wallet },
     { id: 'profile', label: 'Identify', icon: UserCircle },
   ];
 
+  function SupportChatSection({ currentUser }: { currentUser: { id: string; name: string } }) {
+    const [adminUser, setAdminUser] = useState<{ id: string; name: string } | null>(null);
+
+    useEffect(() => {
+      const fetchAdmin = async () => {
+        const { data } = await supabase.from('users').select('id, name').eq('role', 'admin').limit(1).single();
+        if (data) {
+          setAdminUser({ id: data.id, name: data.name || 'Admin Support' });
+        } else {
+          setAdminUser({ id: '00000000-0000-0000-0000-000000000000', name: 'Admin Support' });
+        }
+      };
+      fetchAdmin();
+    }, [supabase]);
+
+    return (
+      <div className="h-[600px] flex flex-col">
+        <h2 className="text-2xl font-bold text-white mb-6">Contact Admin Support</h2>
+        <div className="flex-1 min-h-0">
+          {adminUser && (
+            <RealTimeChat
+              currentUser={currentUser}
+              otherUser={adminUser}
+              contextTitle="Platform Support"
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="relative min-h-screen w-full bg-[#080808] flex text-zinc-100">
+    <div className="relative min-h-[calc(100vh-100px)] w-full bg-[#080808] flex text-zinc-100">
+      {/* Mobile Toggle Button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="md:hidden fixed bottom-6 left-6 z-[100] p-4 bg-sky-500 rounded-full shadow-[0_0_20px_rgba(14,165,233,0.4)] text-white hover:bg-sky-400 transition-colors"
+        aria-label="Toggle Navigation"
+      >
+        {isMobileMenuOpen ? <Plus className="rotate-45" size={24} /> : <LayoutDashboard size={24} />}
+      </button>
+
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="md:hidden fixed inset-0 bg-black/80 z-[90] backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* 1. SIDEBAR NAVIGATION (Replacing Header) */}
-      <aside className="fixed top-0 left-0 z-50 w-24 md:w-64 h-screen bg-zinc-950 border-r border-zinc-900 flex flex-col items-center md:items-start py-10 px-4">
-        <div className="mb-16 px-4"></div>
+      <aside className={`fixed top-[100px] left-0 z-[95] w-64 h-[calc(100vh-100px)] bg-zinc-950 border-r border-zinc-900 flex flex-col items-center md:items-start py-6 px-4 transition-transform duration-300 md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="mb-0 px-4"></div>
 
         <nav className="flex-1 w-full space-y-2 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => {
@@ -227,9 +439,8 @@ const HostDashboardInteractive = ({
               // Custom rendering for Indian Rupee symbol
               renderedIcon = (
                 <span
-                  className={`w-[22px] h-[22px] flex items-center justify-center font-bold ${
-                    isActive ? 'text-sky-400' : 'text-zinc-500 group-hover:text-zinc-200'
-                  }`}
+                  className={`w-[22px] h-[22px] flex items-center justify-center font-bold ${isActive ? 'text-sky-400' : 'text-zinc-500 group-hover:text-zinc-200'
+                    }`}
                 >
                   ₹
                 </span>
@@ -243,17 +454,23 @@ const HostDashboardInteractive = ({
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl transition-all duration-300 group ${
-                  isActive
-                    ? 'bg-sky-500/10 text-sky-400'
-                    : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'
-                }`}
+                onClick={() => setActiveTab(item.id as TabType)}
+                className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl transition-all duration-300 group ${isActive
+                  ? 'bg-sky-500/10 text-sky-400'
+                  : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'
+                  }`}
               >
                 {renderedIcon}
-                <span className="font-bold text-sm tracking-tight hidden md:block">
+                <span className="font-bold text-sm tracking-tight block flex-1 text-left">
                   {item.label}
                 </span>
+                {/* Unread dot for inbox */}
+                {item.id === 'unified-inbox' && unreadMessages > 0 && activeTab !== 'unified-inbox' && (
+                  <span className="relative flex h-2.5 w-2.5 ml-1 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+                  </span>
+                )}
                 {isActive && (
                   <motion.div
                     layoutId="activeTabIndicator"
@@ -271,17 +488,17 @@ const HostDashboardInteractive = ({
             className="w-full flex items-center gap-4 px-4 py-4 rounded-xl text-red-500/50 hover:text-red-500 hover:bg-red-500/5 transition-all"
           >
             <LayoutDashboard size={22} className="rotate-180" />
-            <span className="font-bold text-sm hidden md:block">Exit</span>
+            <span className="font-bold text-sm block">Exit</span>
           </button>
         </div>
       </aside>
 
       {/* 2. MAIN CONTENT AREA */}
-      <main className="flex-1 relative overflow-y-auto bg-[#080808] ml-24 md:ml-64">
+      <main className="flex-1 relative overflow-y-auto bg-[#080808] ml-0 md:ml-64 w-full">
         {/* Background Decorative Element */}
         <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-sky-500/5 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="px-8 md:px-16 py-16">
+        <div className="px-4 sm:px-8 md:px-16 py-4">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -291,13 +508,16 @@ const HostDashboardInteractive = ({
               transition={{ duration: 0.4, ease: [0.19, 1, 0.22, 1] }}
             >
               {/* Content Canvas */}
-              <div className="bg-zinc-900/30 border border-zinc-900 rounded-[2rem] p-1 shadow-2xl">
-                <div className="bg-zinc-950/50 rounded-[1.8rem] p-8 md:p-12">
+              <div className="bg-zinc-900/30 border border-zinc-900 rounded-[2rem] p-1 shadow-2xl overflow-hidden md:overflow-visible">
+                <div className="bg-zinc-950/50 rounded-[1.8rem] p-4 sm:p-6 md:p-8">
                   {activeTab === 'overview' && (
                     <Overview
                       properties={properties}
                       bookings={hostData.bookings}
                       earnings={hostData.earnings}
+                      reviews={hostData.reviews}
+                      disputes={disputes}
+                      onAction={setActiveTab as (tab: string) => void}
                     />
                   )}
                   {activeTab === 'properties' && (
@@ -316,32 +536,47 @@ const HostDashboardInteractive = ({
                       }}
                       onDelete={(id) => setProperties((p) => p.filter((x) => x.id !== id))}
                       onToggleStatus={async (id, newStatus) => {
-                        const { error } = await supabase
-                          .from('properties')
-                          .update({ status: newStatus })
-                          .eq('id', id);
-                        if (!error) {
+                        try {
+                          const { error } = await supabase.rpc('toggle_property_status', {
+                            p_id: id,
+                            p_status: newStatus,
+                          });
+
+                          if (error) {
+                            console.error('Error toggling status:', error);
+                            alert(`Failed to update status: ${error.message}`);
+                            return;
+                          }
+
+                          // Optimistic update successful
                           setProperties((p) =>
                             p.map((x) => (x.id === id ? { ...x, status: newStatus } : x))
                           );
+                        } catch (err) {
+                          console.error('Unexpected error toggling status:', err);
+                          alert('An unexpected error occurred');
                         }
                       }}
                     />
                   )}
                   {activeTab === 'bookings' && (
-                    <Bookings bookings={hostData.bookings} searchTerm="" setSearchTerm={() => {}} />
+                    <Bookings bookings={hostData.bookings} searchTerm="" setSearchTerm={() => { }} onAction={setActiveTab as (tab: string) => void} />
                   )}
-                  {activeTab === 'earnings' && <Earnings earnings={hostData.earnings} />}
-                  {activeTab === 'occupancy-pulse' && <OccupancyPulse />}
-                  {activeTab === 'revenue-velocity' && <RevenueForecasting />}
-                  {activeTab === 'smart-estate' && <SmartEstateManagement />}
-                  {activeTab === 'financial-treasury' && <FinancialTreasury />}
+                  {activeTab === 'earnings' && <Earnings earnings={hostData.transactions} />}
+                  {activeTab === 'occupancy-pulse' && <OccupancyPulse bookings={hostData.bookings} />}
+                  {activeTab === 'revenue-velocity' && <RevenueForecasting bookings={hostData.bookings} />}
+                  {activeTab === 'smart-estate' && <SmartEstateManagement properties={properties} />}
+                  {activeTab === 'financial-treasury' && <FinancialTreasury transactions={hostData.transactions} />}
                   {activeTab === 'unified-inbox' && <UnifiedInbox />}
-                  {activeTab === 'aura-quality' && <AuraQualityScore />}
-                  {activeTab === 'document-vault' && <SmartDocumentVault />}
+                  {activeTab === 'aura-quality' && <AuraQualityScore properties={properties} />}
+                  {activeTab === 'document-vault' && <SmartDocumentVault properties={properties} />}
                   {activeTab === 'amenity-upsell' && <DynamicAmenityUpsell />}
-                  {activeTab === 'cleaning-maintenance' && <CleaningMaintenanceLog />}{' '}
-                  {/* Render CleaningMaintenanceLog */}
+                  {activeTab === 'cleaning-maintenance' && <CleaningMaintenanceLog properties={properties} />}
+                  {activeTab === 'disputes' && <DisputesList disputes={disputes} isLoading={isLoadingDisputes} />}
+                  {activeTab === 'availability' && <AvailabilityCalendar properties={properties} />}
+                  {activeTab === 'support-chat' && (
+                    <SupportChatSection currentUser={{ id: hostData.id, name: hostData.name }} />
+                  )}
                   {activeTab === 'profile' && (
                     <Profile
                       hostName={hostName}
@@ -404,4 +639,6 @@ const HostDashboardInteractive = ({
     </div>
   );
 };
+
 export default HostDashboardInteractive;
+

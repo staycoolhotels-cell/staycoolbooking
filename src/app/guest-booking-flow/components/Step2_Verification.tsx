@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import React, { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { verifyUser } from '@/lib/booking-actions';
 
 interface Step2Props {
@@ -23,7 +23,13 @@ const SubmitButton = () => {
 };
 
 const Step2_Verification = ({ onNext, onBack }: Step2Props) => {
-  const [errorMessage, dispatch] = useFormState(verifyUser, undefined);
+  const [state, dispatch] = useActionState(verifyUser, undefined);
+
+  React.useEffect(() => {
+    if (state?.success) {
+      onNext();
+    }
+  }, [state, onNext]);
 
   return (
     <div className="p-8 rounded-xl shadow-brand-md max-w-2xl mx-auto bg-card/50 backdrop-blur-md border border-brand-energetic/20">
@@ -74,7 +80,7 @@ const Step2_Verification = ({ onNext, onBack }: Step2Props) => {
           <SubmitButton />
         </div>
       </form>
-      {errorMessage && <p className="text-red-500 mt-4">{errorMessage}</p>}
+      {state?.error && <p className="text-red-500 mt-4">{state.error}</p>}
     </div>
   );
 };

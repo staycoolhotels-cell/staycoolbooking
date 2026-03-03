@@ -8,9 +8,10 @@ interface BookingsProps {
   bookings: Booking[];
   searchTerm: string;
   setSearchTerm: (term: string) => void;
+  onAction: (tab: string) => void;
 }
 
-const Bookings = ({ bookings, searchTerm, setSearchTerm }: BookingsProps) => {
+const Bookings = ({ bookings, searchTerm, setSearchTerm, onAction }: BookingsProps) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -24,7 +25,7 @@ const Bookings = ({ bookings, searchTerm, setSearchTerm }: BookingsProps) => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <button
-            onClick={() => {}}
+            onClick={() => { }}
             className="px-4 py-2 bg-gradient-to-br from-gradient-primary-from to-gradient-primary-to text-primary-foreground rounded-lg font-semibold"
           >
             Filter
@@ -33,7 +34,7 @@ const Bookings = ({ bookings, searchTerm, setSearchTerm }: BookingsProps) => {
       </div>
       <div className="space-y-4">
         {bookings.map((booking) => (
-          <BookingCard key={booking.id} booking={booking} />
+          <BookingCard key={booking.id} booking={booking} onAction={onAction} />
         ))}
       </div>
     </div>

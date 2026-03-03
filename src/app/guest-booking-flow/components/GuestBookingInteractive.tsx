@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'next/navigation';
 import Stepper from './Stepper';
-import Step1_PropertySelection from './Step1_PropertySelection';
 import Step2_Verification from './Step2_Verification';
 import Step3_Payment from './Step3_Payment';
 import Step4_Confirmation from './Step4_Confirmation';
@@ -14,13 +14,17 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 const GuestBookingInteractive = () => {
+  const searchParams = useSearchParams();
+  const preSelectedPropertyId = searchParams.get('propertyId');
   const [currentStep, setCurrentStep] = useState(1);
   const [bookingCart, setBookingCart] = useState<Property[]>([]);
   const [filters, setFilters] = useState({
     location: '',
-    checkIn: '',
-    checkOut: '',
-    guests: 1,
+    checkIn: searchParams.get('checkIn') || '',
+    checkOut: searchParams.get('checkOut') || '',
+    guests: Number(searchParams.get('guests')) || 1,
+    bookingType: searchParams.get('bookingType') || 'single',
+    roomCount: Number(searchParams.get('roomCount')) || 1,
   });
 
   const [properties, setProperties] = useState<Property[]>([]);
@@ -43,25 +47,16 @@ const GuestBookingInteractive = () => {
     setLoadingProperties(false);
   };
 
-  const filteredProperties = useMemo(() => {
-    return properties.filter((property) => {
-      const matchesLocation =
-        !filters.location ||
-        property.location.toLowerCase().includes(filters.location.toLowerCase());
-      const matchesGuests = property.capacity ? property.capacity >= filters.guests : true;
-      return matchesLocation && matchesGuests;
-    });
-  }, [properties, filters]);
+  useEffect(() => {
+    if (!loadingProperties && preSelectedPropertyId && properties.length > 0) {
+      const selectedProperty = properties.find(p => p.id === preSelectedPropertyId);
+      if (selectedProperty) {
+        setBookingCart([selectedProperty]);
+      }
+    }
+  }, [loadingProperties, preSelectedPropertyId, properties]);
 
-  const toggleCartItem = (property: Property) => {
-    setBookingCart((prev) =>
-      prev.find((item) => item.id === property.id)
-        ? prev.filter((item) => item.id !== property.id)
-        : [...prev, property]
-    );
-  };
-
-  const steps = ['Selection', 'Identity', 'Payment', 'Finish'];
+  const steps = ['Identity', 'Payment', 'Finish'];
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -94,37 +89,26 @@ const GuestBookingInteractive = () => {
                 {/* Body - Scaled down padding */}
                 <div className="p-6 md:p-10">
                   {currentStep === 1 && (
-                    <Step1_PropertySelection
-                      properties={filteredProperties}
-                      loading={loadingProperties}
-                      bookingCart={bookingCart}
-                      toggleCartItem={toggleCartItem}
+                    <Step2_Verification
                       onNext={() => setCurrentStep(2)}
-                      filters={filters}
-                      setFilters={setFilters}
+                      onBack={() => { }} // No back action on first step
                     />
                   )}
                   {currentStep === 2 && (
-                    <Step2_Verification
+                    <Step3_Payment
+                      bookingCart={bookingCart}
+                      filters={filters}
                       onNext={() => setCurrentStep(3)}
                       onBack={() => setCurrentStep(1)}
                     />
                   )}
-                  {currentStep === 3 && (
-                    <Step3_Payment
-                      bookingCart={bookingCart}
-                      filters={filters}
-                      onNext={() => setCurrentStep(4)}
-                      onBack={() => setCurrentStep(2)}
-                    />
-                  )}
-                  {currentStep === 4 && <Step4_Confirmation />}
+                  {currentStep === 3 && <Step4_Confirmation />}
                 </div>
 
                 {/* Footer - Inline with the card */}
                 <div className="px-8 py-6 border-t border-white/5 bg-white/[0.01] flex justify-between items-center">
                   <div>
-                    {currentStep > 1 && currentStep < 4 && (
+                    {currentStep > 1 && currentStep < 3 && (
                       <button
                         onClick={() => setCurrentStep((prev) => prev - 1)}
                         className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
@@ -134,7 +118,7 @@ const GuestBookingInteractive = () => {
                     )}
                   </div>
 
-                  {currentStep < 4 && (
+                  {currentStep < 3 && (
                     <button
                       onClick={() => setCurrentStep((prev) => prev + 1)}
                       className="px-8 py-3 bg-sky-500 hover:bg-sky-400 text-black text-[10px] font-black uppercase tracking-widest rounded-lg transition-all shadow-[0_0_15px_rgba(56,189,248,0.2)]"

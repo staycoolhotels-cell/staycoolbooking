@@ -33,10 +33,13 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
 
   const stayTypes = [
     { value: 'all', label: 'All Types', icon: 'HomeIcon' },
-    { value: 'tent', label: 'Tents', icon: 'BuildingOfficeIcon' },
+    { value: 'hotel', label: 'Hotel Rooms', icon: 'BuildingOffice2Icon' },
+    { value: 'homestay', label: 'Home Stays', icon: 'HomeIcon' },
+    { value: 'tent', label: 'Tents', icon: 'TentIcon' },
     { value: 'wooden', label: 'Wooden Stays', icon: 'HomeModernIcon' },
-    { value: 'boutique', label: 'Boutique', icon: 'SparklesIcon' },
-    { value: 'villa', label: 'Villas', icon: 'BuildingLibraryIcon' },
+    { value: 'dormitory', label: 'Dormitory Stays', icon: 'UserGroupIcon' },
+    { value: 'apartment', label: 'Apartment Stays', icon: 'BuildingLibraryIcon' },
+    { value: 'resort', label: 'Resorts', icon: 'ResortIcon' },
   ];
 
   const handleSearch = () => {
@@ -105,7 +108,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
             value={checkIn}
             onChange={(e) => setCheckIn(e.target.value)}
             min={new Date().toISOString().split('T')[0]}
-            className="w-full px-4 py-3 bg-input rounded-full focus:outline-none focus:ring-2 focus:ring-primary text-text-primary"
+            className="w-full px-4 py-3 bg-slate-800/80 rounded-full focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400 [color-scheme:dark]"
           />
         </div>
         <div className="lg:col-span-2">
@@ -117,7 +120,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
             value={checkOut}
             onChange={(e) => setCheckOut(e.target.value)}
             min={checkIn || new Date().toISOString().split('T')[0]}
-            className="w-full px-4 py-3 bg-input rounded-full focus:outline-none focus:ring-2 focus:ring-primary text-text-primary"
+            className="w-full px-4 py-3 bg-slate-800/80 rounded-full focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400 [color-scheme:dark]"
           />
         </div>
         <div className="lg:col-span-2 relative">

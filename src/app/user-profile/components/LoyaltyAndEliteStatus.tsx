@@ -4,17 +4,19 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
 import { Achievement } from '@/lib/types';
+import { Ticket, Star, Trophy, Crown } from 'lucide-react';
 
 type LoyaltyAndEliteStatusProps = {
   achievements: Achievement[];
   totalBookings: number;
+  rewardPoints: number;
 };
 
 const TIERS = {
-  BRONZE: { name: 'Bronze', minBookings: 0, icon: 'ShieldBronze' },
-  SILVER: { name: 'Silver', minBookings: 5, icon: 'ShieldSilver' },
-  GOLD: { name: 'Gold', minBookings: 10, icon: 'ShieldGold' },
-  ZENITH: { name: 'Zenith Elite', minBookings: 20, icon: 'ShieldZenith' },
+  BRONZE: { name: 'Bronze', minBookings: 0, icon: 'ShieldCheckIcon' },
+  SILVER: { name: 'Silver', minBookings: 5, icon: 'ShieldCheckIcon' },
+  GOLD: { name: 'Gold', minBookings: 10, icon: 'ShieldCheckIcon' },
+  ZENITH: { name: 'Zenith Elite', minBookings: 20, icon: 'ShieldCheckIcon' },
 };
 
 const getCurrentTier = (bookings: number) => {
@@ -24,7 +26,7 @@ const getCurrentTier = (bookings: number) => {
   return TIERS.BRONZE;
 };
 
-const LoyaltyAndEliteStatus = ({ achievements, totalBookings }: LoyaltyAndEliteStatusProps) => {
+const LoyaltyAndEliteStatus = ({ achievements, totalBookings, rewardPoints }: LoyaltyAndEliteStatusProps) => {
   const currentTier = getCurrentTier(totalBookings);
   const nextTier =
     totalBookings < TIERS.ZENITH.minBookings
@@ -32,71 +34,92 @@ const LoyaltyAndEliteStatus = ({ achievements, totalBookings }: LoyaltyAndEliteS
       : TIERS.ZENITH;
 
   const progressPercentage = (totalBookings / nextTier.minBookings) * 100;
-  const milestoneAchievements = achievements.filter((a) => a.type === 'Milestone');
 
-  // Simple reward points calculation
-  const rewardPoints = totalBookings * 100 + milestoneAchievements.length * 50;
+  // Dynamically generate milestone achievements based on totalBookings
+  const milestoneAchievements = [];
+  if (totalBookings >= 1) {
+    milestoneAchievements.push({
+      id: 'm1', title: 'First Trip', description: 'Completed your first booking',
+      icon: <Ticket className="w-8 h-8 text-white drop-shadow-md" />,
+      bg: 'bg-gradient-to-br from-blue-400 to-indigo-600 shadow-blue-500/30'
+    });
+  }
+  if (totalBookings >= 5) {
+    milestoneAchievements.push({
+      id: 'm2', title: 'Frequent Traveler', description: 'Completed 5 bookings',
+      icon: <Star className="w-8 h-8 text-yellow-100 drop-shadow-md" fill="currentColor" />,
+      bg: 'bg-gradient-to-br from-amber-400 to-orange-600 shadow-orange-500/30'
+    });
+  }
+  if (totalBookings >= 10) {
+    milestoneAchievements.push({
+      id: 'm3', title: 'Globetrotter', description: 'Completed 10 bookings',
+      icon: <Trophy className="w-8 h-8 text-amber-100 drop-shadow-md" />,
+      bg: 'bg-gradient-to-br from-red-500 to-rose-700 shadow-red-500/30'
+    });
+  }
+  if (totalBookings >= 20) {
+    milestoneAchievements.push({
+      id: 'm4', title: 'Elite Voyager', description: 'Completed 20 bookings',
+      icon: <Crown className="w-8 h-8 text-white drop-shadow-md" fill="currentColor" />,
+      bg: 'bg-gradient-to-br from-violet-500 to-fuchsia-700 shadow-fuchsia-500/30'
+    });
+  }
 
   return (
-    <div className="bg-gradient-to-br from-gradient-card-from to-gradient-card-to border border-border rounded-2xl shadow-xl p-6">
+    <div className="bg-zinc-900/80 border border-zinc-800 rounded-[2rem] shadow-xl p-6 shadow-sky-900/5">
       <h2 className="text-xl font-bold text-white mb-4">Loyalty & Elite Status</h2>
 
       {/* Zenith Tiers */}
-      <div className="bg-gray-800/40 rounded-xl p-4 text-center">
-        <Icon name={currentTier.icon as any} className="w-16 h-16 mx-auto text-primary" />
-        <h3 className="text-2xl font-bold mt-2 text-white">{currentTier.name} Tier</h3>
-        <p className="text-sm text-gray-400">You have {totalBookings} total bookings.</p>
+      <div className="bg-zinc-950/40 border border-sky-500/10 rounded-2xl p-6 text-center backdrop-blur-sm">
+        <Icon name={currentTier.icon as any} className="w-16 h-16 mx-auto text-sky-400 drop-shadow-[0_0_15px_rgba(56,189,248,0.5)]" />
+        <h3 className="text-2xl font-bold mt-2 text-white tracking-tight">{currentTier.name} Tier</h3>
+        <p className="text-sm text-zinc-400">You have {totalBookings} total bookings.</p>
 
         <div className="mt-4">
-          <div className="flex justify-between text-xs text-gray-400">
+          <div className="flex justify-between text-xs text-sky-300/50 font-semibold uppercase tracking-wider">
             <span>{currentTier.name}</span>
             <span>{nextTier.name}</span>
           </div>
-          <div className="w-full bg-gray-700 rounded-full h-2 mt-1">
+          <div className="w-full bg-zinc-900 rounded-full h-2 mt-2 border border-zinc-700/30">
             <motion.div
-              className="bg-primary h-2 rounded-full"
+              className="bg-sky-500 h-2 rounded-full shadow-[0_0_10px_rgba(14,165,233,0.5)]"
               initial={{ width: 0 }}
               animate={{ width: `${progressPercentage}%` }}
               transition={{ duration: 1.5, ease: 'easeInOut' }}
             />
           </div>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-[10px] text-zinc-500 mt-2 font-medium">
             {nextTier.minBookings - totalBookings} bookings to {nextTier.name}
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+      <div className="mt-6">
         {/* Milestone Badges */}
         <div>
           <h3 className="font-semibold text-gray-300 mb-2">Milestone Badges</h3>
-          <div className="grid grid-cols-4 gap-3">
-            {milestoneAchievements.map((badge, i) => (
-              <motion.div
-                key={badge.id}
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 + i * 0.1 }}
-                className="flex flex-col items-center text-center"
-                title={`${badge.title} - ${badge.description}`}
-              >
-                <div className="bg-gray-700/50 p-3 rounded-full">
-                  <Icon name={badge.icon as any} className="w-8 h-8 text-yellow-400" />
-                </div>
-                <p className="text-xs mt-1 text-gray-400">{badge.title}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        {/* Reward Wallet */}
-        <div className="bg-primary/10 border border-primary/30 rounded-xl flex flex-col items-center justify-center p-4">
-          <Icon name="WalletIcon" size={32} className="text-primary" />
-          <p className="text-4xl font-bold text-white mt-2">{rewardPoints}</p>
-          <p className="text-sm text-primary font-semibold">Reward Points</p>
-          <button className="text-xs mt-2 bg-primary/20 text-primary px-3 py-1 rounded-full hover:bg-primary/30">
-            Use on Next Booking
-          </button>
+          {milestoneAchievements.length > 0 ? (
+            <div className="grid grid-cols-4 gap-3">
+              {milestoneAchievements.map((badge, i) => (
+                <motion.div
+                  key={badge.id}
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 + i * 0.1 }}
+                  className="flex flex-col items-center text-center"
+                  title={`${badge.title} - ${badge.description}`}
+                >
+                  <div className={`p-4 rounded-full shadow-lg border border-white/20 flex items-center justify-center ${badge.bg}`}>
+                    {badge.icon}
+                  </div>
+                  <p className="text-xs font-bold mt-2 text-zinc-200">{badge.title}</p>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-500 italic">Complete bookings to earn badges.</p>
+          )}
         </div>
       </div>
     </div>

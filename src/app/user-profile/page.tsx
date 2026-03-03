@@ -18,19 +18,20 @@ export default async function ProfilePage() {
     }
   );
 
+  // Use getUser() for better security instead of getSession()
   const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
-  if (error || !session) {
+  if (authError || !user) {
     redirect('/auth');
   }
 
   const { data: profile, error: userError } = await supabase
-    .from('profiles')
+    .from('users')
     .select('*')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .maybeSingle();
 
   if (userError || !profile) {
@@ -38,55 +39,86 @@ export default async function ProfilePage() {
     redirect('/signup');
   }
 
-  const user = {
+  // Role-based access control
+  // Redirect admins to admin panel
+  if (profile.role === 'admin') {
+    redirect('/admin-panel');
+  }
+
+  // Redirect hosts to host dashboard
+  if (profile.role === 'host') {
+    redirect('/host-dashboard');
+  }
+
+  // Only guests should access this page
+  if (profile.role !== 'guest') {
+    redirect('/');
+  }
+
+  const userData = {
     ...profile,
-    email: session.user.email,
-    name: session.user.user_metadata.name,
-    avatar_url: session.user.user_metadata.avatar_url,
+    email: user.email,
+    name: user.user_metadata.name || profile.name,
+    avatar_url: user.user_metadata.avatar_url || profile.avatar_url,
+    reward_points: 0, // Default value
   };
+
+  const { data: profilePoints } = await supabase
+    .from('profiles')
+    .select('reward_points')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profilePoints) {
+    userData.reward_points = profilePoints.reward_points;
+  }
 
   const { data: personalInfo, error: personalInfoError } = await supabase
     .from('user_personal_info')
     .select('*')
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .maybeSingle();
 
   const { data: verifications, error: verificationsError } = await supabase
     .from('verifications')
     .select('*')
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .maybeSingle();
 
-  const { data: reviews, error: reviewsError } = await supabase
+  const { data: rawReviews, error: reviewsError } = await supabase
     .from('reviews')
-    .select('*')
-    .eq('guest_id', session.user.id);
+    .select('*, reviewer:users!reviewer_id(name)')
+    .eq('receiver_id', user.id);
+
+  const reviews = rawReviews?.map((rev: any) => ({
+    ...rev,
+    guestName: rev.reviewer?.name || 'Host',
+  })) || [];
 
   const { data: bookings, error: bookingsError } = await supabase
     .from('bookings')
     .select('*, properties!inner(*)')
-    .eq('guest_id', session.user.id);
+    .eq('guest_id', user.id);
 
   const { data: achievements, error: achievementsError } = await supabase
     .from('user_achievements')
     .select('*')
-    .eq('user_id', session.user.id);
+    .eq('user_id', user.id);
 
   const { data: transactions, error: transactionsError } = await supabase
     .from('transactions')
     .select('*')
-    .eq('guest_id', session.user.id);
+    .eq('guest_id', user.id);
 
   const { data: wishlist, error: wishlistError } = await supabase
     .from('wishlist')
-    .select('*, properties!inner(*)')
-    .eq('user_id', session.user.id);
+    .select('*, properties(*)')
+    .eq('user_id', user.id);
 
-
-
-  const userData = {
-    ...user,
+  const allUserData = {
+    ...userData,
     ...personalInfo,
+    email: user.email, // Ensure email is not overwritten by null in personalInfo
     verifications,
     reviews,
     bookings,
@@ -96,11 +128,11 @@ export default async function ProfilePage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#050505] pb-12 pt-[100px]">
-      
+    <main className="min-h-screen bg-[#080808] pb-12">
+
       {/* Main Profile Component renders Overview, Reviews, or Settings based on user interaction */}
-      <div className="py-8">
-        {userData && <UserProfileInteractive userData={userData as any} />}
+      <div className="py-2">
+        {allUserData && <UserProfileInteractive userData={allUserData as any} />}
       </div>
     </main>
   );

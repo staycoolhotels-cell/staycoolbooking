@@ -25,15 +25,18 @@ const Countdown = ({ targetDate }: { targetDate: string }) => {
     return timeLeft;
   };
 
-  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // Set the real value immediately after mount to avoid SSR hydration mismatch
+    setTimeLeft(calculateTimeLeft());
+
+    const timer = setInterval(() => {
       setTimeLeft(calculateTimeLeft());
     }, 1000);
 
-    return () => clearTimeout(timer);
-  });
+    return () => clearInterval(timer);
+  }, [targetDate]);
 
   const timerComponents = Object.entries(timeLeft).map(([interval, value]) => {
     if (value < 0) return null;
@@ -50,7 +53,7 @@ const Countdown = ({ targetDate }: { targetDate: string }) => {
             {String(value).padStart(2, '0')}
           </motion.div>
         </div>
-        <div className="text-xs uppercase text-text-secondary mt-1">{interval}</div>
+        <div className="text-xs uppercase text-sky-300/60 mt-1 tracking-wider font-semibold">{interval}</div>
       </div>
     );
   });

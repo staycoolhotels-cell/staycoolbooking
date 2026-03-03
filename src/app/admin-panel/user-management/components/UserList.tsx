@@ -27,6 +27,7 @@ import { approveHost, suspendUserAsAdmin, autoApproveGuest } from '@/lib/admin-a
 import { Search, X, Star } from 'lucide-react'; // Import Search, X, and Star icons
 import { DateRangePicker } from '@/components/ui/datepicker'; // Assuming you have this component
 import { toast } from 'sonner';
+import RejectHostDialog from './RejectHostDialog';
 
 interface UserListProps {
   initialUsers: User[];
@@ -40,6 +41,8 @@ const UserList = ({ initialUsers }: UserListProps) => {
   const [isPremiumSearch, setIsPremiumSearch] = useState(false);
   const [sortBy, setSortBy] = useState('created_at-desc');
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [selectedUserForReject, setSelectedUserForReject] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     setUsers(initialUsers);
@@ -77,7 +80,7 @@ const UserList = ({ initialUsers }: UserListProps) => {
 
     if (success) {
       setUsers((prevUsers) =>
-        prevUsers.map((user) => (user.id === userId ? { ...user, status: 'approved_host' } : user))
+        prevUsers.map((user) => (user.id === userId ? { ...user, status: 'active' } : user))
       );
       toast.success('Host approved successfully.');
     }
@@ -116,6 +119,16 @@ const UserList = ({ initialUsers }: UserListProps) => {
 
   const handleEditClick = (user: User) => {
     setEditingUserId(editingUserId === user.id ? null : user.id);
+  };
+
+  const handleRejectClick = (user: User) => {
+    setSelectedUserForReject({ id: user.id, name: user.name });
+    setRejectDialogOpen(true);
+  };
+
+  const handleRejectSuccess = () => {
+    // The realtime subscription will update the users list automatically
+    setEditingUserId(null);
   };
 
   const handleAutoApproveGuest = async (userId: string) => {
@@ -163,6 +176,11 @@ const UserList = ({ initialUsers }: UserListProps) => {
       const aValue = a[field as keyof User];
       const bValue = b[field as keyof User];
 
+      // Handle undefined values
+      if (aValue === undefined && bValue === undefined) return 0;
+      if (aValue === undefined) return 1;
+      if (bValue === undefined) return -1;
+
       if (aValue < bValue) return direction === 'asc' ? -1 : 1;
       if (aValue > bValue) return direction === 'asc' ? 1 : -1;
       return 0;
@@ -192,9 +210,8 @@ const UserList = ({ initialUsers }: UserListProps) => {
         <div className="flex flex-col md:flex-row justify-between items-center gap-2">
           <div className="relative w-full md:max-w-sm">
             <Search
-              className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 ${
-                isPremiumSearch ? 'text-primary' : 'text-muted-foreground'
-              }`}
+              className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 ${isPremiumSearch ? 'text-primary' : 'text-muted-foreground'
+                }`}
             />
             <Input
               type="text"
@@ -283,17 +300,27 @@ const UserList = ({ initialUsers }: UserListProps) => {
                 <TableCell>{highlightMatch(user.email, searchTerm)}</TableCell>
                 <TableCell>{user.role}</TableCell>
                 <TableCell>
-                  <Badge
-                    variant={
-                      user.status === 'active' || user.status === 'approved_host'
-                        ? 'default'
-                        : user.status === 'suspended'
-                          ? 'destructive'
-                          : 'secondary'
-                    }
-                  >
-                    {user.status}
-                  </Badge>
+                  <div className="flex flex-col gap-1">
+                    <Badge
+                      variant={
+                        user.status === 'active' || user.status === 'approved_host'
+                          ? 'default'
+                          : user.status === 'suspended'
+                            ? 'destructive'
+                            : user.status === 'pending'
+                              ? 'secondary'
+                              : 'secondary'
+                      }
+                      className={user.status === 'pending' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' : ''}
+                    >
+                      {user.status === 'approved_host' ? 'Approved' : user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                    </Badge>
+                    {user.status === 'rejected' && user.rejection_reason && (
+                      <span className="text-xs text-muted-foreground">
+                        Reason: {user.rejection_reason}
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>{format(parseISO(user.created_at), 'MM/dd/yyyy')}</TableCell>
                 <TableCell>
@@ -301,11 +328,31 @@ const UserList = ({ initialUsers }: UserListProps) => {
                     {editingUserId === user.id ? (
                       <>
                         {user.role === 'host' && (
+                          <>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleApproveHost(user.id)}
+                              disabled={user.status === 'approved_host' || user.status === 'active'}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleRejectClick(user)}
+                              disabled={user.status === 'rejected'}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                        {user.role === 'guest' && (
                           <Button
                             variant="default"
                             size="sm"
-                            onClick={() => handleApproveHost(user.id)}
-                            disabled={user.status === 'approved_host'}
+                            onClick={() => handleAutoApproveGuest(user.id)}
+                            disabled={user.status === 'active'}
                           >
                             Approve
                           </Button>
@@ -341,6 +388,17 @@ const UserList = ({ initialUsers }: UserListProps) => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Reject Host Dialog */}
+      {selectedUserForReject && (
+        <RejectHostDialog
+          userId={selectedUserForReject.id}
+          userName={selectedUserForReject.name}
+          open={rejectDialogOpen}
+          onOpenChange={setRejectDialogOpen}
+          onSuccess={handleRejectSuccess}
+        />
+      )}
     </div>
   );
 };

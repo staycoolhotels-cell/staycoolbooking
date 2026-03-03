@@ -180,14 +180,39 @@ CREATE TABLE public.wishlist (
 -- Function to create or update a public.users entry when an auth.user is created or updated
 CREATE OR REPLACE FUNCTION public.handle_user_update()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_role text;
+  v_status text;
 BEGIN
-  INSERT INTO public.users (id, name, email, avatar_url, role)
-  VALUES (NEW.id, NEW.raw_user_meta_data->>'name', NEW.email, NEW.raw_user_meta_data->>'avatar_url', COALESCE(NEW.raw_user_meta_data->>'role', 'guest'))
+  -- Determine Role
+  v_role := COALESCE(NEW.raw_user_meta_data->>'role', 'guest');
+  v_role := lower(v_role);
+
+  -- Determine Status based on Role, but respect metadata if present
+  IF v_role = 'host' THEN
+    v_status := COALESCE(NEW.raw_user_meta_data->>'status', 'pending');
+  ELSE
+    v_status := 'active'; -- Guests and Admins are auto-active by default (Admin created via seed/env usually)
+  END IF;
+
+  INSERT INTO public.users (id, name, email, avatar_url, role, status)
+  VALUES (
+    NEW.id, 
+    NEW.raw_user_meta_data->>'name', 
+    NEW.email, 
+    NEW.raw_user_meta_data->>'avatar_url', 
+    v_role,
+    v_status
+  )
   ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     email = EXCLUDED.email,
     avatar_url = EXCLUDED.avatar_url,
-    role = COALESCE(EXCLUDED.role, 'guest');
+    role = v_role,
+    status = CASE 
+      WHEN public.users.status IN ('active', 'approved', 'rejected', 'suspended', 'approved_host') THEN public.users.status -- Don't overwrite if already approved/active
+      ELSE v_status -- Update only if pending or standard state
+    END;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

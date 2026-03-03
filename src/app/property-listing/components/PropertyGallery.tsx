@@ -98,11 +98,10 @@ const PropertyGallery = ({ images, propertyName: _propertyName }: PropertyGaller
             <button
               key={image.id}
               onClick={() => setSelectedImageIndex(index)}
-              className={`relative w-full h-24 rounded-lg overflow-hidden transition-all duration-200 ${
-                selectedImageIndex === index
+              className={`relative w-full h-24 rounded-lg overflow-hidden transition-all duration-200 ${selectedImageIndex === index
                   ? 'ring-2 ring-primary scale-105'
                   : 'hover:scale-105 opacity-70 hover:opacity-100'
-              }`}
+                }`}
             >
               <AppImage
                 src={image.url}
@@ -121,7 +120,7 @@ const PropertyGallery = ({ images, propertyName: _propertyName }: PropertyGaller
         <div className="fixed inset-0 z-50 bg-slate-900/95 backdrop-blur-sm flex items-center justify-center p-4">
           <button
             onClick={closeLightbox}
-            className="absolute top-4 right-4 w-12 h-12 bg-card/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-card transition-colors duration-200"
+            className="absolute top-24 right-8 w-12 h-12 bg-card/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-card transition-colors duration-200"
             aria-label="Close gallery"
           >
             <Icon name="XMarkIcon" size={24} className="text-foreground" />

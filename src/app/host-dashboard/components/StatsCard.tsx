@@ -8,13 +8,14 @@ interface StatsCardProps {
   title: string;
   value: string | number;
   icon: string;
+  onClick?: () => void;
 }
 
 /**
  * Premium Glassmorphic Stats Card
  * Featuring internal glow effects and spring-based animations.
  */
-const StatsCard = ({ title, value, icon }: StatsCardProps) => {
+const StatsCard = ({ title, value, icon, onClick }: StatsCardProps) => {
   return (
     <motion.div
       whileHover={{
@@ -22,7 +23,8 @@ const StatsCard = ({ title, value, icon }: StatsCardProps) => {
         scale: 1.02,
         transition: { type: 'spring', stiffness: 400, damping: 10 },
       }}
-      className="relative overflow-hidden bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-6 rounded-[2rem] shadow-2xl group"
+      className={`relative overflow-hidden bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-6 rounded-[2rem] shadow-2xl group ${onClick ? 'cursor-pointer hover:border-primary/50' : ''}`}
+      onClick={onClick}
     >
       {/* 1. INTERNAL GLOW ORB 
           This creates the "glowing from within" look that moves slightly on hover 

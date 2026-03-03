@@ -1,9 +1,6 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
-import { PropertyOccupancy, GuestStatus } from '@/lib/types';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useMemo } from 'react';
+import { PropertyOccupancy, GuestStatus, Booking } from '@/lib/types';
+import { motion } from 'framer-motion';
 
 const getStatusColor = (status: GuestStatus): string => {
   switch (status) {
@@ -42,71 +39,41 @@ const OccupancyPulseCard: React.FC<{ occupancy: PropertyOccupancy }> = ({ occupa
   );
 };
 
-const OccupancyPulse: React.FC = () => {
-  const [occupancyData, setOccupancyData] = useState<PropertyOccupancy[]>([]);
-  const [loading, setLoading] = useState(true);
+interface OccupancyPulseProps {
+  bookings?: Booking[];
+}
 
-  useEffect(() => {
-    const fetchRealtimeOccupancy = async () => {
-      setLoading(true);
-      try {
-        // More explicit query to resolve potential join ambiguity
-        const { data, error } = await supabase
-          .from('bookings')
-          .select('id, status, check_in, check_out, properties!inner(title)')
-          .in('status', ['confirmed']);
+const OccupancyPulse: React.FC<OccupancyPulseProps> = ({ bookings = [] }) => {
+  const occupancyData = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
 
-        if (error) {
-          console.error('Supabase Query Error:', JSON.stringify(error, null, 2));
-          return;
-        }
+    // Filter bookings that overlap with today
+    return bookings
+      .filter((b) => b.status === 'confirmed')
+      .filter((b) => {
+        const checkIn = b.check_in;
+        const checkOut = b.check_out;
+        return checkIn <= today && checkOut >= today;
+      })
+      .map((b) => {
+        let calculatedStatus: GuestStatus = 'In-house';
+        if (b.check_in === today) calculatedStatus = 'Arrival';
+        else if (b.check_out === today) calculatedStatus = 'Departure';
 
-        if (data) {
-          const today = new Date().toISOString().split('T')[0];
-
-          const mappedData: PropertyOccupancy[] = data.map((b: any) => {
-            let calculatedStatus: GuestStatus = 'In-house';
-
-            if (b.check_in?.startsWith(today)) calculatedStatus = 'Arrival';
-            else if (b.check_out?.startsWith(today)) calculatedStatus = 'Departure';
-            else if (b.status === 'confirmed') calculatedStatus = 'In-house';
-
-            return {
-              id: b.id,
-              propertyName: b.properties?.title || 'Stay Cool Property',
-              guestName: 'Guest',
-              status: calculatedStatus,
-              checkInDate: b.check_in,
-              checkOutDate: b.check_out,
-            };
-          });
-          setOccupancyData(mappedData);
-        }
-      } catch (err: any) {
-        console.error('Catch Block Error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRealtimeOccupancy();
-  }, []);
+        return {
+          id: b.id,
+          propertyName: b.properties?.name || b.properties?.title || 'Stay Cool Property',
+          guestName: b.guest?.name || 'Guest',
+          status: calculatedStatus,
+          checkInDate: b.check_in,
+          checkOutDate: b.check_out,
+        };
+      });
+  }, [bookings]);
 
   const inHouse = occupancyData.filter((o) => o.status === 'In-house');
   const departures = occupancyData.filter((o) => o.status === 'Departure');
   const arrivals = occupancyData.filter((o) => o.status === 'Arrival');
-
-  if (loading)
-    return (
-      <div className="p-8 space-y-4">
-        <div className="h-8 w-48 bg-white/5 animate-pulse rounded-lg" />
-        <div className="grid grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-64 bg-white/5 animate-pulse rounded-[2.5rem]" />
-          ))}
-        </div>
-      </div>
-    );
 
   return (
     <div className="p-8">
@@ -118,7 +85,6 @@ const OccupancyPulse: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Column Render Helper */}
         {[
           { title: 'In-house', data: inHouse, empty: 'No active stays' },
           { title: 'Departures', data: departures, empty: 'No check-outs' },
@@ -149,3 +115,4 @@ const OccupancyPulse: React.FC = () => {
 };
 
 export default OccupancyPulse;
+

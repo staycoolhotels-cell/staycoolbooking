@@ -1,0 +1,46 @@
+﻿node.exe : 
+Initialising login 
+role...
+At line:1 char:1
++ & "C:\Program Files\
+nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (Initialisi   
+ ng login role...:    
+String) [], Remot    
+eException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+Connecting to remote 
+database...
+Repaired migration 
+history: 
+[20240602000000] => 
+applied
+Finished supabase migration repair.
+A new version of 
+Supabase CLI is 
+available: v2.75.0 
+(currently installed 
+v2.74.5)
+We recommend updating 
+regularly for new 
+features and bug 
+fixes: https://supabas
+e.com/docs/guides/cli/
+getting-started#updati
+ng-the-supabase-cli
+Run supabase 
+migration list to 
+show the updated 
+migration history.

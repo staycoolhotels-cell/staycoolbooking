@@ -5,7 +5,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Transaction } from '@/lib/types';
 
 const COLORS = {
-  accommodation: '#3b82f6', // blue-500
+  accommodation: '#0ea5e9', // sky-500
   service_fee: '#8b5cf6', // violet-500
   taxes: '#ef4444', // red-500
 };
@@ -34,8 +34,8 @@ const SpendingChart = ({ transactions }: SpendingChartProps) => {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-lg p-2">
-          <p className="label text-white">{`${payload[0].name} : ₹${payload[0].value.toFixed(2)}`}</p>
+        <div className="bg-zinc-900/90 backdrop-blur-md border border-sky-500/20 rounded-lg p-2 shadow-xl shadow-sky-900/20">
+          <p className="label text-sky-100 font-medium">{`${payload[0].name} : ₹${payload[0].value.toFixed(2)}`}</p>
         </div>
       );
     }

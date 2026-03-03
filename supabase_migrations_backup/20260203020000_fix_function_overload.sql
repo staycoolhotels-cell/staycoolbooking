@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.create_property(text, text, text, numeric, numeric, text, text, jsonb, text, text, text, text);

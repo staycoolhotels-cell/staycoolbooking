@@ -24,18 +24,9 @@ export const createMockUser = (): User => ({
   id: 'user-zenith-001',
   name: 'Alex Zenith',
   email: 'alex.zenith@example.com',
-  avatar: 'https://i.pravatar.cc/150?u=alexzenith',
-  avatarAlt:
-    'A portrait of Alex Zenith, a young professional with a confident smile, set against a blurred city background.',
   role: 'guest',
-  joinDate: '2022-08-15T10:00:00Z',
-  total_bookings: 12,
-  completionPercentage: 95,
-  location: 'Lisbon, Portugal',
-  isVerified: true,
   status: 'active',
-  kyc_status: 'verified',
-  verificationStatus: 'verified',
+  created_at: '2022-08-15T10:00:00Z',
 });
 
 export const createMockUsers = (): User[] => [
@@ -43,65 +34,33 @@ export const createMockUsers = (): User[] => [
     id: 'user-zenith-001',
     name: 'Alex Zenith',
     email: 'alex.zenith@example.com',
-    avatar: 'https://i.pravatar.cc/150?u=alexzenith',
-    avatarAlt: 'A portrait of Alex Zenith',
     role: 'guest',
-    joinDate: '2022-08-15T10:00:00Z',
-    total_bookings: 12,
-    completionPercentage: 95,
-    location: 'Lisbon, Portugal',
-    isVerified: true,
     status: 'active',
-    kyc_status: 'verified',
-    verificationStatus: 'verified',
+    created_at: '2022-08-15T10:00:00Z',
   },
   {
     id: 'user-boreal-002',
     name: 'Bob Boreal',
     email: 'bob.boreal@example.com',
-    avatar: 'https://i.pravatar.cc/150?u=bobboreal',
-    avatarAlt: 'A portrait of Bob Boreal',
     role: 'host',
-    joinDate: '2021-11-20T14:30:00Z',
-    total_bookings: 5,
-    completionPercentage: 100,
-    location: 'Reykjavik, Iceland',
-    isVerified: true,
     status: 'active',
-    kyc_status: 'verified',
-    verificationStatus: 'verified',
+    created_at: '2021-11-20T14:30:00Z',
   },
   {
     id: 'user-umbra-003',
     name: 'Charlie Umbra',
     email: 'charlie.umbra@example.com',
-    avatar: 'https://i.pravatar.cc/150?u=charlieumbra',
-    avatarAlt: 'A portrait of Charlie Umbra',
     role: 'guest',
-    joinDate: '2023-03-10T18:00:00Z',
-    total_bookings: 2,
-    completionPercentage: 80,
-    location: 'Kyoto, Japan',
-    isVerified: false,
     status: 'pending',
-    kyc_status: 'pending',
-    verificationStatus: 'unverified',
+    created_at: '2023-03-10T18:00:00Z',
   },
   {
     id: 'user-solstice-004',
     name: 'Diana Solstice',
     email: 'diana.solstice@example.com',
-    avatar: 'https://i.pravatar.cc/150?u=dianasolstice',
-    avatarAlt: 'A portrait of Diana Solstice',
     role: 'guest',
-    joinDate: '2020-05-01T09:00:00Z',
-    total_bookings: 25,
-    completionPercentage: 98,
-    location: 'Santorini, Greece',
-    isVerified: true,
     status: 'suspended',
-    kyc_status: 'verified',
-    verificationStatus: 'verified',
+    created_at: '2020-05-01T09:00:00Z',
   },
 ];
 
@@ -188,10 +147,15 @@ export const createMockAchievements = (): Achievement[] => [
 /**
  * Generates mock properties to be used in bookings.
  */
-const mockProperties: Partial<Property>[] = [
+const mockProperties: Property[] = [
   {
     id: 'prop-manali-01',
     title: 'Zenith Cabin, Manali',
+    name: 'Zenith Cabin, Manali',
+    tier: 'standard',
+    status: 'active',
+    location: 'Manali, Himachal Pradesh',
+    price_per_night: 150,
     images: [
       {
         url: 'https://images.unsplash.com/photo-1616047006789-b7af5afb8c20?w=500&q=80',
@@ -202,33 +166,37 @@ const mockProperties: Partial<Property>[] = [
         alt: 'Bedroom',
       },
     ],
-    location: 'Manali, Himachal Pradesh',
-    price_per_night: 150,
-  },
+  } as Property,
   {
     id: 'prop-goa-02',
     title: 'Azure Beach Villa, Goa',
+    name: 'Azure Beach Villa, Goa',
+    tier: 'premium',
+    status: 'active',
+    location: 'Goa, India',
+    price_per_night: 250,
     images: [
       {
         url: 'https://images.unsplash.com/photo-1562438668-bcf0ca6578f0?w=500&q=80',
         alt: 'Beach view',
       },
     ],
-    location: 'Goa, India',
-    price_per_night: 250,
-  },
+  } as Property,
   {
     id: 'prop-tokyo-03',
     title: 'Shibuya Sky Loft',
+    name: 'Shibuya Sky Loft',
+    tier: 'standard',
+    status: 'active',
+    location: 'Tokyo, Japan',
+    price_per_night: 300,
     images: [
       {
         url: 'https://images.unsplash.com/photo-1579800342936-9a2947a61d87?w=500&q=80',
         alt: 'City view',
       },
     ],
-    location: 'Tokyo, Japan',
-    price_per_night: 300,
-  },
+  } as Property,
 ];
 
 /**

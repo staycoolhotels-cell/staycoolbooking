@@ -6,6 +6,11 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
   images: {
     remotePatterns: [
       {
@@ -16,15 +21,20 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'images.pexels.com',
       },
-                    {
-                      protocol: 'https',
-                      hostname: 'images.pixabay.com',
-                    },
-                    {
-                      protocol: 'https',
-                      hostname: 'img.rocket.new', // Add this new hostname
-                    },
-                  ],  },
+      {
+        protocol: 'https',
+        hostname: 'images.pixabay.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.rocket.new', // Add this new hostname
+      },
+      {
+        protocol: 'https',
+        hostname: 'dlislsrlwovcxsuqdlvy.supabase.co',
+      },
+    ],
+  },
   async redirects() {
     return [
       {

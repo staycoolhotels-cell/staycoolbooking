@@ -22,14 +22,14 @@ const UserDetailsModal = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(user?.name || '');
   const [editedEmail, setEditedEmail] = useState(user?.email || '');
-  const [editedRole, setEditedRole] = useState(user?.role);
+  const [editedRole, setEditedRole] = useState<'guest' | 'host'>(user?.role === 'admin' ? 'guest' : (user?.role as 'guest' | 'host'));
   const [editedStatus, setEditedStatus] = useState(user?.status);
 
   useEffect(() => {
     if (user) {
       setEditedName(user.name || '');
       setEditedEmail(user.email || '');
-      setEditedRole(user.role);
+      setEditedRole(user.role === 'admin' ? 'guest' : (user.role as 'guest' | 'host'));
       setEditedStatus(user.status);
       setIsEditing(false); // Reset editing mode when user changes
     }
@@ -82,15 +82,21 @@ const UserDetailsModal = ({
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-secondary">Role:</label>
-                <select
-                  value={editedRole}
-                  onChange={(e) => setEditedRole(e.target.value as 'guest' | 'host' | 'admin')}
-                  className="w-full p-2 rounded-md bg-muted border border-border"
-                >
-                  <option value="guest">Guest</option>
-                  <option value="host">Host</option>
-                  <option value="admin">Admin</option>
-                </select>
+                {user.role === 'admin' ? (
+                  <div className="w-full p-2 rounded-md bg-muted border border-border text-zinc-400 text-sm flex items-center gap-2">
+                    <span className="text-error font-bold uppercase text-xs">Admin</span>
+                    <span className="text-zinc-500 text-xs">(System admin — role cannot be changed)</span>
+                  </div>
+                ) : (
+                  <select
+                    value={editedRole}
+                    onChange={(e) => setEditedRole(e.target.value as 'guest' | 'host')}
+                    className="w-full p-2 rounded-md bg-muted border border-border"
+                  >
+                    <option value="guest">Guest</option>
+                    <option value="host">Host</option>
+                  </select>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-secondary">Status:</label>
@@ -153,7 +159,7 @@ const UserDetailsModal = ({
             </>
           ) : (
             <>
-             <button
+              <button
                 onClick={() => setIsEditing(true)}
                 className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg font-heading font-semibold hover:bg-primary/90 transition-all duration-300 flex items-center justify-center space-x-2"
               >
@@ -167,7 +173,7 @@ const UserDetailsModal = ({
                   <span>Approve Host</span>
                 </button>
               )}
-               <button
+              <button
                 onClick={() => onSuspend(user.id)}
                 className="w-full px-4 py-2 bg-warning text-warning-foreground rounded-lg font-heading font-semibold hover:bg-warning/90 transition-all duration-300 flex items-center justify-center space-x-2"
               >

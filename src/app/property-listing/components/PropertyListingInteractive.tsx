@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
+import Icon from '@/components/ui/AppIcon';
 import PropertyGallery from './PropertyGallery';
 import PropertyHeader from './PropertyHeader';
 import PropertyDescription from './PropertyDescription';
@@ -9,7 +11,8 @@ import ReviewsSection from './ReviewsSection';
 import BookingCard from './BookingCard';
 import HostProfile from './HostProfile';
 import LocationMap from './LocationMap';
-import SafetySection from './SafetySection';
+import ThingsToKnowSection from './ThingsToKnowSection';
+import { supabase } from '@/lib/supabaseClient';
 
 interface PropertyImage {
   id: number;
@@ -50,6 +53,7 @@ interface SafetyFeature {
 }
 
 interface PropertyData {
+  id: string;
   name: string;
   type: string;
   location: string;
@@ -64,6 +68,7 @@ interface PropertyData {
   bedrooms: number;
   bathrooms: number;
   area: number;
+  totalRooms: number;
   highlights: string[];
   amenities: Amenity[];
   reviews: Review[];
@@ -82,6 +87,8 @@ interface PropertyData {
     responseTime: string;
     totalProperties: number;
     bio: string;
+    coHostName?: string;
+    id: string;
   };
   location_details: {
     latitude: number;
@@ -94,9 +101,23 @@ interface PropertyData {
       type: string;
     }>;
   };
-  safetyFeatures: SafetyFeature[];
-  insuranceCoverage: string;
-  emergencyContact: string;
+  cancellationPolicy: {
+    title: string;
+    description: string;
+    linkText: string;
+  };
+  houseRules: {
+    title: string;
+    rules: string[];
+    linkText: string;
+  };
+  safetyProperty: {
+    title: string;
+    items: string[];
+    linkText: string;
+  };
+  categoryRatings?: { name: string; score: number; icon: string }[];
+  badges?: string[];
 }
 
 interface PropertyListingInteractiveProps {
@@ -104,10 +125,96 @@ interface PropertyListingInteractiveProps {
 }
 
 const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractiveProps) => {
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = React.useState<any>(null);
+  const [isSaved, setIsSaved] = React.useState(false);
+
+  React.useEffect(() => {
+    const fetchUserAndWishlist = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUser(user);
+
+        const { data: wishlistItem } = await supabase
+          .from('wishlist')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('property_id', propertyData.id)
+          .maybeSingle();
+
+        if (wishlistItem) {
+          setIsSaved(true);
+        }
+      }
+    };
+
+    fetchUserAndWishlist();
+  }, [propertyData.id]);
+
+  const handleToggleSave = async () => {
+    if (!currentUser) {
+      alert("Please log in to save properties to your wishlist.");
+      router.push('/auth');
+      return;
+    }
+
+    const currentlySaved = isSaved;
+
+    // Optimistic UI update
+    setIsSaved(!currentlySaved);
+
+    try {
+      if (currentlySaved) {
+        // Remove from wishlist
+        await supabase
+          .from('wishlist')
+          .delete()
+          .eq('user_id', currentUser.id)
+          .eq('property_id', propertyData.id);
+      } else {
+        // Add to wishlist
+        const { error } = await supabase
+          .from('wishlist')
+          .insert([
+            {
+              user_id: currentUser.id,
+              property_id: propertyData.id
+            }
+          ]);
+
+        if (error) {
+          console.error("Error inserting to wishlist:", { message: error.message, details: error.details, hint: error.hint, code: error.code });
+          throw error;
+        }
+      }
+    } catch (error) {
+      console.error("Error updating wishlist:", error);
+      // Revert optimistic update on error
+      setIsSaved(currentlySaved);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pt-24 pb-16">
       <div className="w-full px-4 md:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
+          {/* Back Button */}
+          <div className="mb-6">
+            <button
+              onClick={() => router.push('/homepage')}
+              className="group flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl hover:border-white/30 hover:bg-white/[0.05] transition-all duration-300"
+            >
+              <Icon
+                name="ArrowLeftIcon"
+                size={20}
+                className="text-white/60 group-hover:text-white group-hover:-translate-x-1 transition-all duration-300"
+              />
+              <span className="text-sm font-semibold text-white/60 group-hover:text-white transition-colors duration-300">
+                Back to Properties
+              </span>
+            </button>
+          </div>
+
           <div className="mb-8">
             <PropertyHeader
               name={propertyData.name}
@@ -117,6 +224,8 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
               reviewCount={propertyData.reviewCount}
               isVerified={propertyData.isVerified}
               totalBookings={propertyData.totalBookings}
+              isSaved={isSaved}
+              onSave={handleToggleSave}
             />
           </div>
 
@@ -144,6 +253,8 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                 reviews={propertyData.reviews}
                 averageRating={propertyData.rating}
                 totalReviews={propertyData.reviewCount}
+                categoryRatings={propertyData.categoryRatings}
+                badges={propertyData.badges}
               />
 
               <LocationMap
@@ -154,20 +265,22 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                 nearbyAttractions={propertyData.location_details.nearbyAttractions}
               />
 
-              <SafetySection
-                safetyFeatures={propertyData.safetyFeatures}
-                insuranceCoverage={propertyData.insuranceCoverage}
-                emergencyContact={propertyData.emergencyContact}
+              <ThingsToKnowSection
+                cancellationPolicy={propertyData.cancellationPolicy}
+                houseRules={propertyData.houseRules}
+                safetyProperty={propertyData.safetyProperty}
               />
             </div>
 
             <div className="lg:col-span-1">
               <BookingCard
+                propertyId={propertyData.id}
                 pricePerNight={propertyData.pricePerNight}
                 currency={propertyData.currency}
                 isAvailable={propertyData.isAvailable}
                 hostResponseRate={propertyData.hostResponseRate}
                 hostResponseTime={propertyData.hostResponseTime}
+                totalRooms={propertyData.totalRooms}
               />
             </div>
 
@@ -182,6 +295,9 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                 responseTime={propertyData.host.responseTime}
                 totalProperties={propertyData.host.totalProperties}
                 bio={propertyData.host.bio}
+                coHostName={propertyData.host.coHostName}
+                hostId={propertyData.host.id}
+                propertyId={propertyData.id}
               />
             </div>
           </div>

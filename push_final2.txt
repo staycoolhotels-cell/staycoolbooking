@@ -1,0 +1,195 @@
+﻿supabase.exe : 
+Initialising login 
+role...
+At line:1 char:1
++ & "C:\Users\VSHARE\s
+coop\apps\supabase\cur
+rent\supabase.exe" db 
+push  ...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (Initialisi   
+ ng login role...:    
+String) [], Remot    
+eException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+Connecting to remote 
+database...
+Do you want to push 
+these migrations to 
+the remote database?
+ ΓÇó 20260202120000_cr
+eate_profiles_table.sq
+l
+ ΓÇó 20260202130000_ad
+d_profiles_rls.sql
+ ΓÇó 20260202140000_up
+date_properties_rls_wi
+th_profiles.sql
+ ΓÇó 20260202170000_fi
+x_users_role_column.sq
+l
+ ΓÇó 20260203000000_en
+sure_host_status_pendi
+ng.sql
+ ΓÇó 20260203001800_fi
+x_trigger_conflict.sql
+ ΓÇó 20260203002000_fi
+x_properties_rls_using
+_users.sql
+ ΓÇó 20260203003000_al
+low_pending_hosts_inse
+rt.sql
+ ΓÇó 20260203004000_up
+date_create_property_s
+ecurity_definer.sql
+ ΓÇó 20260203010000_fi
+x_create_property_func
+tion.sql
+ ΓÇó 20260203020000_fi
+x_function_overload.sq
+l
+ ΓÇó 20260203020000_gr
+ant_create_property_pe
+rmission.sql
+ ΓÇó 20260203030000_re
+solve_create_property_
+ambiguity.sql
+ ΓÇó 20260203040000_fo
+rce_fix_create_propert
+y.sql
+ ΓÇó 20260203050000_re
+solve_ambiguity_final.
+sql
+ ΓÇó 20260203060000_cr
+eate_property_v2.sql
+ ΓÇó 20260204000000_fi
+x_property_pending_sta
+tus.sql
+ ΓÇó 20260205000000_en
+able_listing_toggle.sq
+l
+ ΓÇó 20260205000001_fi
+x_toggle_function.sql
+ ΓÇó 20260205000002_fi
+x_public_properties_rl
+s.sql
+ ΓÇó 20260205000003_fi
+x_users_rls.sql
+ ΓÇó 20260205000004_fi
+x_verifications_rls.sq
+l
+ ΓÇó 20260205225000_ad
+d_missing_personal_inf
+o_cols.sql
+ ΓÇó 20260206000000_ad
+d_property_details.sql
+ ΓÇó 20260206_add_co_h
+ost.sql
+ ΓÇó 20260206_add_prop
+erty_area.sql
+ ΓÇó 20260207_add_addr
+ess_columns.sql
+ ΓÇó 20260207_add_beds
+_column.sql
+ ΓÇó 20260207_fix_book
+ings_fk.sql
+ ΓÇó 20260207_fix_book
+ings_rls.sql
+ ΓÇó 20260207_fix_book
+ings_rls_v2.sql
+ ΓÇó 20260207_fix_crea
+te_property_v2.sql
+ ΓÇó 20260207_fix_upda
+te_property.sql
+ ΓÇó 20260209_FIX_MISS
+ING_COLUMNS.sql
+ ΓÇó 20260209_init_str
+ipe_payments.sql
+ ΓÇó 20260211_add_uniq
+ue_constraint_to_verif
+ications.sql
+ ΓÇó 20260212_add_comm
+ission_to_transactions
+.sql
+ ΓÇó 20260212_add_gst_
+to_user_personal_info.
+sql
+ ΓÇó 20260212_add_razo
+rpay_account_id.sql
+ ΓÇó 20260212_fix_user
+_wallets_manual.sql
+ ΓÇó 20260215_auto_app
+rove_hosts.sql
+ ΓÇó 20260216_add_rewa
+rd_points.sql
+ ΓÇó 20260219120000_fi
+x_check_availability_s
+ecurity.sql
+ ΓÇó 20260219_bulk_boo
+king_functions.sql
+ ΓÇó 20260219_bulk_boo
+king_schema.sql
+ ΓÇó 20260220_host_sys
+tem_functions.sql
+ ΓÇó 20260220_host_sys
+tem_schema.sql
+ ΓÇó 20260220_update_p
+roperty_functions_bulk
+.sql
+ ΓÇó 20260221_fix_crea
+te_bulk_booking.sql
+
+ [Y/n] y
+Applying migration 202
+60202120000_create_pro
+files_table.sql...
+ERROR: relation 
+"profiles" already 
+exists (SQLSTATE 
+42P07)        
+At statement: 2       
+                      
+                      
+-- Create the 
+profiles table        
+                      
+        
+CREATE TABLE 
+public.profiles (     
+                      
+         
+  id UUID PRIMARY KEY 
+REFERENCES 
+auth.users(id) ON 
+DELETE CASCADE,
+  role user_role NOT 
+NULL,                 
+                      
+ 
+  status user_status 
+NOT NULL,             
+                      
+ 
+  created_at 
+TIMESTAMPTZ NOT NULL 
+DEFAULT NOW(),        
+          
+  updated_at 
+TIMESTAMPTZ NOT NULL 
+DEFAULT NOW()         
+          
+)                     
+                      
+                      
+Try rerunning the 
+command with --debug 
+to troubleshoot the 
+error.

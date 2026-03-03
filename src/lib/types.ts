@@ -36,6 +36,12 @@ export interface Dispute {
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   createdDate: string;
   lastUpdate: string;
+  booking_id?: string;
+  guest_id?: string;
+  host_id?: string;
+  property_id?: string;
+  description?: string;
+  host_response?: string;
 }
 
 export interface Transaction {
@@ -65,6 +71,10 @@ export interface User {
   role: 'guest' | 'host' | 'admin';
   status: 'pending' | 'active' | 'rejected' | 'suspended' | 'approved_host';
   created_at: string;
+  rejection_reason?: string;
+  avatar_url?: string;
+  totalBookings?: number;
+  reward_points?: number;
 }
 
 export interface UserVerificationStatus {
@@ -84,17 +94,24 @@ export interface RecentActivity {
   status: 'info' | 'success' | 'error' | 'warning';
 }
 
+export interface Amenity {
+  id: string;
+  name: string;
+  available?: boolean;
+  description?: string;
+}
+
 export interface Property {
   id: string;
   name: string;
   location: string;
   tier: string;
-  status: 'active' | 'pending' | 'rejected';
+  status: 'active' | 'pending' | 'rejected' | 'offline';
   host_id?: string;
   created_at?: string;
   images?: Array<{ url: string; alt: string }>;
   price_per_night?: number;
-  amenities?: string[];
+  amenities?: (string | Amenity)[];
   rules?: string[];
   rating?: number;
   reviews_count?: number;
@@ -120,7 +137,29 @@ export interface Property {
   price?: number;
   weekendPrice?: number;
   documents?: any;
+  weekend_price_per_night?: number;
+  license_url?: string;
+  tax_bill_url?: string;
+  current_bill_url?: string;
+  safety_items?: string[];
   title?: string;
+  image_url?: string;
+  cancellation_policy?: string;
+  area?: number;
+  co_host_name?: string;
+  co_host_email?: string;
+  address_line1?: string;
+  address_line2?: string;
+  landmark?: string;
+  district?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+  show_specific_location?: boolean;
+  beds?: number;
+  total_rooms?: number;
+  room_type?: string;
 }
 
 export interface Review {
@@ -172,9 +211,14 @@ export interface Booking {
   check_in: string;
   check_out: string;
   total_price: number;
-  status: 'confirmed' | 'completed' | 'cancelled' | 'pending';
+  status: 'confirmed' | 'completed' | 'cancelled' | 'pending' | 'pending_payment';
   guests: number;
   created_at: string;
+  guest?: {
+    name: string;
+    avatar_url: string;
+  };
+  properties?: Property;
 }
 
 export interface Earning {

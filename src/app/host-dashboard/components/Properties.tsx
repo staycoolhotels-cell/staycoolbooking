@@ -3,14 +3,18 @@
 import React, { useState } from 'react';
 import PropertyCard from './PropertyCard';
 import { Property } from '@/lib/types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface PropertiesProps {
   properties: Property[];
   onAddProperty: () => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
-  onToggleStatus: (id: string, newStatus: 'active' | 'pending' | 'rejected') => void;
+  onToggleStatus: (id: string, newStatus: 'active' | 'pending' | 'rejected' | 'offline') => void;
 }
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import RoomManager from './RoomManager';
 
 const Properties = ({
   properties,
@@ -19,23 +23,33 @@ const Properties = ({
   onDelete,
   onToggleStatus,
 }: PropertiesProps) => {
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'pending' | 'rejected'>(
-    'all'
+  const [managingRoomsProperty, setManagingRoomsProperty] = useState<Property | null>(null);
+
+  const pendingProperties = properties.filter((p) => p.status === 'pending');
+  const activeProperties = properties.filter((p) => p.status === 'active');
+  const rejectedProperties = properties.filter((p) => p.status === 'rejected');
+  const offlineProperties = properties.filter((p) => p.status === 'offline');
+
+  const renderPropertyGrid = (props: Property[]) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {props.length > 0 ? (
+        props.map((property) => (
+          <PropertyCard
+            key={property.id}
+            property={property}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onToggleStatus={onToggleStatus}
+            onManageRooms={setManagingRoomsProperty}
+          />
+        ))
+      ) : (
+        <p className="col-span-full text-center text-zinc-500 py-8">
+          No properties found in this category.
+        </p>
+      )}
+    </div>
   );
-
-  const filteredProperties = properties.filter((property) => {
-    if (filterStatus === 'all') {
-      return true;
-    }
-    return property.status === filterStatus;
-  });
-
-  const statusOptions = [
-    { label: 'All', value: 'all' },
-    { label: 'Active', value: 'active' },
-    { label: 'Pending', value: 'pending' },
-    { label: 'Rejected', value: 'rejected' },
-  ];
 
   return (
     <div className="space-y-6">
@@ -49,41 +63,48 @@ const Properties = ({
         </button>
       </div>
 
-      <div className="flex space-x-2 mb-6">
-        {statusOptions.map((option) => (
-          <button
-            key={option.value}
-            onClick={() =>
-              setFilterStatus(option.value as 'all' | 'active' | 'pending' | 'rejected')
-            }
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filterStatus === option.value
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-            }`}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="mb-6 bg-zinc-900/50 p-1 border border-zinc-800 rounded-xl">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white">All Properties ({properties.length})</TabsTrigger>
+          <TabsTrigger value="active" className="data-[state=active]:bg-green-500/10 data-[state=active]:text-green-500">Active ({activeProperties.length})</TabsTrigger>
+          <TabsTrigger value="offline" className="data-[state=active]:bg-zinc-500/10 data-[state=active]:text-zinc-400">Offline ({offlineProperties.length})</TabsTrigger>
+          <TabsTrigger value="pending" className="data-[state=active]:bg-yellow-500/10 data-[state=active]:text-yellow-500">Pending ({pendingProperties.length})</TabsTrigger>
+          <TabsTrigger value="rejected" className="data-[state=active]:bg-red-500/10 data-[state=active]:text-red-500">Rejected ({rejectedProperties.length})</TabsTrigger>
+        </TabsList>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredProperties.length > 0 ? (
-          filteredProperties.map((property) => (
-            <PropertyCard
-              key={property.id}
-              property={property}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onToggleStatus={(id, newStatus) => onToggleStatus(id, newStatus)}
+        <TabsContent value="overview">
+          {renderPropertyGrid(properties)}
+        </TabsContent>
+        <TabsContent value="active">
+          {renderPropertyGrid(activeProperties)}
+        </TabsContent>
+        <TabsContent value="offline">
+          {renderPropertyGrid(offlineProperties)}
+        </TabsContent>
+        <TabsContent value="pending">
+          {renderPropertyGrid(pendingProperties)}
+        </TabsContent>
+        <TabsContent value="rejected">
+          {renderPropertyGrid(rejectedProperties)}
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={!!managingRoomsProperty} onOpenChange={(open) => !open && setManagingRoomsProperty(null)}>
+        <DialogContent className="sm:max-w-xl bg-slate-900 text-white border-slate-700">
+          <DialogHeader>
+            <DialogTitle>Manage Rooms - {managingRoomsProperty?.title || managingRoomsProperty?.name}</DialogTitle>
+          </DialogHeader>
+          {managingRoomsProperty && (
+            <RoomManager
+              property={managingRoomsProperty}
+              onUpdate={() => {
+                // Refresh property list if needed, or just rooms
+                // For now RoomManager handles its own room list fetch
+              }}
             />
-          ))
-        ) : (
-          <p className="col-span-full text-center text-zinc-500">
-            No properties found with status: {filterStatus === 'all' ? 'All' : filterStatus}.
-          </p>
-        )}
-      </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

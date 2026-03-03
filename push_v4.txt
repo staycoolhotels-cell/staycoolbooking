@@ -1,0 +1,154 @@
+﻿supabase.exe : 
+Initialising login role...
+At line:1 char:1
++ & "C:\Users\VSHARE\scoop\
+apps\supabase\current\supab
+ase.exe" db push  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: (Ini  
+  tialising login role..   
+ .:String) [], RemoteEx    
+ception
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+Connecting to remote 
+database...
+Found local migration 
+files to be inserted 
+before the last migration 
+on remote database.
+
+Rerun the command with 
+--include-all flag to 
+apply these migrations:
+supabase\migrations\2026020
+2170000_fix_users_role_colu
+mn.sql                  
+supabase\migrations\2026020
+3000000_ensure_host_status_
+pending.sql             
+supabase\migrations\2026020
+3001800_fix_trigger_conflic
+t.sql                   
+supabase\migrations\2026020
+3002000_fix_properties_rls_
+using_users.sql         
+supabase\migrations\2026020
+3003000_allow_pending_hosts
+_insert.sql             
+supabase\migrations\2026020
+3004000_update_create_prope
+rty_security_definer.sql
+supabase\migrations\2026020
+3010000_fix_create_property
+_function.sql           
+supabase\migrations\2026020
+3020000_fix_function_overlo
+ad.sql                  
+supabase\migrations\2026020
+3020000_grant_create_proper
+ty_permission.sql       
+supabase\migrations\2026020
+3030000_resolve_create_prop
+erty_ambiguity.sql      
+supabase\migrations\2026020
+3040000_force_fix_create_pr
+operty.sql              
+supabase\migrations\2026020
+3050000_resolve_ambiguity_f
+inal.sql                
+supabase\migrations\2026020
+3060000_create_property_v2.
+sql                     
+supabase\migrations\2026020
+4000000_fix_property_pendin
+g_status.sql            
+supabase\migrations\2026020
+5000000_enable_listing_togg
+le.sql                  
+supabase\migrations\2026020
+5000001_fix_toggle_function
+.sql                    
+supabase\migrations\2026020
+5000002_fix_public_properti
+es_rls.sql              
+supabase\migrations\2026020
+5000003_fix_users_rls.sql  
+                        
+supabase\migrations\2026020
+5000004_fix_verifications_r
+ls.sql                  
+supabase\migrations\2026020
+5225000_add_missing_persona
+l_info_cols.sql         
+supabase\migrations\2026020
+6000000_add_property_detail
+s.sql                   
+supabase\migrations\2026020
+6_add_co_host.sql          
+                        
+supabase\migrations\2026020
+6_add_property_area.sql    
+                        
+supabase\migrations\2026020
+7_add_address_columns.sql  
+                        
+supabase\migrations\2026020
+7_add_beds_column.sql      
+                        
+supabase\migrations\2026020
+7_fix_bookings_fk.sql      
+                        
+supabase\migrations\2026020
+7_fix_bookings_rls.sql     
+                        
+supabase\migrations\2026020
+7_fix_bookings_rls_v2.sql  
+                        
+supabase\migrations\2026020
+7_fix_create_property_v2.sq
+l                       
+supabase\migrations\2026020
+7_fix_update_property.sql  
+                        
+supabase\migrations\2026020
+9_FIX_MISSING_COLUMNS.sql  
+                        
+supabase\migrations\2026020
+9_init_stripe_payments.sql 
+                        
+supabase\migrations\2026021
+1_add_unique_constraint_to_
+verifications.sql       
+supabase\migrations\2026021
+2_add_commission_to_transac
+tions.sql               
+supabase\migrations\2026021
+2_add_gst_to_user_personal_
+info.sql                
+supabase\migrations\2026021
+2_add_razorpay_account_id.s
+ql                      
+supabase\migrations\2026021
+2_fix_user_wallets_manual.s
+ql                      
+supabase\migrations\2026021
+5_auto_approve_hosts.sql   
+                        
+supabase\migrations\2026021
+6_add_reward_points.sql    
+                        
+supabase\migrations\2026021
+9120000_fix_check_availabil
+ity_security.sql        
+supabase\migrations\2026021
+9_bulk_booking_functions.sq
+l                       
+supabase\migrations\2026021
+9_bulk_booking_schema.sql  
+                        
+

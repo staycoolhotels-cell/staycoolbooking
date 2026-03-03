@@ -1,0 +1,215 @@
+﻿supabase.exe : 
+Initialising login 
+role...
+At line:1 char:1
++ & "C:\Users\VSHARE\s
+coop\apps\supabase\cur
+rent\supabase.exe" db 
+push  ...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (Initialisi   
+ ng login role...:    
+String) [], Remot    
+eException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+Connecting to remote 
+database...
+Found local migration 
+files to be inserted 
+before the last 
+migration on remote 
+database.
+
+Rerun the command 
+with --include-all 
+flag to apply these 
+migrations:
+supabase\migrations\20
+260202120000_create_pr
+ofiles_table.sql      
+            
+supabase\migrations\20
+260202130000_add_profi
+les_rls.sql           
+            
+supabase\migrations\20
+260202140000_update_pr
+operties_rls_with_prof
+iles.sql    
+supabase\migrations\20
+260202170000_fix_users
+_role_column.sql      
+            
+supabase\migrations\20
+260203000000_ensure_ho
+st_status_pending.sql 
+            
+supabase\migrations\20
+260203001800_fix_trigg
+er_conflict.sql       
+            
+supabase\migrations\20
+260203002000_fix_prope
+rties_rls_using_users.
+sql         
+supabase\migrations\20
+260203003000_allow_pen
+ding_hosts_insert.sql 
+            
+supabase\migrations\20
+260203004000_update_cr
+eate_property_security
+_definer.sql
+supabase\migrations\20
+260203010000_fix_creat
+e_property_function.sq
+l           
+supabase\migrations\20
+260203020000_fix_funct
+ion_overload.sql      
+            
+supabase\migrations\20
+260203020000_grant_cre
+ate_property_permissio
+n.sql       
+supabase\migrations\20
+260203030000_resolve_c
+reate_property_ambigui
+ty.sql      
+supabase\migrations\20
+260203040000_force_fix
+_create_property.sql  
+            
+supabase\migrations\20
+260203050000_resolve_a
+mbiguity_final.sql    
+            
+supabase\migrations\20
+260203060000_create_pr
+operty_v2.sql         
+            
+supabase\migrations\20
+260204000000_fix_prope
+rty_pending_status.sql
+            
+supabase\migrations\20
+260205000000_enable_li
+sting_toggle.sql      
+            
+supabase\migrations\20
+260205000001_fix_toggl
+e_function.sql        
+            
+supabase\migrations\20
+260205000002_fix_publi
+c_properties_rls.sql  
+            
+supabase\migrations\20
+260205000003_fix_users
+_rls.sql              
+            
+supabase\migrations\20
+260205000004_fix_verif
+ications_rls.sql      
+            
+supabase\migrations\20
+260205225000_add_missi
+ng_personal_info_cols.
+sql         
+supabase\migrations\20
+260206000000_add_prope
+rty_details.sql       
+            
+supabase\migrations\20
+260206_add_co_host.sql
+                      
+            
+supabase\migrations\20
+260206_add_property_ar
+ea.sql                
+            
+supabase\migrations\20
+260207_add_address_col
+umns.sql              
+            
+supabase\migrations\20
+260207_add_beds_column
+.sql                  
+            
+supabase\migrations\20
+260207_fix_bookings_fk
+.sql                  
+            
+supabase\migrations\20
+260207_fix_bookings_rl
+s.sql                 
+            
+supabase\migrations\20
+260207_fix_bookings_rl
+s_v2.sql              
+            
+supabase\migrations\20
+260207_fix_create_prop
+erty_v2.sql           
+            
+supabase\migrations\20
+260207_fix_update_prop
+erty.sql              
+            
+supabase\migrations\20
+260209_FIX_MISSING_COL
+UMNS.sql              
+            
+supabase\migrations\20
+260209_init_stripe_pay
+ments.sql             
+            
+supabase\migrations\20
+260211_add_unique_cons
+traint_to_verification
+s.sql       
+supabase\migrations\20
+260212_add_commission_
+to_transactions.sql   
+            
+supabase\migrations\20
+260212_add_gst_to_user
+_personal_info.sql    
+            
+supabase\migrations\20
+260212_add_razorpay_ac
+count_id.sql          
+            
+supabase\migrations\20
+260212_fix_user_wallet
+s_manual.sql          
+            
+supabase\migrations\20
+260215_auto_approve_ho
+sts.sql               
+            
+supabase\migrations\20
+260216_add_reward_poin
+ts.sql                
+            
+supabase\migrations\20
+260219120000_fix_check
+_availability_security
+.sql        
+supabase\migrations\20
+260219_bulk_booking_fu
+nctions.sql           
+            
+supabase\migrations\20
+260219_bulk_booking_sc
+hema.sql              
+            
+

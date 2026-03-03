@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
 import StatsCard from './StatsCard';
 import VerificationQueueCard from './VerificationQueueCard';
@@ -9,9 +10,12 @@ import TransactionRow from './TransactionRow';
 import UserManagementCard from './UserManagementCard';
 import UserDetailsModal from './UserDetailsModal';
 import TransactionDetailsModal from './TransactionDetailsModal';
+import DisputeDetailsModal from './DisputeDetailsModal';
+import RealTimeChat from '@/components/chat/RealTimeChat';
 import RecentActivityItem from './RecentActivityItem';
 import PropertyApproval from './PropertyApproval';
 import HostApprovalCard from './HostApprovalCard';
+import VerificationDetailsModal from './VerificationDetailsModal';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -41,6 +45,9 @@ import {
   updateUserDetailsAsAdmin,
   approveHost,
   rejectHost,
+  approveProperty,
+  rejectProperty,
+  updateDisputeStatusAsAdmin,
 } from '@/lib/admin-actions';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -48,6 +55,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 import { User as AuthUser } from '@supabase/supabase-js';
 
 const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], authUsers: AuthUser[], bookings: any[], properties: any[], verifications: any[], disputes: any[], transactions: any[], activities: any[] } }) => {
+  const [maintenanceAlerts, setMaintenanceAlerts] = useState<any[]>([]);
   const [analyticsData, setAnalyticsData] = useState({
     labels: [
       'January',
@@ -67,7 +75,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       {
         label: 'Bookings',
         data: [] as number[],
-        backgroundColor: 'rgba(212, 175, 55, 0.5)',
+        backgroundColor: 'rgba(56, 189, 248, 0.5)',
       },
     ],
   });
@@ -77,15 +85,45 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     plugins: {
       legend: {
         position: 'top' as const,
+        labels: {
+          color: '#e4e4e7',
+          font: {
+            family: "'Inter', sans-serif",
+          },
+        },
       },
       title: {
         display: true,
         text: 'Monthly Bookings',
+        color: '#e4e4e7',
+        font: {
+          size: 16,
+          family: "'Inter', sans-serif",
+          weight: 'bold' as const,
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: {
+          color: '#a1a1aa', // zinc-400
+        },
+        grid: {
+          color: 'rgba(255, 255, 255, 0.1)',
+        },
+      },
+      y: {
+        ticks: {
+          color: '#a1a1aa', // zinc-400
+        },
+        grid: {
+          color: 'rgba(255, 255, 255, 0.1)',
+        },
       },
     },
   };
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'verifications' | 'disputes' | 'transactions' | 'users' | 'properties'
+    'overview' | 'verifications' | 'disputes' | 'transactions' | 'users' | 'properties' | 'inbox'
   >('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -106,14 +144,23 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedVerification, setSelectedVerification] = useState<VerificationItem | null>(null); // New state
+  const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
+  const [sortByPriority, setSortByPriority] = useState(false);
 
   const handleCloseModal = () => {
     setSelectedTransaction(null);
     setSelectedUser(null);
+    setSelectedVerification(null); // Close new modal
+    setSelectedDispute(null);
+  };
+
+  const handleViewVerification = (item: VerificationItem) => {
+    setSelectedVerification(item);
   };
 
   useEffect(() => {
-    if(adminData.profiles && adminData.authUsers) {
+    if (adminData.profiles && adminData.authUsers) {
       const authUsersMap = new Map<string, AuthUser>(adminData.authUsers.map((u: AuthUser) => [u.id, u]));
       const mergedUsers = adminData.profiles.map((p: User) => {
         const authUser = authUsersMap.get(p.id);
@@ -138,10 +185,10 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         bgColor: 'bg-indigo-500',
       },
       {
-        title: 'New Users',
+        title: 'Total Users',
         value: users.length.toString(),
-        icon: 'UserPlusIcon',
-        trend: { value: '+5%', isPositive: true },
+        icon: 'UsersIcon',
+        trend: { value: `+${users.filter(u => new Date(u.created_at).getMonth() === new Date().getMonth() && new Date(u.created_at).getFullYear() === new Date().getFullYear()).length} mo`, isPositive: true },
         bgColor: 'bg-green-500',
       },
       {
@@ -185,12 +232,19 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         {
           label: 'Bookings',
           data: monthlyBookings,
-          backgroundColor: 'rgba(212, 175, 55, 0.5)',
+          backgroundColor: 'rgba(56, 189, 248, 0.5)',
         },
       ],
     });
+
+    // Fetch maintenance alerts initially
+    const fetchMaintenanceAlerts = async () => {
+      const { data } = await supabase.from('maintenance_alerts').select('*').order('created_at', { ascending: false });
+      if (data) setMaintenanceAlerts(data);
+    };
+    fetchMaintenanceAlerts();
   }, [adminData, users]);
-  
+
   useEffect(() => {
     const channel = supabase.channel('realtime-admin');
     channel
@@ -214,7 +268,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
           setBookings((prev) => prev.filter((b) => b.id !== payload.old.id));
         }
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
         if (payload.eventType === 'INSERT') {
           // You might want to refetch users here to get the merged data
         } else if (payload.eventType === 'UPDATE') {
@@ -266,6 +320,17 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
           }
         }
       )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_alerts' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setMaintenanceAlerts((prev) => [payload.new, ...prev]);
+        } else if (payload.eventType === 'UPDATE') {
+          setMaintenanceAlerts((prev) =>
+            prev.map((a) => (a.id === payload.new.id ? payload.new : a))
+          );
+        } else if (payload.eventType === 'DELETE') {
+          setMaintenanceAlerts((prev) => prev.filter((a) => a.id !== payload.old.id));
+        }
+      })
       .subscribe();
 
     return () => {
@@ -274,8 +339,8 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   }, [supabase]);
 
   const refetchUsers = async () => {
-    const { data: profiles, error: profilesError } = await supabase.from('profiles').select('*');
-    if(profiles) {
+    const { data: profiles, error: profilesError } = await supabase.from('users').select('*');
+    if (profiles) {
       const authUsersMap = new Map<string, AuthUser>(adminData.authUsers.map((u: AuthUser) => [u.id, u]));
       const mergedUsers = profiles.map((p: User) => {
         const authUser = authUsersMap.get(p.id);
@@ -299,21 +364,47 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   };
 
   const handlePropertyReview = async (id: string, action: 'active' | 'rejected') => {
-    const { error } = await supabase.from('properties').update({ status: action }).eq('id', id);
-    if (!error) {
+    try {
+      let result;
+      if (action === 'active') {
+        result = await approveProperty(id);
+      } else {
+        result = await rejectProperty(id, 'Rejected by admin');
+      }
+
+      if (!result) {
+        throw new Error(`Failed to ${action === 'active' ? 'approve' : 'reject'} property`);
+      }
+
+      // Update local state optimistically
       setProperties((prev) =>
         prev.map((item) => (item.id === id ? { ...item, status: action } : item))
       );
-      await logActivity('property_review', `Property ${id} has been ${action}`);
+      await logActivity('property_review', `Property ${id} has been ${action}`, undefined, `Property ${action === 'active' ? 'Approved' : 'Rejected'}`, action === 'active' ? 'success' : 'error');
+    } catch (error) {
+      console.error('Error updating property:', error);
+      alert(`Failed to ${action === 'active' ? 'approve' : 'reject'} property`);
     }
   };
 
-  const handleResolveDispute = async (id: string) => {
-    const { error } = await supabase.from('disputes').update({ status: 'resolved' }).eq('id', id);
-    if (!error) {
-      setDisputes((prev) =>
-        prev.map((dispute) => (dispute.id === id ? { ...dispute, status: 'resolved' } : dispute))
-      );
+  const handleUpdateDisputeStatus = async (id: string, newStatus: Dispute['status']) => {
+    const { success, error } = await updateDisputeStatusAsAdmin(id, newStatus);
+    if (!success) {
+      toast.error(`Failed to update dispute status: ${error}`);
+      return;
+    }
+
+    setDisputes((prev) =>
+      prev.map((dispute) => (dispute.id === id ? { ...dispute, status: newStatus } : dispute))
+    );
+    toast.success(`Dispute status updated to ${newStatus.replace('_', ' ')}`);
+    handleCloseModal();
+  };
+
+  const handleViewDispute = (id: string) => {
+    const dispute = disputes.find((d) => d.id === id);
+    if (dispute) {
+      setSelectedDispute(dispute);
     }
   };
 
@@ -347,31 +438,31 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     handleCloseModal();
   };
 
-  
 
-    const handleUpdateUser = async (id: string, updatedUser: Partial<User>) => {
 
-      const { success, error } = await updateUserDetailsAsAdmin(id, updatedUser);
+  const handleUpdateUser = async (id: string, updatedUser: Partial<User>) => {
 
-      if (error) {
+    const { success, error } = await updateUserDetailsAsAdmin(id, updatedUser);
 
-        console.error('Error updating user via admin action:', error);
+    if (error) {
 
-        alert(`Failed to update user: ${error}`);
+      console.error('Error updating user via admin action:', error);
 
-      } else {
+      alert(`Failed to update user: ${error}`);
 
-          refetchUsers();
+    } else {
 
-      }
+      refetchUsers();
 
-      handleCloseModal();
+    }
 
-    };
+    handleCloseModal();
 
-  
+  };
 
-    const handleApproveUser = async (id: string) => {
+
+
+  const handleApproveUser = async (id: string) => {
     const { success, error } = await approveHost(id);
     if (error) {
       console.error('Error approving user via admin action:', error);
@@ -382,26 +473,57 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     handleCloseModal();
   };
 
+  const handleExportReport = () => {
+    toast.success('Report export started. Your download will begin shortly.');
+  };
+
+  const filteredTransactions = transactions.filter((t) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      t.id.toLowerCase().includes(query) ||
+      t.guestName.toLowerCase().includes(query) ||
+      t.hostName.toLowerCase().includes(query) ||
+      t.propertyName.toLowerCase().includes(query)
+    );
+  });
+
+  const filteredUsers = users.filter((u) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      (u.name?.toLowerCase().includes(query)) ||
+      (u.email?.toLowerCase().includes(query))
+    );
+  });
+
+  const sortedDisputes = [...disputes].sort((a, b) => {
+    if (!sortByPriority) return 0;
+    const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+    return (priorityOrder[a.priority] || 99) - (priorityOrder[b.priority] || 99);
+  });
+
   return (
-    <div className="min-h-screen bg-background pt-0 pb-12 px-4 md:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#050505] pt-0 pb-12 px-4 md:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-2">
+            <h1 className="text-3xl md:text-4xl font-heading font-bold text-zinc-100 mb-2">
               Admin Control Center
             </h1>
-            <p className="text-text-secondary">Comprehensive platform oversight and management</p>
+            <p className="text-zinc-400">Comprehensive platform oversight and management</p>
           </div>
           <div className="flex items-center space-x-3 mt-4 md:mt-0">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-3 bg-card border border-border rounded-lg hover:bg-muted transition-colors duration-200"
+              className="relative p-3 bg-[#0a0a0f] border border-white/10 rounded-lg hover:bg-white/5 transition-colors duration-200"
             >
-              <Icon name="BellIcon" size={20} className="text-foreground" />
+              <Icon name="BellIcon" size={20} className="text-zinc-200" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
             </button>
-            <button className="px-6 py-3 bg-brand-deep text-brand-deep-foreground rounded-lg font-heading font-semibold hover:bg-brand-deep/90 transition-all duration-300 flex items-center space-x-2">
+            <button
+              onClick={handleExportReport}
+              className="px-6 py-3 bg-brand-deep text-brand-deep-foreground rounded-lg font-heading font-semibold hover:bg-brand-deep/90 transition-all duration-300 flex items-center space-x-2"
+            >
               <Icon name="ArrowDownTrayIcon" size={20} />
               <span>Export Report</span>
             </button>
@@ -416,7 +538,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-card border border-border rounded-xl p-2 mb-8 overflow-x-auto">
+        <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-2 mb-8 overflow-x-auto">
           <div className="flex space-x-2 min-w-max">
             {(
               [
@@ -426,16 +548,16 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                 { id: 'transactions', label: 'Transactions', icon: 'BanknotesIcon' },
                 { id: 'users', label: 'User Management', icon: 'UsersIcon' },
                 { id: 'properties', label: 'Properties', icon: 'HomeModernIcon' },
+                { id: 'inbox', label: 'Inbox', icon: 'ChatBubbleLeftRightIcon' },
               ] as const
             ).map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-heading font-medium transition-all duration-300 ${
-                  activeTab === tab.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-text-secondary hover:bg-muted hover:text-foreground'
-                }`}
+                className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-heading font-medium transition-all duration-300 ${activeTab === tab.id
+                  ? 'bg-white/10 text-white'
+                  : 'text-zinc-400 hover:bg-white/5 hover:text-white'
+                  }`}
               >
                 <Icon name={tab.icon} size={20} />
                 <span>{tab.label}</span>
@@ -450,54 +572,100 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
             {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                <div className="bg-card border border-border rounded-xl p-6">
-                  <h2 className="text-xl font-heading font-bold text-foreground mb-4">
+                <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-6">
+                  <h2 className="text-xl font-heading font-bold text-zinc-100 mb-4">
                     Platform Analytics
                   </h2>
-                  <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
+                  <div className="h-64 bg-white/5 rounded-lg flex items-center justify-center">
                     <Bar options={analyticsOptions} data={analyticsData} />
                   </div>
                 </div>
 
-                <div className="bg-card border border-border rounded-xl p-6">
-                  <h2 className="text-xl font-heading font-bold text-foreground mb-4">
+                <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-6">
+                  <h2 className="text-xl font-heading font-bold text-zinc-100 mb-4">
                     Quick Actions
                   </h2>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button className="p-4 bg-primary/5 border border-primary/20 rounded-lg hover:bg-primary/10 transition-colors duration-200 text-left">
-                      <Icon name="DocumentCheckIcon" size={24} className="text-primary mb-2" />
-                      <h3 className="font-heading font-semibold text-foreground mb-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button
+                      onClick={() => setActiveTab('verifications')}
+                      className="p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors duration-200 text-left"
+                    >
+                      <Icon name="DocumentCheckIcon" size={24} className="text-emerald-400 mb-2" />
+                      <h3 className="font-heading font-semibold text-zinc-200 mb-1">
                         Review Verifications
                       </h3>
-                      <p className="text-sm text-text-secondary">
+                      <p className="text-sm text-zinc-500">
                         {verificationQueue.filter((v) => v.status === 'pending').length} pending
                       </p>
                     </button>
-                    <button className="p-4 bg-error/5 border border-error/20 rounded-lg hover:bg-error/10 transition-colors duration-200 text-left">
-                      <Icon name="ExclamationTriangleIcon" size={24} className="text-error mb-2" />
-                      <h3 className="font-heading font-semibold text-foreground mb-1">
+                    <button
+                      onClick={() => setActiveTab('disputes')}
+                      className="p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors duration-200 text-left"
+                    >
+                      <Icon name="ExclamationTriangleIcon" size={24} className="text-rose-400 mb-2" />
+                      <h3 className="font-heading font-semibold text-zinc-200 mb-1">
                         Resolve Disputes
                       </h3>
-                      <p className="text-sm text-text-secondary">
+                      <p className="text-sm text-zinc-500">
                         {disputes.filter((d) => d.status !== 'resolved').length} active
                       </p>
                     </button>
-                    <button className="p-4 bg-success/5 border border-success/20 rounded-lg hover:bg-success/10 transition-colors duration-200 text-left">
-                      <Icon name="BanknotesIcon" size={24} className="text-success mb-2" />
-                      <h3 className="font-heading font-semibold text-foreground mb-1">
+                    <button
+                      onClick={() => setActiveTab('transactions')}
+                      className="p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors duration-200 text-left"
+                    >
+                      <Icon name="BanknotesIcon" size={24} className="text-emerald-400 mb-2" />
+                      <h3 className="font-heading font-semibold text-zinc-200 mb-1">
                         Process Payouts
                       </h3>
-                      <p className="text-sm text-text-secondary">
+                      <p className="text-sm text-zinc-500">
                         {transactions.filter((t) => t.status === 'pending').length} pending
                       </p>
                     </button>
-                    <button className="p-4 bg-warning/5 border border-warning/20 rounded-lg hover:bg-warning/10 transition-colors duration-200 text-left">
-                      <Icon name="UsersIcon" size={24} className="text-warning mb-2" />
-                      <h3 className="font-heading font-semibold text-foreground mb-1">
+                    <button
+                      onClick={() => setActiveTab('users')}
+                      className="p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors duration-200 text-left"
+                    >
+                      <Icon name="UsersIcon" size={24} className="text-amber-400 mb-2" />
+                      <h3 className="font-heading font-semibold text-zinc-200 mb-1">
                         Manage Users
                       </h3>
-                      <p className="text-sm text-text-secondary">{users.length} total</p>
+                      <p className="text-sm text-zinc-500">{users.length} total</p>
                     </button>
+                  </div>
+                </div>
+
+                {/* Maintenance Alerts Overview */}
+                <div className="bg-[#0a0a0f] border border-red-500/20 rounded-xl p-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-3xl -z-10"></div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-heading font-bold text-zinc-100 flex items-center gap-2">
+                      Active Maintenance Issues
+                    </h2>
+                    <span className="bg-red-500/10 text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-500/20">
+                      {maintenanceAlerts.filter(a => a.status !== 'Resolved').length} Active
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                    {maintenanceAlerts.filter(a => a.status !== 'Resolved').length > 0 ? (
+                      maintenanceAlerts.filter(a => a.status !== 'Resolved').map((alert) => (
+                        <div key={alert.id} className="p-3 bg-white/5 border border-white/10 rounded-lg flex items-start justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-white">{alert.issue}</p>
+                            <p className="text-xs text-zinc-400 mt-1">Property ID: {alert.property_id.slice(0, 8)}... | By: {alert.reported_by}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] uppercase font-bold text-white ${alert.priority === 'Urgent' ? 'bg-red-500' : alert.priority === 'High' ? 'bg-orange-500' : 'bg-yellow-500'}`}>
+                              {alert.priority}
+                            </span>
+                            <p className="text-[10px] text-zinc-500 mt-2">{new Date(alert.reported_date).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-zinc-500 italic p-4 text-center border border-dashed border-zinc-800 rounded-lg">No active maintenance issues.</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -505,16 +673,16 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
             {/* Verifications Tab */}
             {activeTab === 'verifications' && (
-              <div className="bg-card border border-border rounded-xl p-6">
+              <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-heading font-bold text-foreground">
+                  <h2 className="text-xl font-heading font-bold text-zinc-100">
                     Verification Queue
                   </h2>
                   <div className="flex items-center space-x-3">
                     <select
                       value={filterStatus}
                       onChange={(e) => setFilterStatus(e.target.value)}
-                      className="px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
                     >
                       <option value="all">All Status</option>
                       <option value="pending">Pending</option>
@@ -523,15 +691,23 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {verificationQueue.map((item) => (
-                    <VerificationQueueCard
-                      key={item.id}
-                      item={item}
-                      onReview={(idFromCard: string, actionFromCard: 'approved' | 'rejected') =>
-                        handleReview(idFromCard, actionFromCard)
-                      }
-                    />
-                  ))}
+                  {verificationQueue.length > 0 ? (
+                    verificationQueue.map((item) => (
+                      <VerificationQueueCard
+                        key={item.id}
+                        item={item}
+                        onReview={(idFromCard: string, actionFromCard: 'approved' | 'rejected') =>
+                          handleReview(idFromCard, actionFromCard)
+                        }
+                        onViewDetails={() => handleViewVerification(item)}
+                      />
+                    ))
+                  ) : (
+                    <div className="col-span-full py-12 flex flex-col items-center justify-center bg-white/5 border border-dashed border-white/10 rounded-xl">
+                      <Icon name="DocumentCheckIcon" size={48} className="text-zinc-600 mb-4" />
+                      <p className="text-zinc-500 font-heading">No pending verifications found.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -543,28 +719,40 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                   <h2 className="text-xl font-heading font-bold text-foreground">
                     Active Disputes
                   </h2>
-                  <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-heading font-medium hover:bg-primary/90 transition-colors duration-200">
-                    Filter by Priority
+                  <button
+                    onClick={() => setSortByPriority(!sortByPriority)}
+                    className={`px-4 py-2 rounded-lg font-heading font-medium transition-colors duration-200 ${sortByPriority ? 'bg-brand-deep text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      }`}
+                  >
+                    {sortByPriority ? 'Priority Sorted' : 'Filter by Priority'}
                   </button>
                 </div>
                 <div className="space-y-4">
-                  {disputes.map((dispute) => (
-                    <DisputeCard
-                      key={dispute.id}
-                      dispute={dispute}
-                      onResolve={() => handleResolveDispute(dispute.id)}
-                    />
-                  ))}
+                  {sortedDisputes.length > 0 ? (
+                    sortedDisputes.map((dispute) => (
+                      <DisputeCard
+                        key={dispute.id}
+                        dispute={dispute}
+                        onViewDetails={handleViewDispute}
+                      />
+                    ))
+                  ) : (
+                    <div className="py-12 flex flex-col items-center justify-center bg-white/5 border border-dashed border-white/10 rounded-xl">
+                      <Icon name="ExclamationTriangleIcon" size={48} className="text-zinc-600 mb-4" />
+                      <p className="text-zinc-500 font-heading">No active disputes to display.</p>
+                      <p className="text-xs text-zinc-600 mt-2">All disputes are currently resolved or closed.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
             {/* Transactions Tab */}
             {activeTab === 'transactions' && (
-              <div className="bg-card border border-border rounded-xl overflow-hidden">
-                <div className="p-6 border-b border-border">
+              <div className="bg-[#0a0a0f] border border-white/10 rounded-xl overflow-hidden">
+                <div className="p-6 border-b border-white/10">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-heading font-bold text-foreground">
+                    <h2 className="text-xl font-heading font-bold text-zinc-100">
                       Transaction History
                     </h2>
                     <div className="flex items-center space-x-3">
@@ -573,40 +761,40 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                         placeholder="Search transactions..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
                       />
                     </div>
                   </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-muted">
+                    <thead className="bg-white/5">
                       <tr>
-                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-foreground">
+                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
                           Transaction ID
                         </th>
-                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-foreground">
+                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
                           Guest
                         </th>
-                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-foreground">
+                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
                           Host
                         </th>
-                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-foreground">
+                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
                           Property
                         </th>
-                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-foreground">
+                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
                           Amount
                         </th>
-                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-foreground">
+                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
                           Status
                         </th>
-                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-foreground">
+                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
                           Actions
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {transactions.map((transaction) => (
+                      {filteredTransactions.map((transaction) => (
                         <TransactionRow
                           key={transaction.id}
                           transaction={transaction}
@@ -621,9 +809,9 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
             {/* Users Tab */}
             {activeTab === 'users' && (
-              <div className="bg-card border border-border rounded-xl p-6">
+              <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-heading font-bold text-foreground">
+                  <h2 className="text-xl font-heading font-bold text-zinc-100">
                     User Management
                   </h2>
                   <div className="flex items-center space-x-3">
@@ -632,22 +820,46 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                       placeholder="Search users..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
                     />
                   </div>
                 </div>
                 <div className="mb-8">
-                    <h3 className="text-lg font-heading font-bold text-foreground mb-4">Pending Host Approvals</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {users.filter(u => u.role === 'host' && u.status === 'pending').map((user) => (
-                            <HostApprovalCard key={user.id} user={user} onAction={refetchUsers} />
-                        ))}
-                    </div>
+                  <h3 className="text-lg font-heading font-bold text-zinc-100 mb-4">Pending Host Approvals</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {users.filter(u => u.role === 'host' && u.status === 'pending').length === 0 ? (
+                      <div className="col-span-full py-8 flex flex-col items-center justify-center bg-white/5 border border-dashed border-white/10 rounded-xl">
+                        <Icon name="CheckCircleIcon" size={36} className="text-zinc-600 mb-2" />
+                        <p className="text-zinc-500 font-heading text-sm">No pending host approvals.</p>
+                      </div>
+                    ) : (
+                      users.filter(u => u.role === 'host' && u.status === 'pending').map((user) => (
+                        <HostApprovalCard
+                          key={user.id}
+                          user={user}
+                          onAction={(userId: string) => {
+                            // Optimistically remove the card immediately
+                            setUsers(prev => prev.filter(u => u.id !== userId));
+                          }}
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+                <div className="mb-4 mt-8">
+                  <h3 className="text-lg font-heading font-bold text-zinc-100">All Users</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {users.filter(u => u.name).map((user) => (
-                    <UserManagementCard key={user.id} user={user} onManage={handleManageUser} />
-                  ))}
+                  {filteredUsers.filter(u => u.name).length > 0 ? (
+                    filteredUsers.filter(u => u.name).map((user) => (
+                      <UserManagementCard key={user.id} user={user} onManage={handleManageUser} />
+                    ))
+                  ) : (
+                    <div className="col-span-full py-12 flex flex-col items-center justify-center bg-white/5 border border-dashed border-white/10 rounded-xl">
+                      <Icon name="UsersIcon" size={48} className="text-zinc-600 mb-4" />
+                      <p className="text-zinc-500 font-heading">No users found matching your search.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -659,13 +871,18 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                 onReview={handlePropertyReview}
               />
             )}
+
+            {/* Inbox Tab */}
+            {activeTab === 'inbox' && (
+              <AdminInboxSection />
+            )}
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Recent Activity */}
-            <div className="bg-card border border-border rounded-xl p-6">
-              <h3 className="text-lg font-heading font-bold text-foreground mb-4">
+            <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-6">
+              <h3 className="text-lg font-heading font-bold text-zinc-100 mb-4">
                 Recent Activity
               </h3>
               <div className="space-y-2">
@@ -676,44 +893,44 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
             </div>
 
             {/* System Status */}
-            <div className="bg-card border border-border rounded-xl p-6">
-              <h3 className="text-lg font-heading font-bold text-foreground mb-4">System Status</h3>
+            <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-6">
+              <h3 className="text-lg font-heading font-bold text-zinc-100 mb-4">System Status</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Platform Health</span>
+                  <span className="text-sm text-zinc-400">Platform Health</span>
                   <span className="flex items-center space-x-1 text-success">
                     <div className="w-2 h-2 bg-success rounded-full"></div>
                     <span className="text-sm font-heading font-medium">Operational</span>
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Payment Gateway</span>
+                  <span className="text-sm text-zinc-400">Payment Gateway</span>
                   <span className="flex items-center space-x-1 text-success">
                     <div className="w-2 h-2 bg-success rounded-full"></div>
                     <span className="text-sm font-heading font-medium">Active</span>
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Messaging System</span>
+                  <span className="text-sm text-zinc-400">Messaging System</span>
                   <span className="flex items-center space-x-1 text-success">
                     <div className="w-2 h-2 bg-success rounded-full"></div>
                     <span className="text-sm font-heading font-medium">Online</span>
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-secondary">Server Load</span>
-                  <span className="text-sm font-heading font-medium text-foreground">42%</span>
+                  <span className="text-sm text-zinc-400">Server Load</span>
+                  <span className="text-sm font-heading font-medium text-zinc-200">42%</span>
                 </div>
               </div>
             </div>
 
             {/* Quick Stats */}
-            <div className="bg-gradient-to-br from-brand-deep to-primary rounded-xl p-6 text-white">
+            <div className="bg-[#050505] border border-white/10 rounded-xl p-6 text-white">
               <h3 className="text-lg font-heading font-bold mb-4">Today&apos;s Summary</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm opacity-90">New Registrations</span>
-                  <span className="text-xl font-heading font-bold">{users.length}</span>
+                  <span className="text-xl font-heading font-bold">{users.filter(u => new Date(u.created_at).toDateString() === new Date().toDateString()).length}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm opacity-90">Bookings Completed</span>
@@ -730,7 +947,10 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
           </div>
         </div>
       </div>
-      <TransactionDetailsModal transaction={selectedTransaction} onClose={handleCloseModal} />
+      <TransactionDetailsModal
+        transaction={selectedTransaction}
+        onClose={handleCloseModal}
+      />
       <UserDetailsModal
         user={selectedUser}
         onClose={handleCloseModal}
@@ -739,8 +959,128 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         onUpdateUser={handleUpdateUser}
         onApprove={handleApproveUser}
       />
+      <VerificationDetailsModal
+        item={selectedVerification}
+        onClose={handleCloseModal}
+        onReview={handleReview}
+      />
+      <DisputeDetailsModal
+        dispute={selectedDispute}
+        onClose={handleCloseModal}
+        onUpdateStatus={handleUpdateDisputeStatus}
+      />
     </div>
   );
+  function AdminInboxSection() {
+    const [threads, setThreads] = useState<any[]>([]);
+    const [selectedThread, setSelectedThread] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [currentAdmin, setCurrentAdmin] = useState<{ id: string, name: string } | null>(null);
+
+    useEffect(() => {
+      const fetchAdminAndThreads = async () => {
+        // Get current admin
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase.from('users').select('id, name').eq('id', user.id).single();
+          setCurrentAdmin({ id: user.id, name: profile?.name || 'Admin' });
+        }
+
+        // Fetch all support messages (where at least one user is admin)
+        const { data: messages, error } = await supabase
+          .from('messages')
+          .select('*, sender:sender_id(id, name), receiver:receiver_id(id, name)')
+          .order('created_at', { ascending: false });
+
+        if (!error && messages) {
+          // Group by the "other" user (host/guest)
+          const threadMap = new Map();
+          messages.forEach((msg: any) => {
+            const otherUser = msg.sender_id === user?.id ? msg.receiver : msg.sender;
+            if (!otherUser) return;
+            if (otherUser.id === user?.id) return; // Should not happen if filtered correctly
+
+            if (!threadMap.has(otherUser.id)) {
+              threadMap.set(otherUser.id, {
+                user: otherUser,
+                lastMessage: msg.content,
+                timestamp: msg.created_at,
+              });
+            }
+          });
+          setThreads(Array.from(threadMap.values()));
+        }
+        setLoading(true);
+        setLoading(false);
+      };
+
+      fetchAdminAndThreads();
+
+      // Real-time for new threads
+      const channel = supabase.channel('admin-inbox')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+          fetchAdminAndThreads();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }, []);
+
+    if (loading) return <div className="p-8 text-center text-zinc-500">Loading inbox...</div>;
+
+    return (
+      <div className="bg-[#0a0a0f] border border-white/10 rounded-xl overflow-hidden flex h-[700px]">
+        {/* Thread List */}
+        <div className="w-1/3 border-r border-white/10 overflow-y-auto">
+          <div className="p-4 border-b border-white/10 bg-white/5">
+            <h3 className="font-heading font-bold text-white">Support Communications</h3>
+          </div>
+          {threads.length === 0 ? (
+            <div className="p-8 text-center text-zinc-600 italic">No messages yet</div>
+          ) : (
+            threads.map((thread) => (
+              <button
+                key={thread.user.id}
+                onClick={() => setSelectedThread(thread)}
+                className={`w-full p-4 text-left border-b border-white/5 hover:bg-white/5 transition-colors ${selectedThread?.user.id === thread.user.id ? 'bg-white/10' : ''
+                  }`}
+              >
+                <div className="font-bold text-zinc-100">{thread.user.name}</div>
+                <div className="text-sm text-zinc-500 truncate">{thread.lastMessage}</div>
+                <div className="text-[10px] text-zinc-600 mt-1">
+                  {new Date(thread.timestamp).toLocaleString()}
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+
+        {/* Chat Area */}
+        <div className="flex-1 flex flex-col">
+          {selectedThread && currentAdmin ? (
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
+                <h3 className="font-bold text-white">Chatting with {selectedThread.user.name}</h3>
+              </div>
+              <div className="flex-1 p-4 min-h-0 overflow-y-auto">
+                <RealTimeChat
+                  currentUser={currentAdmin}
+                  otherUser={selectedThread.user}
+                  contextTitle="Platform Support"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-zinc-600 italic">
+              Select a conversation to begin
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 };
 
 export default AdminPanelInteractive;

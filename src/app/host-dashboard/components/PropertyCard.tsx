@@ -9,14 +9,15 @@ interface PropertyCardProps {
   property: Property;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
-  onToggleStatus: (id: string, newStatus: 'active' | 'pending' | 'rejected') => void;
+  onToggleStatus: (id: string, newStatus: 'active' | 'pending' | 'rejected' | 'offline') => void;
+  onManageRooms: (property: Property) => void;
 }
 
 /**
  * Premium Property Card for Host Dashboard
  * Features: Glassmorphism, Shimmer Animation, and 3D Hover Effects
  */
-const PropertyCard = ({ property, onEdit, onDelete, onToggleStatus }: PropertyCardProps) => {
+const PropertyCard = ({ property, onEdit, onDelete, onToggleStatus, onManageRooms }: PropertyCardProps) => {
   return (
     <motion.div
       layout
@@ -40,6 +41,12 @@ const PropertyCard = ({ property, onEdit, onDelete, onToggleStatus }: PropertyCa
             alt={property.name || ''}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           />
+        ) : property.image_url ? (
+          <img
+            src={property.image_url}
+            alt={property.name || ''}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          />
         ) : (
           <div className="w-full h-full bg-muted flex items-center justify-center text-text-secondary text-sm">
             No Image
@@ -53,25 +60,50 @@ const PropertyCard = ({ property, onEdit, onDelete, onToggleStatus }: PropertyCa
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onToggleStatus(property.id, property.status === 'active' ? 'pending' : 'active');
+              // Allow toggling between active and offline
+              if (property.status === 'active') {
+                onToggleStatus(property.id, 'offline');
+              } else if (property.status === 'offline') {
+                onToggleStatus(property.id, 'active');
+              }
             }}
-            className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full backdrop-blur-md border transition-all ${
-              property.status === 'active'
-                ? 'bg-primary/20 border-primary/50 text-primary shadow-[0_0_15px_rgba(var(--color-primary-rgb),0.3)]'
+            disabled={property.status === 'pending' || property.status === 'rejected'}
+            title={
+              property.status === 'pending'
+                ? 'Waiting for admin approval'
+                : property.status === 'rejected'
+                  ? 'Property rejected by admin'
+                  : property.status === 'active'
+                    ? 'Click to take offline'
+                    : 'Click to make live'
+            }
+            className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full backdrop-blur-md border transition-all ${property.status === 'active'
+              ? 'bg-primary/20 border-primary/50 text-primary shadow-[0_0_15px_rgba(var(--color-primary-rgb),0.3)] cursor-pointer hover:bg-primary/30'
+              : property.status === 'offline'
+                ? 'bg-zinc-500/20 border-zinc-500/50 text-zinc-400 cursor-pointer hover:bg-zinc-500/30'
                 : property.status === 'pending'
-                  ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-500'
-                  : 'bg-red-500/20 border-red-500/50 text-red-500'
-            }`}
+                  ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-500 cursor-not-allowed opacity-80'
+                  : 'bg-red-500/20 border-red-500/50 text-red-500 cursor-not-allowed opacity-80'
+              }`}
           >
             <div className="flex items-center gap-1.5">
               <div
-                className={`w-1.5 h-1.5 rounded-full ${property.status === 'active' ? 'bg-primary animate-pulse' : property.status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'}`}
+                className={`w-1.5 h-1.5 rounded-full ${property.status === 'active'
+                  ? 'bg-primary animate-pulse'
+                  : property.status === 'offline'
+                    ? 'bg-zinc-500'
+                    : property.status === 'pending'
+                      ? 'bg-yellow-500 animate-pulse'
+                      : 'bg-red-500'
+                  }`}
               />
               {property.status === 'active'
                 ? 'Live'
-                : property.status === 'pending'
-                  ? 'Pending'
-                  : 'Rejected'}
+                : property.status === 'offline'
+                  ? 'Offline'
+                  : property.status === 'pending'
+                    ? 'Pending Approval'
+                    : 'Rejected'}
             </div>
           </button>
         </div>
@@ -85,7 +117,7 @@ const PropertyCard = ({ property, onEdit, onDelete, onToggleStatus }: PropertyCa
               {property.type}
             </span>
             <h3 className="text-xl font-heading font-bold text-white group-hover:text-primary transition-colors">
-              {property.name}
+              {property.title || property.name}
             </h3>
             <div className="flex items-center text-white/40">
               <Icon name="MapPinIcon" size={14} className="mr-1" />
@@ -113,7 +145,13 @@ const PropertyCard = ({ property, onEdit, onDelete, onToggleStatus }: PropertyCa
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-2">
+            <button
+              onClick={() => onManageRooms(property)}
+              className="px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 rounded-xl border border-blue-500/20 transition-all text-blue-400 hover:text-blue-300 text-xs font-semibold"
+            >
+              Manage Rooms
+            </button>
             <button
               onClick={() => onEdit(property.id)}
               className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all text-white/60 hover:text-white hover:scale-110 active:scale-90"

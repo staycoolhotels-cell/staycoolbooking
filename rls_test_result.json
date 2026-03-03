@@ -1,0 +1,24 @@
+{
+  "insert": {
+    "data": [
+      {
+        "id": "0e8c72a6-f2ac-4de7-86d5-c54120c83762",
+        "user_id": "35a05e4c-12be-4f77-8dc2-32b128d66b33",
+        "property_id": "5d1e67e2-4e90-4015-8557-d8f7217aab7c",
+        "created_at": "2026-02-23T20:50:48.544809+00:00"
+      }
+    ],
+    "error": null
+  },
+  "read": {
+    "data": [
+      {
+        "id": "0e8c72a6-f2ac-4de7-86d5-c54120c83762",
+        "user_id": "35a05e4c-12be-4f77-8dc2-32b128d66b33",
+        "property_id": "5d1e67e2-4e90-4015-8557-d8f7217aab7c",
+        "created_at": "2026-02-23T20:50:48.544809+00:00"
+      }
+    ],
+    "error": null
+  }
+}

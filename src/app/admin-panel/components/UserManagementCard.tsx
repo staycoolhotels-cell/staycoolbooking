@@ -1,5 +1,6 @@
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { motion } from 'framer-motion';
 
 import { User } from '@/lib/types';
 
@@ -10,67 +11,76 @@ interface UserManagementCardProps {
 
 const UserManagementCard = ({ user, onManage }: UserManagementCardProps) => {
   const statusConfig = {
-    active: { bg: 'bg-success/10', text: 'text-success' },
-    rejected: { bg: 'bg-error/10', text: 'text-error' },
-    pending: { bg: 'bg-warning/10', text: 'text-warning' },
-    default: { bg: 'bg-gray-500/10', text: 'text-gray-500' },
+    active: { bg: 'bg-success/10', text: 'text-success', border: 'border-success/30' },
+    rejected: { bg: 'bg-error/10', text: 'text-error', border: 'border-error/30' },
+    pending: { bg: 'bg-warning/10', text: 'text-warning', border: 'border-warning/30' },
+    default: { bg: 'bg-zinc-500/10', text: 'text-zinc-400', border: 'border-zinc-500/30' },
   };
 
   const statusStyle =
     statusConfig[user.status as keyof typeof statusConfig] || statusConfig.default;
 
-  const roleColors: { [key: string]: string } = {
-    host: 'bg-brand-deep/10 text-brand-deep',
-    guest: 'bg-primary/10 text-primary',
-    admin: 'bg-error/10 text-error',
+  const roleColors: { [key: string]: { bg: string, text: string, border: string } } = {
+    host: { bg: 'bg-brand-deep/20', text: 'text-brand-deep', border: 'border-brand-deep/50' },
+    guest: { bg: 'bg-primary/20', text: 'text-primary', border: 'border-primary/50' },
+    admin: { bg: 'bg-error/20', text: 'text-error', border: 'border-error/50' },
   };
 
-  const roleStyle = roleColors[user.role] || 'bg-gray-500/10 text-gray-500';
+  const roleStyle = roleColors[user.role] || { bg: 'bg-zinc-500/10', text: 'text-zinc-500', border: 'border-zinc-500/30' };
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4 hover:shadow-brand-md transition-all duration-300">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
+    <motion.div
+      whileHover={{ y: -4, scale: 1.01 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      className="relative bg-[#0a0a0f]/80 backdrop-blur-xl border-t border-l border-white/20 border-b border-r border-black/50 rounded-xl p-5 shadow-[0_15px_30px_rgba(0,0,0,0.6)] hover:shadow-[0_25px_50px_rgba(0,0,0,0.8)] hover:border-white/30 transition-all duration-300 overflow-hidden group"
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+      <div className="relative z-10 flex items-start justify-between mb-5">
+        <div className="flex items-center space-x-4">
           <div className="relative">
-            <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
-                <Icon name="UserIcon" size={28} className="text-foreground" />
+            <div className="absolute inset-0 bg-brand-deep/30 rounded-full blur-md" />
+            <div className="relative w-14 h-14 rounded-full bg-[#12121a] border-2 border-white/10 flex items-center justify-center shadow-inner overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+              <Icon name="UserIcon" size={28} className="text-zinc-200 drop-shadow-md z-10" />
             </div>
           </div>
           <div>
-            <h4 className="font-heading font-semibold text-foreground">{user.name || 'N/A'}</h4>
-            <p className="text-sm text-text-secondary">{user.email || 'N/A'}</p>
+            <h4 className="font-heading font-bold text-zinc-100 text-lg tracking-wide drop-shadow-sm">{user.name || 'N/A'}</h4>
+            <p className="text-xs text-zinc-400 font-medium tracking-wide">{user.email || 'N/A'}</p>
           </div>
         </div>
         <span
-          className={`px-3 py-1 rounded-full text-xs font-heading font-medium ${statusStyle.bg} ${statusStyle.text} flex items-center justify-center`}
+          className={`px-3 py-1.5 rounded-full text-[10px] font-heading font-bold uppercase tracking-widest border ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border} shadow-inner flex items-center justify-center`}
         >
           {user.status?.toUpperCase() || 'UNKNOWN'}
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-muted rounded-lg p-3">
-          <p className="text-xs text-text-secondary mb-1">Role</p>
+      <div className="relative z-10 grid grid-cols-2 gap-4 mb-5">
+        <div className="bg-[#050505]/60 rounded-xl p-3 border border-white/5 shadow-inner">
+          <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-2">Role</p>
           <span
-            className={`inline-block px-2 py-1 rounded text-xs font-heading font-medium ${roleStyle}`}
+            className={`inline-block px-3 py-1 rounded-md text-[10px] font-heading font-bold uppercase tracking-widest border ${roleStyle.bg} ${roleStyle.text} ${roleStyle.border}`}
           >
             {user.role?.toUpperCase() || 'UNKNOWN'}
           </span>
         </div>
-        <div className="bg-muted rounded-lg p-3">
-          <p className="text-xs text-text-secondary mb-1">Joined</p>
-          <p className="font-heading font-semibold text-foreground">{new Date(user.created_at).toLocaleDateString()}</p>
+        <div className="bg-[#050505]/60 rounded-xl p-3 border border-white/5 shadow-inner flex flex-col justify-center">
+          <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Joined</p>
+          <p className="font-heading font-semibold text-zinc-200 drop-shadow-sm">{new Date(user.created_at).toLocaleDateString()}</p>
         </div>
       </div>
 
       <button
         onClick={() => onManage(user.id)}
-        className="w-full px-4 py-2 bg-brand-deep text-brand-deep-foreground rounded-lg font-heading font-semibold hover:bg-brand-deep/90 transition-all duration-300 flex items-center justify-center space-x-2"
+        className="relative w-full px-4 py-3 bg-brand-deep text-brand-deep-foreground rounded-xl font-heading font-bold hover:bg-brand-default hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all duration-300 flex items-center justify-center space-x-2 group/btn border border-brand-default/50"
       >
-        <Icon name="Cog6ToothIcon" size={20} />
-        <span>Manage User</span>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-xl pointer-events-none"></div>
+        <Icon name="Cog6ToothIcon" size={20} className="relative z-10 group-hover/btn:scale-110 group-hover/btn:rotate-90 transition-transform duration-500 drop-shadow-md" />
+        <span className="relative z-10 tracking-wide text-sm">Manage User</span>
       </button>
-    </div>
+    </motion.div>
   );
 };
 

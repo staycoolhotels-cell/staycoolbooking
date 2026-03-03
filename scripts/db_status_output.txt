@@ -1,0 +1,5 @@
+Checking all properties permissions...
+Total properties found: 3
+Property counts by status: {"active":2,"offline":1}
+Active properties found via query: 2
+Pending properties found via query: 0

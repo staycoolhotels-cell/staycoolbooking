@@ -103,3 +103,22 @@
 .custom-scrollbar::-webkit-scrollbar-button {
   display: none; /* Hide scroll buttons/arrows */
 }
+
+
+/* Fix for Indian Rupee Symbol () Rendering */
+@font-face {
+  font-family: 'Montserrat';
+  src: local('Arial'), local('Helvetica'), local('system-ui');
+  unicode-range: U+20B9;
+}
+@font-face {
+  font-family: 'Lora';
+  src: local('Arial'), local('Helvetica'), local('system-ui');
+  unicode-range: U+20B9;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: local('Arial'), local('Helvetica'), local('system-ui');
+  unicode-range: U+20B9;
+}
+

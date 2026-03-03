@@ -20,80 +20,81 @@ export default {
     },
     extend: {
       colors: {
-        border: "rgb(59, 78, 102)",
-        input: "rgb(40, 53, 66)",
-        ring: "rgb(30, 144, 255)",
-        background: "repeating-linear-gradient(45deg, rgb(26, 37, 51), rgb(26, 37, 51) 10px, rgb(32, 43, 56) 10px, rgb(32, 43, 56) 20px)",
-        foreground: "rgb(224, 231, 235)",
+        border: "rgb(39, 39, 42)", // Zinc 800
+        input: "rgb(39, 39, 42)", // Zinc 800
+        ring: "rgb(14, 165, 233)", // Sky 500
+        background: "#080808", // Deep Black/Zinc
+        foreground: "rgb(244, 244, 245)", // Zinc 100
         primary: {
-          DEFAULT: "rgb(0, 191, 255)",
+          DEFAULT: "rgb(14, 165, 233)", // Sky 500
           foreground: "rgb(255, 255, 255)",
         },
         secondary: {
-          DEFAULT: "rgb(128, 168, 191)",
-          foreground: "rgb(26, 37, 51)",
+          DEFAULT: "rgb(39, 39, 42)", // Zinc 800
+          foreground: "rgb(250, 250, 250)",
         },
         accent: {
-          DEFAULT: "rgb(30, 144, 255)",
+          DEFAULT: "rgb(14, 165, 233)", // Sky 500
           foreground: "rgb(255, 255, 255)",
         },
         surface: {
-          DEFAULT: "rgb(32, 43, 56)",
-          foreground: "rgb(224, 231, 235)",
+          DEFAULT: "rgb(9, 9, 11)", // Zinc 950
+          foreground: "rgb(244, 244, 245)",
         },
         card: {
-          DEFAULT: "rgb(32, 43, 56)",
-          foreground: "rgb(224, 231, 235)",
+          DEFAULT: "rgb(9, 9, 11)", // Zinc 950
+          foreground: "rgb(244, 244, 245)",
         },
         popover: {
-          DEFAULT: "rgb(32, 43, 56)",
-          foreground: "rgb(224, 231, 235)",
+          DEFAULT: "rgb(9, 9, 11)", // Zinc 950
+          foreground: "rgb(244, 244, 245)",
         },
         muted: {
-          DEFAULT: "rgb(45, 62, 80)",
-          foreground: "rgb(170, 187, 203)",
+          DEFAULT: "rgb(24, 24, 27)", // Zinc 900
+          foreground: "rgb(161, 161, 170)", // Zinc 400
         },
         destructive: {
-          DEFAULT: "rgb(255, 99, 71)",
+          DEFAULT: "rgb(239, 68, 68)", // Red 500
           foreground: "rgb(255, 255, 255)",
         },
         success: {
-          DEFAULT: "rgb(60, 179, 113)",
+          DEFAULT: "rgb(34, 197, 94)", // Green 500
           foreground: "rgb(255, 255, 255)",
         },
         warning: {
-          DEFAULT: "rgb(255, 215, 0)",
+          DEFAULT: "rgb(234, 179, 8)", // Yellow 500
           foreground: "rgb(255, 255, 255)",
         },
         error: {
-          DEFAULT: "rgb(255, 99, 71)",
+          DEFAULT: "rgb(239, 68, 68)", // Red 500
           foreground: "rgb(255, 255, 255)",
         },
         brand: {
-          deep: "rgb(0, 122, 204)",
+          deep: "rgb(8, 8, 8)",
           'deep-foreground': "rgb(255, 255, 255)",
-          energetic: "rgb(30, 144, 255)",
+          energetic: "rgb(14, 165, 233)", // Sky 500
           'energetic-foreground': "rgb(255, 255, 255)",
         },
         text: {
-          primary: "rgb(224, 231, 235)",
-          secondary: "rgb(155, 172, 191)",
+          primary: "rgb(244, 244, 245)", // Zinc 100
+          secondary: "rgb(161, 161, 170)", // Zinc 400
         },
-        'gradient-primary-from': "rgb(0, 191, 255)", // Deep sky blue
-        'gradient-primary-to': "rgb(135, 206, 235)",   // Lighter sky blue
-        'gradient-background-from': "rgb(26, 37, 51)", // Very dark blue-gray
-        'gradient-background-to': "rgb(45, 62, 80)",   // Slightly lighter dark blue-gray
-        'gradient-card-from': "rgb(32, 43, 56)",       // Dark blue-gray for cards
-        'gradient-card-to': "rgb(45, 62, 80)",         // Slightly lighter blue-gray for cards
-      },      borderRadius: {
+        // Maintain gradients for backward compatibility but mapped to new theme
+        'gradient-primary-from': "rgb(14, 165, 233)",
+        'gradient-primary-to': "rgb(56, 189, 248)",
+        'gradient-background-from': "#080808",
+        'gradient-background-to': "rgb(24, 24, 27)",
+        'gradient-card-from': "rgb(9, 9, 11)",
+        'gradient-card-to': "rgb(24, 24, 27)",
+      }, borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ['Montserrat', 'sans-serif'],
-        heading: ['Lora', 'serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        sans: ['var(--font-montserrat)', 'system-ui', 'Arial', 'sans-serif'],
+        heading: ['var(--font-lora)', 'system-ui', 'Arial', 'serif'],
+        mono: ['var(--font-mono)', 'JetBrains Mono', 'monospace'],
       },
       keyframes: {
         "accordion-down": {
@@ -121,8 +122,8 @@ export default {
           "50%": { opacity: "1" },
         },
         "animate-fade-in": {
-            '0%': { opacity: 0 },
-            '100%': { opacity: 1 },
+          '0%': { opacity: 0 },
+          '100%': { opacity: 1 },
         }
       },
       animation: {

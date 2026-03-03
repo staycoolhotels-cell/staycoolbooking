@@ -1,22 +1,81 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
+import { createBrowserClient } from '@supabase/ssr';
 
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
 }
 
+const navItems = [
+  { id: 'overview', label: 'Overview', icon: 'ChartBarIcon' },
+  { id: 'properties', label: 'Properties', icon: 'HomeIcon' },
+  { id: 'bookings', label: 'Bookings', icon: 'CalendarDaysIcon' },
+  { id: 'earnings', label: 'Earnings', icon: 'BanknotesIcon' },
+  { id: 'inbox', label: 'Inbox', icon: 'EnvelopeIcon' },
+  { id: 'profile', label: 'Profile', icon: 'UserCircleIcon' },
+];
+
 const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
-  const navItems = [
-    { id: 'overview', label: 'Overview', icon: 'ChartBarIcon' },
-    { id: 'properties', label: 'Properties', icon: 'HomeIcon' },
-    { id: 'bookings', label: 'Bookings', icon: 'CalendarDaysIcon' },
-    { id: 'earnings', label: 'Earnings', icon: 'BanknotesIcon' },
-    { id: 'profile', label: 'Profile', icon: 'UserCircleIcon' },
-  ];
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    let currentUserId: string | null = null;
+
+    const fetchUnread = async (userId: string) => {
+      const { count } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('receiver_id', userId)
+        .eq('is_read', false);
+      setUnreadCount(count ?? 0);
+    };
+
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      currentUserId = user.id;
+      fetchUnread(user.id);
+
+      // Real-time subscription for new messages
+      const channel = supabase
+        .channel('sidebar-unread')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'messages',
+            filter: `receiver_id=eq.${user.id}`,
+          },
+          () => fetchUnread(user.id)
+        )
+        .subscribe();
+
+      return () => supabase.removeChannel(channel);
+    };
+
+    const cleanup = init();
+    return () => { cleanup.then(fn => fn?.()) };
+  }, []);
+
+  // When switching to inbox tab, mark messages as read after a short delay
+  useEffect(() => {
+    if (activeTab === 'inbox') {
+      // Let the inbox component handle marking as read
+      // Just clear local count when inbox is active
+      const timer = setTimeout(() => setUnreadCount(0), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab]);
 
   return (
     <aside className="relative z-30 w-72 h-full bg-white/[0.03] backdrop-blur-3xl border-r border-white/10 flex flex-col shadow-2xl">
@@ -62,17 +121,22 @@ const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
               <Icon
                 name={item.icon}
                 size={22}
-                className={`mr-4 transition-colors duration-300 ${
-                  activeTab === item.id ? 'text-primary' : 'text-white/30 group-hover:text-white/60'
-                }`}
+                className={`mr-4 transition-colors duration-300 ${activeTab === item.id ? 'text-primary' : 'text-white/30 group-hover:text-white/60'
+                  }`}
               />
               <span
-                className={`font-semibold tracking-wide transition-colors duration-300 ${
-                  activeTab === item.id ? 'text-white' : 'text-white/50 group-hover:text-white/80'
-                }`}
+                className={`font-semibold tracking-wide transition-colors duration-300 flex-1 text-left ${activeTab === item.id ? 'text-white' : 'text-white/50 group-hover:text-white/80'
+                  }`}
               >
                 {item.label}
               </span>
+              {/* Unread dot — show only for Inbox when there are unread messages */}
+              {item.id === 'inbox' && unreadCount > 0 && activeTab !== 'inbox' && (
+                <span className="relative flex h-2.5 w-2.5 ml-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+                </span>
+              )}
             </div>
           </button>
         ))}

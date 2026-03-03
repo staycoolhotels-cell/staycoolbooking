@@ -1,59 +1,55 @@
-import React from 'react';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { Property } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+import { useRouter } from 'next/navigation';
 import PropertyList from './components/PropertyList';
+import { Property } from '@/lib/types';
 
-const PropertyManagementPage = async () => {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (name: string) => {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
+const PropertyManagementPage = () => {
+  const router = useRouter();
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  useEffect(() => {
+    const checkAuthAndFetchProperties = async () => {
+      // Check authentication
+      const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user || user.email !== process.env.ADMIN_EMAIL) {
-    redirect('/auth');
-  }
+      if (!user) {
+        router.push('/auth');
+        return;
+      }
 
-  const { data: properties, error } = await supabase.from('properties').select('*');
+      // Fetch properties only once on mount
+      const { data, error } = await supabase.from('properties').select('*');
 
-  if (error) {
-    console.error('Error fetching properties:', error);
-    // Handle error appropriately
+      if (error) {
+        console.error('Error fetching properties:', error);
+      } else {
+        setProperties(data || []);
+      }
+
+      setLoading(false);
+    };
+
+    checkAuthAndFetchProperties();
+  }, []); // Empty dependency array - only run once on mount
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Loading properties...</div>
+      </div>
+    );
   }
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Property Management</h1>
-        <Button asChild>
-          <Link href="/list-property">Add Property</Link>
-        </Button>
       </div>
-      <PropertyList initialProperties={properties || []} />
+      <PropertyList initialProperties={properties} />
     </div>
   );
 };

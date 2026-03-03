@@ -1,0 +1,17 @@
+import { createClient } from '@supabase/supabase-js';
+import * as dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    dotenv.config({ path: '.env.example' });
+}
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+async function check() {
+    const { data, error } = await supabase.from('properties').select('*').limit(1);
+    if (error) {
+        console.error('Error:', error);
+    } else {
+        console.log('Property keys:', Object.keys(data[0] || {}).join(', '));
+    }
+}
+check();

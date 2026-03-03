@@ -16,3 +16,4 @@ const createBucket = async (bucketName: string) => {
 
 createBucket('images');
 createBucket('documents');
+createBucket('avatars');

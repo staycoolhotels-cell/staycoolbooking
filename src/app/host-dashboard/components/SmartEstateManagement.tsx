@@ -1,90 +1,42 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
-import { PropertyControlData, PropertyQualityScore } from '@/lib/types';
+import React, { useMemo } from 'react';
+import { PropertyControlData, PropertyQualityScore, Property } from '@/lib/types';
 import { motion } from 'framer-motion';
+import { supabase } from '@/lib/supabaseClient';
 
-const SmartEstateManagement: React.FC = () => {
-  const [properties, setProperties] = useState<PropertyControlData[]>([]);
-  const [qualityScores, setQualityScores] = useState<PropertyQualityScore[]>([]);
-  const [loading, setLoading] = useState(true);
+interface SmartEstateManagementProps {
+  properties?: Property[];
+}
 
-  useEffect(() => {
-    const fetchProperties = async () => {
-      setLoading(true);
-      try {
-        // FIX: 'name' column ledhu kabatti 'title' ni fetch chesthunnamu
-        const { data: propData, error: propError } = await supabase
-          .from('properties')
-          .select('id, title, status'); // Database schema sync
+const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ properties: propData = [] }) => {
+  const { controls, qualityScores } = useMemo(() => {
+    const mappedControls: PropertyControlData[] = propData.map((p) => ({
+      id: p.id,
+      propertyName: p.name || p.title || 'Stay Cool Property',
+      isBlocked: p.status === 'offline',
+    }));
 
-        if (propError) {
-          console.error('Supabase Error Details:', propError.message);
-          throw propError;
-        }
+    const mappedScores: PropertyQualityScore[] = propData.map((p) => ({
+      propertyId: p.id,
+      propertyName: p.name || p.title || 'Stay Cool Property',
+      score: Math.floor(Math.random() * 4) + 6, // 6 to 9 random score
+      feedback: ['Description is accurate', 'Great response rate'],
+    }));
 
-        if (propData) {
-          const mappedControls: PropertyControlData[] = propData.map((p) => ({
-            id: p.id,
-            // Safe Check: title ledha name edhi unna handle chesthundhi
-            propertyName: p.title || (p as any).name || 'Stay Cool Property',
-            isBlocked: p.status === 'suspended' || p.status === 'blocked',
-          }));
-          setProperties(mappedControls);
-
-          const mappedScores: PropertyQualityScore[] = propData.map((p) => ({
-            propertyId: p.id,
-            propertyName: p.title || (p as any).name || 'Stay Cool Property',
-            score: Math.floor(Math.random() * 4) + 6, // 6 to 9 random score
-            feedback: ['Description is accurate', 'Great response rate'],
-          }));
-          setQualityScores(mappedScores);
-        }
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error(JSON.stringify(err));
-        console.error('Management Fetch Error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProperties();
-  }, []);
+    return { controls: mappedControls, qualityScores: mappedScores };
+  }, [propData]);
 
   const handleToggleBlock = async (id: string, currentStatus: boolean) => {
-    const newStatus = currentStatus ? 'active' : 'suspended';
-
-    // Optimistic UI Update
-    setProperties((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, isBlocked: !currentStatus } : p))
-    );
+    const newStatus = currentStatus ? 'active' : 'offline';
 
     try {
       const { error } = await supabase
-        .from('properties')
-        .update({ status: newStatus })
-        .eq('id', id);
+        .rpc('toggle_property_status', { p_id: id, p_status: newStatus });
 
       if (error) throw error;
     } catch (err: any) {
       alert('Failed to update: ' + err.message);
-      // Error vasthe rollback
-      setProperties((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, isBlocked: currentStatus } : p))
-      );
     }
   };
-
-  if (loading)
-    return (
-      <div className="p-10 flex flex-col items-center justify-center space-y-3">
-        <div className="w-10 h-10 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
-        <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">
-          Accessing Estate Registry...
-        </p>
-      </div>
-    );
 
   return (
     <div className="p-8 space-y-10">
@@ -97,19 +49,18 @@ const SmartEstateManagement: React.FC = () => {
         </div>
         <div className="px-4 py-2 bg-white/[0.03] border border-white/10 rounded-full">
           <span className="text-[10px] text-zinc-400 font-bold uppercase">
-            Total Units: {properties.length}
+            Total Units: {propData.length}
           </span>
         </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        {/* Inventory Switcher */}
         <div className="bg-white/[0.02] rounded-[2.5rem] border border-white/5 p-8 backdrop-blur-3xl">
           <h2 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-8 border-b border-white/5 pb-4">
             Master Switches
           </h2>
           <div className="space-y-4">
-            {properties.map((control) => (
+            {controls.map((control) => (
               <div
                 key={control.id}
                 className="p-5 border border-white/5 rounded-2xl bg-white/[0.01] flex justify-between items-center group hover:bg-white/[0.03] transition-all"
@@ -138,7 +89,6 @@ const SmartEstateManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* Quality Index */}
         <div className="bg-white/[0.02] rounded-[2.5rem] border border-white/5 p-8 backdrop-blur-3xl">
           <h2 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-8 border-b border-white/5 pb-4">
             Quality Metrics
@@ -182,3 +132,4 @@ const SmartEstateManagement: React.FC = () => {
 };
 
 export default SmartEstateManagement;
+

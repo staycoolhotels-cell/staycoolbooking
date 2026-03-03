@@ -4,6 +4,7 @@ import React from 'react';
 import * as HeroIcons from '@heroicons/react/24/outline';
 import * as HeroIconsSolid from '@heroicons/react/24/solid';
 import { QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
+import { TentIcon, ResortIcon } from './CustomIcons';
 
 type IconVariant = 'outline' | 'solid';
 
@@ -26,6 +27,15 @@ function Icon({
   disabled = false,
   ...props
 }: IconProps) {
+  // Check for custom icons first
+  if (name === 'TentIcon') {
+    return <TentIcon className={`${disabled ? 'opacity-50 cursor-not-allowed' : onClick ? 'cursor-pointer hover:opacity-80' : ''} ${className}`} size={size} />;
+  }
+
+  if (name === 'ResortIcon') {
+    return <ResortIcon className={`${disabled ? 'opacity-50 cursor-not-allowed' : onClick ? 'cursor-pointer hover:opacity-80' : ''} ${className}`} size={size} />;
+  }
+
   const iconSet = variant === 'solid' ? HeroIconsSolid : HeroIcons;
   const IconComponent = iconSet[name as keyof typeof iconSet] as React.ComponentType<
     React.SVGProps<SVGSVGElement>

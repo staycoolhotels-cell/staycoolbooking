@@ -1,5 +1,6 @@
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
+import TiltCard from '@/components/ui/TiltCard';
 
 const TrustIndicators = () => {
   const indicators = [
@@ -30,13 +31,13 @@ const TrustIndicators = () => {
   ];
 
   return (
-    <section className="py-20 bg-gradient-to-br from-gradient-background-from to-gradient-background-to">
+    <section className="py-20 bg-[#080808]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="font-heading text-4xl font-bold text-text-primary tracking-tight">
+          <h2 className="font-heading text-4xl font-bold text-zinc-100 tracking-tight">
             Why Choose Us?
           </h2>
-          <p className="font-sans mt-4 text-xl text-text-secondary max-w-3xl mx-auto">
+          <p className="font-sans mt-4 text-xl text-zinc-400 max-w-3xl mx-auto">
             Experience peace of mind and unparalleled service with StayCool Booking.
           </p>
         </div>
@@ -44,15 +45,19 @@ const TrustIndicators = () => {
           {indicators.map((indicator, index) => (
             <div
               key={index}
-              className="bg-gradient-to-br from-gradient-card-from to-gradient-card-to p-6 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 text-center"
+              className="h-full"
             >
-              <div className="flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-gradient-primary-from/10 to-gradient-primary-to/10 mx-auto mb-6">
-                <Icon name={indicator.icon} size={32} className="text-primary" />
-              </div>
-              <h3 className="font-heading text-xl font-bold text-text-primary">
-                {indicator.title}
-              </h3>
-              <p className="font-sans mt-2 text-text-secondary text-sm">{indicator.description}</p>
+              <TiltCard className="h-full" tiltMaxAngleX={10} tiltMaxAngleY={10} scale={1.05} glareMaxOpacity={0.1}>
+                <div className="bg-zinc-900/40 border border-zinc-800 p-6 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 h-full text-center group">
+                  <div className="flex items-center justify-center h-16 w-16 rounded-full bg-sky-500/10 mx-auto mb-6 group-hover:bg-sky-500/20 transition-colors">
+                    <Icon name={indicator.icon} size={32} className="text-sky-400" />
+                  </div>
+                  <h3 className="font-heading text-xl font-bold text-zinc-100">
+                    {indicator.title}
+                  </h3>
+                  <p className="font-sans mt-2 text-zinc-500 text-sm">{indicator.description}</p>
+                </div>
+              </TiltCard>
             </div>
           ))}
         </div>

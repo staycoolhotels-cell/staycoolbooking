@@ -3,7 +3,7 @@ import AdminPanelMotionWrapper from './components/AdminPanelMotionWrapper';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getUsersData } from '@/lib/admin-actions';
+import { getUsersData, syncAndFetchUsers } from '@/lib/admin-actions';
 
 export const metadata: Metadata = {
   title: 'Admin Panel - StayCool',
@@ -30,7 +30,7 @@ export default async function AdminPanelPage() {
   } = await supabase.auth.getSession();
 
   const { data: adminProfile, error: adminProfileError } = await supabase
-    .from('profiles')
+    .from('users')
     .select('role')
     .eq('id', session?.user?.id)
     .single();
@@ -39,12 +39,12 @@ export default async function AdminPanelPage() {
     redirect('/auth');
   }
 
-  const { data: profiles, error: profilesError } = await supabase.from('profiles').select('*');
+  const profiles = await syncAndFetchUsers();
   const authUsers = await getUsersData();
 
   const { data: properties, error: propertiesError } = await supabase
     .from('properties')
-    .select('host_id');
+    .select('*');
 
   const { data: bookings, error: bookingsError } = await supabase.from('bookings').select('*');
   const { data: transactions, error: transactionsError } = await supabase
@@ -61,6 +61,23 @@ export default async function AdminPanelPage() {
     .order('created_at', { ascending: false })
     .limit(10);
 
+  // Transform activities to match the RecentActivity interface
+  const transformedActivities = activities?.map((activity: any) => ({
+    id: activity.id,
+    type: activity.type || 'user_action',
+    title: activity.title || 'Activity',
+    description: activity.description || '',
+    timestamp: activity.created_at
+      ? new Date(activity.created_at).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+      : 'Just now',
+    status: activity.status || 'info'
+  })) || [];
+
   const adminData = {
     profiles: profiles,
     authUsers: authUsers,
@@ -70,7 +87,7 @@ export default async function AdminPanelPage() {
     reviews,
     disputes,
     verifications,
-    activities,
+    activities: transformedActivities,
   };
 
   return <AdminPanelMotionWrapper adminData={adminData} />;

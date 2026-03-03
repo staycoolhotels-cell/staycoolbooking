@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { useFormStatus, useFormState } from 'react-dom';
+import { useRef, useState, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { addProperty } from '@/lib/property-actions';
 import { redirect } from 'next/navigation';
 
@@ -15,7 +15,7 @@ function SubmitButton() {
 }
 
 export default function AddPropertyPage() {
-  const [state, formAction] = useFormState(addProperty, null);
+  const [state, formAction] = useActionState(addProperty, null);
   const formRef = useRef<HTMLFormElement>(null);
   const [amenities, setAmenities] = useState<string[]>([]);
   const [rules, setRules] = useState<string[]>([]);
@@ -60,7 +60,26 @@ export default function AddPropertyPage() {
 
     // Append amenities and rules as JSON strings
     formData.append('amenities', JSON.stringify(amenities));
-    formData.append('rules', JSON.stringify(rules));
+
+    // Process House Rules with times
+    const checkInTime = formData.get('checkInTime') as string;
+    const checkOutTime = formData.get('checkOutTime') as string;
+    const finalRules = [...rules];
+
+    // Helper to format 24h time to 12h AM/PM
+    const formatTime = (time: string) => {
+      if (!time) return '';
+      const [hours, minutes] = time.split(':');
+      const h = parseInt(hours);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 || 12;
+      return `${h12}:${minutes} ${ampm}`;
+    };
+
+    if (checkInTime) finalRules.push(`Check-in after ${formatTime(checkInTime)}`);
+    if (checkOutTime) finalRules.push(`Checkout before ${formatTime(checkOutTime)}`);
+
+    formData.append('rules', JSON.stringify(finalRules));
 
     // Append image files
     imageFiles.forEach((file) => {
@@ -86,7 +105,7 @@ export default function AddPropertyPage() {
             </ul>
           </div>
         )}
-         {state?.documentUploadErrors && state.documentUploadErrors.length > 0 && (
+        {state?.documentUploadErrors && state.documentUploadErrors.length > 0 && (
           <div className="text-red-500">
             <p>Document Upload Errors:</p>
             <ul>
@@ -171,7 +190,29 @@ export default function AddPropertyPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Rules</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Safety & Property</label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {['Smoke alarm', 'Carbon monoxide alarm', 'First aid kit', 'Fire extinguisher', 'Security cameras', 'Safe'].map((item) => (
+              <div key={item} className="flex items-center">
+                <input type="checkbox" id={`safety-${item}`} value={item} onChange={handleAmenityChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded" />
+                <label htmlFor={`safety-${item}`} className="ml-2 text-sm text-gray-700">{item}</label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">House Rules</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label htmlFor="checkInTime" className="block text-xs font-medium text-gray-500 mb-1">Check-in Start</label>
+              <input type="time" id="checkInTime" name="checkInTime" className="block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+            </div>
+            <div>
+              <label htmlFor="checkOutTime" className="block text-xs font-medium text-gray-500 mb-1">Check-out End</label>
+              <input type="time" id="checkOutTime" name="checkOutTime" className="block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+            </div>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {['No Smoking', 'No Pets', 'No Parties', 'Quiet Hours'].map((rule) => (
               <div key={rule} className="flex items-center">
@@ -201,7 +242,7 @@ export default function AddPropertyPage() {
           <label htmlFor="current_bill_file" className="block text-sm font-medium text-gray-700">Current Bill Document</label>
           <input type="file" id="current_bill_file" name="current_bill_file" accept=".pdf,.doc,.docx,.jpg,.png" className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
         </div>
-        
+
         <SubmitButton />
       </form>
     </div>

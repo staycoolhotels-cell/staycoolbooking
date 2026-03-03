@@ -5,7 +5,7 @@ import Icon from '@/components/ui/AppIcon';
 import AppImage from '@/components/ui/AppImage';
 
 interface MapProperty {
-  id: number;
+  id: string | number;
   lat: number;
   lng: number;
   title: string;
@@ -16,7 +16,7 @@ interface MapProperty {
 
 interface InteractiveMapProps {
   properties: MapProperty[];
-  onPropertySelect: (id: number) => void;
+  onPropertySelect: (id: string | number) => void;
 }
 
 const InteractiveMap = ({ properties, onPropertySelect }: InteractiveMapProps) => {
@@ -63,11 +63,10 @@ const InteractiveMap = ({ properties, onPropertySelect }: InteractiveMapProps) =
             >
               <button
                 onClick={() => onPropertySelect(property.id)}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
-                  hoveredProperty?.id === property.id
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${hoveredProperty?.id === property.id
                     ? 'bg-primary text-white scale-125'
                     : 'bg-white text-primary'
-                }`}
+                  }`}
               >
                 <span className="font-bold text-sm">₹{Math.round(property.price / 1000)}k</span>
               </button>

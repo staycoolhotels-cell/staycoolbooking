@@ -1,16 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { supabase } from '../../lib/supabaseClient';
 import Icon from '../../components/ui/AppIcon';
 
 /**
  * PROTECTED Admin Setup Utility
+ * This page initializes the admin user using credentials from .env file
  */
 export default function AdminSetupPage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [secretKey, setSecretKey] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
 
   // IMPORTANT: Change this to a private key only you know!
   const MASTER_SECRET = 'STAYCOOL_2024_DEPLOY_KEY';
@@ -27,22 +28,22 @@ export default function AdminSetupPage() {
     setMessage('');
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: 'balapraveenraju.madanu@gmail.com',
-        password: 'DefaultPassword123',
-        options: {
-          data: {
-            role: 'Admin', // This unlocks the Admin Panel
-            full_name: 'System Admin',
-          },
+      // Call the API route to initialize admin user
+      const response = await fetch('/api/admin-init', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
       });
 
-      if (error) throw error;
+      const result = await response.json();
 
-      if (data.user) {
+      if (result.success) {
         setStatus('success');
-        setMessage('Admin account created successfully! You can now log in.');
+        setMessage(`Admin account initialized successfully! Email: ${result.adminEmail}`);
+        setAdminEmail(result.adminEmail);
+      } else {
+        throw new Error(result.message);
       }
     } catch (err: any) {
       setStatus('error');
@@ -88,13 +89,17 @@ export default function AdminSetupPage() {
 
         {message && (
           <div
-            className={`mt-6 p-4 rounded-xl text-sm border ${
-              status === 'error'
+            className={`mt-6 p-4 rounded-xl text-sm border ${status === 'error'
                 ? 'bg-error/10 border-error/20 text-error'
                 : 'bg-green-500/10 border-green-500/20 text-green-600'
-            }`}
+              }`}
           >
-            {message}
+            <p className="font-bold mb-2">{message}</p>
+            {status === 'success' && adminEmail && (
+              <p className="text-xs mt-2 opacity-80">
+                You can now login at <a href="/auth" className="underline">/auth</a> using the admin credentials.
+              </p>
+            )}
           </div>
         )}
       </div>

@@ -1,0 +1,3 @@
+{
+  "critical_error": "supabaseAdmin.from(...).select(...).eq(...).limit(...).schema is not a function"
+}

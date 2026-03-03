@@ -29,25 +29,25 @@ const TransactionRow = ({ transaction, onViewDetails }: TransactionRowProps) => 
   const config = statusConfig[transaction.status];
 
   return (
-    <tr className="border-b border-border hover:bg-muted/50 transition-colors duration-200">
+    <tr className="border-b border-white/10 hover:bg-white/5 transition-colors duration-200">
       <td className="px-4 py-4">
-        <div className="font-heading font-medium text-foreground">{transaction.transactionId}</div>
-        <div className="text-sm text-text-secondary">{transaction.date}</div>
+        <div className="font-heading font-medium text-zinc-200">{transaction.transactionId}</div>
+        <div className="text-sm text-zinc-400">{transaction.date}</div>
       </td>
       <td className="px-4 py-4">
-        <div className="text-foreground">{transaction.guestName}</div>
+        <div className="text-zinc-200">{transaction.guestName}</div>
       </td>
       <td className="px-4 py-4">
-        <div className="text-foreground">{transaction.hostName}</div>
+        <div className="text-zinc-200">{transaction.hostName}</div>
       </td>
       <td className="px-4 py-4">
-        <div className="text-sm text-foreground">{transaction.propertyName}</div>
+        <div className="text-sm text-zinc-200">{transaction.propertyName}</div>
       </td>
       <td className="px-4 py-4">
-        <div className="font-heading font-semibold text-foreground">
+        <div className="font-heading font-semibold text-zinc-200">
           ₹{transaction.amount.toLocaleString('en-IN')}
         </div>
-        <div className="text-xs text-text-secondary">{transaction.paymentMethod}</div>
+        <div className="text-xs text-zinc-400">{transaction.paymentMethod}</div>
       </td>
       <td className="px-4 py-4">
         <span

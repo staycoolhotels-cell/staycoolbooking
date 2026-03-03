@@ -1,48 +1,48 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { PayoutData, PayoutStatus } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-
-const dummyPayouts: PayoutData[] = [
-  {
-    id: 'payout1',
-    date: '2024-01-05',
-    platformFee: 50,
-    gstTaxes: 20,
-    netProfit: 430,
-    totalPayout: 500,
-    status: 'Completed',
-  },
-  {
-    id: 'payout2',
-    date: '2024-01-12',
-    platformFee: 60,
-    gstTaxes: 25,
-    netProfit: 515,
-    totalPayout: 600,
-    status: 'Initiated',
-  },
-  {
-    id: 'payout3',
-    date: '2024-01-19',
-    platformFee: 45,
-    gstTaxes: 18,
-    netProfit: 387,
-    totalPayout: 450,
-    status: 'Completed',
-  },
-];
+import { Transaction } from '@/lib/types';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
-const FinancialTreasury: React.FC = () => {
-  const latestPayout = dummyPayouts[0]; // Assuming latest payout is the first one
+type FinancialTreasuryProps = {
+  transactions?: Transaction[];
+};
+
+const FinancialTreasury: React.FC<FinancialTreasuryProps> = ({ transactions = [] }) => {
+  const payouts = useMemo(() => {
+    return transactions.map((t) => {
+      const totalPayout = Number(t.amount) || 0;
+      const platformFee = t.breakdown?.service_fee || (totalPayout * 0.1);
+      const netProfit = totalPayout - platformFee;
+
+      const statusMap: Record<string, string> = {
+        'completed': 'Completed',
+        'pending': 'Initiated',
+        'failed': 'Failed',
+      };
+
+      return {
+        id: t.id || Math.random().toString(),
+        date: (() => {
+          const d = new Date(t.date || new Date());
+          return isNaN(d.getTime()) ? new Date().toISOString().split('T')[0] : d.toISOString().split('T')[0];
+        })(),
+        platformFee,
+        netProfit,
+        totalPayout,
+        status: statusMap[t.status] || 'Initiated'
+      };
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [transactions]);
+
+  const latestPayout = payouts[0]; // Assuming latest payout is the first one
 
   const pieChartData = latestPayout
     ? [
-        { name: 'Platform Fee', value: latestPayout.platformFee },
-        { name: 'GST/Taxes', value: latestPayout.gstTaxes },
-        { name: 'Net Profit', value: latestPayout.netProfit },
-      ]
+      { name: 'Platform Fee', value: latestPayout.platformFee },
+      { name: 'Net Profit', value: latestPayout.netProfit },
+    ]
     : [];
 
   return (
@@ -111,7 +111,7 @@ const FinancialTreasury: React.FC = () => {
         {/* Payout History */}
         <div className="bg-white/[0.03] backdrop-blur-md rounded-[2.5rem] border border-white/10 p-5 shadow-2xl">
           <h2 className="text-xl font-semibold text-white mb-4">Payout History</h2>
-          {dummyPayouts.length > 0 ? (
+          {payouts.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-white/10">
                 <thead className="bg-white/5">
@@ -131,7 +131,7 @@ const FinancialTreasury: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-transparent divide-y divide-white/10">
-                  {dummyPayouts.map((payout) => (
+                  {payouts.map((payout) => (
                     <tr key={payout.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                         {payout.date}

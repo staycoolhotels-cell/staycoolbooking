@@ -46,7 +46,6 @@ export interface PayoutData {
   id: string;
   date: string;
   platformFee: number;
-  gstTaxes: number;
   netProfit: number;
   totalPayout: number;
   status: PayoutStatus;
@@ -56,13 +55,15 @@ export type SentimentLabel = 'Urgent' | 'Happy' | 'Frustrated' | 'Neutral';
 
 export interface Message {
   id: string;
-  sender: string;
-  timestamp: string;
+  sender_id: string;
+  receiver_id: string;
+  property_id?: string;
   content: string;
   sentiment: SentimentLabel;
-  isRead: boolean;
-  propertyId?: string;
-  propertyName?: string;
+  is_read: boolean;
+  created_at: string;
+  sender_name?: string; // Appended by join
+  property_name?: string; // Appended by join
 }
 
 export interface QuickReply {

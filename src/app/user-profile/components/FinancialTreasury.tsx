@@ -10,31 +10,36 @@ type FinancialTreasuryProps = {
   transactions: Transaction[];
 };
 
-const FinancialTreasury = ({ transactions }: FinancialTreasuryProps) => {
+const FinancialTreasury = ({ transactions = [] }: FinancialTreasuryProps) => {
+  const isPayment = (t: Transaction) => t.type === 'payment' || (!t.type && (t.amount || 0) > 0);
+
   const totalSpending = transactions
-    .filter((t) => t.type === 'payment')
+    .filter(isPayment)
     .reduce((acc, t) => acc + t.amount, 0);
 
   const pendingRefunds = transactions.filter((t) => t.type === 'refund' && t.status === 'pending');
 
   const downloadInvoice = (invoiceId: string) => {
-    // In a real app, this would trigger a download from a secure endpoint
-    alert(`Downloading invoice: ${invoiceId}`);
+    console.log(`Downloading invoice ${invoiceId}...`);
+    // Simulate download delay
+    setTimeout(() => {
+      alert(`Invoice ${invoiceId} has been downloaded successfully.`);
+    }, 1000);
   };
 
   return (
-    <div className="bg-gradient-to-br from-gradient-card-from to-gradient-card-to border border-border rounded-2xl shadow-xl p-6">
+    <div className="bg-zinc-900/30 border border-zinc-800 rounded-[2rem] shadow-xl p-8 shadow-sky-900/5">
       <h2 className="text-xl font-bold text-white mb-4">Financial Treasury</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Spending Breakdown */}
-        <div className="bg-gray-800/40 rounded-xl p-4">
-          <h3 className="font-semibold text-gray-300 text-center mb-3">Spending Breakdown</h3>
+        <div className="bg-zinc-800/40 rounded-xl p-4">
+          <h3 className="font-semibold text-zinc-300 text-center mb-3">Spending Breakdown</h3>
           <SpendingChart transactions={transactions} />
           <p className="text-center text-2xl font-bold text-white mt-4">
             ₹{totalSpending.toLocaleString('en-IN')}
           </p>
-          <p className="text-center text-xs text-gray-400 uppercase">Total Paid</p>
+          <p className="text-center text-xs text-zinc-400 uppercase">Total Paid</p>
         </div>
 
         {/* Refund & Invoice Section */}
@@ -62,26 +67,26 @@ const FinancialTreasury = ({ transactions }: FinancialTreasuryProps) => {
 
           {/* Invoice Vault */}
           <div>
-            <h3 className="font-semibold text-gray-300 mb-2">Invoice Vault</h3>
+            <h3 className="font-semibold text-zinc-300 mb-2">Invoice Vault</h3>
             <div className="max-h-32 overflow-y-auto space-y-2 pr-2">
               {transactions
-                .filter((t) => t.type === 'payment')
+                .filter(isPayment)
                 .map((t) => (
                   <div
                     key={t.id}
-                    className="bg-gray-800/60 rounded-lg p-2.5 flex justify-between items-center"
+                    className="bg-zinc-800/60 rounded-lg p-2.5 flex justify-between items-center"
                   >
                     <div>
-                      <p className="font-medium text-white">Invoice {t.invoice_id}</p>
-                      <p className="text-xs text-gray-400">Booking: {t.booking_id}</p>
+                      <p className="font-medium text-white">Invoice {t.invoice_id || (t.id ? t.id.split('-')[0].toUpperCase() : 'N/A')}</p>
+                      <p className="text-xs text-zinc-400">Booking: {t.booking_id}</p>
                     </div>
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      onClick={() => t.invoice_id && downloadInvoice(t.invoice_id)}
+                      onClick={() => downloadInvoice(t.invoice_id || (t.id ? t.id.split('-')[0].toUpperCase() : 'N/A'))}
                       className="p-2 bg-primary/20 rounded-full hover:bg-primary/40 transition"
                     >
-                      <Icon name="DownloadIcon" size={16} className="text-primary" />
+                      <Icon name="ArrowDownTrayIcon" size={16} className="text-primary" />
                     </motion.button>
                   </div>
                 ))}

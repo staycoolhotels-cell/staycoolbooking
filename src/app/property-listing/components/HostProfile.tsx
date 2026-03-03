@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
+import ContactHostModal from '@/components/ui/ContactHostModal';
 
 interface HostProfileProps {
   name: string;
@@ -12,6 +13,9 @@ interface HostProfileProps {
   responseTime: string;
   totalProperties: number;
   bio: string;
+  coHostName?: string;
+  hostId: string;
+  propertyId: string;
 }
 
 const HostProfile = ({
@@ -24,7 +28,12 @@ const HostProfile = ({
   responseTime,
   totalProperties,
   bio,
+  coHostName,
+  hostId,
+  propertyId,
 }: HostProfileProps) => {
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+
   return (
     <div className="bg-card rounded-xl p-6 md:p-8 border border-border">
       <h2 className="text-2xl font-heading font-bold text-foreground mb-6">Meet Your Host</h2>
@@ -50,6 +59,9 @@ const HostProfile = ({
         <div className="flex-1">
           <div className="flex items-center space-x-3 mb-2">
             <h3 className="text-xl font-heading font-bold text-foreground">{name}</h3>
+            {coHostName && (
+              <p className="text-sm font-sans text-text-secondary mt-1">Co-Hosted by <span className="text-foreground font-semibold">{coHostName}</span></p>
+            )}
             {isVerified && (
               <div className="flex items-center space-x-1 px-2 py-1 bg-success/10 rounded-full">
                 <Icon name="CheckBadgeIcon" size={16} className="text-success" variant="solid" />
@@ -77,12 +89,23 @@ const HostProfile = ({
 
           <p className="text-sm text-foreground leading-relaxed mb-4">{bio}</p>
 
-          <button className="w-full md:w-auto px-6 py-3 bg-primary text-primary-foreground rounded-lg font-heading font-semibold hover:bg-primary/90 transition-all duration-300 flex items-center justify-center space-x-2">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="w-full md:w-auto px-6 py-3 bg-primary text-primary-foreground rounded-lg font-heading font-semibold hover:bg-primary/90 transition-all duration-300 flex items-center justify-center space-x-2"
+          >
             <Icon name="ChatBubbleLeftRightIcon" size={20} />
             <span>Contact Host</span>
           </button>
         </div>
       </div>
+
+      <ContactHostModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        hostId={hostId}
+        hostName={name}
+        propertyId={propertyId}
+      />
     </div>
   );
 };
