@@ -64,13 +64,15 @@ const Properties = ({
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="mb-6 bg-zinc-900/50 p-1 border border-zinc-800 rounded-xl">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white">All Properties ({properties.length})</TabsTrigger>
-          <TabsTrigger value="active" className="data-[state=active]:bg-green-500/10 data-[state=active]:text-green-500">Active ({activeProperties.length})</TabsTrigger>
-          <TabsTrigger value="offline" className="data-[state=active]:bg-zinc-500/10 data-[state=active]:text-zinc-400">Offline ({offlineProperties.length})</TabsTrigger>
-          <TabsTrigger value="pending" className="data-[state=active]:bg-yellow-500/10 data-[state=active]:text-yellow-500">Pending ({pendingProperties.length})</TabsTrigger>
-          <TabsTrigger value="rejected" className="data-[state=active]:bg-red-500/10 data-[state=active]:text-red-500">Rejected ({rejectedProperties.length})</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 mb-6">
+          <TabsList className="inline-flex w-auto bg-zinc-900/50 p-1 border border-zinc-800 rounded-xl whitespace-nowrap">
+            <TabsTrigger value="overview" className="px-5 py-2.5 data-[state=active]:bg-zinc-800 data-[state=active]:text-white transition-all">All Properties ({properties.length})</TabsTrigger>
+            <TabsTrigger value="active" className="px-5 py-2.5 data-[state=active]:bg-green-500/10 data-[state=active]:text-green-500 transition-all">Active ({activeProperties.length})</TabsTrigger>
+            <TabsTrigger value="offline" className="px-5 py-2.5 data-[state=active]:bg-zinc-500/10 data-[state=active]:text-zinc-400 transition-all">Offline ({offlineProperties.length})</TabsTrigger>
+            <TabsTrigger value="pending" className="px-5 py-2.5 data-[state=active]:bg-yellow-500/10 data-[state=active]:text-yellow-500 transition-all">Pending ({pendingProperties.length})</TabsTrigger>
+            <TabsTrigger value="rejected" className="px-5 py-2.5 data-[state=active]:bg-red-500/10 data-[state=active]:text-red-500 transition-all">Rejected ({rejectedProperties.length})</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="overview">
           {renderPropertyGrid(properties)}

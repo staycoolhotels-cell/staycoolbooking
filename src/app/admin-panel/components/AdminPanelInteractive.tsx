@@ -1,6 +1,7 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
+import AdminPageHeader from './AdminPageHeader';
+import { useRouter } from 'next/navigation';
+import { useScroll } from 'framer-motion';
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
 import StatsCard from './StatsCard';
@@ -122,9 +123,32 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       },
     },
   };
-  const [activeTab, setActiveTab] = useState<
+  const { scrollY } = useScroll(); // Assuming you might have scroll sync but keep it focused on tabs
+  const { searchParams } = new URL(typeof window !== 'undefined' ? window.location.href : 'http://localhost'); // Simple fallback
+  // Better use Next.js navigation
+  const router = useRouter();
+  const searchParamsNext = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+
+  const [activeTab, setActiveTabState] = useState<
     'overview' | 'verifications' | 'disputes' | 'transactions' | 'users' | 'properties' | 'inbox'
   >('overview');
+
+  useEffect(() => {
+    if (searchParamsNext) {
+      const tab = searchParamsNext.get('tab') as any;
+      if (tab && ['overview', 'verifications', 'disputes', 'transactions', 'users', 'properties', 'inbox'].includes(tab)) {
+        setActiveTabState(tab);
+      }
+    }
+  }, [searchParamsNext]);
+
+  const setActiveTab = (tab: typeof activeTab) => {
+    setActiveTabState(tab);
+    const newParams = new URLSearchParams(window.location.search);
+    newParams.set('tab', tab);
+    router.push(`${window.location.pathname}?${newParams.toString()}`, { scroll: false });
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showNotifications, setShowNotifications] = useState(false);
@@ -505,61 +529,58 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     <div className="min-h-screen bg-[#050505] pt-0 pb-12 px-4 md:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-heading font-bold text-zinc-100 mb-2">
-              Admin Control Center
-            </h1>
-            <p className="text-zinc-400">Comprehensive platform oversight and management</p>
-          </div>
-          <div className="flex items-center space-x-3 mt-4 md:mt-0">
+        <AdminPageHeader
+          title="Control Center"
+          subtitle="Real-time platform oversight and management"
+        >
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-3 bg-[#0a0a0f] border border-white/10 rounded-lg hover:bg-white/5 transition-colors duration-200"
+              className="p-3 bg-[#0a0a0f] text-zinc-400 border border-white/10 rounded-xl hover:text-white hover:border-white/20 transition-all relative group"
             >
-              <Icon name="BellIcon" size={20} className="text-zinc-200" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+              <Icon name="BellIcon" size={20} />
+              <div className="absolute top-3 right-3 w-2 h-2 bg-primary rounded-full border-2 border-[#0a0a0f] group-hover:scale-110 transition-transform" />
             </button>
             <button
               onClick={handleExportReport}
-              className="px-6 py-3 bg-brand-deep text-brand-deep-foreground rounded-lg font-heading font-semibold hover:bg-brand-deep/90 transition-all duration-300 flex items-center space-x-2"
+              className="p-3 bg-[#0a0a0f] text-zinc-400 border border-white/10 rounded-xl hover:text-white hover:border-white/20 transition-all flex items-center space-x-2"
             >
               <Icon name="ArrowDownTrayIcon" size={20} />
-              <span>Export Report</span>
+              <span className="hidden sm:inline text-sm font-medium">Export</span>
             </button>
           </div>
-        </div>
+        </AdminPageHeader>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
           {stats.map((stat, index) => (
             <StatsCard key={index} {...stat} />
           ))}
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-2 mb-8 overflow-x-auto">
-          <div className="flex space-x-2 min-w-max">
+        <div className="bg-[#0a0a0f]/50 backdrop-blur-md border border-white/10 rounded-2xl p-1.5 mb-8 sticky top-20 z-40 overflow-hidden">
+          <div className="flex items-center space-x-1 overflow-x-auto no-scrollbar pb-1 px-1">
             {(
               [
                 { id: 'overview', label: 'Overview', icon: 'ChartBarIcon' },
-                { id: 'verifications', label: 'Verifications', icon: 'DocumentCheckIcon' },
+                { id: 'verifications', label: 'Review', icon: 'DocumentCheckIcon' },
                 { id: 'disputes', label: 'Disputes', icon: 'ExclamationTriangleIcon' },
-                { id: 'transactions', label: 'Transactions', icon: 'BanknotesIcon' },
-                { id: 'users', label: 'User Management', icon: 'UsersIcon' },
-                { id: 'properties', label: 'Properties', icon: 'HomeModernIcon' },
-                { id: 'inbox', label: 'Inbox', icon: 'ChatBubbleLeftRightIcon' },
+                { id: 'transactions', label: 'Money', icon: 'BanknotesIcon' },
+                { id: 'users', label: 'Users', icon: 'UsersIcon' },
+                { id: 'properties', label: 'Listing', icon: 'HomeModernIcon' },
+                { id: 'inbox', label: 'Chat', icon: 'ChatBubbleLeftRightIcon' },
               ] as const
             ).map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-heading font-medium transition-all duration-300 ${activeTab === tab.id
-                  ? 'bg-white/10 text-white'
-                  : 'text-zinc-400 hover:bg-white/5 hover:text-white'
+                className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl font-heading font-semibold text-xs uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${activeTab === tab.id
+                  ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.1)]'
+                  : 'text-zinc-500 hover:text-white hover:bg-white/5'
                   }`}
               >
-                <Icon name={tab.icon} size={20} />
+                <Icon name={tab.icon} size={16} />
                 <span>{tab.label}</span>
               </button>
             ))}
@@ -946,7 +967,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
             </div>
           </div>
         </div>
-      </div>
+      </div >
       <TransactionDetailsModal
         transaction={selectedTransaction}
         onClose={handleCloseModal}
@@ -969,7 +990,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         onClose={handleCloseModal}
         onUpdateStatus={handleUpdateDisputeStatus}
       />
-    </div>
+    </div >
   );
   function AdminInboxSection() {
     const [threads, setThreads] = useState<any[]>([]);

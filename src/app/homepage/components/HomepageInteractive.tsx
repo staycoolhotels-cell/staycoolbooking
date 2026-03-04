@@ -240,14 +240,26 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
 
   const handleSearch = (filters: any) => {
     let filtered = allProperties;
-    if (filters.location) {
+
+    // Determine location and dates from filters object or direct parameters
+    const locationStr = typeof filters === 'string' ? filters : (filters?.location || '');
+    const dates = filters?.dates;
+
+    if (locationStr && typeof locationStr === 'string') {
       filtered = filtered.filter((p) =>
-        p.location.toLowerCase().includes(filters.location.toLowerCase())
+        p.location.toLowerCase().includes(locationStr.toLowerCase())
       );
     }
-    if (filters.stayType !== 'all') {
+
+    if (filters?.stayType && filters.stayType !== 'all') {
       filtered = filtered.filter((p) => p.type.toLowerCase().includes(filters.stayType));
     }
+
+    if (dates) {
+      console.log('Searching for dates:', dates);
+      // Backend filtering for dates could be added here
+    }
+
     setFilteredProperties(filtered);
   };
 
@@ -382,11 +394,11 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
       )}
       {/* 1. HERO SECTION: Full-width for immersive feel */}
       <div className="w-full -mt-[100px]">
-        <UltraLuxuryHeroSection onSearch={(term) => handleSearch({ location: term })} />
+        <UltraLuxuryHeroSection onSearch={handleSearch} />
       </div>
 
       {/* 2. MAIN CONTENT CONTAINER: Constrained to 1440px for professional desktop fit */}
-      <main className="w-full max-w-[1440px] px-4 sm:px-6 lg:px-12 flex flex-col items-center relative">
+      <main className="w-full max-w-[1440px] px-6 sm:px-6 lg:px-12 flex flex-col items-center relative">
         {/* 3. LAYOUT SECTIONS */}
         <div className="w-full space-y-24 py-20">
           <AnimatedSection>
@@ -405,36 +417,36 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
             <div className="w-full">
               {/* Header with View Toggle & Price Toggle */}
               <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-10 gap-6">
-                <div>
-                  <h2 className="font-heading text-4xl font-bold text-zinc-100 tracking-tight">
+                <div className="space-y-2">
+                  <h2 className="font-heading text-3xl md:text-4xl font-bold text-zinc-100 tracking-tight">
                     {selectedStayType === 'all'
                       ? 'Featured Collections'
                       : `Top Rated ${selectedStayType}s`}
                   </h2>
-                  <div className="flex items-center gap-3 mt-2 flex-wrap">
-                    <p className="font-sans text-lg text-zinc-400">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <p className="font-sans text-base md:text-lg text-zinc-400">
                       {filteredProperties.length} exclusive properties found
                     </p>
                     {userCity && (
-                      <span className="flex items-center gap-1.5 px-3 py-1 bg-sky-500/10 border border-sky-500/30 rounded-full text-xs font-semibold text-sky-400">
+                      <span className="flex items-center gap-1.5 px-3 py-1 bg-sky-500/10 border border-sky-500/30 rounded-full text-[10px] md:text-xs font-semibold text-sky-400">
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                           <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.003 3.5-4.697 3.5-8.327a8 8 0 10-16 0c0 3.63 1.556 6.326 3.5 8.327a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.144.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
                         </svg>
-                        Showing results near {userCity}
+                        Results near {userCity}
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center flex-wrap gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                   {/* FEATURE: Price Display Toggle */}
-                  <div className="flex items-center gap-3 px-5 py-2.5 bg-zinc-900/50 border border-zinc-700/50 rounded-full">
+                  <div className="flex items-center justify-between w-full sm:w-auto gap-3 px-5 py-3 bg-zinc-900/50 border border-zinc-700/50 rounded-2xl sm:rounded-full">
                     <span className="text-sm font-semibold text-zinc-300 whitespace-nowrap">
-                      Display total with taxes
+                      Show total with taxes
                     </span>
                     <button
                       onClick={() => setShowTotalWithTax(!showTotalWithTax)}
-                      className={`w-11 h-6 rounded-full transition-all relative ${showTotalWithTax ? 'bg-sky-500' : 'bg-zinc-700'}`}
+                      className={`w-11 h-6 rounded-full transition-all relative shrink-0 ${showTotalWithTax ? 'bg-sky-500' : 'bg-zinc-700'}`}
                     >
                       <div
                         className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${showTotalWithTax ? 'left-6' : 'left-1'}`}
@@ -443,18 +455,20 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
                   </div>
 
                   {/* Grid/Map View Toggle */}
-                  <div className="flex items-center space-x-1 bg-zinc-900/50 border border-zinc-700/50 p-1 rounded-full shadow-inner">
+                  <div className="flex items-center space-x-1 bg-zinc-900/50 border border-zinc-700/50 p-1.5 rounded-full shadow-inner">
                     <button
                       onClick={() => setViewMode('grid')}
-                      className={`p-2.5 rounded-full transition-all ${viewMode === 'grid' ? 'bg-zinc-800 text-sky-400 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${viewMode === 'grid' ? 'bg-zinc-800 text-sky-400 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
                     >
-                      <Icon name="Squares2X2Icon" size={20} />
+                      <Icon name="Squares2X2Icon" size={18} />
+                      <span className="text-sm font-bold uppercase tracking-wider">Grid</span>
                     </button>
                     <button
                       onClick={() => setViewMode('map')}
-                      className={`p-2.5 rounded-full transition-all ${viewMode === 'map' ? 'bg-zinc-800 text-sky-400 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${viewMode === 'map' ? 'bg-zinc-800 text-sky-400 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
                     >
-                      <Icon name="MapIcon" size={20} />
+                      <Icon name="MapIcon" size={18} />
+                      <span className="text-sm font-bold uppercase tracking-wider">Map</span>
                     </button>
                   </div>
                 </div>
@@ -462,7 +476,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
 
               {/* View Switcher: Grid or Map */}
               {viewMode === 'grid' ? (
-                <div className="space-y-14">
+                <div className="space-y-16">
                   {(() => {
                     // Group properties by city (location field)
                     const groups: Record<string, typeof filteredProperties> = {};
@@ -484,27 +498,32 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
 
                     if (cityEntries.length === 0) {
                       return (
-                        <p className="text-zinc-500 text-center py-20">No properties found.</p>
+                        <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
+                          <div className="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-800">
+                            <Icon name="MagnifyingGlassIcon" size={32} className="text-zinc-700" />
+                          </div>
+                          <p className="text-zinc-500 max-w-xs">No properties found matching your criteria. Try adjusting your filters.</p>
+                        </div>
                       );
                     }
 
                     return cityEntries.map(([city, props]) => (
-                      <div key={city}>
+                      <div key={city} className="-mx-6">
                         {/* City Header */}
-                        <div className="flex items-center gap-4 mb-5">
+                        <div className="flex items-center gap-4 mb-6 px-6">
                           <div>
                             <h3 className="font-heading text-2xl font-bold text-zinc-100">{city}</h3>
                             <p className="text-sm text-zinc-500 mt-0.5">{props.length} {props.length === 1 ? 'property' : 'properties'}</p>
                           </div>
-                          <div className="flex-1 h-px bg-zinc-800" />
+                          <div className="flex-1 h-px bg-zinc-800/50" />
                         </div>
 
                         {/* Horizontally scrollable row of cards */}
-                        <div className="flex gap-5 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
+                        <div className="flex gap-5 overflow-x-auto pb-8 px-6 scrollbar-hide snap-x snap-mandatory">
                           {props.map((property) => (
                             <div
                               key={property.id}
-                              className="flex-shrink-0 w-[280px] sm:w-[calc(50%-10px)] lg:w-[calc(33.33%-14px)] xl:w-[calc(20%-16px)]"
+                              className="flex-shrink-0 w-[280px] sm:w-[320px] snap-start"
                             >
                               <PropertyCard
                                 property={

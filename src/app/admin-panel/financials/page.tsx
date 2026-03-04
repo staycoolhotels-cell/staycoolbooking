@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import FinancialsList from './components/FinancialsList';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 const FinancialsPage = async () => {
   const cookieStore = await cookies();
@@ -45,7 +46,10 @@ const FinancialsPage = async () => {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Financials</h1>
+      <AdminPageHeader
+        title="Financial Oversight"
+        subtitle="Monitor transactions and platform revenue"
+      />
       <FinancialsList initialTransactions={transactions || []} />
     </div>
   );

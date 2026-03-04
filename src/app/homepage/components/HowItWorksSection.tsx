@@ -89,8 +89,8 @@ const HowItWorksSection = () => {
                             viewport={{ once: true }}
                             className="relative flex flex-col items-center text-center p-8 bg-zinc-900/20 border border-zinc-800/40 rounded-3xl hover:border-sky-500/20 transition-all group"
                         >
-                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-xs font-black text-sky-500/40 tracking-widest uppercase font-heading">
-                                {step.number}
+                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-black text-sky-400/70 tracking-[0.3em] uppercase font-heading bg-[#080808] px-3 py-1 rounded-full border border-sky-500/20 shadow-[0_0_15px_rgba(14,165,233,0.1)]">
+                                STEP {step.number}
                             </div>
                             <div className="w-16 h-16 bg-sky-500/10 border border-sky-500/20 rounded-2xl flex items-center justify-center mb-6 mt-4 group-hover:bg-sky-500/20 group-hover:scale-110 transition-all">
                                 <Icon name={step.icon} size={28} className="text-sky-400" />

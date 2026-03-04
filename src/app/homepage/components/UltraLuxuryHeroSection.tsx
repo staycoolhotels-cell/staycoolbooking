@@ -3,20 +3,24 @@
 import React from 'react';
 import { motion, Variants, useScroll, useTransform } from 'framer-motion';
 import { Button, TextField } from '@mui/material';
-import { Search, MapPin, Calendar, Star, Shield, Award } from 'lucide-react';
+import { Search, MapPin, Star, Shield, Award } from 'lucide-react';
 import AppImage from '@/components/ui/AppImage';
 
+import { DateRange } from 'react-day-picker';
+import { DateRangePicker } from '@/components/ui/datepicker';
+
 interface UltraLuxuryHeroSectionProps {
-  onSearch?: (term: string) => void;
+  onSearch?: (filters: { location: string; dates?: DateRange }) => void;
 }
 
 const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (onSearch) {
-      onSearch(searchTerm);
+      onSearch({ location: searchTerm, dates: dateRange });
     }
   };
 
@@ -90,11 +94,11 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="relative z-10 flex flex-col items-center text-center px-4 mt-24"
+        className="relative z-10 flex flex-col items-center text-center px-6 mt-24"
       >
         <motion.h1
           variants={itemVariants}
-          className="text-4xl md:text-7xl lg:text-8xl font-bold mb-4 tracking-tight"
+          className="text-3xl md:text-7xl lg:text-8xl font-bold mb-4 tracking-tight"
           style={{ textShadow: '0 4px 15px rgba(0,0,0,0.5)' }}
         >
           Find Your Stay
@@ -102,7 +106,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
 
         <motion.p
           variants={itemVariants}
-          className="text-lg md:text-xl lg:text-2xl max-w-3xl mx-auto mb-8 text-zinc-300 px-4"
+          className="text-lg md:text-xl lg:text-2xl max-w-3xl mx-auto mb-8 text-zinc-300"
         >
           Discover a curated collection of the world&apos;s most extraordinary properties, where
           luxury meets tranquility.
@@ -111,10 +115,10 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
         {/* Glassmorphism Search Bar */}
         <motion.div
           variants={itemVariants}
-          className="w-full max-w-4xl p-2 md:p-4 mb-12 bg-white/10 backdrop-blur-lg rounded-full border border-white/20 shadow-2xl mx-4"
+          className="w-full max-w-4xl p-2 md:p-4 mb-12 bg-white/10 backdrop-blur-lg rounded-full border border-white/20 shadow-2xl"
         >
           <form onSubmit={handleSubmit} className="flex items-center gap-2 md:gap-4">
-            <div className="flex-grow flex items-center gap-2 px-2 md:px-4">
+            <div className="flex-grow flex items-center gap-2 px-3 md:px-4">
               <MapPin className="text-zinc-400 w-5 h-5 md:w-6 md:h-6" />
               <TextField
                 variant="standard"
@@ -124,28 +128,18 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
                   disableUnderline: true,
-                  style: { color: 'white', fontSize: '0.9rem' },
+                  style: { color: 'white', fontSize: '1rem' }, // Slightly larger for better mobile readability
                 }}
                 sx={{
-                  '.MuiInput-input': { padding: '12px 0' },
+                  '.MuiInput-input': { padding: '14px 0' },
                   '& .MuiInput-input::placeholder': { color: '#a1a1aa', opacity: 1 },
                 }}
               />
             </div>
-            <div className="hidden md:flex items-center gap-2 px-4">
-              <Calendar className="text-zinc-400" />
-              <TextField
-                variant="standard"
-                placeholder="Select Dates"
-                fullWidth
-                InputProps={{
-                  disableUnderline: true,
-                  style: { color: 'white' },
-                }}
-                sx={{
-                  '.MuiInput-input': { padding: '12px 0' },
-                  '& .MuiInput-input::placeholder': { color: '#a1a1aa', opacity: 1 },
-                }}
+            <div className="hidden md:flex items-center gap-2 px-4 border-l border-white/10">
+              <DateRangePicker
+                onUpdate={(range) => setDateRange({ from: range.from, to: range.to })}
+                className="bg-transparent border-none text-white hover:bg-white/5 transition-colors"
               />
             </div>
             <Button
@@ -153,8 +147,10 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
               variant="contained"
               sx={{
                 borderRadius: '9999px',
-                padding: { xs: '8px 20px', md: '12px 32px' },
-                fontSize: { xs: '0.9rem', md: '1.125rem' },
+                minWidth: { xs: '52px', md: 'auto' }, // Better touch target on mobile
+                height: { xs: '52px', md: 'auto' },
+                padding: { xs: '0', md: '12px 32px' },
+                fontSize: { md: '1.125rem' },
                 color: 'white',
                 background: '#0ea5e9', // Sky-500
                 boxShadow: '0 4px 15px 0 rgba(14, 165, 233, 0.4)',
@@ -166,7 +162,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                 },
               }}
             >
-              <Search className="mr-0 md:mr-2 w-4 h-4 md:w-5 md:h-5" />
+              <Search className="w-5 h-5 md:w-5 md:h-5 md:mr-2" />
               <span className="hidden md:inline">Search</span>
             </Button>
           </form>

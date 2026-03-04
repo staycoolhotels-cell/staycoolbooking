@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import CampaignList from './components/CampaignList';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 const MarketingPage = async () => {
   const cookieStore = await cookies();
@@ -45,7 +46,10 @@ const MarketingPage = async () => {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Marketing Dashboard</h1>
+      <AdminPageHeader
+        title="Marketing Hub"
+        subtitle="Manage promotional campaigns and visibility"
+      />
       <CampaignList initialCampaigns={campaigns || []} />
     </div>
   );

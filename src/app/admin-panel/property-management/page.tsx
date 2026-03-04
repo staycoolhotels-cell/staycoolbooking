@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import PropertyList from './components/PropertyList';
 import { Property } from '@/lib/types';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 const PropertyManagementPage = () => {
   const router = useRouter();
@@ -46,9 +47,10 @@ const PropertyManagementPage = () => {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Property Management</h1>
-      </div>
+      <AdminPageHeader
+        title="Property Management"
+        subtitle="Review and manage all platform listings"
+      />
       <PropertyList initialProperties={properties} />
     </div>
   );

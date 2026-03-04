@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Button } from '@mui/material';
 import Icon from '@/components/ui/AppIcon';
 
@@ -35,14 +36,18 @@ const BecomeHostCTA = () => {
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-                        <button className="px-8 py-4 bg-sky-500 text-white rounded-full font-bold text-lg hover:bg-sky-600 transition-all shadow-lg hover:shadow-sky-500/25 transform hover:scale-105 flex items-center">
-                            <span>List Your Property</span>
-                            <Icon name="ArrowRightIcon" size={20} className="ml-2" />
-                        </button>
+                        <Link href="/signup?role=host">
+                            <button className="px-8 py-4 bg-sky-500 text-white rounded-full font-bold text-lg hover:bg-sky-600 transition-all shadow-lg hover:shadow-sky-500/25 transform hover:scale-105 flex items-center">
+                                <span>List Your Property</span>
+                                <Icon name="ArrowRightIcon" size={20} className="ml-2" />
+                            </button>
+                        </Link>
 
-                        <button className="px-8 py-4 bg-zinc-800/50 text-zinc-300 border border-zinc-700 rounded-full font-bold text-lg hover:bg-zinc-800 hover:text-white transition-all transform hover:scale-105">
-                            Learn How it Works
-                        </button>
+                        <Link href="/host-resources">
+                            <button className="px-8 py-4 bg-zinc-800/50 text-zinc-300 border border-zinc-700 rounded-full font-bold text-lg hover:bg-zinc-800 hover:text-white transition-all transform hover:scale-105">
+                                Learn How it Works
+                            </button>
+                        </Link>
                     </div>
                 </div>
             </div>

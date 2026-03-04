@@ -30,48 +30,65 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-gradient-card-from to-gradient-card-to p-4 rounded-lg shadow-md flex items-center justify-between">
+    <div className="bg-zinc-900/40 backdrop-blur-xl border border-white/10 p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem] shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-6 transition-all hover:bg-zinc-900/60 group">
       <div className="flex items-center space-x-4">
-        <img
-          src={booking.guest?.avatar_url || 'https://via.placeholder.com/48'}
-          alt={booking.guest?.name || 'Guest'}
-          className="w-12 h-12 rounded-full border border-white/10"
-        />
-        <div>
-          <p className="font-bold text-white">{booking.guest?.name || 'Guest'}</p>
-          <p className="text-sm text-zinc-400">{booking.properties?.title || 'Stays Property'}</p>
-          <p suppressHydrationWarning className="text-xs text-zinc-500">{new Date(booking.check_in).toLocaleDateString()} - {new Date(booking.check_out).toLocaleDateString()}</p>
+        <div className="relative shrink-0">
+          <img
+            src={booking.guest?.avatar_url || 'https://via.placeholder.com/48'}
+            alt={booking.guest?.name || 'Guest'}
+            className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white/10 group-hover:border-primary/30 transition-colors object-cover"
+          />
+          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-zinc-950 rounded-full flex items-center justify-center border border-zinc-800">
+            <div className={`w-2 h-2 rounded-full ${booking.status === 'confirmed' ? 'bg-green-500' : 'bg-yellow-500'}`} />
+          </div>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-white text-base md:text-lg truncate">{booking.guest?.name || 'Guest'}</p>
+          <p className="text-xs md:text-sm text-zinc-400 font-medium truncate">{booking.properties?.title || 'Stays Property'}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <Icon name="CalendarIcon" size={12} className="text-zinc-500" />
+            <p suppressHydrationWarning className="text-[10px] md:text-xs text-zinc-500 font-bold uppercase tracking-wider">
+              {new Date(booking.check_in).toLocaleDateString()} — {new Date(booking.check_out).toLocaleDateString()}
+            </p>
+          </div>
         </div>
       </div>
-      <div className="flex items-center space-x-4">
-        <span
-          className={`px-3 py-1 text-sm font-semibold rounded-full ${statusClasses[booking.status]
-            }`}
-        >
-          {booking.status}
-        </span>
-        {booking.status === 'pending' && (
-          <button
-            onClick={() => approveBooking(booking.id)}
-            className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600"
+      <div className="flex items-center justify-between sm:justify-end gap-3 pt-4 sm:pt-0 border-t sm:border-t-0 border-white/5">
+        <div className="flex items-center gap-3">
+          <span
+            className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full border ${booking.status === 'confirmed'
+                ? 'bg-green-500/10 border-green-500/30 text-green-500'
+                : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-500'
+              }`}
           >
-            Approve
+            {booking.status.replace('_', ' ')}
+          </span>
+          {booking.status === 'pending' && (
+            <button
+              onClick={() => approveBooking(booking.id)}
+              className="px-4 py-1.5 bg-green-500 text-white rounded-full text-[10px] font-bold uppercase tracking-wider hover:bg-green-600 shadow-[0_0_15px_rgba(34,197,94,0.3)] transition-all active:scale-95"
+            >
+              Approve
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onAction('unified-inbox')}
+            className="p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-white/60 hover:text-sky-400 transition-all active:scale-90"
+            title="Chat"
+          >
+            <Icon name="ChatBubbleLeftRightIcon" size={18} />
           </button>
-        )}
-        <button
-          onClick={() => onAction('unified-inbox')}
-          className="p-2 bg-muted rounded-full hover:bg-muted-foreground text-text-secondary"
-          title="Chat"
-        >
-          <Icon name="ChatBubbleLeftRightIcon" size={20} />
-        </button>
-        <button
-          onClick={() => setIsDisputeModalOpen(true)}
-          className="p-2 bg-red-500/10 text-red-500 rounded-full hover:bg-red-500/20"
-          title="File Dispute"
-        >
-          <Icon name="ScaleIcon" size={20} />
-        </button>
+          <button
+            onClick={() => setIsDisputeModalOpen(true)}
+            className="p-3 bg-red-500/5 hover:bg-red-500/10 rounded-xl border border-red-500/10 text-red-500/60 hover:text-red-500 transition-all active:scale-90"
+            title="File Dispute"
+          >
+            <Icon name="ScaleIcon" size={18} />
+          </button>
+        </div>
       </div>
 
       {/* Dispute Modal */}

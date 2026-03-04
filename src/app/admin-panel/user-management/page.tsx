@@ -3,10 +3,8 @@ import React from 'react';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import UserList from './components/UserList';
-import FixTriggersButton from './components/FixTriggersButton';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 const UserManagementPage = async () => {
   const cookieStore = await cookies();
@@ -46,15 +44,10 @@ const UserManagementPage = async () => {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">User Management</h1>
-        <div className="flex gap-2">
-          <FixTriggersButton />
-          <Button asChild>
-            <Link href="/signup">Add User</Link>
-          </Button>
-        </div>
-      </div>
+      <AdminPageHeader
+        title="User Management"
+        subtitle="Control platform access and user profiles"
+      />
       <UserList initialUsers={users || []} />
     </div>
   );

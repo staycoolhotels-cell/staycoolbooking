@@ -48,11 +48,12 @@ const OccupancyPulse: React.FC<OccupancyPulseProps> = ({ bookings = [] }) => {
     const today = new Date().toISOString().split('T')[0];
 
     // Filter bookings that overlap with today
-    return bookings
-      .filter((b) => b.status === 'confirmed')
+    return (bookings || [])
+      .filter((b) => b && b.status === 'confirmed')
       .filter((b) => {
         const checkIn = b.check_in;
         const checkOut = b.check_out;
+        if (!checkIn || !checkOut) return false;
         return checkIn <= today && checkOut >= today;
       })
       .map((b) => {

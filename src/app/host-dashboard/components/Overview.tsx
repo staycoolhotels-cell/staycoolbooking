@@ -21,9 +21,9 @@ interface OverviewProps {
  * Premium Bento Grid Overview
  * Featuring staggered animations and high-density glass tiles.
  */
-const Overview = ({ properties, bookings, earnings, reviews, disputes, onAction }: OverviewProps) => {
+const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [], disputes = [], onAction }: OverviewProps) => {
   // Calculate Average Guest Rating
-  const averageRating = reviews.length > 0
+  const averageRating = reviews && reviews.length > 0
     ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(2)
     : 'New';
 
@@ -46,19 +46,19 @@ const Overview = ({ properties, bookings, earnings, reviews, disputes, onAction 
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 lg:grid-rows-6 gap-6"
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 lg:grid-rows-6 md:gap-6 gap-4"
     >
-      {/* 1. TOP METRICS - 4 Glassy Stats Cards */}
+      {/* 1. TOP METRICS - 5 Glassy Stats Cards (Reduced height on mobile) */}
       <motion.div variants={itemVariants} className="lg:col-span-1 lg:row-span-1">
-        <StatsCard title="Active Listings" value={properties.length} icon="HomeIcon" onClick={() => onAction?.('properties')} />
+        <StatsCard title="Active Listings" value={properties?.length || 0} icon="HomeIcon" onClick={() => onAction?.('properties')} />
       </motion.div>
       <motion.div variants={itemVariants} className="lg:col-span-1 lg:row-span-1">
-        <StatsCard title="Pending Bookings" value={bookings.filter(b => b.status === 'pending').length} icon="CalendarDaysIcon" onClick={() => onAction?.('bookings')} />
+        <StatsCard title="Pending Bookings" value={bookings?.filter(b => b.status === 'pending').length || 0} icon="CalendarDaysIcon" onClick={() => onAction?.('bookings')} />
       </motion.div>
       <motion.div variants={itemVariants} className="lg:col-span-1 lg:row-span-1">
         <StatsCard
           title="Monthly Revenue"
-          value={`₹${earnings.reduce((acc, curr) => acc + curr.earnings, 0).toLocaleString('en-IN')}`}
+          value={`₹${(earnings || []).reduce((acc, curr) => acc + curr.earnings, 0).toLocaleString('en-IN')}`}
           icon="BanknotesIcon"
           onClick={() => onAction?.('earnings')}
         />
@@ -78,14 +78,14 @@ const Overview = ({ properties, bookings, earnings, reviews, disputes, onAction 
 
       <motion.div
         variants={itemVariants}
-        className="lg:col-span-1 lg:row-span-5 bg-white/[0.03] backdrop-blur-md rounded-[2.5rem] border border-white/10 p-8 shadow-2xl flex flex-col overflow-hidden"
+        className="lg:col-span-1 lg:row-span-5 bg-white/[0.03] backdrop-blur-md rounded-[2rem] md:rounded-[2.5rem] border border-white/10 p-5 md:p-8 shadow-2xl flex flex-col overflow-hidden"
       >
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6 md:mb-8">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-red-500/20 rounded-lg text-red-500">
-              <Icon name="ScaleIcon" size={18} />
+              <Icon name="ScaleIcon" size={16} />
             </div>
-            <h3 className="text-xl font-heading font-bold text-white">Open Disputes</h3>
+            <h3 className="text-lg md:text-xl font-heading font-bold text-white">Disputes</h3>
           </div>
           <button
             onClick={() => onAction?.('disputes')}
@@ -128,15 +128,15 @@ const Overview = ({ properties, bookings, earnings, reviews, disputes, onAction 
       {/* 2. MAIN EARNINGS CHART - Large Bento Tile */}
       <motion.div
         variants={itemVariants}
-        className="lg:col-span-3 lg:row-span-3 bg-white/[0.03] backdrop-blur-md rounded-[2.5rem] border border-white/10 p-8 shadow-2xl relative overflow-hidden group"
+        className="lg:col-span-3 lg:row-span-3 bg-white/[0.03] backdrop-blur-md rounded-[2rem] md:rounded-[2.5rem] border border-white/10 p-5 md:p-8 shadow-2xl relative overflow-hidden group"
       >
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-[80px]" />
 
-        <div className="flex justify-between items-center mb-8 relative z-10">
+        <div className="flex justify-between items-center mb-6 md:mb-8 relative z-10">
           <div>
-            <h3 className="text-xl font-heading font-bold text-white">Earnings Performance</h3>
-            <p className="text-xs text-white/40 font-medium">
-              Revenue trends for the current period
+            <h3 className="text-lg md:text-xl font-heading font-bold text-white">Earnings</h3>
+            <p className="text-[10px] md:text-xs text-white/40 font-medium">
+              Revenue trends
             </p>
           </div>
           <button
@@ -147,26 +147,26 @@ const Overview = ({ properties, bookings, earnings, reviews, disputes, onAction 
           </button>
         </div>
 
-        <div className="h-[320px] relative z-10">
-          <EarningsChart data={earnings} />
+        <div className="h-[240px] md:h-[320px] relative z-10">
+          <EarningsChart data={earnings || []} />
         </div>
       </motion.div>
 
       {/* 3. RECENT ACTIVITY - Tall Bento Tile */}
       <motion.div
         variants={itemVariants}
-        className="lg:col-span-1 lg:row-span-5 bg-white/[0.03] backdrop-blur-md rounded-[2.5rem] border border-white/10 p-8 shadow-2xl flex flex-col"
+        className="lg:col-span-1 lg:row-span-5 bg-white/[0.03] backdrop-blur-md rounded-[2rem] md:rounded-[2.5rem] border border-white/10 p-5 md:p-8 shadow-2xl flex flex-col"
       >
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-6 md:mb-8">
           <div className="p-2 bg-primary/20 rounded-lg text-primary">
-            <Icon name="BellIcon" size={18} />
+            <Icon name="BellIcon" size={16} />
           </div>
-          <h3 className="text-xl font-heading font-bold text-white">Latest Activity</h3>
+          <h3 className="text-lg md:text-xl font-heading font-bold text-white">Activity</h3>
         </div>
 
         <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2">
-          {bookings.length > 0 ? (
-            bookings.slice(0, 5).map((booking) => (
+          {(bookings || []).length > 0 ? (
+            (bookings || []).slice(0, 5).map((booking) => (
               <div
                 key={booking.id}
                 className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-primary/20 transition-all cursor-pointer group"
@@ -175,21 +175,21 @@ const Overview = ({ properties, bookings, earnings, reviews, disputes, onAction 
                   <img src={booking.guest?.avatar_url || 'https://via.placeholder.com/32'} className="w-8 h-8 rounded-full border border-white/10" alt={booking.guest?.name || 'Guest'} />
                   <p className="text-sm font-bold group-hover:text-primary transition-colors">{booking.guest?.name || 'Guest'}</p>
                 </div>
-                <p suppressHydrationWarning className="text-[10px] text-white/40 uppercase font-black">{new Date(booking.check_in).toLocaleDateString()} - {new Date(booking.check_out).toLocaleDateString()}</p>
+                <p suppressHydrationWarning className="text-[10px] text-white/40 uppercase font-black">{new Date(booking.check_in).toLocaleDateString()} — {new Date(booking.check_out).toLocaleDateString()}</p>
                 <div
                   className={`mt-2 inline-block px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-tighter ${booking.status === 'confirmed'
-                    ? 'bg-success/20 text-success'
-                    : 'bg-white/10 text-white/40'
+                    ? 'bg-green-500/10 text-green-500 border border-green-500/20'
+                    : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
                     }`}
                 >
-                  {booking.status.replace('_', ' ')}
+                  {booking.status}
                 </div>
               </div>
             ))
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center space-y-3 opacity-40">
-              <Icon name="InboxIcon" size={40} />
-              <p className="text-xs font-medium">No recent bookings found</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center opacity-40">
+              <Icon name="CalendarIcon" size={32} className="mb-2" />
+              <p className="text-xs font-bold uppercase tracking-tighter">No Activity</p>
             </div>
           )}
         </div>
@@ -201,7 +201,7 @@ const Overview = ({ properties, bookings, earnings, reviews, disputes, onAction 
         className="lg:col-span-3 lg:row-span-2 grid grid-cols-2 md:grid-cols-4 gap-4"
       >
         {[
-          { label: 'Messages', icon: 'ChatBubbleLeftRightIcon', color: 'text-primary', tabId: 'unified-inbox' },
+          { label: 'Inbox', icon: 'ChatBubbleLeftRightIcon', color: 'text-primary', tabId: 'unified-inbox' },
           { label: 'Reviews', icon: 'StarIcon', color: 'text-yellow-500', tabId: 'aura-quality' },
           { label: 'Pricing', icon: 'TagIcon', color: 'text-success', tabId: 'revenue-velocity' },
           { label: 'Calendar', icon: 'CalendarDaysIcon', color: 'text-availability', tabId: 'availability' },
@@ -209,16 +209,16 @@ const Overview = ({ properties, bookings, earnings, reviews, disputes, onAction 
           <button
             key={action.label}
             onClick={() => onAction?.(action.tabId)}
-            className="flex flex-col items-center justify-center p-6 rounded-[2rem] bg-white/[0.03] border border-white/5 hover:bg-white/[0.07] hover:border-primary/30 transition-all group"
+            className="flex flex-col items-center justify-center p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] bg-white/[0.03] border border-white/5 hover:bg-white/[0.07] hover:border-primary/30 transition-all group"
           >
-            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform">
               <Icon
                 name={action.icon}
                 className={`${action.color} opacity-60 group-hover:opacity-100`}
-                size={24}
+                size={20}
               />
             </div>
-            <span className="text-xs font-bold uppercase tracking-widest text-white/40 group-hover:text-white transition-colors">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 group-hover:text-white transition-colors">
               {action.label}
             </span>
           </button>

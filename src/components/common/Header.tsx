@@ -89,11 +89,15 @@ const Header = () => {
 
   const navLinks = [...baseLinks, ...roleSpecificLinks];
 
+  if (pathname.startsWith('/admin-panel')) {
+    return null;
+  }
+
   return (
     <>
       <motion.header
         style={{ height: headerHeight, backgroundColor: headerBg }}
-        className="fixed top-0 left-0 w-full z-[100] flex items-center px-4 sm:px-12"
+        className="fixed top-0 left-0 w-full z-[100] flex items-center px-6 sm:px-12"
       >
         <div className="w-full flex items-center justify-between">
           {/* 1. BRANDING: Magnetic Reveal with Sky Blue Glow */}
@@ -101,7 +105,7 @@ const Header = () => {
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.2)] bg-white p-1 border border-zinc-200"
+              className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.2)] bg-white p-[1px] border border-zinc-200/50"
             >
               <AppImage
                 src="/assets/images/logo.png"
@@ -198,39 +202,39 @@ const Header = () => {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, y: '-100%' }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: '-100%' }}
-            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-            className="fixed inset-0 z-[100] bg-[#050505] xl:hidden flex flex-col items-center justify-start pt-32 pb-20 overflow-y-auto"
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.1 }}
+            transition={{ type: "spring", bounce: 0, duration: 0.5 }}
+            className="fixed inset-0 z-[100] bg-[#050505]/95 backdrop-blur-2xl xl:hidden flex flex-col items-center justify-start pt-32 pb-20 overflow-y-auto"
           >
             {/* Close Button */}
             <button
               onClick={() => setIsMobileMenuOpen(false)}
-              className="absolute top-4 right-4 sm:top-6 sm:right-12 p-2 text-white hover:text-[#0ea5e9] transition-colors z-[110]"
+              className="absolute top-6 right-6 sm:top-8 sm:right-12 p-3 text-white bg-white/5 hover:bg-white/10 hover:text-sky-400 rounded-full transition-all duration-300 z-[110] border border-white/10"
               aria-label="Close menu"
             >
-              <Icon name="XMarkIcon" size={32} />
+              <Icon name="XMarkIcon" size={28} />
             </button>
 
             {/* Background Elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#0ea5e9]/10 rounded-full blur-[100px]" />
-              <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-[#0ea5e9]/5 rounded-full blur-[100px]" />
+              <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-sky-500/10 rounded-full blur-[120px]" />
+              <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-[100px]" />
             </div>
 
-            <nav className="flex flex-col items-center gap-8 z-10 w-full px-8">
+            <nav className="flex flex-col items-center gap-6 z-10 w-full px-8">
               {navLinks.map((link, i) => (
                 <motion.div
                   key={link.path}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 + (i * 0.05) }}
+                  transition={{ delay: 0.1 + (i * 0.07), type: "spring", stiffness: 100 }}
                   className="w-full text-center"
                 >
                   <Link
                     href={link.path}
-                    className="block text-2xl font-bold uppercase tracking-widest text-white hover:text-[#0ea5e9] transition-colors w-full py-2"
+                    className="block text-3xl font-bold uppercase tracking-[0.2em] text-white hover:text-sky-400 transition-all duration-300 w-full py-3"
                   >
                     {link.name}
                   </Link>
@@ -238,21 +242,21 @@ const Header = () => {
               ))}
 
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="mt-8"
+                transition={{ delay: 0.5, type: "spring", stiffness: 100 }}
+                className="mt-12 w-full max-w-[280px]"
               >
                 {!user?.id ? (
                   <Link href="/auth">
-                    <button className="relative px-12 py-4 border border-[#0ea5e9] bg-[#0ea5e9]/10 text-[#0ea5e9] font-black uppercase tracking-widest hover:bg-[#0ea5e9] hover:text-white transition-all duration-300">
+                    <button className="w-full relative px-12 py-5 border border-sky-500/30 bg-sky-500/10 text-sky-400 font-black uppercase tracking-[0.2em] hover:bg-sky-500 hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(14,165,233,0.15)] rounded-xl">
                       Sign In
                     </button>
                   </Link>
                 ) : (
                   <button
                     onClick={handleLogout}
-                    className="relative px-12 py-4 border border-[#0ea5e9] bg-[#0ea5e9]/10 text-[#0ea5e9] font-black uppercase tracking-widest hover:bg-[#0ea5e9] hover:text-white transition-all duration-300"
+                    className="w-full relative px-12 py-5 border border-sky-500/30 bg-sky-500/10 text-sky-400 font-black uppercase tracking-[0.2em] hover:bg-sky-500 hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(14,165,233,0.15)] rounded-xl"
                   >
                     Sign Out
                   </button>

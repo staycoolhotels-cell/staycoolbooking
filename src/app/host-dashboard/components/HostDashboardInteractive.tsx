@@ -404,13 +404,13 @@ const HostDashboardInteractive = ({
 
   return (
     <div className="relative min-h-[calc(100vh-100px)] w-full bg-[#080808] flex text-zinc-100">
-      {/* Mobile Toggle Button */}
+      {/* Mobile Toggle Button - Moved to a cleaner position */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="md:hidden fixed bottom-6 left-6 z-[100] p-4 bg-sky-500 rounded-full shadow-[0_0_20px_rgba(14,165,233,0.4)] text-white hover:bg-sky-400 transition-colors"
+        className="md:hidden fixed top-24 left-4 z-[100] p-3 bg-zinc-900/80 backdrop-blur-md border border-white/10 rounded-xl shadow-xl text-white hover:bg-zinc-800 transition-all active:scale-95"
         aria-label="Toggle Navigation"
       >
-        {isMobileMenuOpen ? <Plus className="rotate-45" size={24} /> : <LayoutDashboard size={24} />}
+        {isMobileMenuOpen ? <Plus className="rotate-45" size={20} /> : <LayoutDashboard size={20} />}
       </button>
 
       {/* Mobile Overlay */}
@@ -426,8 +426,17 @@ const HostDashboardInteractive = ({
         )}
       </AnimatePresence>
 
-      {/* 1. SIDEBAR NAVIGATION (Replacing Header) */}
-      <aside className={`fixed top-[100px] left-0 z-[95] w-64 h-[calc(100vh-100px)] bg-zinc-950 border-r border-zinc-900 flex flex-col items-center md:items-start py-6 px-4 transition-transform duration-300 md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      {/* 1. SIDEBAR NAVIGATION */}
+      <aside className={`fixed top-[100px] left-0 z-[95] w-72 h-[calc(100vh-100px)] bg-zinc-950 border-r border-zinc-900 flex flex-col items-center md:items-start py-6 px-4 transition-transform duration-500 ease-[0.32,0.72,0,1] md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-[20px_0_40px_rgba(0,0,0,0.8)]' : '-translate-x-full'}`}>
+        <div className="flex w-full items-center justify-between mb-6 px-4 md:hidden">
+          <span className="text-sm font-black uppercase tracking-widest text-white/40">Navigation</span>
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="p-2 bg-white/5 rounded-lg text-white/60"
+          >
+            <Plus className="rotate-45" size={18} />
+          </button>
+        </div>
         <div className="mb-0 px-4"></div>
 
         <nav className="flex-1 w-full space-y-2 overflow-y-auto custom-scrollbar">
@@ -498,7 +507,7 @@ const HostDashboardInteractive = ({
         {/* Background Decorative Element */}
         <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-sky-500/5 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="px-4 sm:px-8 md:px-16 py-4">
+        <div className="px-4 sm:px-6 md:px-16 py-6 md:py-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}

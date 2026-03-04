@@ -2,17 +2,27 @@
 
 import { signUpUser, signInWithMobile, verifyMobileOtp } from '@/lib/auth-actions';
 import { createHostSignupOrder } from '@/lib/payment-actions';
-import { useActionState, useState, startTransition, useEffect } from 'react';
+import { useActionState, useState, startTransition, useEffect, Suspense } from 'react';
 import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Phone, ArrowRight, Loader2, Sparkles, Lock, User, Home, UserCheck, Smartphone, Check } from 'lucide-react';
 import Script from 'next/script';
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#050505] flex items-center justify-center"><Loader2 className="w-10 h-10 text-primary animate-spin" /></div>}>
+      <SignupContent />
+    </Suspense>
+  );
+}
+
+function SignupContent() {
+  const searchParams = useSearchParams();
+  const roleParam = searchParams.get('role');
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
-  const [selectedRole, setSelectedRole] = useState('Guest');
+  const [selectedRole, setSelectedRole] = useState(roleParam?.toLowerCase() === 'host' ? 'Host' : 'Guest');
   const [mobileNumber, setMobileNumber] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [name, setName] = useState('');

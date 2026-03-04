@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import TiltCard from '@/components/ui/TiltCard';
@@ -32,10 +33,13 @@ const FeaturedDestinations = ({ destinations, onDestinationClick }: FeaturedDest
               Explore unique stays in trending locations
             </p>
           </div>
-          <button className="font-sans flex items-center space-x-2 px-4 py-2 border border-transparent rounded-lg text-sky-400 hover:bg-zinc-800 transition-colors duration-200">
+          <Link
+            href="/property-listing"
+            className="font-sans flex items-center space-x-2 px-4 py-2 border border-transparent rounded-lg text-sky-400 hover:bg-zinc-800 transition-colors duration-200"
+          >
             <span className="font-semibold text-sky-400">View All</span>
             <Icon name="ArrowRightIcon" size={20} className="text-sky-400" />
-          </button>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

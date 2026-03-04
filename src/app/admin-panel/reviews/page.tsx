@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import ReviewList from './components/ReviewList';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 const ReviewsPage = async () => {
   const cookieStore = await cookies();
@@ -45,7 +46,10 @@ const ReviewsPage = async () => {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Reviews Management</h1>
+      <AdminPageHeader
+        title="Reviews Management"
+        subtitle="Monitor guest feedback and host ratings"
+      />
       <ReviewList initialReviews={reviews || []} />
     </div>
   );

@@ -9,13 +9,14 @@ interface SmartEstateManagementProps {
 
 const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ properties: propData = [] }) => {
   const { controls, qualityScores } = useMemo(() => {
-    const mappedControls: PropertyControlData[] = propData.map((p) => ({
+    const data = propData || [];
+    const mappedControls: PropertyControlData[] = data.map((p) => ({
       id: p.id,
       propertyName: p.name || p.title || 'Stay Cool Property',
       isBlocked: p.status === 'offline',
     }));
 
-    const mappedScores: PropertyQualityScore[] = propData.map((p) => ({
+    const mappedScores: PropertyQualityScore[] = data.map((p) => ({
       propertyId: p.id,
       propertyName: p.name || p.title || 'Stay Cool Property',
       score: Math.floor(Math.random() * 4) + 6, // 6 to 9 random score
@@ -49,7 +50,7 @@ const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ propertie
         </div>
         <div className="px-4 py-2 bg-white/[0.03] border border-white/10 rounded-full">
           <span className="text-[10px] text-zinc-400 font-bold uppercase">
-            Total Units: {propData.length}
+            Total Units: {(propData || []).length}
           </span>
         </div>
       </header>
