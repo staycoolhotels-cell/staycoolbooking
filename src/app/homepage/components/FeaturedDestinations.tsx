@@ -33,13 +33,7 @@ const FeaturedDestinations = ({ destinations, onDestinationClick }: FeaturedDest
               Explore unique stays in trending locations
             </p>
           </div>
-          <Link
-            href="/property-listing"
-            className="font-sans flex items-center space-x-2 px-4 py-2 border border-transparent rounded-lg text-sky-400 hover:bg-zinc-800 transition-colors duration-200"
-          >
-            <span className="font-semibold text-sky-400">View All</span>
-            <Icon name="ArrowRightIcon" size={20} className="text-sky-400" />
-          </Link>
+
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -62,7 +56,7 @@ const FeaturedDestinations = ({ destinations, onDestinationClick }: FeaturedDest
                   <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
                     <h3 className="font-heading text-xl font-bold">{destination.name}</h3>
                     <p className="font-sans mt-1 text-white/80 text-sm">
-                      {destination.propertyCount} properties
+                      {destination.propertyCount} {destination.propertyCount === 1 ? 'property' : 'properties'}
                     </p>
                   </div>
                   {destination.popular && (

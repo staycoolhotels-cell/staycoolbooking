@@ -45,7 +45,7 @@ const FinancialsPage = async () => {
   }
 
   return (
-    <div>
+    <div className="space-y-0">
       <AdminPageHeader
         title="Financial Oversight"
         subtitle="Monitor transactions and platform revenue"

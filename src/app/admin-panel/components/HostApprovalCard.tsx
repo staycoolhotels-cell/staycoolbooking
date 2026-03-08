@@ -49,12 +49,12 @@ const HostApprovalCard: React.FC<HostApprovalProps> = ({ user, onAction }) => {
     <motion.div
       whileHover={{ scale: 1.02, y: -2 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      className="relative bg-gradient-to-r from-brand-deep/20 via-[#0a0a0f]/80 to-[#0a0a0f]/80 backdrop-blur-xl border border-brand-default/30 rounded-xl p-4 flex items-center justify-between gap-4 shadow-[0_10px_20px_rgba(0,0,0,0.5)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.7)] hover:border-brand-default/50 transition-all duration-300 overflow-hidden group"
+      className="relative bg-gradient-to-r from-brand-deep/20 via-[#0a0a0f]/80 to-[#0a0a0f]/80 backdrop-blur-xl border border-brand-default/30 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_10px_20px_rgba(0,0,0,0.5)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.7)] hover:border-brand-default/50 transition-all duration-300 overflow-hidden group"
     >
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-deep shadow-[0_0_10px_rgba(212,175,55,0.8)]"></div>
 
-      <div className="relative z-10 flex items-center gap-4 min-w-0 flex-1">
+      <div className="relative z-10 flex items-center gap-4 min-w-0 w-full sm:flex-1">
         <div className="bg-[#12121a] rounded-full p-3 shrink-0 border border-white/10 shadow-inner relative">
           <div className="absolute inset-0 bg-brand-deep/20 rounded-full blur-md"></div>
           <Icon name="UserIcon" className="text-zinc-200 relative z-10 drop-shadow-sm" size={24} />
@@ -71,11 +71,11 @@ const HostApprovalCard: React.FC<HostApprovalProps> = ({ user, onAction }) => {
         </div>
       </div>
 
-      <div className="relative z-10 flex items-center gap-2 shrink-0">
+      <div className="relative z-10 flex items-center gap-2 w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
         <button
           onClick={handleApprove}
           disabled={!!loading}
-          className="relative px-4 py-2 bg-success/20 text-success border border-success/50 rounded-lg font-heading font-bold text-sm hover:bg-success hover:text-white hover:shadow-[0_0_15px_rgba(34,197,94,0.5)] transition-all duration-300 overflow-hidden group/btn disabled:opacity-50 disabled:cursor-not-allowed"
+          className="relative flex-1 sm:flex-none px-4 py-2 bg-success/20 text-success border border-success/50 rounded-lg font-heading font-bold text-sm hover:bg-success hover:text-white hover:shadow-[0_0_15px_rgba(34,197,94,0.5)] transition-all duration-300 overflow-hidden group/btn disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
           <span className="relative z-10 tracking-wider text-[11px] uppercase">
@@ -85,7 +85,7 @@ const HostApprovalCard: React.FC<HostApprovalProps> = ({ user, onAction }) => {
         <button
           onClick={handleReject}
           disabled={!!loading}
-          className="relative px-4 py-2 bg-error/20 text-error border border-error/50 rounded-lg font-heading font-bold text-sm hover:bg-error hover:text-white hover:shadow-[0_0_15px_rgba(239,68,68,0.5)] transition-all duration-300 overflow-hidden group/btn disabled:opacity-50 disabled:cursor-not-allowed"
+          className="relative flex-1 sm:flex-none px-4 py-2 bg-error/20 text-error border border-error/50 rounded-lg font-heading font-bold text-sm hover:bg-error hover:text-white hover:shadow-[0_0_15px_rgba(239,68,68,0.5)] transition-all duration-300 overflow-hidden group/btn disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
           <span className="relative z-10 tracking-wider text-[11px] uppercase">

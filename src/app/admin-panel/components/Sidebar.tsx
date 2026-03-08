@@ -11,8 +11,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const navLinks = [
   { href: '/admin-panel', label: 'Dashboard', icon: 'ChartBarIcon' },
-  { href: '/admin-panel?tab=verifications', label: 'Verifications', icon: 'DocumentCheckIcon' },
-  { href: '/admin-panel?tab=disputes', label: 'Disputes', icon: 'ExclamationTriangleIcon' },
   {
     href: '/admin-panel/property-management',
     label: 'Property Management',
@@ -22,26 +20,18 @@ const navLinks = [
   { href: '/admin-panel/user-management', label: 'User Management', icon: 'UsersIcon' },
   { href: '/admin-panel/marketing', label: 'Marketing', icon: 'MegaphoneIcon' },
   { href: '/admin-panel/reviews', label: 'Reviews', icon: 'ChatBubbleBottomCenterTextIcon' },
-  { href: '/admin-panel?tab=inbox', label: 'Inbox', icon: 'ChatBubbleLeftRightIcon' },
 ];
 
-const Sidebar = () => {
+interface SidebarProps {
+  isMobileMenuOpen: boolean;
+  onMobileToggle: () => void;
+  onCloseMobileMenu: () => void;
+}
+
+const Sidebar = ({ isMobileMenuOpen, onMobileToggle, onCloseMobileMenu }: SidebarProps) => {
   const pathname = usePathname();
-  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-
-  const isActive = (href: string) => {
-    if (href.includes('?')) {
-      const [path, query] = href.split('?');
-      const params = new URLSearchParams(query);
-      const tab = params.get('tab');
-      return pathname === path && searchParams?.get('tab') === tab;
-    }
-    return pathname === href;
-  };
-
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [newEmail, setNewEmail] = React.useState('');
   const [newPassword, setNewPassword] = React.useState('');
   const [avatarFile, setAvatarFile] = React.useState<File | null>(null);
@@ -62,7 +52,6 @@ const Sidebar = () => {
         if (profile) {
           setAdminProfile(profile);
         } else {
-          // Fallback if public profile not found
           setAdminProfile({
             name: user.user_metadata?.name || 'Admin User',
             email: user.email || '',
@@ -73,7 +62,6 @@ const Sidebar = () => {
     };
     fetchProfile();
   }, []);
-
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -94,7 +82,6 @@ const Sidebar = () => {
 
       let uploadedUrl = '';
 
-      // 1. Upload new photo if selected
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
         const fileName = `admin-${user.id}-${Math.random()}.${fileExt}`;
@@ -113,7 +100,6 @@ const Sidebar = () => {
         uploadedUrl = publicUrl;
       }
 
-      // 2. Update credentials/metadata
       const result = await updateAdminCredentials(
         user.id,
         newEmail || undefined,
@@ -124,7 +110,6 @@ const Sidebar = () => {
       if (result.success) {
         setMessage({ type: 'success', text: 'Profile updated successfully!' });
 
-        // Update local state if email or avatar changed
         if (newEmail || uploadedUrl) {
           setAdminProfile(prev => prev ? {
             ...prev,
@@ -152,32 +137,12 @@ const Sidebar = () => {
   };
 
   const handleLogout = async () => {
-    // 1. Clear local session
     await supabase.auth.signOut();
-    // 2. Server side logout and redirect
     await signOutUser();
   };
 
   return (
     <>
-      {/* Mobile Header Toggle - Clean top bar for mobile */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#0a0a0f] border-b border-white/10 z-[100] flex items-center justify-between px-6">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-white p-[1px]">
-            <img src="/logo.png" alt="Logo" className="w-full h-full object-cover rounded-full" />
-          </div>
-          <span className="font-heading font-black uppercase tracking-tighter text-white text-sm">
-            Admin Panel
-          </span>
-        </div>
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 text-zinc-400 hover:text-white transition-colors"
-        >
-          <Icon name={isMobileMenuOpen ? "XMarkIcon" : "Bars3Icon"} size={24} />
-        </button>
-      </div>
-
       {/* Mobile Overlay */}
       <AnimatePresence>
         {isMobileMenuOpen && (
@@ -185,67 +150,30 @@ const Sidebar = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="lg:hidden fixed inset-0 bg-black/80 z-[110] backdrop-blur-md"
-            onClick={() => setIsMobileMenuOpen(false)}
+            className="lg:hidden fixed inset-0 top-[64px] bg-black/60 z-[90] backdrop-blur-sm"
+            onClick={onCloseMobileMenu}
           />
         )}
       </AnimatePresence>
 
-      <aside className={`fixed lg:static inset-y-0 left-0 z-[120] w-72 flex-shrink-0 bg-[#0a0a0f] border-r border-white/10 flex flex-col transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-8 hidden lg:block">
-          <Link href="/homepage" className="flex items-center gap-4 group">
-            <div className="w-12 h-12 rounded-full bg-white p-[1px] shadow-[0_0_20px_rgba(255,255,255,0.1)] group-hover:scale-105 transition-transform">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover rounded-full" />
-            </div>
-            <div>
-              <span className="block font-heading font-black uppercase tracking-tighter text-white text-lg group-hover:text-primary transition-colors">
-                StayCool
-              </span>
-              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">
-                Admin Panel
-              </span>
-            </div>
-          </Link>
-        </div>
-
-        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto mt-16 lg:mt-0">
-          <div className="px-4 mb-4 lg:hidden">
-            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.3em]">Menu</p>
-          </div>
-          {navLinks.map((link) => {
-            const active = isActive(link.href);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`flex items-center space-x-3 px-4 py-3.5 rounded-xl transition-all duration-300 ${active
-                  ? 'bg-primary/10 text-primary border border-primary/20 shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)]'
-                  : 'text-zinc-400 hover:bg-white/5 hover:text-white'
-                  }`}
-              >
-                <Icon name={link.icon as any} size={20} />
-                <span className="font-heading font-medium tracking-wide">{link.label}</span>
-                {active && (
-                  <motion.div
-                    layoutId="active-indicator"
-                    className="ml-auto w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]"
-                  />
-                )}
-              </Link>
-            );
-          })}
-
-          <div className="pt-4 mt-4 border-t border-white/5 px-2">
+      <aside className={`fixed top-[64px] bottom-0 left-0 z-[95] w-64 flex-shrink-0 bg-[#0a0a0f] border-r border-white/10 flex flex-col transition-transform duration-300 lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+          {navLinks.map((link) => (
             <Link
-              href="/homepage"
-              className="flex items-center space-x-3 px-4 py-3 text-zinc-500 hover:text-zinc-200 transition-colors group"
+              key={link.href}
+              href={link.href}
+              onClick={onCloseMobileMenu}
+              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${pathname === link.href
+                ? 'bg-white/10 text-white'
+                : 'text-zinc-400 hover:bg-white/5 hover:text-white'
+                }`}
             >
-              <Icon name="ArrowLeftIcon" size={18} className="group-hover:-translate-x-1 transition-transform" />
-              <span className="text-sm font-medium">Back to Website</span>
+              <Icon name={link.icon as any} size={22} />
+              <span className="font-heading font-medium">{link.label}</span>
             </Link>
-          </div>
+          ))}
         </nav>
+
         <div className="px-4 py-6 border-t border-white/10 mt-auto relative">
           <AnimatePresence>
             {isProfileMenuOpen && (
@@ -301,10 +229,9 @@ const Sidebar = () => {
             />
           </button>
         </div>
-
-        {/* Settings Modal - rendered OUTSIDE aside so it covers full viewport */}
       </aside>
 
+      {/* Settings Modal */}
       <AnimatePresence>
         {isSettingsOpen && (
           <motion.div

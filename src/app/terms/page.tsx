@@ -92,7 +92,7 @@ const TermsPage = () => {
                                 If you have any questions about these Terms, please contact our legal department.
                             </p>
                             <a
-                                href="mailto:legal@staycool.com"
+                                href="mailto:support@staycoolbooking.com"
                                 className="inline-flex items-center justify-center px-8 py-4 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition-all hover:scale-105 active:scale-95 shadow-lg shadow-sky-900/20"
                             >
                                 Contact Legal Team

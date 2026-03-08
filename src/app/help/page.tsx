@@ -89,8 +89,8 @@ const HelpCenterPage = () => {
                                 key={category}
                                 onClick={() => setActiveCategory(category)}
                                 className={`px-6 py-2 rounded-full font-sans text-sm font-semibold transition-all ${activeCategory === category
-                                        ? 'bg-sky-600 text-white shadow-lg shadow-sky-900/20'
-                                        : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                                    ? 'bg-sky-600 text-white shadow-lg shadow-sky-900/20'
+                                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
                                     }`}
                             >
                                 {category}
@@ -165,7 +165,7 @@ const HelpCenterPage = () => {
                                 <Icon name="MailIcon" className="text-sky-400 mb-4" size={32} />
                                 <h3 className="text-xl font-bold text-white mb-2">Email Support</h3>
                                 <p className="text-zinc-500 text-sm mb-6">Send us a detailed message and we\'ll get back within 24 hours.</p>
-                                <a href="mailto:support@staycool.com" className="block w-full text-center py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-sky-900/20">
+                                <a href="mailto:support@staycoolbooking.com" className="block w-full text-center py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-sky-900/20">
                                     Email Us
                                 </a>
                             </div>

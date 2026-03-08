@@ -1,7 +1,10 @@
+'use client';
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, TrendingUp, DollarSign, MessageSquare } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
 import { Property } from '@/lib/types';
+import Icon from '@/components/ui/AppIcon';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface GuestReview {
   id: string;
@@ -11,9 +14,9 @@ interface GuestReview {
   reviewer_name: string;
   property_name: string;
   property_id: string;
+  reviewer_avatar?: string;
 }
 
-// Extend base types to match Supabase schema layout
 export interface AuraQualityScoreData {
   id: string;
   property_id: string;
@@ -48,7 +51,6 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
   const [loading, setLoading] = useState(true);
   const [guestReviews, setGuestReviews] = useState<GuestReview[]>([]);
 
-  // Memoize property map for quick lookups
   const propertyMap = useMemo(() => {
     return properties.reduce((acc, prop) => {
       acc[prop.id] = prop;
@@ -66,12 +68,11 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
       setLoading(true);
       const propertyIds = properties.map(p => p.id);
 
-      // Fetch Guest Reviews for host's properties (using column-reference syntax for joins)
       let fetchedReviews: GuestReview[] = [];
       try {
         const { data: reviewsData, error: reviewsError } = await supabase
           .from('reviews')
-          .select('id, rating, comment, created_at, property_id, reviewer_id, reviewer:users!reviewer_id(name), property:properties!property_id(title, name)')
+          .select('id, rating, comment, created_at, property_id, reviewer_id, reviewer:users!reviewer_id(name, avatar_url), property:properties!property_id(title, name)')
           .in('property_id', propertyIds)
           .order('created_at', { ascending: false });
 
@@ -82,11 +83,11 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
             comment: r.comment,
             created_at: r.created_at,
             reviewer_name: r.reviewer?.name || 'Guest',
+            reviewer_avatar: r.reviewer?.avatar_url,
             property_name: r.property?.title || r.property?.name || 'Property',
             property_id: r.property_id,
           }));
         } else {
-          // Fallback: fetch reviews without joins, then fetch reviewer names separately
           const { data: simpleReviews } = await supabase
             .from('reviews')
             .select('id, rating, comment, created_at, property_id, reviewer_id')
@@ -94,26 +95,28 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
             .order('created_at', { ascending: false });
 
           if (simpleReviews && simpleReviews.length > 0) {
-            // Get reviewer names
             const reviewerIds = [...new Set(simpleReviews.map((r: any) => r.reviewer_id).filter(Boolean))];
             const { data: reviewers } = await supabase
               .from('users')
-              .select('id, name')
+              .select('id, name, avatar_url')
               .in('id', reviewerIds);
-            const reviewerMap = Object.fromEntries((reviewers || []).map((u: any) => [u.id, u.name]));
 
-            // Get property names
+            const reviewerMap = Object.fromEntries((reviewers || []).map((u: any) => [u.id, { name: u.name, avatar: u.avatar_url }]));
             const propNames = Object.fromEntries(properties.map(p => [p.id, p.title || p.name || 'Property']));
 
-            fetchedReviews = simpleReviews.map((r: any) => ({
-              id: r.id,
-              rating: r.rating,
-              comment: r.comment,
-              created_at: r.created_at,
-              reviewer_name: reviewerMap[r.reviewer_id] || 'Guest',
-              property_name: propNames[r.property_id] || 'Property',
-              property_id: r.property_id,
-            }));
+            fetchedReviews = simpleReviews.map((r: any) => {
+              const reviewerInfo = reviewerMap[r.reviewer_id] || { name: 'Guest', avatar: null };
+              return {
+                id: r.id,
+                rating: r.rating,
+                comment: r.comment,
+                created_at: r.created_at,
+                reviewer_name: reviewerInfo.name,
+                reviewer_avatar: reviewerInfo.avatar,
+                property_name: propNames[r.property_id] || 'Property',
+                property_id: r.property_id,
+              }
+            });
           }
         }
       } catch (e) {
@@ -122,7 +125,6 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
       setGuestReviews(fetchedReviews);
 
       try {
-        // Fetch Aura Scores
         const { data: auraData } = await supabase
           .from('aura_quality_scores')
           .select('*')
@@ -138,7 +140,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
               property_name: propName
             };
           }
-          // Fallback mock data
+
           const charCode = propName.charCodeAt(0) || 65;
           const currentPrice = prop.price_per_night || prop.price || 5000;
           const numBedrooms = prop.bedrooms || 1;
@@ -146,7 +148,6 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
 
           let availableTips: string[] = [];
 
-          // 1. Price-based tips
           if (currentPrice > 10000) {
             availableTips.push('Consider offering a premium welcome package to justify the high price point.');
             availableTips.push('Highlight luxury amenities prominently in your main listing photos.');
@@ -158,7 +159,6 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
             availableTips.push('Offer seasonal discounts to maintain high occupancy rates.');
           }
 
-          // 2. Bedroom-based tips
           if (numBedrooms >= 3) {
             availableTips.push('Highlight family-friendly features and group accommodation capabilities.');
           } else if (numBedrooms === 2) {
@@ -167,14 +167,12 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
             availableTips.push('Perfect for solo travelers or couples. Highlight romantic or quiet workspaces.');
           }
 
-          // 3. Image-based tips
           if (numImages < 5) {
             availableTips.push('Add more high-quality photos (aim for at least 15) to increase booking conversion.');
           } else {
             availableTips.push('Consider uploading a video tour of the property to stand out in search results.');
           }
 
-          // 4. General variety tips
           const generalTips = [
             'Update your listing description to highlight recent local events or seasonal attractions.',
             'Consider enabling Instant Book to increase visibility in search results.',
@@ -185,13 +183,11 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
             'Add self check-in options to appeal to travelers arriving late.'
           ];
 
-          // Mix property-specific tips with general tips using a deterministic seed based on property name
           const seed = propName.length + charCode;
           availableTips.push(generalTips[seed % generalTips.length]);
           availableTips.push(generalTips[(seed + 3) % generalTips.length]);
           availableTips.push(generalTips[(seed + 5) % generalTips.length]);
 
-          // Select exactly 3 unique tips deterministically based on the property name
           const uniqueTips = Array.from(new Set(availableTips));
           const finalTips = [
             uniqueTips[seed % uniqueTips.length],
@@ -210,7 +206,6 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
         });
         setAuraScores(enrichedAura);
 
-        // Fetch Market Comparisons
         const { data: marketData } = await supabase
           .from('market_comparisons')
           .select('*')
@@ -229,7 +224,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
               currency: 'INR'
             };
           }
-          // Fallback mock data
+
           const charCode = propName.charCodeAt(0) || 65;
           const avgPrice = currentPrice * 0.9 + (charCode * 10);
           return {
@@ -253,136 +248,237 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
     fetchData();
   }, [properties, supabase, propertyMap]);
 
-  return (
-    <div className="p-6 bg-zinc-950/50">
-      <h1 className="text-3xl font-bold text-zinc-100 mb-6">
-        Guest Ratings &amp; Reviews
-      </h1>
+  if (loading) {
+    return (
+      <div className="w-full h-[600px] flex items-center justify-center p-8">
+        <div className="flex flex-col items-center">
+          <Icon name="ArrowPathIcon" size={40} className="text-amber-500 animate-spin mb-4" />
+          <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest animate-pulse">Computing Aura Dynamics...</p>
+        </div>
+      </div>
+    );
+  }
 
-      {/* ── GUEST REVIEWS SECTION ── */}
-      <div className="bg-white/[0.03] backdrop-blur-md rounded-[2.5rem] border border-white/10 p-6 shadow-2xl mb-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="p-2 bg-amber-500/20 rounded-xl">
-            <Star size={18} className="text-amber-400" />
+  return (
+    <div className="w-full space-y-6 md:space-y-8">
+      {/* 1. Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-[#0a0a0f]/80 p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 bottom-0 w-64 bg-gradient-to-r from-amber-500/10 to-transparent pointer-events-none" />
+
+        <div className="relative z-10 flex items-center gap-5">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)]">
+            <Icon name="StarIcon" size={32} className="text-amber-400 drop-shadow-md" />
           </div>
-          <h2 className="text-xl font-bold text-white">Guest Reviews</h2>
-          <span className="ml-auto text-xs font-bold text-white/30 uppercase tracking-widest">
-            {guestReviews.length} total
-          </span>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Aura Quality</h1>
+            <p className="text-sm font-medium text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
+              Sentiment & Optimization
+            </p>
+          </div>
         </div>
 
-        {guestReviews.length > 0 ? (
-          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-            {guestReviews.map(review => (
-              <div key={review.id} className="flex gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-amber-500/20 transition-all">
-                {/* Avatar */}
-                <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400 font-bold text-sm">
-                  {review.reviewer_name.charAt(0).toUpperCase()}
-                </div>
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
-                    <span className="font-bold text-white text-sm">{review.reviewer_name}</span>
-                    <span className="text-[10px] text-white/30">
-                      {new Date(review.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </span>
-                  </div>
-                  {/* Stars */}
-                  <div className="flex items-center gap-0.5 mb-1">
-                    {[1, 2, 3, 4, 5].map(s => (
-                      <Star key={s} size={13} className={s <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-zinc-700'} />
-                    ))}
-                    <span className="text-xs text-amber-400 font-bold ml-1">{review.rating}.0</span>
-                  </div>
-                  <p className="text-[10px] text-sky-400/70 mb-1">{review.property_name}</p>
-                  <p className="text-sm text-zinc-300 leading-relaxed">{review.comment}</p>
-                </div>
-              </div>
-            ))}
+        <div className="relative z-10 flex gap-4 w-full md:w-auto">
+          <div className="flex-1 md:flex-none bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex flex-col items-center justify-center shadow-inner relative overflow-hidden">
+            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Total Signals</p>
+            <p className="text-3xl font-heading font-black text-white drop-shadow-sm">{guestReviews.length}</p>
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
-            <MessageSquare size={36} className="text-zinc-700" />
-            <p className="text-zinc-500 text-sm">No guest reviews yet.</p>
-            <p className="text-zinc-700 text-xs">Reviews from guests will appear here after their stay.</p>
-          </div>
-        )}
+        </div>
       </div>
 
-      <h2 className="text-xl font-bold text-zinc-100 mb-4">
-        Listing Optimization
-      </h2>
+      {/* 2. Reviews Section */}
+      <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 md:p-8 shadow-2xl relative overflow-hidden group">
+        <div className="absolute -top-32 -right-32 w-96 h-96 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none group-hover:bg-amber-500/10 transition-colors duration-1000" />
 
-      {loading ? (
-        <div className="text-white/50 animate-pulse">Analyzing properties...</div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Aura Quality Scores */}
-          <div className="bg-white/[0.03] backdrop-blur-md rounded-[2.5rem] border border-white/10 p-5 shadow-2xl">
-            <h2 className="text-xl font-semibold text-white mb-4">Property Aura Scores</h2>
-            {auraScores.length > 0 ? (
-              auraScores.map((aura) => (
-                <div key={aura.id} className="mb-4 p-4 border border-white/10 rounded-xl">
-                  <h3 className="font-semibold text-lg text-white flex items-center">
-                    <Star size={20} className="mr-2 text-yellow-500" />
-                    {aura.property_name} - Score: {aura.overall_score}/100
-                  </h3>
-                  <p className="text-sm text-zinc-400 mt-2">Optimization Tips:</p>
-                  <ul className="list-disc list-inside text-xs text-white/50">
-                    {aura.optimization_tips?.map((tip, index) => (
-                      <li key={index}>{tip}</li>
-                    ))}
-                  </ul>
-                  {aura.ranking_improvement && (
-                    <p className="text-xs text-sky-400 mt-2">
-                      Expected Impact: {aura.ranking_improvement}
+        <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/10 pb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20 shadow-inner">
+              <Icon name="ChatBubbleBottomCenterTextIcon" size={20} className="text-amber-400" />
+            </div>
+            <h2 className="text-sm font-heading font-bold text-white uppercase tracking-wider">
+              Authentic Guest Signals
+            </h2>
+          </div>
+          <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Chronological Reviews</p>
+        </div>
+
+        <div className="relative z-10 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
+          {guestReviews.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {guestReviews.map((review, idx) => (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  key={review.id}
+                  className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-amber-500/30 transition-all duration-300 group/review flex gap-4"
+                >
+                  <div className="w-10 h-10 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center flex-none overflow-hidden shadow-inner">
+                    {review.reviewer_avatar ? (
+                      <img src={review.reviewer_avatar} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <Icon name="UserIcon" size={16} className="text-zinc-500" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-bold text-white text-sm truncate pr-2">{review.reviewer_name}</p>
+                      <span className="text-[9px] text-zinc-500 font-bold whitespace-nowrap">
+                        {new Date(review.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-0.5 mb-2">
+                      {[1, 2, 3, 4, 5].map(s => (
+                        <Icon
+                          key={s}
+                          name="StarIcon"
+                          size={12}
+                          className={s <= review.rating ? 'text-amber-400 fill-amber-400 drop-shadow-sm' : 'text-zinc-700'}
+                        />
+                      ))}
+                      <span className="text-[10px] text-zinc-400 font-bold ml-1.5">{review.rating}.0</span>
+                    </div>
+                    <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-1.5 truncate">
+                      {review.property_name}
                     </p>
-                  )}
-                </div>
-              ))
-            ) : (
-              <p className="text-white/50 text-sm">No Aura Quality Scores generated yet.</p>
-            )}
+                    <p className="text-xs text-zinc-400 leading-relaxed font-medium">"{review.comment}"</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center opacity-60">
+              <Icon name="FaceSmileIcon" size={40} className="text-zinc-500 mb-4" />
+              <p className="text-sm font-bold text-zinc-300">No signals detected</p>
+              <p className="text-xs text-zinc-500 mt-1">Guest reviews will populate after completed stays.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 3. Market & Optimization Bottom Row */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
+        {/* Optimization AI */}
+        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 md:p-8 shadow-2xl relative overflow-hidden group flex flex-col">
+          <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-purple-500/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-purple-500/15 transition-colors duration-1000" />
+
+          <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/10 pb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-500/10 rounded-xl border border-purple-500/20 shadow-inner">
+                <Icon name="SparklesIcon" size={20} className="text-purple-400" />
+              </div>
+              <h2 className="text-sm font-heading font-bold text-white uppercase tracking-wider">
+                Optimization AI
+              </h2>
+            </div>
           </div>
 
-          {/* Market Comparison */}
-          <div className="bg-white/[0.03] backdrop-blur-md rounded-[2.5rem] border border-white/10 p-5 shadow-2xl">
-            <h2 className="text-xl font-semibold text-white mb-4">Market Comparison (Bento Tile)</h2>
-            {marketComparisons.length > 0 ? (
-              marketComparisons.map((comparison) => (
-                <div
-                  key={comparison.id}
-                  className="mb-4 p-4 border border-white/10 rounded-xl grid grid-cols-2 gap-2"
+          <div className="relative z-10 space-y-4 flex-1 overflow-y-auto pr-2 no-scrollbar">
+            {auraScores.length > 0 ? (
+              auraScores.map((aura, idx) => (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  key={aura.id}
+                  className="p-5 rounded-3xl bg-white/[0.02] border border-white/10 shadow-lg"
                 >
-                  <div className="col-span-2">
-                    <h3 className="font-semibold text-lg text-white">{comparison.property_name}</h3>
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="font-bold text-base text-white">{aura.property_name}</h3>
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-xl shadow-inner">
+                      <Icon name="BoltIcon" size={14} className="text-purple-400" />
+                      <span className="text-sm font-black text-purple-400">{aura.overall_score}</span>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-zinc-400">Your Price:</p>
-                    <p className="text-lg font-bold text-sky-400 flex items-center">
-                      ₹{comparison.your_price}{' '}
-                    </p>
+
+                  <div className="space-y-2 mb-4">
+                    {aura.optimization_tips?.map((tip, index) => (
+                      <div key={index} className="flex gap-2.5 items-start">
+                        <div className="mt-0.5 p-0.5 rounded-full bg-white/5 border border-white/10 shrink-0">
+                          <Icon name="ChevronRightIcon" size={10} className="text-zinc-500" />
+                        </div>
+                        <p className="text-xs text-zinc-400 leading-snug font-medium">{tip}</p>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-sm text-zinc-400">Avg. Local Price:</p>
-                    <p className="text-lg font-bold text-white flex items-center">
-                      ₹{comparison.average_local_price}{' '}
-                    </p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-sm text-zinc-400">Suggested Price:</p>
-                    <p className="text-xl font-bold text-green-600 flex items-center">
-                      <TrendingUp size={20} className="mr-1" /> ₹{comparison.suggested_price}{' '}
-                    </p>
-                  </div>
-                </div>
+
+                  {aura.ranking_improvement && (
+                    <div className="mt-3 p-3 rounded-2xl bg-gradient-to-r from-success/10 to-transparent border border-success/20 flex items-center gap-3">
+                      <Icon name="ArrowTrendingUpIcon" size={16} className="text-success" />
+                      <p className="text-[10px] font-bold text-success uppercase tracking-widest">{aura.ranking_improvement}</p>
+                    </div>
+                  )}
+                </motion.div>
               ))
             ) : (
-              <p className="text-white/50 text-sm">No market comparison data available automatically.</p>
+              <div className="flex flex-col items-center justify-center h-full opacity-60">
+                <p className="text-sm font-bold text-zinc-400">Not enough data to compute optimizations.</p>
+              </div>
             )}
           </div>
         </div>
-      )}
+
+        {/* Market Comparison */}
+        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 md:p-8 shadow-2xl relative overflow-hidden group flex flex-col">
+          <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-blue-500/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-blue-500/15 transition-colors duration-1000" />
+
+          <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/10 pb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20 shadow-inner">
+                <Icon name="PresentationChartLineIcon" size={20} className="text-blue-400" />
+              </div>
+              <h2 className="text-sm font-heading font-bold text-white uppercase tracking-wider">
+                Market Pulse
+              </h2>
+            </div>
+          </div>
+
+          <div className="relative z-10 space-y-4 flex-1 overflow-y-auto pr-2 no-scrollbar">
+            {marketComparisons.length > 0 ? (
+              marketComparisons.map((comparison, idx) => (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  key={comparison.id}
+                  className="p-5 rounded-3xl bg-white/[0.02] border border-white/10 shadow-lg relative overflow-hidden"
+                >
+                  <h3 className="font-bold text-base text-white mb-5">{comparison.property_name}</h3>
+
+                  <div className="grid grid-cols-2 gap-4 mb-5">
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Your Price</p>
+                      <p className="text-xl font-heading font-black text-white font-mono tracking-tight">₹{comparison.your_price?.toLocaleString('en-IN')}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Local Average</p>
+                      <p className="text-xl font-heading font-black text-zinc-400 font-mono tracking-tight">₹{comparison.average_local_price?.toLocaleString('en-IN')}</p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-[#0a0a0f]/50 border border-white/5 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                        <Icon name="LightBulbIcon" size={12} className="text-success" />
+                        Suggested Optimal
+                      </p>
+                      <p className="text-2xl font-heading font-black text-success font-mono tracking-tight drop-shadow-sm">
+                        ₹{comparison.suggested_price?.toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                    <button className="px-4 py-2 bg-success/10 hover:bg-success/20 text-success border border-success/30 hover:border-success/50 transition-colors uppercase tracking-widest text-[10px] font-black rounded-xl">
+                      Apply
+                    </button>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full opacity-60">
+                <p className="text-sm font-bold text-zinc-400">Market data synchronization pending.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

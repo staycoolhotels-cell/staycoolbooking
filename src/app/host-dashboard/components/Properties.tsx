@@ -3,7 +3,9 @@
 import React, { useState } from 'react';
 import PropertyCard from './PropertyCard';
 import { Property } from '@/lib/types';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Icon from '@/components/ui/AppIcon';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import RoomManager from './RoomManager';
 
 interface PropertiesProps {
   properties: Property[];
@@ -13,9 +15,6 @@ interface PropertiesProps {
   onToggleStatus: (id: string, newStatus: 'active' | 'pending' | 'rejected' | 'offline') => void;
 }
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import RoomManager from './RoomManager';
-
 const Properties = ({
   properties,
   onAddProperty,
@@ -24,87 +23,146 @@ const Properties = ({
   onToggleStatus,
 }: PropertiesProps) => {
   const [managingRoomsProperty, setManagingRoomsProperty] = useState<Property | null>(null);
+  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'offline' | 'pending' | 'rejected'>('all');
 
   const pendingProperties = properties.filter((p) => p.status === 'pending');
   const activeProperties = properties.filter((p) => p.status === 'active');
   const rejectedProperties = properties.filter((p) => p.status === 'rejected');
   const offlineProperties = properties.filter((p) => p.status === 'offline');
 
+  const getFilteredProperties = () => {
+    switch (activeTab) {
+      case 'active': return activeProperties;
+      case 'offline': return offlineProperties;
+      case 'pending': return pendingProperties;
+      case 'rejected': return rejectedProperties;
+      default: return properties;
+    }
+  };
+
   const renderPropertyGrid = (props: Property[]) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 relative z-10">
       {props.length > 0 ? (
-        props.map((property) => (
-          <PropertyCard
+        props.map((property, index) => (
+          <div
             key={property.id}
-            property={property}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onToggleStatus={onToggleStatus}
-            onManageRooms={setManagingRoomsProperty}
-          />
+            className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
+            <PropertyCard
+              property={property}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onToggleStatus={onToggleStatus}
+              onManageRooms={setManagingRoomsProperty}
+            />
+          </div>
         ))
       ) : (
-        <p className="col-span-full text-center text-zinc-500 py-8">
-          No properties found in this category.
-        </p>
+        <div className="col-span-full flex flex-col items-center justify-center p-12 bg-white/5 border border-dashed border-white/10 rounded-[2rem] text-center backdrop-blur-sm">
+          <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+            <Icon name="BuildingOffice2Icon" size={32} className="text-zinc-600" />
+          </div>
+          <p className="text-lg font-bold text-white mb-1">No Assets Found</p>
+          <p className="text-sm text-zinc-500">There are no properties matching this specific criterion.</p>
+        </div>
       )}
     </div>
   );
 
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-text-primary">Your Properties</h2>
-        <button
-          onClick={onAddProperty}
-          className="px-4 py-2 bg-gradient-to-br from-gradient-primary-from to-gradient-primary-to text-primary-foreground rounded-lg font-semibold"
-        >
-          Add Property
-        </button>
-      </div>
+  const tabs = [
+    { id: 'all', label: 'Portfolio Matrix', count: properties.length, icon: 'Square3Stack3DIcon', color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
+    { id: 'active', label: 'Live Assets', count: activeProperties.length, icon: 'GlobeAltIcon', color: 'text-emerald-400', bg: 'bg-emerald-500/20' },
+    { id: 'offline', label: 'Maintenance Mode', count: offlineProperties.length, icon: 'MoonIcon', color: 'text-zinc-400', bg: 'bg-zinc-500/20' },
+    { id: 'pending', label: 'Pending Review', count: pendingProperties.length, icon: 'ClockIcon', color: 'text-amber-400', bg: 'bg-amber-500/20' },
+    { id: 'rejected', label: 'Compliance Issues', count: rejectedProperties.length, icon: 'ExclamationTriangleIcon', color: 'text-red-400', bg: 'bg-red-500/20' },
+  ] as const;
 
-      <Tabs defaultValue="overview" className="w-full">
-        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 mb-6">
-          <TabsList className="inline-flex w-auto bg-zinc-900/50 p-1 border border-zinc-800 rounded-xl whitespace-nowrap">
-            <TabsTrigger value="overview" className="px-5 py-2.5 data-[state=active]:bg-zinc-800 data-[state=active]:text-white transition-all">All Properties ({properties.length})</TabsTrigger>
-            <TabsTrigger value="active" className="px-5 py-2.5 data-[state=active]:bg-green-500/10 data-[state=active]:text-green-500 transition-all">Active ({activeProperties.length})</TabsTrigger>
-            <TabsTrigger value="offline" className="px-5 py-2.5 data-[state=active]:bg-zinc-500/10 data-[state=active]:text-zinc-400 transition-all">Offline ({offlineProperties.length})</TabsTrigger>
-            <TabsTrigger value="pending" className="px-5 py-2.5 data-[state=active]:bg-yellow-500/10 data-[state=active]:text-yellow-500 transition-all">Pending ({pendingProperties.length})</TabsTrigger>
-            <TabsTrigger value="rejected" className="px-5 py-2.5 data-[state=active]:bg-red-500/10 data-[state=active]:text-red-500 transition-all">Rejected ({rejectedProperties.length})</TabsTrigger>
-          </TabsList>
+  return (
+    <div className="w-full space-y-6 md:space-y-8 relative">
+      {/* Premium Header */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-[#0a0a0f]/80 p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 bottom-0 w-96 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
+
+        <div className="relative z-10 flex items-center gap-5 w-full lg:w-auto">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)] shrink-0">
+            <Icon name="BuildingOfficeIcon" size={32} className="text-indigo-400 drop-shadow-md" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Global Command Center</h1>
+            <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2 truncate whitespace-nowrap">
+              Asset Intelligence & Control
+            </p>
+          </div>
         </div>
 
-        <TabsContent value="overview">
-          {renderPropertyGrid(properties)}
-        </TabsContent>
-        <TabsContent value="active">
-          {renderPropertyGrid(activeProperties)}
-        </TabsContent>
-        <TabsContent value="offline">
-          {renderPropertyGrid(offlineProperties)}
-        </TabsContent>
-        <TabsContent value="pending">
-          {renderPropertyGrid(pendingProperties)}
-        </TabsContent>
-        <TabsContent value="rejected">
-          {renderPropertyGrid(rejectedProperties)}
-        </TabsContent>
-      </Tabs>
+        <div className="relative z-10 w-full lg:w-auto">
+          <button
+            onClick={onAddProperty}
+            className="w-full lg:w-auto px-6 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold uppercase tracking-widest text-xs rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] transition-all flex items-center justify-center gap-3 border border-indigo-400/30"
+          >
+            <Icon name="PlusCircleIcon" size={18} /> Deploy New Asset
+          </button>
+        </div>
+      </div>
 
+      {/* Advanced Filter Matrix */}
+      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="inline-flex flex-nowrap bg-black/40 border border-white/10 rounded-2xl p-1.5 shadow-inner min-w-max">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                className={`relative px-4 py-3 rounded-xl flex items-center gap-3 transition-all duration-300
+                        ${isActive
+                    ? 'bg-zinc-800/80 shadow-md transform scale-[1.02]'
+                    : 'hover:bg-white/5 text-zinc-500 hover:text-zinc-300'}
+                     `}
+              >
+                <div className={`p-1.5 rounded-lg ${isActive ? tab.bg : 'bg-transparent'}`}>
+                  <Icon name={tab.icon} size={16} className={isActive ? tab.color : 'text-current'} />
+                </div>
+                <span className={`text-[11px] font-bold uppercase tracking-widest whitespace-nowrap ${isActive ? 'text-white' : ''}`}>
+                  {tab.label}
+                </span>
+                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black ${isActive ? 'bg-black/40 text-white border border-white/10' : 'bg-transparent text-current'}`}>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Deep Glassmorphic Grid Container */}
+      <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-2xl relative p-6 md:p-8 overflow-hidden min-h-[500px]">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
+
+        {renderPropertyGrid(getFilteredProperties())}
+      </div>
+
+      {/* Modern Dialog Wrapper */}
       <Dialog open={!!managingRoomsProperty} onOpenChange={(open) => !open && setManagingRoomsProperty(null)}>
-        <DialogContent className="sm:max-w-xl bg-slate-900 text-white border-slate-700">
-          <DialogHeader>
-            <DialogTitle>Manage Rooms - {managingRoomsProperty?.title || managingRoomsProperty?.name}</DialogTitle>
+        <DialogContent className="sm:max-w-2xl bg-[#0a0a0f] text-white border-white/10 rounded-[2rem] p-0 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+          <div className="h-1.5 w-full bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500" />
+          <DialogHeader className="p-6 md:p-8 border-b border-white/5 bg-white/[0.02]">
+            <DialogTitle className="text-2xl font-heading font-black tracking-tight text-white flex items-center gap-3">
+              <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
+                <Icon name="Squares2X2Icon" size={20} className="text-indigo-400" />
+              </div>
+              Configuring Sub-Units for {managingRoomsProperty?.title || managingRoomsProperty?.name}
+            </DialogTitle>
           </DialogHeader>
-          {managingRoomsProperty && (
-            <RoomManager
-              property={managingRoomsProperty}
-              onUpdate={() => {
-                // Refresh property list if needed, or just rooms
-                // For now RoomManager handles its own room list fetch
-              }}
-            />
-          )}
+          <div className="p-6 md:p-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+            {managingRoomsProperty && (
+              <RoomManager
+                property={managingRoomsProperty}
+                onUpdate={() => { }}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

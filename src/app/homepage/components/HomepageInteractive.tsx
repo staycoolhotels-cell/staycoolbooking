@@ -8,7 +8,7 @@ import StayTypeFilter from './StayTypeFilter';
 import PopularDestinations from './PopularDestinations';
 import PropertyCard from './PropertyCard';
 import InteractiveMap from './InteractiveMap';
-import FeaturedDestinations from './FeaturedDestinations';
+
 import BecomeHostCTA from './BecomeHostCTA';
 import TrustIndicators from './TrustIndicators';
 import NewsletterSection from './NewsletterSection';
@@ -334,13 +334,13 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.85, y: 30 }}
             transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-            className="relative z-10 w-full max-w-sm bg-zinc-900 border border-zinc-700/60 rounded-3xl p-8 shadow-2xl text-center overflow-hidden"
+            className="relative z-10 mx-4 sm:mx-0 w-[calc(100%-2rem)] max-w-sm bg-zinc-900 border border-zinc-700/60 rounded-3xl p-6 sm:p-8 shadow-2xl text-center overflow-hidden"
           >
             {/* Glow bg */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-sky-500/10 blur-[60px] rounded-full pointer-events-none" />
 
             {/* Pulsing Icon */}
-            <div className="relative flex items-center justify-center mb-6">
+            <div className="relative flex items-center justify-center mb-6 mt-2">
               <motion.div
                 animate={{ scale: [1, 1.18, 1] }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
@@ -415,79 +415,87 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
 
           <AnimatedSection>
             <div className="w-full">
-              {/* Header with View Toggle & Price Toggle */}
-              <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-10 gap-6">
-                <div className="space-y-2">
-                  <h2 className="font-heading text-3xl md:text-4xl font-bold text-zinc-100 tracking-tight">
+              {/* Premium Section Header */}
+              <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-16 gap-8">
+                <div className="space-y-4 max-w-2xl">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-sky-500/10 border border-sky-500/20 rounded-full">
+                    <div className="w-1.5 h-1.5 bg-sky-500 rounded-full animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-400">Curated Excellence</span>
+                  </div>
+
+                  <h2 className="font-heading text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[0.9]">
                     {selectedStayType === 'all'
                       ? 'Featured Collections'
                       : `Top Rated ${selectedStayType}s`}
                   </h2>
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <p className="font-sans text-base md:text-lg text-zinc-400">
-                      {filteredProperties.length} exclusive properties found
+
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <p className="font-sans text-base sm:text-lg text-zinc-400 font-medium">
+                      Discover our hand-picked selection of <span className="text-zinc-100 font-bold">{filteredProperties.length} elite {filteredProperties.length === 1 ? 'property' : 'properties'}</span>
                     </p>
                     {userCity && (
-                      <span className="flex items-center gap-1.5 px-3 py-1 bg-sky-500/10 border border-sky-500/30 rounded-full text-[10px] md:text-xs font-semibold text-sky-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                          <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.003 3.5-4.697 3.5-8.327a8 8 0 10-16 0c0 3.63 1.556 6.326 3.5 8.327a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.144.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                        </svg>
-                        Results near {userCity}
-                      </span>
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex items-center gap-2 px-4 py-1.5 bg-zinc-900 border border-zinc-700/50 rounded-full text-xs font-bold text-sky-400 shadow-lg shadow-sky-500/5"
+                      >
+                        <Icon name="MapPinIcon" size={14} className="text-sky-500" />
+                        Curated in {userCity}
+                      </motion.div>
                     )}
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
                   {/* FEATURE: Price Display Toggle */}
-                  <div className="flex items-center justify-between w-full sm:w-auto gap-3 px-5 py-3 bg-zinc-900/50 border border-zinc-700/50 rounded-2xl sm:rounded-full">
-                    <span className="text-sm font-semibold text-zinc-300 whitespace-nowrap">
-                      Show total with taxes
-                    </span>
-                    <button
-                      onClick={() => setShowTotalWithTax(!showTotalWithTax)}
-                      className={`w-11 h-6 rounded-full transition-all relative shrink-0 ${showTotalWithTax ? 'bg-sky-500' : 'bg-zinc-700'}`}
-                    >
-                      <div
-                        className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${showTotalWithTax ? 'left-6' : 'left-1'}`}
+                  <button
+                    onClick={() => setShowTotalWithTax(!showTotalWithTax)}
+                    className="group relative flex items-center justify-between sm:justify-start gap-4 px-6 py-4 bg-zinc-900/40 backdrop-blur-xl border border-white/5 rounded-2xl hover:border-white/20 transition-all duration-300 w-full md:w-auto"
+                  >
+                    <div className="flex flex-col items-start">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-zinc-400 transition-colors">Pricing Mode</span>
+                      <span className="text-sm font-bold text-zinc-200">Total with taxes</span>
+                    </div>
+                    <div className={`w-12 h-6 rounded-full transition-all relative shrink-0 p-1 ${showTotalWithTax ? 'bg-sky-500' : 'bg-zinc-700'}`}>
+                      <motion.div
+                        animate={{ x: showTotalWithTax ? 24 : 0 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        className="w-4 h-4 bg-white rounded-full shadow-md"
                       />
-                    </button>
-                  </div>
+                    </div>
+                  </button>
 
                   {/* Grid/Map View Toggle */}
-                  <div className="flex items-center space-x-1 bg-zinc-900/50 border border-zinc-700/50 p-1.5 rounded-full shadow-inner">
+                  <div className="flex items-center bg-zinc-900/40 backdrop-blur-xl border border-white/5 p-1.5 rounded-2xl">
                     <button
                       onClick={() => setViewMode('grid')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${viewMode === 'grid' ? 'bg-zinc-800 text-sky-400 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      className={`flex items-center gap-3 px-5 py-2.5 rounded-xl transition-all duration-500 ${viewMode === 'grid' ? 'bg-zinc-800 text-sky-400 shadow-xl border border-white/5' : 'text-zinc-500 hover:text-zinc-300'}`}
                     >
                       <Icon name="Squares2X2Icon" size={18} />
-                      <span className="text-sm font-bold uppercase tracking-wider">Grid</span>
+                      <span className="text-xs font-black uppercase tracking-[0.1em]">List</span>
                     </button>
                     <button
                       onClick={() => setViewMode('map')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${viewMode === 'map' ? 'bg-zinc-800 text-sky-400 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      className={`flex items-center gap-3 px-5 py-2.5 rounded-xl transition-all duration-500 ${viewMode === 'map' ? 'bg-zinc-800 text-sky-400 shadow-xl border border-white/5' : 'text-zinc-500 hover:text-zinc-300'}`}
                     >
                       <Icon name="MapIcon" size={18} />
-                      <span className="text-sm font-bold uppercase tracking-wider">Map</span>
+                      <span className="text-xs font-black uppercase tracking-[0.1em]">Map</span>
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* View Switcher: Grid or Map */}
+              {/* Enhanced View Switcher */}
               {viewMode === 'grid' ? (
-                <div className="space-y-16">
+                <div className="space-y-12">
                   {(() => {
-                    // Group properties by city (location field)
                     const groups: Record<string, typeof filteredProperties> = {};
                     filteredProperties.forEach((p) => {
-                      // Normalize: take first part before comma if "City, State"
                       const city = p.location?.split(',')[0]?.trim() || 'Other';
                       if (!groups[city]) groups[city] = [];
                       groups[city].push(p);
                     });
 
-                    // Sort: user's city first, then by property count
                     const cityEntries = Object.entries(groups).sort(([cityA, propsA], [cityB, propsB]) => {
                       const aIsUser = userCity && cityA.toLowerCase().includes(userCity.toLowerCase());
                       const bIsUser = userCity && cityB.toLowerCase().includes(userCity.toLowerCase());
@@ -498,32 +506,47 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
 
                     if (cityEntries.length === 0) {
                       return (
-                        <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
-                          <div className="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-800">
-                            <Icon name="MagnifyingGlassIcon" size={32} className="text-zinc-700" />
+                        <div className="flex flex-col items-center justify-center py-32 text-center space-y-6">
+                          <div className="w-24 h-24 bg-zinc-900/50 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/5 shadow-2xl">
+                            <Icon name="MagnifyingGlassIcon" size={40} className="text-zinc-700" />
                           </div>
-                          <p className="text-zinc-500 max-w-xs">No properties found matching your criteria. Try adjusting your filters.</p>
+                          <div className="space-y-2">
+                            <h3 className="text-2xl font-bold text-white">No properties match</h3>
+                            <p className="text-zinc-500 max-w-sm mx-auto font-medium">We couldn't find any stays that match your search. Try refining your filters or exploring new destinations.</p>
+                          </div>
+                          <button
+                            onClick={() => setSelectedStayType('all')}
+                            className="px-8 py-3 bg-white text-black font-black uppercase tracking-widest text-xs rounded-full hover:scale-105 transition-transform"
+                          >
+                            Reset Filters
+                          </button>
                         </div>
                       );
                     }
 
-                    return cityEntries.map(([city, props]) => (
-                      <div key={city} className="-mx-6">
-                        {/* City Header */}
-                        <div className="flex items-center gap-4 mb-6 px-6">
-                          <div>
-                            <h3 className="font-heading text-2xl font-bold text-zinc-100">{city}</h3>
-                            <p className="text-sm text-zinc-500 mt-0.5">{props.length} {props.length === 1 ? 'property' : 'properties'}</p>
+                    return cityEntries.map(([city, props], cityIdx) => (
+                      <div key={city} className="space-y-10 group/city">
+                        {/* Elegant City Header */}
+                        <div className="flex items-center gap-6">
+                          <div className="flex flex-col">
+                            <h3 className="font-heading text-3xl font-black text-white tracking-tight">{city}</h3>
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-[2px] bg-sky-500" />
+                              <span className="text-[11px] font-black uppercase tracking-widest text-zinc-500">{props.length} Available Stays</span>
+                            </div>
                           </div>
-                          <div className="flex-1 h-px bg-zinc-800/50" />
+                          <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
                         </div>
 
-                        {/* Horizontally scrollable row of cards */}
-                        <div className="flex gap-5 overflow-x-auto pb-8 px-6 scrollbar-hide snap-x snap-mandatory">
-                          {props.map((property) => (
-                            <div
+                        {/* Premium Responsive Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6 pb-4">
+                          {props.map((property, idx) => (
+                            <motion.div
                               key={property.id}
-                              className="flex-shrink-0 w-[280px] sm:w-[320px] snap-start"
+                              initial={{ opacity: 0, y: 20 }}
+                              whileInView={{ opacity: 1, y: 0 }}
+                              viewport={{ once: true }}
+                              transition={{ duration: 0.5, delay: idx * 0.1 }}
                             >
                               <PropertyCard
                                 property={
@@ -532,7 +555,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
                                 onSaveProperty={handleToggleSaveProperty}
                                 isSaved={savedProperties.includes(property.id)}
                               />
-                            </div>
+                            </motion.div>
                           ))}
                         </div>
                       </div>
@@ -540,7 +563,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
                   })()}
                 </div>
               ) : (
-                <div className="h-[700px] w-full rounded-[2.5rem] overflow-hidden border border-zinc-800 shadow-2xl relative">
+                <div className="h-[750px] w-full rounded-[3rem] overflow-hidden border border-white/5 shadow-3xl relative">
                   <InteractiveMap
                     properties={filteredProperties.map((p) => ({
                       ...p,
@@ -555,6 +578,23 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
                     }))}
                     onPropertySelect={(id) => router.push(`/property-listing/${id}`)}
                   />
+
+                  {/* Floating Legend or Info if needed */}
+                  <div className="absolute bottom-10 left-10 z-10 px-6 py-4 bg-zinc-900/80 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl">
+                    <div className="flex items-center gap-4">
+                      <div className="flex -space-x-3">
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className="w-10 h-10 rounded-full border-2 border-zinc-900 bg-zinc-800 overflow-hidden">
+                            <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="User" />
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        <p className="text-white text-xs font-bold">120+ users exploring</p>
+                        <p className="text-zinc-500 text-[10px] font-medium uppercase tracking-widest">Live in {userCity || 'India'}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -569,53 +609,6 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
             />
           </AnimatedSection>
 
-          <AnimatedSection>
-            <FeaturedDestinations
-              destinations={[
-                {
-                  id: 1,
-                  name: 'Goa',
-                  state: 'India',
-                  propertyCount: 342,
-                  image: 'https://images.unsplash.com/photo-1723459640576-560af9d58f55',
-                  alt: 'Goa',
-                  avgPrice: 4500,
-                  popular: true,
-                },
-                {
-                  id: 2,
-                  name: 'Manali',
-                  state: 'Himachal',
-                  propertyCount: 289,
-                  image: 'https://images.unsplash.com/photo-1609674915324-2b3b259a6d67',
-                  alt: 'Manali',
-                  avgPrice: 3800,
-                  popular: true,
-                },
-                {
-                  id: 3,
-                  name: 'Coorg',
-                  state: 'Karnataka',
-                  propertyCount: 150,
-                  image: 'https://images.unsplash.com/photo-1605380525508-30588641a9e7',
-                  alt: 'Coorg',
-                  avgPrice: 3500,
-                  popular: false,
-                },
-                {
-                  id: 4,
-                  name: 'Jaipur',
-                  state: 'Rajasthan',
-                  propertyCount: 400,
-                  image: 'https://images.unsplash.com/photo-1550596334-7ad92994e43e',
-                  alt: 'Jaipur',
-                  avgPrice: 5000,
-                  popular: true,
-                },
-              ]}
-              onDestinationClick={(d) => console.log(d)}
-            />
-          </AnimatedSection>
 
 
           <AnimatedSection>

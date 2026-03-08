@@ -63,6 +63,7 @@ export interface Message {
   is_read: boolean;
   created_at: string;
   sender_name?: string; // Appended by join
+  sender_avatar?: string; // Appended by join
   property_name?: string; // Appended by join
 }
 

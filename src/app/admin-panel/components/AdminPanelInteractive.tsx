@@ -526,7 +526,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   });
 
   return (
-    <div className="min-h-screen bg-[#050505] pt-0 pb-12 px-4 md:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#050505] pt-0 pb-16 px-4 md:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <AdminPageHeader
@@ -536,174 +536,253 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="p-3 bg-[#0a0a0f] text-zinc-400 border border-white/10 rounded-xl hover:text-white hover:border-white/20 transition-all relative group"
+              className="relative group p-3 bg-white/5 backdrop-blur-sm text-zinc-400 border border-white/10 rounded-xl hover:text-white hover:border-white/25 hover:bg-white/10 transition-all duration-300"
             >
               <Icon name="BellIcon" size={20} />
-              <div className="absolute top-3 right-3 w-2 h-2 bg-primary rounded-full border-2 border-[#0a0a0f] group-hover:scale-110 transition-transform" />
+              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#050505] animate-pulse" />
             </button>
             <button
               onClick={handleExportReport}
-              className="p-3 bg-[#0a0a0f] text-zinc-400 border border-white/10 rounded-xl hover:text-white hover:border-white/20 transition-all flex items-center space-x-2"
+              className="px-4 py-3 bg-white/5 backdrop-blur-sm text-zinc-300 border border-white/10 rounded-xl hover:text-white hover:border-white/25 hover:bg-white/10 transition-all duration-300 flex items-center gap-2"
             >
-              <Icon name="ArrowDownTrayIcon" size={20} />
-              <span className="hidden sm:inline text-sm font-medium">Export</span>
+              <Icon name="ArrowDownTrayIcon" size={18} />
+              <span className="hidden sm:inline text-sm font-semibold tracking-wide">Export</span>
             </button>
           </div>
         </AdminPageHeader>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8">
           {stats.map((stat, index) => (
             <StatsCard key={index} {...stat} />
           ))}
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-[#0a0a0f]/50 backdrop-blur-md border border-white/10 rounded-2xl p-1.5 mb-8 sticky top-20 z-40 overflow-hidden">
-          <div className="flex items-center space-x-1 overflow-x-auto no-scrollbar pb-1 px-1">
-            {(
-              [
-                { id: 'overview', label: 'Overview', icon: 'ChartBarIcon' },
-                { id: 'verifications', label: 'Review', icon: 'DocumentCheckIcon' },
-                { id: 'disputes', label: 'Disputes', icon: 'ExclamationTriangleIcon' },
-                { id: 'transactions', label: 'Money', icon: 'BanknotesIcon' },
-                { id: 'users', label: 'Users', icon: 'UsersIcon' },
-                { id: 'properties', label: 'Listing', icon: 'HomeModernIcon' },
-                { id: 'inbox', label: 'Chat', icon: 'ChatBubbleLeftRightIcon' },
-              ] as const
-            ).map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl font-heading font-semibold text-xs uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${activeTab === tab.id
-                  ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.1)]'
-                  : 'text-zinc-500 hover:text-white hover:bg-white/5'
-                  }`}
-              >
-                <Icon name={tab.icon} size={16} />
-                <span>{tab.label}</span>
-              </button>
-            ))}
+        <div className="relative mb-8 sticky top-20 z-40">
+          <div className="bg-[#0a0a0f]/70 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar px-1">
+              {(
+                [
+                  { id: 'overview', label: 'Overview', icon: 'ChartBarIcon' },
+                  { id: 'verifications', label: 'Review', icon: 'DocumentCheckIcon' },
+                  { id: 'disputes', label: 'Disputes', icon: 'ExclamationTriangleIcon' },
+                  { id: 'transactions', label: 'Finances', icon: 'BanknotesIcon' },
+                  { id: 'users', label: 'Users', icon: 'UsersIcon' },
+                  { id: 'properties', label: 'Listings', icon: 'HomeModernIcon' },
+                  { id: 'inbox', label: 'Chat', icon: 'ChatBubbleLeftRightIcon' },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-heading font-semibold text-xs uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${activeTab === tab.id
+                    ? 'bg-gradient-to-br from-white to-zinc-200 text-black shadow-[0_4px_14px_rgba(255,255,255,0.15)]'
+                    : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.07]'
+                    }`}
+                >
+                  <Icon name={tab.icon} size={15} />
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Content Area */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            {/* Overview Tab */}
+            {/* Overview Tab — Premium Layout */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-6">
-                  <h2 className="text-xl font-heading font-bold text-zinc-100 mb-4">
-                    Platform Analytics
-                  </h2>
-                  <div className="h-64 bg-white/5 rounded-lg flex items-center justify-center">
+
+                {/* Analytics Panel */}
+                <div className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/10 p-6 group hover:border-white/20 transition-all duration-500">
+                  {/* Ambient top glow */}
+                  <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-64 h-32 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none" />
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <h2 className="text-lg font-heading font-bold text-white tracking-tight">Platform Analytics</h2>
+                      <p className="text-xs text-zinc-500 mt-0.5">Monthly booking volume across the year</p>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse" />
+                      <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest">Live</span>
+                    </div>
+                  </div>
+                  <div className="relative rounded-xl overflow-hidden bg-white/[0.03] border border-white/5 p-4">
                     <Bar options={analyticsOptions} data={analyticsData} />
                   </div>
                 </div>
 
-                <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-6">
-                  <h2 className="text-xl font-heading font-bold text-zinc-100 mb-4">
-                    Quick Actions
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button
-                      onClick={() => setActiveTab('verifications')}
-                      className="p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors duration-200 text-left"
-                    >
-                      <Icon name="DocumentCheckIcon" size={24} className="text-emerald-400 mb-2" />
-                      <h3 className="font-heading font-semibold text-zinc-200 mb-1">
-                        Review Verifications
-                      </h3>
-                      <p className="text-sm text-zinc-500">
-                        {verificationQueue.filter((v) => v.status === 'pending').length} pending
-                      </p>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('disputes')}
-                      className="p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors duration-200 text-left"
-                    >
-                      <Icon name="ExclamationTriangleIcon" size={24} className="text-rose-400 mb-2" />
-                      <h3 className="font-heading font-semibold text-zinc-200 mb-1">
-                        Resolve Disputes
-                      </h3>
-                      <p className="text-sm text-zinc-500">
-                        {disputes.filter((d) => d.status !== 'resolved').length} active
-                      </p>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('transactions')}
-                      className="p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors duration-200 text-left"
-                    >
-                      <Icon name="BanknotesIcon" size={24} className="text-emerald-400 mb-2" />
-                      <h3 className="font-heading font-semibold text-zinc-200 mb-1">
-                        Process Payouts
-                      </h3>
-                      <p className="text-sm text-zinc-500">
-                        {transactions.filter((t) => t.status === 'pending').length} pending
-                      </p>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('users')}
-                      className="p-4 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors duration-200 text-left"
-                    >
-                      <Icon name="UsersIcon" size={24} className="text-amber-400 mb-2" />
-                      <h3 className="font-heading font-semibold text-zinc-200 mb-1">
-                        Manage Users
-                      </h3>
-                      <p className="text-sm text-zinc-500">{users.length} total</p>
-                    </button>
+                {/* Quick Actions */}
+                <div className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/10 p-6 hover:border-white/20 transition-all duration-500">
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <h2 className="text-lg font-heading font-bold text-white tracking-tight">Quick Actions</h2>
+                      <p className="text-xs text-zinc-500 mt-0.5">Jump to critical platform tasks</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      {
+                        tab: 'verifications' as const,
+                        icon: 'DocumentCheckIcon',
+                        label: 'Review Verifications',
+                        badge: verificationQueue.filter((v) => v.status === 'pending').length,
+                        badgeLabel: 'pending',
+                        color: 'emerald',
+                        glow: 'rgba(16,185,129,0.12)',
+                        border: 'rgba(16,185,129,0.2)',
+                        iconColor: 'text-emerald-400',
+                        iconBg: 'bg-emerald-500/10 border-emerald-500/20',
+                      },
+                      {
+                        tab: 'disputes' as const,
+                        icon: 'ExclamationTriangleIcon',
+                        label: 'Resolve Disputes',
+                        badge: disputes.filter((d) => d.status !== 'resolved').length,
+                        badgeLabel: 'active',
+                        color: 'rose',
+                        glow: 'rgba(239,68,68,0.12)',
+                        border: 'rgba(239,68,68,0.2)',
+                        iconColor: 'text-rose-400',
+                        iconBg: 'bg-rose-500/10 border-rose-500/20',
+                      },
+                      {
+                        tab: 'transactions' as const,
+                        icon: 'BanknotesIcon',
+                        label: 'Process Payouts',
+                        badge: transactions.filter((t) => t.status === 'pending').length,
+                        badgeLabel: 'pending',
+                        color: 'sky',
+                        glow: 'rgba(14,165,233,0.12)',
+                        border: 'rgba(14,165,233,0.2)',
+                        iconColor: 'text-sky-400',
+                        iconBg: 'bg-sky-500/10 border-sky-500/20',
+                      },
+                      {
+                        tab: 'users' as const,
+                        icon: 'UsersIcon',
+                        label: 'Manage Users',
+                        badge: users.length,
+                        badgeLabel: 'total',
+                        color: 'amber',
+                        glow: 'rgba(245,158,11,0.12)',
+                        border: 'rgba(245,158,11,0.2)',
+                        iconColor: 'text-amber-400',
+                        iconBg: 'bg-amber-500/10 border-amber-500/20',
+                      },
+                    ].map((action) => (
+                      <button
+                        key={action.tab}
+                        onClick={() => setActiveTab(action.tab)}
+                        style={{ '--hover-glow': action.glow, '--hover-border': action.border } as React.CSSProperties}
+                        className="group relative p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:border-[var(--hover-border)] text-left transition-all duration-300 overflow-hidden"
+                      >
+                        {/* hover glow overlay */}
+                        <div
+                          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl"
+                          style={{ background: `radial-gradient(circle at 30% 30%, ${action.glow}, transparent 70%)` }}
+                        />
+                        <div className="relative z-10">
+                          <div className={`inline-flex p-2.5 rounded-xl border mb-3 transition-all duration-300 group-hover:scale-110 ${action.iconBg}`}>
+                            <Icon name={action.icon} size={20} className={action.iconColor} />
+                          </div>
+                          <h3 className="font-heading font-bold text-sm text-zinc-200 group-hover:text-white mb-1 transition-colors">
+                            {action.label}
+                          </h3>
+                          <p className="text-[11px] text-zinc-500 font-medium">
+                            <span className="text-zinc-300 font-bold">{action.badge}</span> {action.badgeLabel}
+                          </p>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 h-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                          style={{ background: `linear-gradient(to right, transparent, ${action.glow}, transparent)` }}
+                        />
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {/* Maintenance Alerts Overview */}
-                <div className="bg-[#0a0a0f] border border-red-500/20 rounded-xl p-6 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-3xl -z-10"></div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-heading font-bold text-zinc-100 flex items-center gap-2">
-                      Active Maintenance Issues
-                    </h2>
-                    <span className="bg-red-500/10 text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-500/20">
-                      {maintenanceAlerts.filter(a => a.status !== 'Resolved').length} Active
-                    </span>
+                {/* Maintenance Alerts */}
+                <div className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-rose-500/15 p-6 hover:border-rose-500/25 transition-all duration-500">
+                  <div className="absolute -top-8 -right-8 w-48 h-48 bg-rose-500/8 rounded-full blur-3xl pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-rose-500/20 to-transparent" />
+
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                        <Icon name="WrenchScrewdriverIcon" size={18} className="text-rose-400" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-heading font-bold text-white">System Alerts</h2>
+                        <p className="text-xs text-zinc-500 mt-0.5">Active maintenance issues</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                      {maintenanceAlerts.filter(a => a.status !== 'Resolved').length > 0 && (
+                        <div className="w-1.5 h-1.5 bg-rose-400 rounded-full animate-pulse" />
+                      )}
+                      <span className="text-xs font-bold text-rose-300">
+                        {maintenanceAlerts.filter(a => a.status !== 'Resolved').length} Active
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                  <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
                     {maintenanceAlerts.filter(a => a.status !== 'Resolved').length > 0 ? (
                       maintenanceAlerts.filter(a => a.status !== 'Resolved').map((alert) => (
-                        <div key={alert.id} className="p-3 bg-white/5 border border-white/10 rounded-lg flex items-start justify-between">
-                          <div>
-                            <p className="text-sm font-semibold text-white">{alert.issue}</p>
-                            <p className="text-xs text-zinc-400 mt-1">Property ID: {alert.property_id.slice(0, 8)}... | By: {alert.reported_by}</p>
+                        <div
+                          key={alert.id}
+                          className="group relative flex items-start justify-between gap-3 p-3.5 bg-white/[0.03] border border-white/8 rounded-xl hover:border-rose-500/20 hover:bg-rose-500/5 transition-all duration-300"
+                        >
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
+                            <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-1.5 ${alert.priority === 'Urgent' ? 'bg-red-500' :
+                              alert.priority === 'High' ? 'bg-orange-500' : 'bg-yellow-500'
+                              }`} />
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-white truncate">{alert.issue}</p>
+                              <p className="text-[11px] text-zinc-500 mt-0.5">ID: {alert.property_id?.slice(0, 8)}… · {alert.reported_by}</p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] uppercase font-bold text-white ${alert.priority === 'Urgent' ? 'bg-red-500' : alert.priority === 'High' ? 'bg-orange-500' : 'bg-yellow-500'}`}>
+                          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                            <span className={`px-2 py-0.5 rounded-lg text-[10px] uppercase font-bold ${alert.priority === 'Urgent' ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
+                              alert.priority === 'High' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
+                                'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                              }`}>
                               {alert.priority}
                             </span>
-                            <p className="text-[10px] text-zinc-500 mt-2">{new Date(alert.reported_date).toLocaleDateString()}</p>
+                            <span className="text-[10px] text-zinc-600">{new Date(alert.reported_date).toLocaleDateString()}</span>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <p className="text-sm text-zinc-500 italic p-4 text-center border border-dashed border-zinc-800 rounded-lg">No active maintenance issues.</p>
+                      <div className="flex flex-col items-center justify-center py-10 text-center">
+                        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-3">
+                          <Icon name="CheckCircleIcon" size={28} className="text-emerald-400" />
+                        </div>
+                        <p className="text-sm font-semibold text-zinc-400">All Systems Operational</p>
+                        <p className="text-[11px] text-zinc-600 mt-1">No active maintenance issues found</p>
+                      </div>
                     )}
                   </div>
                 </div>
+
               </div>
             )}
 
             {/* Verifications Tab */}
             {activeTab === 'verifications' && (
-              <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-6">
+              <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-4 md:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                   <h2 className="text-xl font-heading font-bold text-zinc-100">
                     Verification Queue
                   </h2>
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-3 w-full sm:w-auto">
                     <select
                       value={filterStatus}
                       onChange={(e) => setFilterStatus(e.target.value)}
-                      className="px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
+                      className="w-full sm:w-auto px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
                     >
                       <option value="all">All Status</option>
                       <option value="pending">Pending</option>
@@ -735,8 +814,8 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
             {/* Disputes Tab */}
             {activeTab === 'disputes' && (
-              <div className="bg-card border border-border rounded-xl p-6">
-                <div className="flex items-center justify-between mb-6">
+              <div className="bg-card border border-border rounded-xl p-4 md:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                   <h2 className="text-xl font-heading font-bold text-foreground">
                     Active Disputes
                   </h2>
@@ -771,18 +850,18 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
             {/* Transactions Tab */}
             {activeTab === 'transactions' && (
               <div className="bg-[#0a0a0f] border border-white/10 rounded-xl overflow-hidden">
-                <div className="p-6 border-b border-white/10">
-                  <div className="flex items-center justify-between">
+                <div className="p-4 md:p-6 border-b border-white/10">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <h2 className="text-xl font-heading font-bold text-zinc-100">
                       Transaction History
                     </h2>
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-3 w-full sm:w-auto">
                       <input
                         type="text"
                         placeholder="Search transactions..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
+                        className="w-full sm:w-auto px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
                       />
                     </div>
                   </div>
@@ -900,71 +979,106 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-5">
+
             {/* Recent Activity */}
-            <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-6">
-              <h3 className="text-lg font-heading font-bold text-zinc-100 mb-4">
-                Recent Activity
-              </h3>
-              <div className="space-y-2">
-                {recentActivities.map((activity) => (
-                  <RecentActivityItem key={activity.id} activity={activity} />
-                ))}
+            <div className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/10 p-5 hover:border-white/15 transition-all duration-500">
+              <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-white/5 border border-white/10">
+                    <Icon name="BoltIcon" size={14} className="text-zinc-400" />
+                  </div>
+                  <h3 className="text-sm font-heading font-bold text-white uppercase tracking-widest">Activity Feed</h3>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                  <span className="text-[10px] text-zinc-500 font-medium">Live</span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                {recentActivities.length > 0 ? (
+                  recentActivities.map((activity) => (
+                    <RecentActivityItem key={activity.id} activity={activity} />
+                  ))
+                ) : (
+                  <p className="text-xs text-zinc-600 italic text-center py-6">No recent activity</p>
+                )}
               </div>
             </div>
 
             {/* System Status */}
-            <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-6">
-              <h3 className="text-lg font-heading font-bold text-zinc-100 mb-4">System Status</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-zinc-400">Platform Health</span>
-                  <span className="flex items-center space-x-1 text-success">
-                    <div className="w-2 h-2 bg-success rounded-full"></div>
-                    <span className="text-sm font-heading font-medium">Operational</span>
-                  </span>
+            <div className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/10 p-5 hover:border-white/15 transition-all duration-500">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <Icon name="ServerStackIcon" size={14} className="text-emerald-400" />
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-zinc-400">Payment Gateway</span>
-                  <span className="flex items-center space-x-1 text-success">
-                    <div className="w-2 h-2 bg-success rounded-full"></div>
-                    <span className="text-sm font-heading font-medium">Active</span>
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-zinc-400">Messaging System</span>
-                  <span className="flex items-center space-x-1 text-success">
-                    <div className="w-2 h-2 bg-success rounded-full"></div>
-                    <span className="text-sm font-heading font-medium">Online</span>
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-zinc-400">Server Load</span>
-                  <span className="text-sm font-heading font-medium text-zinc-200">42%</span>
+                <h3 className="text-sm font-heading font-bold text-white uppercase tracking-widest">System Status</h3>
+              </div>
+              <div className="space-y-3.5">
+                {[
+                  { label: 'Platform Health', status: 'Operational', color: 'emerald' },
+                  { label: 'Payment Gateway', status: 'Active', color: 'emerald' },
+                  { label: 'Messaging System', status: 'Online', color: 'emerald' },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-500 font-medium">{item.label}</span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                      <span className="text-xs font-bold text-emerald-400">{item.status}</span>
+                    </div>
+                  </div>
+                ))}
+                <div className="pt-1 border-t border-white/5">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs text-zinc-500 font-medium">Server Load</span>
+                    <span className="text-xs font-bold text-amber-400">42%</span>
+                  </div>
+                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full w-[42%] bg-gradient-to-r from-amber-500 to-amber-400 rounded-full" />
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Quick Stats */}
-            <div className="bg-[#050505] border border-white/10 rounded-xl p-6 text-white">
-              <h3 className="text-lg font-heading font-bold mb-4">Today&apos;s Summary</h3>
+            {/* Today's Summary */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f0f1a] to-[#0a0a0f] border border-indigo-500/15 p-5 hover:border-indigo-500/25 transition-all duration-500">
+              <div className="absolute -top-6 -right-6 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
+                  <Icon name="CalendarDaysIcon" size={14} className="text-indigo-400" />
+                </div>
+                <h3 className="text-sm font-heading font-bold text-white uppercase tracking-widest">Today's Summary</h3>
+              </div>
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm opacity-90">New Registrations</span>
-                  <span className="text-xl font-heading font-bold">{users.filter(u => new Date(u.created_at).toDateString() === new Date().toDateString()).length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm opacity-90">Bookings Completed</span>
-                  <span className="text-xl font-heading font-bold">{bookings.length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm opacity-90">Revenue Generated</span>
-                  <span className="text-xl font-heading font-bold">
-                    ₹{transactions.reduce((acc, t) => acc + t.amount, 0) / 1000}K
-                  </span>
-                </div>
+                {[
+                  {
+                    label: 'New Registrations',
+                    value: users.filter(u => new Date(u.created_at).toDateString() === new Date().toDateString()).length,
+                    color: 'text-sky-400',
+                    bg: 'bg-sky-500/10',
+                  },
+                  {
+                    label: 'Bookings',
+                    value: bookings.length,
+                    color: 'text-emerald-400',
+                    bg: 'bg-emerald-500/10',
+                  },
+                  {
+                    label: 'Revenue',
+                    value: `₹${(transactions.reduce((acc, t) => acc + t.amount, 0) / 1000).toFixed(1)}K`,
+                    color: 'text-amber-400',
+                    bg: 'bg-amber-500/10',
+                  },
+                ].map((item) => (
+                  <div key={item.label} className={`flex items-center justify-between p-2.5 rounded-xl ${item.bg} border border-white/5`}>
+                    <span className="text-xs text-zinc-400 font-medium">{item.label}</span>
+                    <span className={`text-lg font-heading font-black ${item.color}`}>{item.value}</span>
+                  </div>
+                ))}
               </div>
             </div>
+
           </div>
         </div>
       </div >

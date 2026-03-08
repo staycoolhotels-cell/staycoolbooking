@@ -1,5 +1,5 @@
 import React from 'react';
-import Sidebar from './components/Sidebar';
+import AdminShell from './components/AdminShell';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -67,13 +67,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="flex h-screen bg-[#050505]">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#050505] p-4 sm:p-6 md:p-8 pt-20 lg:pt-8">
-          {children}
-        </main>
-      </div>
-    </div>
+    <AdminShell>
+      {children}
+    </AdminShell>
   );
 }

@@ -3,7 +3,7 @@
 import React from 'react';
 import { Transaction } from '@/lib/types';
 import { format } from 'date-fns';
-import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import Icon from '@/components/ui/AppIcon';
 
 interface PayoutsTableProps {
     transactions: Transaction[];
@@ -11,61 +11,83 @@ interface PayoutsTableProps {
 
 const PayoutsTable = ({ transactions }: PayoutsTableProps) => {
     return (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="p-6 border-b border-zinc-800">
-                <h3 className="text-xl font-bold text-white">Recent Transactions</h3>
+        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden relative">
+            <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-[80px] pointer-events-none" />
+
+            <div className="p-6 md:p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-sky-500/10 border border-sky-500/20 rounded-xl">
+                        <Icon name="DocumentTextIcon" size={20} className="text-sky-400" />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-heading font-black text-white tracking-tight leading-tight">Financial Ledger</h3>
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-0.5">Automated Payout History</p>
+                    </div>
+                </div>
             </div>
-            {/* Desktop Table - Hidden on Mobile */}
-            <div className="hidden md:block overflow-x-auto">
+
+            {/* Desktop View */}
+            <div className="hidden md:block overflow-x-auto relative z-10">
                 <table className="w-full">
-                    <thead className="bg-zinc-950/50">
+                    <thead className="bg-black/40 border-b border-white/5">
                         <tr>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Date</th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Transaction ID</th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Guest</th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Property</th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Amount</th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Status</th>
+                            <th className="px-8 py-5 text-left text-[10px] font-black text-zinc-500 uppercase tracking-widest whitespace-nowrap">Status</th>
+                            <th className="px-8 py-5 text-left text-[10px] font-black text-zinc-500 uppercase tracking-widest whitespace-nowrap">Timestamp</th>
+                            <th className="px-8 py-5 text-left text-[10px] font-black text-zinc-500 uppercase tracking-widest whitespace-nowrap">Network ID</th>
+                            <th className="px-8 py-5 text-left text-[10px] font-black text-zinc-500 uppercase tracking-widest whitespace-nowrap">Initiator</th>
+                            <th className="px-8 py-5 text-left text-[10px] font-black text-zinc-500 uppercase tracking-widest whitespace-nowrap">Target Asset</th>
+                            <th className="px-8 py-5 text-right text-[10px] font-black text-zinc-500 uppercase tracking-widest whitespace-nowrap">Net Value</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-800">
+                    <tbody className="divide-y divide-white/5">
                         {transactions.length > 0 ? (
                             transactions.map((tx) => (
-                                <tr key={tx.id} className="hover:bg-zinc-800/30 transition-colors">
-                                    <td className="px-6 py-4 text-sm text-zinc-300 whitespace-nowrap">
-                                        {format(new Date(tx.date || new Date()), 'MMM d, yyyy')}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-zinc-400 font-mono whitespace-nowrap">
-                                        {tx.transactionId || tx.id.slice(0, 8)}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-zinc-300">
-                                        {tx.guestName || 'Guest'}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-zinc-300">
-                                        {tx.propertyName || 'Property'}
-                                    </td>
-                                    <td className={`px-6 py-4 text-sm font-bold whitespace-nowrap ${tx.type === 'refund' ? 'text-red-400' : 'text-green-400'}`}>
-                                        {tx.type === 'refund' ? '-' : '+'}₹{tx.amount.toLocaleString()}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            {tx.status === 'completed' && <CheckCircle size={16} className="text-green-500 mr-2" />}
-                                            {tx.status === 'pending' && <Clock size={16} className="text-yellow-500 mr-2" />}
-                                            {tx.status === 'failed' && <XCircle size={16} className="text-red-500 mr-2" />}
-                                            <span className={`text-sm capitalize ${tx.status === 'completed' ? 'text-green-500' :
-                                                tx.status === 'pending' ? 'text-yellow-500' :
-                                                    'text-red-500'
-                                                }`}>
-                                                {tx.status}
-                                            </span>
+                                <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors group">
+                                    <td className="px-8 py-6 whitespace-nowrap">
+                                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border backdrop-blur-md ${tx.status === 'completed' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.1)]' :
+                                                tx.status === 'pending' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
+                                                    'bg-red-500/10 border-red-500/20 text-red-400'
+                                            }`}>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${tx.status === 'completed' ? 'bg-emerald-400 animate-pulse' :
+                                                    tx.status === 'pending' ? 'bg-amber-400' :
+                                                        'bg-red-400'
+                                                }`} />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">{tx.status}</span>
                                         </div>
+                                    </td>
+                                    <td className="px-8 py-6 text-sm text-zinc-300 font-medium whitespace-nowrap">
+                                        <div className="flex items-center gap-2">
+                                            <Icon name="CalendarIcon" size={14} className="text-zinc-600" />
+                                            {format(new Date(tx.date || new Date()), 'MMM d, yyyy')}
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6 text-[11px] text-zinc-500 font-mono font-bold tracking-wider whitespace-nowrap">
+                                        {tx.transactionId || tx.id.slice(0, 12).toUpperCase()}
+                                    </td>
+                                    <td className="px-8 py-6 text-sm text-white font-bold whitespace-nowrap flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center border border-white/10 shrink-0">
+                                            <Icon name="UserIcon" size={14} className="text-zinc-500" />
+                                        </div>
+                                        {tx.guestName || 'Guest Identity'}
+                                    </td>
+                                    <td className="px-8 py-6 text-sm text-zinc-400 font-medium whitespace-nowrap">
+                                        {tx.propertyName || 'Property Reference'}
+                                    </td>
+                                    <td className="px-8 py-6 text-right whitespace-nowrap">
+                                        <span className={`text-base font-black tracking-tight ${tx.type === 'refund' ? 'text-red-400' : 'text-emerald-400'}`}>
+                                            {tx.type === 'refund' ? '-' : '+'}₹{tx.amount.toLocaleString()}
+                                        </span>
                                     </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={6} className="px-6 py-8 text-center text-zinc-500">
-                                    No transactions found.
+                                <td colSpan={6} className="px-8 py-16">
+                                    <div className="flex flex-col items-center justify-center text-center">
+                                        <Icon name="BanknotesIcon" size={32} className="text-zinc-700 mb-3" />
+                                        <span className="text-sm font-bold text-white mb-1">No Ledger Entries</span>
+                                        <span className="text-xs text-zinc-500">There are no financial transactions recorded yet.</span>
+                                    </div>
                                 </td>
                             </tr>
                         )}
@@ -73,42 +95,55 @@ const PayoutsTable = ({ transactions }: PayoutsTableProps) => {
                 </table>
             </div>
 
-            {/* Mobile Card Layout - Hidden on Desktop */}
-            <div className="md:hidden divide-y divide-zinc-800">
+            {/* Mobile View */}
+            <div className="md:hidden divide-y divide-white/5 relative z-10">
                 {transactions.length > 0 ? (
                     transactions.map((tx) => (
-                        <div key={tx.id} className="p-5 space-y-4 active:bg-zinc-800/50 transition-colors">
+                        <div key={tx.id} className="p-6 active:bg-white/[0.02] transition-colors flex flex-col gap-4">
                             <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">
-                                        {format(new Date(tx.date || new Date()), 'MMM d, yyyy')}
-                                    </p>
-                                    <p className="font-bold text-white text-base">{tx.guestName || 'Guest'}</p>
-                                    <p className="text-xs text-zinc-400">{tx.propertyName || 'Property'}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className={`text-lg font-black ${tx.type === 'refund' ? 'text-red-400' : 'text-green-400'}`}>
-                                        {tx.type === 'refund' ? '-' : '+'}₹{tx.amount.toLocaleString()}
-                                    </p>
-                                    <div className="flex items-center justify-end mt-1">
-                                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${tx.status === 'completed' ? 'bg-green-500/10 border-green-500/30 text-green-500' :
-                                                tx.status === 'pending' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-500' :
-                                                    'bg-red-500/10 border-red-500/30 text-red-500'
-                                            }`}>
-                                            {tx.status}
-                                        </span>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center border border-white/10 shrink-0">
+                                        <Icon name="UserIcon" size={16} className="text-zinc-500" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-white text-base leading-tight">{tx.guestName || 'Guest'}</p>
+                                        <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest mt-0.5">ID: {tx.transactionId?.slice(0, 8) || tx.id.slice(0, 8)}</p>
                                     </div>
                                 </div>
+                                <div className="text-right">
+                                    <p className={`text-lg font-black tracking-tight ${tx.type === 'refund' ? 'text-red-400' : 'text-emerald-400'}`}>
+                                        {tx.type === 'refund' ? '-' : '+'}₹{tx.amount.toLocaleString()}
+                                    </p>
+                                </div>
                             </div>
-                            <div className="flex justify-between items-center pt-2">
-                                <p className="text-[10px] text-zinc-600 font-mono">ID: {tx.transactionId || tx.id.slice(0, 8)}</p>
-                                <button className="text-[10px] font-bold uppercase text-sky-400">Details</button>
+
+                            <div className="flex justify-between items-end">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5 text-zinc-400">
+                                        <Icon name="HomeIcon" size={12} className="text-zinc-600" />
+                                        <p className="text-xs font-medium">{tx.propertyName || 'Property'}</p>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-zinc-500">
+                                        <Icon name="CalendarIcon" size={12} className="text-zinc-600" />
+                                        <p className="text-[10px] font-bold uppercase tracking-widest">{format(new Date(tx.date || new Date()), 'MMM d, yyyy')}</p>
+                                    </div>
+                                </div>
+                                <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border backdrop-blur-md ${tx.status === 'completed' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                                        tx.status === 'pending' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
+                                            'bg-red-500/10 border-red-500/20 text-red-400'
+                                    }`}>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${tx.status === 'completed' ? 'bg-emerald-400' :
+                                            tx.status === 'pending' ? 'bg-amber-400' :
+                                                'bg-red-400'
+                                        }`} />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">{tx.status}</span>
+                                </div>
                             </div>
                         </div>
                     ))
                 ) : (
                     <div className="p-10 text-center text-zinc-500 text-sm">
-                        No transactions found.
+                        No financial activity recorded.
                     </div>
                 )}
             </div>

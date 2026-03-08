@@ -23,64 +23,95 @@ const EarningsChart = ({ data }: EarningsChartProps) => {
     labels: data.map((d) => d.month),
     datasets: [
       {
-        label: 'Earnings',
+        label: 'Gross Revenue',
         data: data.map((d) => d.earnings),
-        backgroundColor:
-          'rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 0.8)',
-        borderColor:
-          'rgba(var(--color-primary-r), var(--color-primary-g), var(--color-primary-b), 1)',
-        borderWidth: 1,
-        borderRadius: 5,
+        backgroundColor: 'rgba(168, 85, 247, 0.8)', // Purple-500
+        hoverBackgroundColor: 'rgba(192, 132, 252, 1)', // Purple-400
+        borderColor: 'rgba(168, 85, 247, 1)',
+        borderWidth: 0,
+        borderRadius: 8,
+        barThickness: 16,
       },
     ],
   };
 
   const options: any = {
-    // Use 'any' for now to bypass strict type checking for chart.js options
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         display: false,
       },
-      title: {
-        display: true,
-        text: 'Monthly Earnings',
-        font: {
-          size: 18,
-          color: 'rgb(var(--color-text-primary))',
-        },
-      },
       tooltip: {
-        titleColor: 'rgb(var(--color-text-primary))',
-        bodyColor: 'rgb(var(--color-text-secondary))',
-        backgroundColor: 'rgb(var(--color-card))',
-        borderColor: 'rgb(var(--color-border))',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#fff',
+        bodyColor: '#a855f7',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
         borderWidth: 1,
+        padding: 12,
+        cornerRadius: 12,
+        displayColors: false,
+        callbacks: {
+          label: function (context: any) {
+            let label = context.dataset.label || '';
+            if (label) {
+              label += ': ';
+            }
+            if (context.parsed.y !== null) {
+              label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.parsed.y);
+            }
+            return label;
+          }
+        }
       },
+      title: {
+        display: false,
+      }
     },
     scales: {
       y: {
         beginAtZero: true,
-        ticks: {
-          color: 'rgb(var(--color-text-secondary))',
-        },
         grid: {
-          color: 'rgb(var(--color-border))',
+          color: 'rgba(255, 255, 255, 0.05)',
+          drawBorder: false,
         },
+        ticks: {
+          color: 'rgba(255, 255, 255, 0.4)',
+          font: {
+            size: 11,
+            family: "'Inter', sans-serif",
+            weight: 'bold',
+          },
+          callback: function (value: any) {
+            return '₹' + (value / 1000) + 'k';
+          }
+        },
+        border: {
+          display: false
+        }
       },
       x: {
-        ticks: {
-          color: 'rgb(var(--color-text-secondary))',
-        },
         grid: {
-          color: 'rgb(var(--color-border))',
+          display: false,
+          drawBorder: false,
         },
+        ticks: {
+          color: 'rgba(255, 255, 255, 0.6)',
+          font: {
+            size: 11,
+            family: "'Inter', sans-serif",
+            weight: 'bold',
+          },
+        },
+        border: {
+          display: false
+        }
       },
     },
   };
 
   return (
-    <div className="bg-gradient-to-br from-gradient-card-from to-gradient-card-to p-6 rounded-lg shadow-md">
+    <div className="w-full h-full relative z-10">
       <Bar data={chartData} options={options} />
     </div>
   );

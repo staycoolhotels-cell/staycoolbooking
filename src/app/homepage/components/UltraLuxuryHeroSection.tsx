@@ -98,7 +98,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
       >
         <motion.h1
           variants={itemVariants}
-          className="text-3xl md:text-7xl lg:text-8xl font-bold mb-4 tracking-tight"
+          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-4 tracking-tight leading-tight"
           style={{ textShadow: '0 4px 15px rgba(0,0,0,0.5)' }}
         >
           Find Your Stay
@@ -115,11 +115,11 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
         {/* Glassmorphism Search Bar */}
         <motion.div
           variants={itemVariants}
-          className="w-full max-w-4xl p-2 md:p-4 mb-12 bg-white/10 backdrop-blur-lg rounded-full border border-white/20 shadow-2xl"
+          className="w-full max-w-4xl p-3 md:p-4 mb-12 bg-white/10 backdrop-blur-lg rounded-[2rem] md:rounded-full border border-white/20 shadow-2xl"
         >
-          <form onSubmit={handleSubmit} className="flex items-center gap-2 md:gap-4">
-            <div className="flex-grow flex items-center gap-2 px-3 md:px-4">
-              <MapPin className="text-zinc-400 w-5 h-5 md:w-6 md:h-6" />
+          <form onSubmit={handleSubmit} className="flex flex-col md:flex-row items-center gap-3 md:gap-4 w-full">
+            <div className="w-full md:w-auto flex-grow flex items-center gap-3 px-4 py-1">
+              <MapPin className="text-zinc-400 w-6 h-6" />
               <TextField
                 variant="standard"
                 placeholder="Where to?"
@@ -128,10 +128,10 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
                   disableUnderline: true,
-                  style: { color: 'white', fontSize: '1rem' }, // Slightly larger for better mobile readability
+                  style: { color: 'white', fontSize: '1.125rem' },
                 }}
                 sx={{
-                  '.MuiInput-input': { padding: '14px 0' },
+                  '.MuiInput-input': { padding: '12px 0' },
                   '& .MuiInput-input::placeholder': { color: '#a1a1aa', opacity: 1 },
                 }}
               />
@@ -147,10 +147,12 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
               variant="contained"
               sx={{
                 borderRadius: '9999px',
-                minWidth: { xs: '52px', md: 'auto' }, // Better touch target on mobile
-                height: { xs: '52px', md: 'auto' },
+                width: { xs: '100%', md: 'auto' },
+                height: { xs: '56px', md: 'auto' },
                 padding: { xs: '0', md: '12px 32px' },
-                fontSize: { md: '1.125rem' },
+                fontSize: { xs: '1.125rem', md: '1.125rem' },
+                textTransform: 'none',
+                fontWeight: 600,
                 color: 'white',
                 background: '#0ea5e9', // Sky-500
                 boxShadow: '0 4px 15px 0 rgba(14, 165, 233, 0.4)',
@@ -162,8 +164,8 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                 },
               }}
             >
-              <Search className="w-5 h-5 md:w-5 md:h-5 md:mr-2" />
-              <span className="hidden md:inline">Search</span>
+              <Search className="w-5 h-5 mr-2 md:mr-2" />
+              <span>Search</span>
             </Button>
           </form>
         </motion.div>

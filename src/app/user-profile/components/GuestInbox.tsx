@@ -240,8 +240,8 @@ const GuestInbox: React.FC<{ guestId: string }> = ({ guestId }) => {
                                         {selectedThread.otherUserName.charAt(0).toUpperCase()}
                                     </span>
                                 </div>
-                                <div>
-                                    <p className="text-sm font-bold text-white">{selectedThread.otherUserName}</p>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-bold text-white truncate">{selectedThread.otherUserName}</p>
                                     {selectedThread.propertyName && (
                                         <p className="text-[10px] text-zinc-500 truncate">re: {selectedThread.propertyName}</p>
                                     )}
@@ -264,8 +264,8 @@ const GuestInbox: React.FC<{ guestId: string }> = ({ guestId }) => {
                                         return (
                                             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                                 <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isMe
-                                                        ? 'bg-sky-600 text-white rounded-br-sm'
-                                                        : 'bg-zinc-800 text-zinc-100 rounded-bl-sm'
+                                                    ? 'bg-sky-600 text-white rounded-br-sm'
+                                                    : 'bg-zinc-800 text-zinc-100 rounded-bl-sm'
                                                     }`}>
                                                     {msg.content}
                                                     <p className={`text-[9px] mt-1 ${isMe ? 'text-sky-200/70' : 'text-zinc-600'} text-right`}>

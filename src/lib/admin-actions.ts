@@ -499,6 +499,7 @@ export async function updateAdminCredentials(userId: string, newEmail?: string, 
   const profileUpdate: any = {};
   if (emailChanged) profileUpdate.email = newEmail!.trim();
   if (newAvatarUrl) profileUpdate.avatar_url = newAvatarUrl;
+
   if (Object.keys(profileUpdate).length > 0) {
     await supabase.from('users').update(profileUpdate).eq('id', userId);
   }

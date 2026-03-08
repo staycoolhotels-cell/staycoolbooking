@@ -82,20 +82,20 @@ const PopularDestinations: React.FC<PopularDestinationsProps> = ({
     return (
         <section className="w-full">
             {/* ── Header ── */}
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between mb-8 gap-4">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
-                        <h2 className="font-heading text-4xl font-bold text-zinc-100 tracking-tight">
+                        <h2 className="font-heading text-3xl sm:text-4xl font-bold text-zinc-100 tracking-tight">
                             Popular Destinations
                         </h2>
                         {/* Seasonal badge */}
                         <span
-                            className={`hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r ${seasonalBadge.color} shadow-lg`}
+                            className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r from-sky-500 to-blue-400 shadow-lg"
                         >
                             {seasonalBadge.label}
                         </span>
                     </div>
-                    <p className="font-sans text-lg text-zinc-400">
+                    <p className="font-sans text-base sm:text-lg text-zinc-400">
                         Trending stays in the most sought-after locations
                     </p>
                 </div>
@@ -106,7 +106,7 @@ const PopularDestinations: React.FC<PopularDestinationsProps> = ({
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
                         onClick={() => setShowAll((prev) => !prev)}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-sky-500/40 text-sky-400 hover:bg-sky-500/10 transition-colors text-sm font-semibold whitespace-nowrap self-start sm:self-auto"
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-sky-500/40 text-sky-400 hover:bg-sky-500/10 transition-colors text-sm font-semibold whitespace-nowrap self-start sm:self-center"
                     >
                         {showAll ? (
                             <>
@@ -136,8 +136,8 @@ const PopularDestinations: React.FC<PopularDestinationsProps> = ({
                                     setShowAll(false);
                                 }}
                                 className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-200 ${isActive
-                                        ? 'bg-sky-500 border-sky-500 text-white shadow-lg shadow-sky-500/25'
-                                        : 'bg-zinc-900/50 border-zinc-700/60 text-zinc-400 hover:text-zinc-100 hover:border-zinc-500'
+                                    ? 'bg-sky-500 border-sky-500 text-white shadow-lg shadow-sky-500/25'
+                                    : 'bg-zinc-900/50 border-zinc-700/60 text-zinc-400 hover:text-zinc-100 hover:border-zinc-500'
                                     }`}
                             >
                                 <span>{city}</span>
@@ -158,7 +158,7 @@ const PopularDestinations: React.FC<PopularDestinationsProps> = ({
             )}
 
             {/* ── Stats strip ── */}
-            <div className="flex items-center gap-4 mb-6">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-6 mt-4">
                 <div className="flex items-center gap-1.5 text-amber-400">
                     <Icon name="FireIcon" size={16} />
                     <span className="text-sm font-semibold">Trending Now</span>
@@ -180,7 +180,7 @@ const PopularDestinations: React.FC<PopularDestinationsProps> = ({
             </div>
 
             {/* ── Property Cards Grid ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-5">
                 <AnimatePresence initial={false}>
                     {displayedProps.map((property, index) => (
                         <motion.div
@@ -217,8 +217,8 @@ const PopularDestinations: React.FC<PopularDestinationsProps> = ({
                         whileTap={{ scale: 0.97 }}
                         onClick={() => setShowAll((prev) => !prev)}
                         className={`flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-sm font-bold transition-all duration-300 ${showAll
-                                ? 'bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700'
-                                : 'bg-gradient-to-r from-sky-500 to-sky-400 text-white shadow-lg shadow-sky-500/30 hover:shadow-sky-500/50'
+                            ? 'bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700'
+                            : 'bg-gradient-to-r from-sky-500 to-sky-400 text-white shadow-lg shadow-sky-500/30 hover:shadow-sky-500/50'
                             }`}
                     >
                         {showAll ? (

@@ -387,16 +387,50 @@ const HostDashboardInteractive = ({
     }, [supabase]);
 
     return (
-      <div className="h-[600px] flex flex-col">
-        <h2 className="text-2xl font-bold text-white mb-6">Contact Admin Support</h2>
-        <div className="flex-1 min-h-0">
-          {adminUser && (
-            <RealTimeChat
-              currentUser={currentUser}
-              otherUser={adminUser}
-              contextTitle="Platform Support"
-            />
-          )}
+      <div className="w-full space-y-6 md:space-y-8 h-[calc(100vh-140px)] flex flex-col relative">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-[#0a0a0f]/80 p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden flex-shrink-0">
+          <div className="absolute top-0 right-0 bottom-0 w-80 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
+
+          <div className="relative z-10 flex items-center gap-5 w-full lg:w-auto">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)] shrink-0">
+              <LifeBuoy size={32} className="text-indigo-400 drop-shadow-md" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Priority Support</h1>
+              <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2 truncate whitespace-nowrap">
+                Direct Admin Communication
+              </p>
+            </div>
+          </div>
+
+          <div className="relative z-10 hidden sm:flex items-center gap-4">
+            <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 shadow-inner">
+              <div className="px-4 py-2 bg-indigo-500/20 text-indigo-400 rounded-lg text-[10px] font-bold uppercase tracking-widest">Live Connect</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0 bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden group flex flex-col">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none group-hover:bg-indigo-500/10 transition-colors duration-1000" />
+
+          <div className="flex-1 relative z-10 flex flex-col p-2 md:p-6 overflow-hidden">
+            {adminUser ? (
+              <div className="flex-1 rounded-2xl md:rounded-[2rem] overflow-hidden border border-white/10 shadow-inner bg-black/40 relative">
+                <RealTimeChat
+                  currentUser={currentUser}
+                  otherUser={adminUser}
+                  contextTitle="StayCool Platform Support"
+                />
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4">
+                  <LifeBuoy size={32} className="text-indigo-500 animate-pulse" />
+                </div>
+                <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest animate-pulse">Connecting to Admin Network...</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -503,7 +537,7 @@ const HostDashboardInteractive = ({
       </aside>
 
       {/* 2. MAIN CONTENT AREA */}
-      <main className="flex-1 relative overflow-y-auto bg-[#080808] ml-0 md:ml-64 w-full">
+      <main className="flex-1 relative overflow-y-auto bg-[#080808] ml-0 md:ml-72 w-full">
         {/* Background Decorative Element */}
         <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-sky-500/5 rounded-full blur-[120px] pointer-events-none" />
 
@@ -622,10 +656,10 @@ const HostDashboardInteractive = ({
               initial={{ scale: 0.9, opacity: 0, y: 50 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 50 }}
-              className="w-full max-w-4xl bg-zinc-950 border border-zinc-800 rounded-[3rem] p-10 shadow-3xl overflow-hidden"
+              className="w-full max-w-4xl bg-zinc-950 border border-zinc-800 rounded-2xl md:rounded-[3rem] p-5 md:p-10 shadow-3xl overflow-hidden"
             >
-              <div className="flex justify-between items-center mb-8 pb-6 border-b border-zinc-900">
-                <h3 className="text-3xl font-bold tracking-tighter">Materialize Estate</h3>
+              <div className="flex justify-between items-center mb-6 md:mb-8 pb-4 md:pb-6 border-b border-zinc-900">
+                <h3 className="text-2xl md:text-3xl font-bold tracking-tighter">Materialize Estate</h3>
                 <button
                   onClick={handleCloseModal}
                   className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-zinc-900 transition-colors"

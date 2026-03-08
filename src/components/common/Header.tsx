@@ -89,9 +89,8 @@ const Header = () => {
 
   const navLinks = [...baseLinks, ...roleSpecificLinks];
 
-  if (pathname.startsWith('/admin-panel')) {
-    return null;
-  }
+  // Hide global header on admin panel pages - admin has its own dedicated header
+  if (pathname.startsWith('/admin-panel')) return null;
 
   return (
     <>
@@ -101,11 +100,11 @@ const Header = () => {
       >
         <div className="w-full flex items-center justify-between">
           {/* 1. BRANDING: Magnetic Reveal with Sky Blue Glow */}
-          <Link href="/homepage" className="group flex items-center gap-4 z-[101]">
+          <Link href="/homepage" className="group flex items-center gap-2 sm:gap-4 z-[101]">
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.2)] bg-white p-[1px] border border-zinc-200/50"
+              className="relative w-10 h-10 sm:w-16 sm:h-16 rounded-full overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.2)] bg-white p-[1px] border border-zinc-200/50"
             >
               <AppImage
                 src="/assets/images/logo.png"
@@ -118,7 +117,7 @@ const Header = () => {
               <motion.span
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="block text-[14px] sm:text-xl font-black uppercase tracking-tighter text-white group-hover:text-[#0ea5e9] transition-colors duration-500"
+                className="block text-[12px] sm:text-xl font-black uppercase tracking-tighter text-white group-hover:text-[#0ea5e9] transition-colors duration-500 whitespace-nowrap"
               >
                 StayCool Booking
               </motion.span>

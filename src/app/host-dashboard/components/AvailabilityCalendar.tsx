@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { Property } from '@/lib/types';
-import { ChevronLeft, ChevronRight, Loader2, Ban } from 'lucide-react';
+import Icon from '@/components/ui/AppIcon';
 import { toast } from 'sonner';
-import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval } from 'date-fns';
+import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isWithinInterval } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface BlockedDate {
     id: string;
@@ -76,7 +77,6 @@ export default function AvailabilityCalendar({ properties }: AvailabilityCalenda
         if (bookedError) {
             console.error('Error fetching bookings:', bookedError);
         } else {
-            // Need to cast since guest is joined
             setBookings((booked as any) || []);
         }
         setLoading(false);
@@ -158,111 +158,225 @@ export default function AvailabilityCalendar({ properties }: AvailabilityCalenda
         return { status: 'available' };
     };
 
+    const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
+    const prevMonth = () => setCurrentDate(addMonths(currentDate, -1));
+
     return (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <h2 className="text-xl font-bold text-white">Availability Manager</h2>
-                <select
-                    value={selectedPropertyId}
-                    onChange={(e) => setSelectedPropertyId(e.target.value)}
-                    className="bg-slate-800 border-slate-700 text-white rounded-lg px-3 py-2 text-sm max-w-[250px]"
-                >
-                    {properties.map(p => (
-                        <option key={p.id} value={p.id}>{p.title || p.name}</option>
-                    ))}
-                </select>
-            </div>
+        <div className="w-full space-y-6 md:space-y-8 relative">
+            {/* 1. Ultra-Premium Header */}
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-[#0a0a0f]/80 p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 bottom-0 w-80 bg-gradient-to-r from-sky-500/10 to-transparent pointer-events-none" />
 
-            <div className="flex justify-between items-center mb-4">
-                <button onClick={() => setCurrentDate(addMonths(currentDate, -1))} className="p-2 hover:bg-white/10 rounded-full text-white">
-                    <ChevronLeft size={20} />
-                </button>
-                <h3 className="text-lg font-semibold text-white">{format(currentDate, 'MMMM yyyy')}</h3>
-                <button onClick={() => setCurrentDate(addMonths(currentDate, 1))} className="p-2 hover:bg-white/10 rounded-full text-white">
-                    <ChevronRight size={20} />
-                </button>
-            </div>
-
-            {loading ? (
-                <div className="h-[300px] flex items-center justify-center">
-                    <Loader2 className="animate-spin text-blue-500" size={32} />
+                <div className="relative z-10 flex items-center gap-5 w-full lg:w-auto">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500/30 to-sky-500/10 border border-sky-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(14,165,233,0.3)] shrink-0">
+                        <Icon name="CalendarDaysIcon" size={32} className="text-sky-400 drop-shadow-md" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Inventory Matrix</h1>
+                        <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2 truncate whitespace-nowrap">
+                            Asset Availability Schedule
+                        </p>
+                    </div>
                 </div>
-            ) : (
-                <div className="grid grid-cols-7 gap-1">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                        <div key={day} className="text-center text-slate-500 text-xs font-semibold py-2">
-                            {day}
+
+                <div className="relative z-10 w-full lg:w-auto">
+                    <div className="relative group/select">
+                        <select
+                            value={selectedPropertyId}
+                            onChange={(e) => setSelectedPropertyId(e.target.value)}
+                            className="w-full lg:w-72 bg-black/40 border border-white/10 hover:border-sky-500/30 rounded-xl py-4 px-5 pr-12 text-white font-bold text-sm focus:ring-2 focus:ring-sky-500/50 outline-none appearance-none transition-all shadow-inner cursor-pointer"
+                        >
+                            {properties.map(p => (
+                                <option key={p.id} value={p.id} className="bg-zinc-900 text-white font-medium">
+                                    {p.title || p.name}
+                                </option>
+                            ))}
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center pointer-events-none group-hover/select:bg-sky-500/10 transition-colors">
+                            <Icon name="ChevronDownIcon" size={16} className="text-sky-400" />
                         </div>
-                    ))}
+                    </div>
+                </div>
+            </div>
 
-                    {paddingDays.map((_, i) => (
-                        <div key={`padding-${i}`} className="aspect-square"></div>
-                    ))}
+            {/* 2. Calendar Core Context */}
+            <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden flex flex-col p-6 md:p-8">
+                <div className="absolute -top-40 -right-40 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
 
-                    {daysInMonth.map(day => {
-                        const { status, id, guest } = getDayStatus(day);
-                        let isSelected = false;
-                        if (selectingRange.start && selectingRange.end) {
-                            const start = selectingRange.start < selectingRange.end ? selectingRange.start : selectingRange.end;
-                            const end = selectingRange.end > selectingRange.start ? selectingRange.end : selectingRange.start;
-                            isSelected = isWithinInterval(day, { start, end });
-                        } else if (selectingRange.start) {
-                            isSelected = isSameDay(day, selectingRange.start);
-                        }
+                {/* Month Navigator */}
+                <div className="flex flex-col md:flex-row items-center justify-between mb-8 pb-6 border-b border-white/5 relative z-10 gap-6">
+                    <div className="flex items-center gap-4 bg-black/40 border border-white/10 p-1.5 rounded-full shadow-inner">
+                        <button onClick={prevMonth} className="w-10 h-10 rounded-full flex items-center justify-center bg-transparent hover:bg-white/10 text-zinc-400 hover:text-white transition-all">
+                            <Icon name="ChevronLeftIcon" size={20} />
+                        </button>
+                        <div className="flex items-center gap-3 px-4 min-w-[200px] justify-center">
+                            <Icon name="CalendarIcon" size={20} className="text-sky-400" />
+                            <h3 className="text-lg font-heading font-black tracking-widest text-white uppercase text-center">
+                                {format(currentDate, 'MMMM yyyy')}
+                            </h3>
+                        </div>
+                        <button onClick={nextMonth} className="w-10 h-10 rounded-full flex items-center justify-center bg-transparent hover:bg-white/10 text-zinc-400 hover:text-white transition-all">
+                            <Icon name="ChevronRightIcon" size={20} />
+                        </button>
+                    </div>
 
-                        return (
-                            <div
-                                key={day.toISOString()}
-                                onClick={() => handleDateClick(day)}
-                                className={`
-                                    relative aspect-square rounded-lg border flex flex-col items-center justify-center cursor-pointer transition-all group overflow-hidden
-                                    ${status === 'blocked' ? 'bg-red-900/20 border-red-900/50 text-red-500' :
-                                        status === 'booked' ? 'bg-blue-900/20 border-blue-900/50 text-blue-400' :
-                                            isSelected ? 'bg-white text-black border-white' : 'bg-slate-800/50 border-slate-700 hover:border-slate-500 text-slate-300'}
-                                `}
-                            >
-                                <span className="text-sm font-bold z-10">{format(day, 'd')}</span>
+                    {/* Legend */}
+                    <div className="flex flex-wrap items-center justify-center gap-4 text-[10px] font-bold uppercase tracking-widest">
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-white/5 border border-white/10 shadow-inner" /> <span className="text-zinc-500">Available</span></div>
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-purple-500/20 border border-purple-500/30 shadow-inner" /> <span className="text-purple-400">Reserved</span></div>
+                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/30 shadow-inner" /> <span className="text-red-400">Blocked</span></div>
+                    </div>
+                </div>
 
-                                {status === 'blocked' && (
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-red-900/80 transition-opacity z-20">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleUnblockDate(id!); }}
-                                            className="text-white text-xs font-bold"
-                                        >
-                                            Unblock
-                                        </button>
+                {loading ? (
+                    <div className="h-[400px] flex flex-col items-center justify-center relative z-10">
+                        <Icon name="ArrowPathIcon" size={40} className="text-sky-500 animate-spin mb-4" />
+                        <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest animate-pulse">Synchronizing Matrices...</p>
+                    </div>
+                ) : (
+                    <div className="relative z-10">
+                        {/* Days of Week Header */}
+                        <div className="grid grid-cols-7 mb-4">
+                            {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
+                                <div key={day} className="text-center text-[10px] text-zinc-500 font-bold uppercase tracking-widest pb-2">
+                                    {day}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Calendar Grid */}
+                        <div className="grid grid-cols-7 gap-2 md:gap-3">
+                            {paddingDays.map((_, i) => (
+                                <div key={`padding-${i}`} className="aspect-square opacity-0 pointer-events-none" />
+                            ))}
+
+                            {daysInMonth.map(day => {
+                                const { status, id, guest } = getDayStatus(day);
+
+                                let isSelected = false;
+                                let isRangeStart = false;
+                                let isRangeEnd = false;
+                                let isInRange = false;
+
+                                if (selectingRange.start && selectingRange.end) {
+                                    const start = selectingRange.start < selectingRange.end ? selectingRange.start : selectingRange.end;
+                                    const end = selectingRange.end > selectingRange.start ? selectingRange.end : selectingRange.start;
+
+                                    isSelected = isWithinInterval(day, { start, end });
+                                    isInRange = isWithinInterval(day, { start, end }) && !isSameDay(day, start) && !isSameDay(day, end);
+                                    isRangeStart = isSameDay(day, start);
+                                    isRangeEnd = isSameDay(day, end);
+                                } else if (selectingRange.start) {
+                                    isSelected = isSameDay(day, selectingRange.start);
+                                    isRangeStart = isSelected;
+                                    isRangeEnd = isSelected;
+                                }
+
+                                const today = new Date();
+                                const isPast = day < new Date(today.setHours(0, 0, 0, 0));
+
+                                return (
+                                    <div
+                                        key={day.toISOString()}
+                                        onClick={() => !isPast && handleDateClick(day)}
+                                        className={`
+                                            relative aspect-square flex flex-col items-center justify-center cursor-pointer transition-all group overflow-hidden
+                                            ${isPast ? 'opacity-30 cursor-not-allowed scale-95' : 'hover:-translate-y-1 hover:shadow-xl hover:z-20'}
+                                            ${isSelected ? 'z-10' : ''}
+                                        `}
+                                    >
+                                        {/* Selection Indicators (Behind Card) */}
+                                        {isSelected && (
+                                            <div className={`absolute inset-0 bg-sky-500/20 z-0 pointer-events-none transition-all
+                                              ${isRangeStart ? 'rounded-l-2xl' : ''}
+                                              ${isRangeEnd ? 'rounded-r-2xl' : ''}
+                                              ${isInRange ? 'scale-y-[0.85]' : ''}
+                                           `} />
+                                        )}
+
+                                        {/* Card Surface */}
+                                        <div className={`
+                                            w-full h-full rounded-2xl border flex flex-col items-center justify-center relative z-10 p-1 md:p-2 transition-colors
+                                            ${status === 'blocked' ? 'bg-red-500/10 border-red-500/20 text-red-400 shadow-[inset_0_0_15px_rgba(239,68,68,0.1)]' :
+                                                status === 'booked' ? 'bg-purple-500/10 border-purple-500/20 text-purple-400 shadow-[inset_0_0_15px_rgba(168,85,247,0.1)]' :
+                                                    isSelected ? 'bg-sky-500 border-sky-400 text-black shadow-[0_0_20px_rgba(14,165,233,0.4)]' :
+                                                        'bg-white/[0.02] border-white/5 hover:border-white/20 text-white/70 hover:text-white'}
+                                        `}>
+                                            <span className={`text-sm md:text-lg font-bold ${isSelected ? 'font-black' : ''}`}>
+                                                {format(day, 'd')}
+                                            </span>
+
+                                            {/* Status Badge Mini */}
+                                            {!isSelected && status !== 'available' && (
+                                                <div className="mt-1 hidden md:flex items-center justify-center w-full">
+                                                    {status === 'blocked' && <Icon name="NoSymbolIcon" size={12} className="opacity-50" />}
+                                                    {status === 'booked' && <span className="text-[9px] font-bold uppercase tracking-widest truncate max-w-full opacity-70 bg-black/20 px-2 py-0.5 rounded-md">{guest || 'Booked'}</span>}
+                                                </div>
+                                            )}
+
+                                            {/* Block Overlay Hover Action */}
+                                            {status === 'blocked' && !isPast && (
+                                                <div className="absolute inset-0 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 bg-red-900/80 backdrop-blur-sm transition-opacity z-20">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleUnblockDate(id!); }}
+                                                        className="w-10 h-10 md:w-auto md:h-auto md:px-3 md:py-1.5 bg-black/40 hover:bg-black/80 border border-red-500/30 rounded-xl md:rounded-lg text-white text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1 transition-colors"
+                                                    >
+                                                        <Icon name="LockOpenIcon" size={14} />
+                                                        <span className="hidden md:inline">Unblock</span>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                )}
-                                {status === 'booked' && (
-                                    <span className="text-[9px] truncate max-w-full px-1 opacity-70 absolute bottom-1">{guest || 'Booked'}</span>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+            </div>
 
-            {selectingRange.start && selectingRange.end && (
-                <div className="mt-6 flex justify-between items-center bg-slate-800 p-4 rounded-lg border border-slate-700 animate-in fade-in">
-                    <div className="text-sm text-slate-300">
-                        Block dates: <span className="font-bold text-white">{format(selectingRange.start, 'MMM d')} - {format(selectingRange.end, 'MMM d')}</span>
-                    </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setSelectingRange({ start: null, end: null })}
-                            className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white"
+            {/* 3. Floating Action Block (Confirm Dates) */}
+            <AnimatePresence>
+                {selectingRange.start && selectingRange.end && (
+                    <div className="fixed bottom-6 md:bottom-10 left-0 right-0 z-50 flex justify-center px-4 w-full pointer-events-none">
+                        <motion.div
+                            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 50, scale: 0.95 }}
+                            className="bg-zinc-900 border border-white/10 rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-xl flex flex-col sm:flex-row justify-between items-center gap-4 relative overflow-hidden w-full max-w-2xl pointer-events-auto"
                         >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleBlockDates}
-                            className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-md shadow-lg shadow-red-500/20"
-                        >
-                            Confirm Block
-                        </button>
+                            <div className="absolute inset-0 bg-gradient-to-r from-sky-500/10 via-transparent to-red-500/10 pointer-events-none" />
+
+                            <div className="flex items-center gap-3 sm:gap-4 relative z-10 w-full sm:w-auto">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                                    <Icon name="NoSymbolIcon" size={20} className="text-zinc-400" />
+                                </div>
+                                <div className="min-w-0 pr-2">
+                                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Isolate Dates</p>
+                                    <p className="text-xs sm:text-sm font-bold text-white tracking-wide truncate">
+                                        {format(selectingRange.start, 'MMM d')} <span className="text-zinc-600 mx-1">→</span> {format(selectingRange.end, 'MMM d')}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2 w-full sm:w-auto relative z-10 shrink-0">
+                                <button
+                                    onClick={() => setSelectingRange({ start: null, end: null })}
+                                    className="flex-1 sm:flex-none px-4 sm:px-6 py-3 bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/10 text-zinc-300 text-[10px] sm:text-xs font-bold uppercase tracking-widest rounded-xl transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleBlockDates}
+                                    className="flex-1 sm:flex-none px-4 sm:px-6 py-3 bg-red-600 hover:bg-red-500 text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.5)] transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Icon name="LockClosedIcon" size={16} /> Block
+                                </button>
+                            </div>
+                        </motion.div>
                     </div>
-                </div>
-            )}
+                )}
+            </AnimatePresence>
         </div>
     );
 }

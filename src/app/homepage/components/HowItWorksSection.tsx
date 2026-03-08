@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 
 const items = [
     { value: '50K+', label: 'Active Hosts', icon: 'UsersIcon' },
@@ -37,6 +38,8 @@ const steps = [
 ];
 
 const HowItWorksSection = () => {
+    const [showSteps, setShowSteps] = useState(false);
+
     return (
         <section className="w-full">
             {/* Animated marquee strip */}
@@ -68,38 +71,63 @@ const HowItWorksSection = () => {
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.7 }}
                     viewport={{ once: true }}
-                    className="text-center mb-16"
+                    className="text-center mb-8"
                 >
                     <p className="text-xs uppercase tracking-[0.3em] text-sky-400 font-bold mb-4">Simple Process</p>
-                    <h2 className="font-heading text-4xl md:text-5xl font-bold text-white">
+                    <h2 className="font-heading text-4xl md:text-5xl font-bold text-white mb-8">
                         How StayCool Works
                     </h2>
+
+                    <button
+                        onClick={() => setShowSteps(!showSteps)}
+                        className="mx-auto flex items-center gap-2 px-8 py-3 bg-sky-500/10 border border-sky-500/20 rounded-full text-sky-400 text-sm font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-all group"
+                    >
+                        {showSteps ? 'Show Less' : 'Learn More'}
+                        {showSteps ? (
+                            <ChevronUpIcon className="w-4 h-4 group-hover:-translate-y-1 transition-transform" />
+                        ) : (
+                            <ChevronDownIcon className="w-4 h-4 group-hover:translate-y-1 transition-transform" />
+                        )}
+                    </button>
                 </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-                    {/* Connecting line (desktop only) */}
-                    <div className="hidden md:block absolute top-10 left-[calc(16.67%+20px)] right-[calc(16.67%+20px)] h-px bg-gradient-to-r from-transparent via-sky-500/30 to-transparent" />
-
-                    {steps.map((step, i) => (
+                <AnimatePresence>
+                    {showSteps && (
                         <motion.div
-                            key={i}
-                            initial={{ opacity: 0, y: 40 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6, delay: i * 0.15 }}
-                            viewport={{ once: true }}
-                            className="relative flex flex-col items-center text-center p-8 bg-zinc-900/20 border border-zinc-800/40 rounded-3xl hover:border-sky-500/20 transition-all group"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.5, ease: 'easeInOut' }}
+                            className="overflow-hidden"
                         >
-                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-black text-sky-400/70 tracking-[0.3em] uppercase font-heading bg-[#080808] px-3 py-1 rounded-full border border-sky-500/20 shadow-[0_0_15px_rgba(14,165,233,0.1)]">
-                                STEP {step.number}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative pt-12 pb-8">
+                                {/* Connecting line (desktop only) */}
+                                <div className="hidden md:block absolute top-[calc(40px+3rem)] left-[calc(16.67%+20px)] right-[calc(16.67%+20px)] h-px bg-gradient-to-r from-transparent via-sky-500/30 to-transparent" />
+
+                                {steps.map((step, i) => (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ duration: 0.4, delay: i * 0.1 }}
+                                        className="relative flex flex-col items-center text-center p-8 mx-auto w-full max-w-sm bg-zinc-900/20 border border-zinc-800/40 rounded-3xl hover:border-sky-500/20 transition-all group"
+                                    >
+                                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-black text-sky-400/70 tracking-[0.3em] uppercase font-heading bg-[#080808] px-3 py-1 rounded-full border border-sky-500/20 shadow-[0_0_15px_rgba(14,165,233,0.1)]">
+                                            STEP {step.number}
+                                        </div>
+                                        <div className="w-16 h-16 bg-sky-500/10 border border-sky-500/20 rounded-2xl flex items-center justify-center mb-6 mt-4 group-hover:bg-sky-500/20 group-hover:scale-110 transition-all">
+                                            <Icon name={step.icon} size={28} className="text-sky-400" />
+                                        </div>
+                                        <h3 className="font-heading text-xl font-bold text-white mb-3">{step.title}</h3>
+                                        <p className="text-zinc-500 leading-relaxed text-sm">
+                                            {step.description}
+                                        </p>
+                                    </motion.div>
+                                ))}
                             </div>
-                            <div className="w-16 h-16 bg-sky-500/10 border border-sky-500/20 rounded-2xl flex items-center justify-center mb-6 mt-4 group-hover:bg-sky-500/20 group-hover:scale-110 transition-all">
-                                <Icon name={step.icon} size={28} className="text-sky-400" />
-                            </div>
-                            <h3 className="font-heading text-xl font-bold text-white mb-3">{step.title}</h3>
-                            <p className="text-zinc-500 leading-relaxed text-sm">{step.description}</p>
                         </motion.div>
-                    ))}
-                </div>
+                    )}
+                </AnimatePresence>
             </div>
         </section>
     );

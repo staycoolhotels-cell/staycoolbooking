@@ -27,9 +27,44 @@ export const viewport = {
   initialScale: 1,
 };
 
-export const metadata = {
-  title: 'StayCool Booking',
-  description: 'The ultimate platform for unique stays, hotel rooms, and nature lodges.',
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: {
+    template: '%s | StayCool Booking',
+    default: 'StayCool Booking - Find Your Perfect Stay',
+  },
+  description: 'The ultimate platform for unique stays, hotel rooms, and nature lodges. Book your next adventure with StayCool Booking.',
+  keywords: ['hotel booking', 'vacation rentals', 'nature lodges', 'unique stays', 'travel', 'accommodation', 'staycool'],
+  authors: [{ name: 'StayCool Booking' }],
+  creator: 'StayCool Booking',
+  publisher: 'StayCool Booking',
+  metadataBase: new URL('https://staycoolbooking.com'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'StayCool Booking - Find Your Perfect Stay',
+    description: 'The ultimate platform for unique stays, hotel rooms, and nature lodges.',
+    url: 'https://staycoolbooking.com',
+    siteName: 'StayCool Booking',
+    images: [
+      {
+        url: '/logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'StayCool Booking Logo',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'StayCool Booking - Find Your Perfect Stay',
+    description: 'The ultimate platform for unique stays, hotel rooms, and nature lodges.',
+    images: ['/logo.png'],
+  },
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
