@@ -7,7 +7,9 @@ import { Search, MapPin, Star, Shield, Award } from 'lucide-react';
 import AppImage from '@/components/ui/AppImage';
 
 import { DateRange } from 'react-day-picker';
-import { DateRangePicker } from '@/components/ui/datepicker';
+import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface UltraLuxuryHeroSectionProps {
   onSearch?: (filters: { location: string; dates?: DateRange }) => void;
@@ -115,58 +117,77 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
         {/* Glassmorphism Search Bar */}
         <motion.div
           variants={itemVariants}
-          className="w-full max-w-4xl p-3 md:p-4 mb-12 bg-white/10 backdrop-blur-lg rounded-[2rem] md:rounded-full border border-white/20 shadow-2xl"
+          className="w-full max-w-4xl p-2 mb-12 bg-white/20 backdrop-blur-2xl rounded-[2.5rem] md:rounded-full border border-white/30 shadow-[0_8px_32px_rgba(31,38,135,0.37)]"
         >
-          <form onSubmit={handleSubmit} className="flex flex-col md:flex-row items-center gap-3 md:gap-4 w-full">
-            <div className="w-full md:w-auto flex-grow flex items-center gap-3 px-4 py-1">
-              <MapPin className="text-zinc-400 w-6 h-6" />
-              <TextField
-                variant="standard"
-                placeholder="Where to?"
-                fullWidth
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  disableUnderline: true,
-                  style: { color: 'white', fontSize: '1.125rem' },
-                }}
-                sx={{
-                  '.MuiInput-input': { padding: '12px 0' },
-                  '& .MuiInput-input::placeholder': { color: '#a1a1aa', opacity: 1 },
-                }}
-              />
+          <form onSubmit={handleSubmit} className="flex flex-col md:flex-row items-stretch w-full relative">
+            
+            {/* Where To */}
+            <div className="w-full md:w-2/5 flex flex-col justify-center px-6 md:px-8 py-3.5 text-left hover:bg-white/20 md:rounded-full rounded-t-[2rem] transition-all duration-300 cursor-text group">
+              <label htmlFor="where-to-input" className="text-[11px] font-extrabold text-white uppercase tracking-wider cursor-text mb-0.5" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Where to?</label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="where-to-input"
+                  type="text"
+                  placeholder="Search destinations"
+                  className="bg-transparent border-none outline-none text-white text-[15px] font-medium placeholder:text-zinc-300 w-full p-0 flex-1 truncate"
+                  style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="hidden md:flex items-center gap-2 px-4 border-l border-white/10">
-              <DateRangePicker
-                onUpdate={(range) => setDateRange({ from: range.from, to: range.to })}
-                className="bg-transparent border-none text-white hover:bg-white/5 transition-colors"
-              />
+
+            <div className="hidden md:flex items-center">
+              <div className="w-px h-10 bg-white/30 drop-shadow-md" />
             </div>
-            <Button
-              type="submit"
-              variant="contained"
-              sx={{
-                borderRadius: '9999px',
-                width: { xs: '100%', md: 'auto' },
-                height: { xs: '56px', md: 'auto' },
-                padding: { xs: '0', md: '12px 32px' },
-                fontSize: { xs: '1.125rem', md: '1.125rem' },
-                textTransform: 'none',
-                fontWeight: 600,
-                color: 'white',
-                background: '#0ea5e9', // Sky-500
-                boxShadow: '0 4px 15px 0 rgba(14, 165, 233, 0.4)',
-                transition: 'all 0.3s ease-in-out',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 6px 20px 0 rgba(14, 165, 233, 0.5)',
-                  background: '#0284c7', // Sky-600
-                },
-              }}
-            >
-              <Search className="w-5 h-5 mr-2 md:mr-2" />
-              <span>Search</span>
-            </Button>
+
+            {/* Check In & Check Out */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <div className="w-full md:w-auto flex-grow flex flex-row items-stretch border-t border-white/20 md:border-t-0">
+                  <div className="flex-1 flex flex-col justify-center px-5 md:px-8 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group text-left border-r border-white/20 md:border-r-0">
+                    <label className="text-[11px] font-extrabold text-white uppercase tracking-wider mb-0.5 cursor-pointer" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Check in</label>
+                    <span className="text-[14px] md:text-[15px] font-medium text-zinc-100 truncate transition-colors" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+                      {dateRange?.from ? <span className="text-white">{format(dateRange.from, 'MMM dd, yyyy')}</span> : 'Add dates'}
+                    </span>
+                  </div>
+                  
+                  <div className="hidden md:flex items-center">
+                    <div className="w-px h-10 bg-white/30 drop-shadow-md" />
+                  </div>
+
+                  <div className="flex-1 flex flex-col justify-center px-5 md:px-8 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group text-left">
+                    <label className="text-[11px] font-extrabold text-white uppercase tracking-wider mb-0.5 cursor-pointer" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Check out</label>
+                    <span className="text-[14px] md:text-[15px] font-medium text-zinc-100 truncate transition-colors" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+                      {dateRange?.to ? <span className="text-white">{format(dateRange.to, 'MMM dd, yyyy')}</span> : 'Add dates'}
+                    </span>
+                  </div>
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 border border-white/20 bg-white/10 backdrop-blur-2xl rounded-3xl shadow-[0_8px_32px_rgba(31,38,135,0.37)] overflow-hidden mt-4" align="center">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from || new Date()}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={1}
+                  className="p-5 text-zinc-800"
+                />
+              </PopoverContent>
+            </Popover>
+
+            {/* Search Button */}
+            <div className="w-full md:w-auto p-2 flex items-center justify-center border-t border-white/20 md:border-t-0">
+              <button
+                type="submit"
+                className="flex items-center justify-center gap-2 bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-white font-bold py-3.5 px-6 md:px-8 md:py-4 rounded-[1.5rem] md:rounded-full shadow-[0_4px_20px_rgba(14,165,233,0.4)] hover:shadow-[0_8px_25px_rgba(14,165,233,0.6)] hover:scale-[1.02] transition-all duration-300 w-full md:w-auto"
+              >
+                <Search className="w-5 h-5 flex-shrink-0" />
+                <span className="text-[15px] tracking-wide">Search</span>
+              </button>
+            </div>
+
           </form>
         </motion.div>
 

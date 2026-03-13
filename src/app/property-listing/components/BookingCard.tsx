@@ -182,64 +182,140 @@ const BookingCard = ({
       ? `Only ${availableRooms} rooms available`
       : 'Unavailable');
 
-  // Custom styles for MUI DatePicker
+  const popperSx = {
+    '& .MuiPaper-root': {
+      backgroundColor: 'rgba(15, 23, 42, 0.65) !important', // Glassy dark background
+      backdropFilter: 'blur(16px) !important',
+      WebkitBackdropFilter: 'blur(16px) !important',
+      border: '1px solid rgba(56, 189, 248, 0.2) !important',
+      boxShadow: '0 20px 40px -10px rgba(0,0,0,0.8) !important',
+      borderRadius: '20px !important',
+      color: '#f8fafc !important',
+      padding: '8px',
+    },
+    '& .MuiPickersDay-root': { 
+      color: '#f8fafc !important',
+      backgroundColor: 'transparent',
+      fontWeight: '500',
+    },
+    '& .MuiPickersDay-root:hover': {
+      backgroundColor: 'rgba(56, 189, 248, 0.2) !important',
+    },
+    '& .MuiPickersDay-root.Mui-selected': { 
+      backgroundColor: '#0ea5e9 !important',
+      color: '#fff !important',
+      boxShadow: '0 4px 12px rgba(14, 165, 233, 0.4) !important',
+    },
+    '& .MuiPickersDay-today': {
+      border: '1px solid #38bdf8 !important',
+    },
+    '& .MuiPickersCalendarHeader-root': { 
+      color: '#f8fafc !important',
+      paddingTop: '8px',
+    },
+    '& .MuiPickersCalendarHeader-label': {
+      color: '#f8fafc !important',
+      fontWeight: '700 !important',
+      fontSize: '1.1rem',
+    },
+    '& .MuiIconButton-root': { 
+      color: '#38bdf8 !important',
+      backgroundColor: 'rgba(56, 189, 248, 0.05)',
+    },
+    '& .MuiIconButton-root:hover': { 
+      backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    },
+    '& .MuiTypography-root': { // Day names (S M T W T F S)
+      color: '#94a3b8 !important',
+      fontWeight: '600',
+    },
+    '& .MuiPickersYear-yearButton': {
+      color: '#f8fafc !important',
+    },
+    '& .MuiPickersYear-yearButton.Mui-selected': {
+      backgroundColor: '#0ea5e9 !important',
+    }
+  };
+
+  // Custom styles for MUI DatePicker — premium flat style inside unified container
   const datePickerSx = {
     width: '100%',
     '& .MuiInputBase-root': {
       color: '#ffffff !important',
-      backgroundColor: 'rgba(30, 41, 59, 0.7)', // Slightly more opaque for better contrast
-      borderRadius: '0.75rem',
-      border: '1px solid rgba(51, 65, 85, 0.6)',
-      fontSize: '0.875rem',
-      fontWeight: '600', // Making text bolder for better visibility
-      '&:hover': {
-        borderColor: 'rgba(59, 130, 246, 0.5)',
-      },
-      '&.Mui-focused': {
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(30, 41, 59, 0.8)',
-      },
-      '& .MuiInputBase-input': {
-        color: '#ffffff !important',
-        WebkitTextFillColor: '#ffffff !important',
-        padding: '12px 14px',
-        '&::placeholder': {
-          color: '#94a3b8 !important',
-          opacity: 1,
-        }
-      }
+      WebkitTextFillColor: '#ffffff !important',
+      backgroundColor: 'transparent',
+      borderRadius: '0',
+      border: 'none',
+      fontSize: '0.9rem',
+      fontWeight: '600',
+    },
+    '& .MuiInputBase-input, & .MuiOutlinedInput-input, & input': {
+      color: '#ffffff !important',
+      WebkitTextFillColor: '#ffffff !important',
+      padding: '10px 12px',
+      cursor: 'pointer',
+      opacity: '1 !important',
+    },
+    '& .MuiInputBase-input.Mui-disabled, & .MuiInputBase-input.Mui-readOnly, & input:disabled, & input[readonly]': {
+      color: '#ffffff !important',
+      WebkitTextFillColor: '#ffffff !important',
+      opacity: '1 !important',
+    },
+    '& .MuiInputBase-input::placeholder, & input::placeholder': {
+      color: '#cbd5e1 !important',
+      WebkitTextFillColor: '#cbd5e1 !important',
+      opacity: '1 !important',
+    },
+    '& .MuiInputBase-input::-webkit-input-placeholder, & input::-webkit-input-placeholder': {
+      color: '#cbd5e1 !important',
+      WebkitTextFillColor: '#cbd5e1 !important',
+      opacity: '1 !important',
+    },
+    '& .MuiInputBase-input::-moz-placeholder, & input::-moz-placeholder': {
+      color: '#cbd5e1 !important',
+      WebkitTextFillColor: '#cbd5e1 !important',
+      opacity: '1 !important',
+    },
+    '& .MuiInputBase-input:-ms-input-placeholder, & input:-ms-input-placeholder': {
+      color: '#cbd5e1 !important',
+      WebkitTextFillColor: '#cbd5e1 !important',
+      opacity: '1 !important',
+    },
+    '& .MuiInputBase-input:focus, & input:focus': {
+      color: '#ffffff !important',
+      WebkitTextFillColor: '#ffffff !important',
     },
     '& .MuiSvgIcon-root': {
-      color: '#60a5fa', // Brightening the icon color
+      color: '#38bdf8 !important',
+      WebkitTextFillColor: '#38bdf8 !important',
+      fontSize: '1.1rem',
     },
     '& .MuiOutlinedInput-notchedOutline': {
-      border: 'none',
+      border: 'none !important',
     },
     '& .MuiInputLabel-root': {
-      color: '#94a3b8',
-      fontSize: '0.75rem',
-      fontWeight: '600',
-      '&.Mui-focused': {
-        color: '#60a5fa',
-      }
-    }
+      display: 'none',
+    },
+    '& .MuiInputAdornment-root': {
+      marginLeft: '0',
+    },
   };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <div className="bg-[#0f172a]/95 backdrop-blur-md border border-blue-500/20 shadow-xl shadow-blue-900/10 rounded-3xl p-6 sticky top-28 z-30">
+      <div className="bg-zinc-900/95 backdrop-blur-md border border-sky-500/30 shadow-xl shadow-sky-900/20 rounded-3xl p-4 md:p-5 sticky top-28 z-30">
         {(userRole === 'host' || userRole === 'admin') ? (
           <div className="text-center py-8 px-4">
-            <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-blue-500/20">
-              <Icon name="ShieldCheckIcon" size={32} className="text-blue-400" />
+            <div className="w-16 h-16 bg-sky-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-sky-500/20">
+              <Icon name="ShieldCheckIcon" size={32} className="text-sky-400" />
             </div>
             <h3 className="text-xl font-bold text-white mb-3">Booking Restricted</h3>
             <p className="text-gray-400 text-sm leading-relaxed mb-6">
-              Property booking is only available for <span className="text-blue-400 font-semibold">Guest</span> accounts.
-              As a <span className="text-indigo-400 font-semibold uppercase">{userRole}</span>, you can browse listings but cannot make reservations.
+              Property booking is only available for <span className="text-sky-400 font-semibold">Guest</span> accounts.
+              As a <span className="text-sky-300 font-semibold uppercase">{userRole}</span>, you can browse listings but cannot make reservations.
             </p>
-            <div className="p-4 bg-blue-950/20 rounded-2xl border border-blue-500/10">
-              <p className="text-[11px] text-blue-300/60 uppercase font-black tracking-widest">
+            <div className="p-4 bg-sky-950/20 rounded-2xl border border-sky-500/10">
+              <p className="text-[11px] text-sky-300/60 uppercase font-black tracking-widest">
                 Switch accounts to book
               </p>
             </div>
@@ -247,18 +323,18 @@ const BookingCard = ({
         ) : (
           <>
             {/* Header: Price & Rating */}
-            <div className="flex items-end justify-between mb-6">
+            <div className="flex items-end justify-between mb-5">
               <div>
-                <span className="text-3xl font-bold text-white">
+                <span className="text-2xl font-bold text-white">
                   {currency}{pricePerNight.toLocaleString('en-IN')}
                 </span>
-                <span className="text-gray-400 text-sm font-medium ml-1">
+                <span className="text-stone-400 text-xs font-medium ml-1">
                   {bookingType === 'bulk' ? '/ room / night' : '/ night'}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 text-sm bg-blue-900/30 px-3 py-1 rounded-full border border-blue-500/20">
-                <Icon name="StarIcon" size={14} variant="solid" className="text-yellow-400" />
-                <span className="font-semibold text-gray-200">4.92</span>
+              <div className="flex items-center gap-1 text-[13px] bg-sky-900/25 px-2.5 py-1 rounded-full border border-sky-500/20">
+                <Icon name="StarIcon" size={12} variant="solid" className="text-amber-400" />
+                <span className="font-semibold text-white">4.92</span>
                 <span className="text-gray-500">·</span>
                 <span className="text-gray-400 font-medium">128 reviews</span>
               </div>
@@ -266,11 +342,11 @@ const BookingCard = ({
 
             {/* Booking Type Toggle */}
             {totalRooms > 1 && (
-              <div className="mb-6 p-1 bg-slate-800/50 rounded-xl flex">
+              <div className="mb-4 p-1 bg-gray-900/80 rounded-xl flex">
                 <button
                   onClick={() => { setBookingType('single'); setSelectedRooms(1); }}
-                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${bookingType === 'single'
-                    ? 'bg-blue-600 text-white shadow-lg'
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${bookingType === 'single'
+                    ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg shadow-sky-900/40'
                     : 'text-gray-400 hover:text-white'
                     }`}
                 >
@@ -278,8 +354,8 @@ const BookingCard = ({
                 </button>
                 <button
                   onClick={() => setBookingType('bulk')}
-                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${bookingType === 'bulk'
-                    ? 'bg-blue-600 text-white shadow-lg'
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${bookingType === 'bulk'
+                    ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg shadow-sky-900/40'
                     : 'text-gray-400 hover:text-white'
                     }`}
                 >
@@ -289,74 +365,85 @@ const BookingCard = ({
             )}
 
             {/* Booking Form Interface */}
-            <div className="space-y-4 mb-6">
+            <div className="space-y-3 mb-5">
 
-              {/* Date Pickers Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-bold text-blue-100/80 uppercase tracking-wider mb-1 pl-1">
-                    Check-in
-                  </label>
-                  <DatePicker
-                    value={checkIn}
-                    onChange={(newValue) => setCheckIn(newValue)}
-                    disablePast
-                    slotProps={{ textField: { size: 'small', placeholder: 'Add date' } }}
-                    sx={datePickerSx}
-                  />
+              {/* Date Pickers */}
+              <div className="flex gap-3">
+                {/* Check-in */}
+                <div className="flex-1 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden">
+                  <div className="px-3 pt-2 pb-1">
+                    <p className="text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">Check-in</p>
+                    <DatePicker
+                      value={checkIn}
+                      onChange={(newValue) => setCheckIn(newValue)}
+                      disablePast
+                      format="dd MMM yyyy"
+                      slotProps={{
+                        textField: { size: 'small', placeholder: 'DD MMM YYYY' },
+                        popper: { sx: popperSx }
+                      }}
+                      sx={datePickerSx}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-blue-100/80 uppercase tracking-wider mb-1 pl-1">
-                    Check-out
-                  </label>
-                  <DatePicker
-                    value={checkOut}
-                    onChange={(newValue) => setCheckOut(newValue)}
-                    minDate={checkIn || new Date()}
-                    slotProps={{ textField: { size: 'small', placeholder: 'Add date' } }}
-                    sx={datePickerSx}
-                  />
+
+                {/* Check-out */}
+                <div className="flex-1 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden">
+                  <div className="px-3 pt-2 pb-1">
+                    <p className="text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">Check-out</p>
+                    <DatePicker
+                      value={checkOut}
+                      onChange={(newValue) => setCheckOut(newValue)}
+                      minDate={checkIn || new Date()}
+                      format="dd MMM yyyy"
+                      slotProps={{
+                        textField: { size: 'small', placeholder: 'DD MMM YYYY' },
+                        popper: { sx: popperSx }
+                      }}
+                      sx={datePickerSx}
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Guest Input */}
               <div className="relative">
                 <div
-                  className="p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl hover:border-blue-500/40 transition-colors cursor-pointer flex justify-between items-center group"
+                  className="p-3 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors cursor-pointer flex justify-between items-center group"
                   onClick={() => setIsGuestOpen(!isGuestOpen)}
                 >
                   <div>
-                    <label className="block text-[10px] font-bold text-blue-100/80 uppercase tracking-wider mb-1 group-hover:text-blue-400 transition-colors">
+                    <label className="block text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">
                       Guests
                     </label>
-                    <div className="text-sm font-medium text-gray-200">
+                    <div className="text-sm font-medium text-white">
                       {guests} {guests === 1 ? 'guest' : 'guests'}
                     </div>
                   </div>
                   <Icon
                     name="ChevronDownIcon"
-                    size={18}
+                    size={16}
                     className={`text-gray-400 transition-transform duration-300 ${isGuestOpen ? 'rotate-180' : ''}`}
                   />
                 </div>
 
                 {/* Dropdown */}
                 {isGuestOpen && (
-                  <div className="absolute top-full mt-2 left-0 right-0 bg-[#1e293b] border border-slate-700 p-4 shadow-xl rounded-xl z-50">
+                  <div className="absolute top-full mt-2 left-0 right-0 bg-zinc-900 border border-sky-900/50 p-4 shadow-xl rounded-xl z-50">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-200">Guests</span>
+                      <span className="text-sm font-medium text-white">Guests</span>
                       <div className="flex items-center gap-3">
                         <button
                           onClick={(e) => { e.stopPropagation(); setGuests(Math.max(1, guests - 1)); }}
                           disabled={guests <= 1}
-                          className="w-8 h-8 rounded-full border border-slate-600 flex items-center justify-center text-gray-300 hover:border-gray-400 hover:text-white disabled:opacity-30 disabled:hover:border-slate-600 transition-colors"
+                          className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
                         >
                           <Icon name="MinusIcon" size={12} />
                         </button>
                         <span className="w-4 text-center text-sm font-medium text-white">{guests}</span>
                         <button
                           onClick={(e) => { e.stopPropagation(); setGuests(Math.min(10 + (selectedRooms * 2), guests + 1)); }}
-                          className="w-8 h-8 rounded-full border border-slate-600 flex items-center justify-center text-gray-300 hover:border-gray-400 hover:text-white transition-colors"
+                          className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 transition-colors"
                         >
                           <Icon name="PlusIcon" size={12} />
                         </button>
@@ -376,33 +463,33 @@ const BookingCard = ({
               {bookingType === 'bulk' && (
                 <div className="relative">
                   <div
-                    className="p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl hover:border-blue-500/40 transition-colors cursor-pointer flex justify-between items-center group"
+                    className="p-3 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors cursor-pointer flex justify-between items-center group"
                     onClick={() => setIsRoomOpen(!isRoomOpen)}
                   >
                     <div>
-                      <label className="block text-[10px] font-bold text-blue-100/80 uppercase tracking-wider mb-1 group-hover:text-blue-400 transition-colors">
+                      <label className="block text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">
                         Rooms
                       </label>
-                      <div className="text-sm font-medium text-gray-200">
+                      <div className="text-sm font-medium text-white">
                         {selectedRooms} {selectedRooms === 1 ? 'room' : 'rooms'}
                       </div>
                     </div>
                     <Icon
                       name="ChevronDownIcon"
-                      size={18}
+                      size={16}
                       className={`text-gray-400 transition-transform duration-300 ${isRoomOpen ? 'rotate-180' : ''}`}
                     />
                   </div>
 
                   {isRoomOpen && (
-                    <div className="absolute top-full mt-2 left-0 right-0 bg-[#1e293b] border border-slate-700 p-4 shadow-xl rounded-xl z-50">
+                    <div className="absolute top-full mt-2 left-0 right-0 bg-zinc-900 border border-sky-900/50 p-4 shadow-xl rounded-xl z-50">
                       <div className="flex items-center justify-between mb-4">
-                        <span className="text-sm font-medium text-gray-200">Rooms to Book</span>
+                        <span className="text-sm font-medium text-white">Rooms to Book</span>
                         <div className="flex items-center gap-3">
                           <button
                             onClick={(e) => { e.stopPropagation(); setSelectedRooms(Math.max(1, selectedRooms - 1)); }}
                             disabled={selectedRooms <= 1}
-                            className="w-8 h-8 rounded-full border border-slate-600 flex items-center justify-center text-gray-300 hover:border-gray-400 hover:text-white disabled:opacity-30 disabled:hover:border-slate-600 transition-colors"
+                            className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
                           >
                             <Icon name="MinusIcon" size={12} />
                           </button>
@@ -410,7 +497,7 @@ const BookingCard = ({
                           <button
                             onClick={(e) => { e.stopPropagation(); setSelectedRooms(Math.min(totalRooms, selectedRooms + 1)); }}
                             disabled={selectedRooms >= totalRooms}
-                            className="w-8 h-8 rounded-full border border-slate-600 flex items-center justify-center text-gray-300 hover:border-gray-400 hover:text-white disabled:opacity-30 disabled:hover:border-slate-600 transition-colors"
+                            className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
                           >
                             <Icon name="PlusIcon" size={12} />
                           </button>
@@ -419,7 +506,7 @@ const BookingCard = ({
 
                       <button
                         onClick={() => { setSelectedRooms(totalRooms); setIsRoomOpen(false); }}
-                        className="w-full py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 rounded-lg text-sm font-semibold transition-colors mb-2"
+                        className="w-full py-2 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 hover:text-sky-300 rounded-lg text-sm font-semibold transition-colors mb-2"
                       >
                         Book Entire Property ({totalRooms} rooms)
                       </button>
@@ -441,7 +528,7 @@ const BookingCard = ({
             <button
               onClick={handleBookClick}
               disabled={!isBookable || checkingAvailability}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl py-4 font-bold text-lg shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed mb-6"
+              className="w-full bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-black font-bold rounded-xl py-3 text-base shadow-lg shadow-sky-900/40 transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed mb-4"
             >
               {isBookable
                 ? (nights ? (bookingType === 'bulk' ? 'Request Bulk Booking' : 'Reserve') : 'Select dates')
@@ -454,14 +541,14 @@ const BookingCard = ({
                 <p className="text-center text-sm text-gray-400">You won't be charged yet</p>
                 <div className="space-y-3">
                   <div className="flex justify-between text-gray-300">
-                    <span className="underline decoration-gray-600">
+                    <span className="underline decoration-gray-700">
                       {currency}{pricePerNight.toLocaleString()} x {nights} nights
                       {roomsToBook > 1 && ` x ${roomsToBook} rooms`}
                     </span>
                     <span>{currency}{baseTotal.toLocaleString()}</span>
                   </div>
                   {discount > 0 && (
-                    <div className="flex justify-between text-green-400">
+                    <div className="flex justify-between text-emerald-400">
                       <span className="flex items-center gap-1">
                         <Icon name="TagIcon" size={14} />
                         Bulk Discount
@@ -470,11 +557,11 @@ const BookingCard = ({
                     </div>
                   )}
                   <div className="flex justify-between text-gray-300">
-                    <span className="underline decoration-gray-600">Service fee</span>
+                    <span className="underline decoration-gray-700">Service fee</span>
                     <span>{currency}{serviceFee.toLocaleString()}</span>
                   </div>
                 </div>
-                <div className="border-t border-slate-700/50 pt-4 flex justify-between font-bold text-lg text-white">
+                <div className="border-t border-sky-900/40 pt-4 flex justify-between font-bold text-lg text-white">
                   <span>Total</span>
                   <span>{currency}{total.toLocaleString()}</span>
                 </div>
@@ -483,12 +570,12 @@ const BookingCard = ({
 
             {/* Trust Footer */}
             {!nights && (
-              <div className="mt-2 flex items-center gap-3 justify-center text-xs text-blue-300/60 bg-blue-950/30 p-3 rounded-xl border border-blue-500/10">
+              <div className="mt-2 flex items-center gap-3 justify-center text-xs text-sky-400/70 bg-sky-950/20 p-3 rounded-xl border border-sky-500/10">
                 <div className="flex items-center gap-1.5">
                   <Icon name="CheckBadgeIcon" size={14} />
                   <span>Price Match</span>
                 </div>
-                <div className="w-1 h-1 bg-blue-300/20 rounded-full"></div>
+                <div className="w-1 h-1 bg-sky-400/20 rounded-full"></div>
                 <div className="flex items-center gap-1.5">
                   <Icon name="ShieldCheckIcon" size={14} />
                   <span>Secure Checkout</span>

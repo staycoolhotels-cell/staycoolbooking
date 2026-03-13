@@ -105,6 +105,31 @@
 }
 
 
+/* Premium Visible Scrollbar */
+.premium-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.premium-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.premium-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 8px;
+}
+
+.premium-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+}
+
+.premium-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
 /* Fix for Indian Rupee Symbol () Rendering */
 @font-face {
   font-family: 'Montserrat';
@@ -122,3 +147,15 @@
   unicode-range: U+20B9;
 }
 
+/* Global MUI DatePicker override - force white text in dark booking card */
+.MuiInputBase-root input,
+.MuiInputBase-root .MuiInputBase-input {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.MuiInputBase-root input::placeholder {
+  color: rgba(255, 255, 255, 0.7) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.7) !important;
+  opacity: 1 !important;
+}

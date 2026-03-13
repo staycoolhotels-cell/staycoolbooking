@@ -67,11 +67,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/logo.png', type: 'image/png' },
+      { url: '/logo.png', type: 'image/png', sizes: '512x512' },
     ],
+    shortcut: '/logo.png',
     apple: [
-      { url: '/logo.png', type: 'image/png' },
+      { url: '/logo.png', type: 'image/png', sizes: '512x512' },
     ],
   },
 };
@@ -82,10 +82,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html suppressHydrationWarning lang="en" className={`${lora.variable} ${montserrat.variable}`}>
+    <html suppressHydrationWarning lang="en" className={`${lora.variable} ${montserrat.variable} scroll-smooth`}>
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/logo.png" type="image/png" />
+        <link rel="icon" href="/logo.png" type="image/png" sizes="512x512" />
         <link rel="apple-touch-icon" href="/logo.png" />
       </head>
       <body

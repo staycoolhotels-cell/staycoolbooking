@@ -53,7 +53,7 @@ const PropertyDescription = ({
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: '-50px' }}
-      className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-3xl p-8 relative overflow-hidden"
+      className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-3xl p-5 md:p-8 relative overflow-hidden"
     >
       {/* Decorative gradient orb */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
@@ -67,18 +67,18 @@ const PropertyDescription = ({
         </h2>
       </motion.div>
 
-      <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+      <motion.div variants={itemVariants} className="grid grid-cols-4 gap-2 md:gap-4 mb-10">
         {features.map((feature, idx) => (
           <div
             key={idx}
-            className="group flex flex-col items-center justify-center space-y-2 p-5 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/20 transition-all duration-300"
+            className="group flex flex-col items-center justify-center p-2 sm:p-4 bg-white/[0.02] border border-white/5 rounded-2xl md:rounded-3xl hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/20 transition-all duration-300"
           >
-            <div className="w-12 h-12 rounded-full bg-white/[0.03] flex items-center justify-center group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300 border border-white/5 group-hover:border-primary/30">
-              <Icon name={feature.icon as string} size={24} className="text-white/60 group-hover:text-primary transition-colors" />
+            <div className="w-8 h-8 sm:w-12 sm:h-12 mb-1 sm:mb-2 rounded-full bg-white/[0.03] flex items-center justify-center group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300 border border-white/5 group-hover:border-primary/30">
+              <Icon name={feature.icon as string} size={24} className="text-white/60 group-hover:text-primary transition-colors w-4 h-4 sm:w-6 sm:h-6" />
             </div>
-            <div className="text-center">
-              <p className="text-sm font-medium text-white/40 tracking-wide uppercase">{feature.label}</p>
-              <p className="text-lg font-bold text-white mt-0.5">{feature.value}</p>
+            <div className="text-center w-full">
+              <p className="text-[9px] sm:text-sm font-medium text-white/40 tracking-wider sm:tracking-wide uppercase truncate leading-tight">{feature.label}</p>
+              <p className="text-[11px] sm:text-lg font-bold text-white mt-0.5 sm:mt-1 truncate">{feature.value}</p>
             </div>
           </div>
         ))}
@@ -102,20 +102,20 @@ const PropertyDescription = ({
             <span>Highlights</span>
             <div className="h-px bg-gradient-to-r from-white/10 to-transparent flex-1 ml-2 transition-all duration-500 group-hover:from-white/20" />
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4">
             {highlights.map((highlight, index) => (
               <div
                 key={index}
-                className="flex items-center space-x-3 p-3 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.05] hover:border-white/10 transition-colors duration-300"
+                className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.05] hover:border-white/10 transition-colors duration-300"
               >
-                <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center border border-success/30 flex-shrink-0">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-success/20 flex items-center justify-center border border-success/30 flex-shrink-0">
                   <Icon
                     name="CheckIcon"
                     size={16}
-                    className="text-success"
+                    className="text-success w-3 h-3 sm:w-4 sm:h-4"
                   />
                 </div>
-                <span className="text-sm font-medium text-white/80">{highlight}</span>
+                <span className="text-[11px] sm:text-sm font-medium text-white/80 leading-tight truncate">{highlight}</span>
               </div>
             ))}
           </div>
@@ -126,3 +126,4 @@ const PropertyDescription = ({
 };
 
 export default PropertyDescription;
+

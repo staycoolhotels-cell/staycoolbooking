@@ -33,9 +33,10 @@ const Footer = () => {
 
   return (
     <footer className="bg-[#080808] border-t border-zinc-900 text-zinc-400">
-      <div className="w-full px-8 md:px-20 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
-          <div className="md:col-span-2 lg:col-span-1">
+      <div className="w-full px-8 md:px-20 pt-8 pb-28 lg:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
+          
+          <div className="lg:col-span-1">
             <Link href="/" className="font-heading text-3xl font-bold text-sky-400">
               StayCool Booking
             </Link>
@@ -59,52 +60,54 @@ const Footer = () => {
             </div>
           </div>
 
-          <div>
-            <h3 className="font-heading text-lg font-bold mb-4 text-zinc-100">Company</h3>
-            <ul className="space-y-3">
-              {footerLinks.company.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="font-sans text-zinc-500 hover:text-zinc-300 transition-colors"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-3 gap-8 text-sm">
+            <div>
+              <h3 className="font-heading text-lg font-bold mb-4 text-zinc-100">Company</h3>
+              <ul className="space-y-3">
+                {footerLinks.company.map((link) => (
+                  <li key={link.name}>
+                    <Link
+                      href={link.href}
+                      className="font-sans text-zinc-500 hover:text-zinc-300 transition-colors"
+                    >
+                      {link.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-          <div>
-            <h3 className="font-heading text-lg font-bold mb-4 text-zinc-100">Support</h3>
-            <ul className="space-y-3">
-              {footerLinks.support.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="font-sans text-zinc-500 hover:text-zinc-300 transition-colors"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+            <div>
+              <h3 className="font-heading text-lg font-bold mb-4 text-zinc-100">Support</h3>
+              <ul className="space-y-3">
+                {footerLinks.support.map((link) => (
+                  <li key={link.name}>
+                    <Link
+                      href={link.href}
+                      className="font-sans text-zinc-500 hover:text-zinc-300 transition-colors"
+                    >
+                      {link.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-          <div>
-            <h3 className="font-heading text-lg font-bold mb-4 text-zinc-100">Hosting</h3>
-            <ul className="space-y-3">
-              {footerLinks.hosting.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="font-sans text-zinc-500 hover:text-zinc-300 transition-colors"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <div className="col-span-2 md:col-span-1">
+              <h3 className="font-heading text-lg font-bold mb-4 text-zinc-100">Hosting</h3>
+              <ul className="space-y-3">
+                {footerLinks.hosting.map((link) => (
+                  <li key={link.name}>
+                    <Link
+                      href={link.href}
+                      className="font-sans text-zinc-500 hover:text-zinc-300 transition-colors"
+                    >
+                      {link.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
 

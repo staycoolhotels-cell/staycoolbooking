@@ -18,7 +18,7 @@ async function applySql() {
         await client.connect();
         console.log('Connected!');
 
-        const sql = fs.readFileSync('SUPABASE_APPLY_ME.sql', 'utf8');
+        const sql = fs.readFileSync('CREATE_ROOMS_FEATURE.sql', 'utf8');
         console.log('Executing SQL (this might take a moment if it is a large file)...');
 
         await client.query(sql);

@@ -497,7 +497,7 @@ const HostDashboardInteractive = ({
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id as TabType)}
+                onClick={() => { setActiveTab(item.id as TabType); setIsMobileMenuOpen(false); }}
                 className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl transition-all duration-300 group ${isActive
                   ? 'bg-sky-500/10 text-sky-400'
                   : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'

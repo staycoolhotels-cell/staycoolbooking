@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
 import PropertyGallery from './PropertyGallery';
@@ -128,6 +128,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
   const router = useRouter();
   const [currentUser, setCurrentUser] = React.useState<any>(null);
   const [isSaved, setIsSaved] = React.useState(false);
+  const [showMobileBooking, setShowMobileBooking] = useState(false);
 
   React.useEffect(() => {
     const fetchUserAndWishlist = async () => {
@@ -195,11 +196,11 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
   };
 
   return (
-    <div className="min-h-screen bg-background pt-24 pb-16">
+    <div className="min-h-screen bg-background pb-10 lg:pb-16">
       <div className="w-full px-4 md:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Back Button */}
-          <div className="mb-6">
+          <div className="mb-3">
             <button
               onClick={() => router.push('/homepage')}
               className="group flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl hover:border-white/30 hover:bg-white/[0.05] transition-all duration-300"
@@ -215,7 +216,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
             </button>
           </div>
 
-          <div className="mb-8">
+          <div className="mb-4">
             <PropertyHeader
               name={propertyData.name}
               type={propertyData.type}
@@ -233,8 +234,9 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
             <PropertyGallery images={propertyData.images} propertyName={propertyData.name} />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-3">
+          <div className="flex flex-col lg:flex-row gap-6 md:gap-8 relative">
+            {/* Left Main Content */}
+            <div className="w-full lg:w-2/3 flex flex-col gap-6 md:gap-8">
               <PropertyDescription
                 description={propertyData.description}
                 propertyType={propertyData.propertyType}
@@ -244,18 +246,8 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                 area={propertyData.area}
                 highlights={propertyData.highlights}
               />
-            </div>
 
-            <div className="lg:col-span-2 space-y-8">
               <AmenitiesSection amenities={propertyData.amenities} />
-
-              <ReviewsSection
-                reviews={propertyData.reviews}
-                averageRating={propertyData.rating}
-                totalReviews={propertyData.reviewCount}
-                categoryRatings={propertyData.categoryRatings}
-                badges={propertyData.badges}
-              />
 
               <LocationMap
                 latitude={propertyData.location_details.latitude}
@@ -265,26 +257,20 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                 nearbyAttractions={propertyData.location_details.nearbyAttractions}
               />
 
+              <ReviewsSection
+                reviews={propertyData.reviews}
+                averageRating={propertyData.rating}
+                totalReviews={propertyData.reviewCount}
+                categoryRatings={propertyData.categoryRatings}
+                badges={propertyData.badges}
+              />
+
               <ThingsToKnowSection
                 cancellationPolicy={propertyData.cancellationPolicy}
                 houseRules={propertyData.houseRules}
                 safetyProperty={propertyData.safetyProperty}
               />
-            </div>
 
-            <div className="lg:col-span-1">
-              <BookingCard
-                propertyId={propertyData.id}
-                pricePerNight={propertyData.pricePerNight}
-                currency={propertyData.currency}
-                isAvailable={propertyData.isAvailable}
-                hostResponseRate={propertyData.hostResponseRate}
-                hostResponseTime={propertyData.hostResponseTime}
-                totalRooms={propertyData.totalRooms}
-              />
-            </div>
-
-            <div className="lg:col-span-3">
               <HostProfile
                 name={propertyData.host.name}
                 avatar={propertyData.host.avatar}
@@ -300,7 +286,84 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                 propertyId={propertyData.id}
               />
             </div>
+
+            {/* Right Sidebar (Sticky on Desktop) */}
+            <div className="hidden lg:block w-full lg:w-1/3">
+              <div className="sticky top-28">
+                <BookingCard
+                  propertyId={propertyData.id}
+                  pricePerNight={propertyData.pricePerNight}
+                  currency={propertyData.currency}
+                  isAvailable={propertyData.isAvailable}
+                  hostResponseRate={propertyData.hostResponseRate}
+                  hostResponseTime={propertyData.hostResponseTime}
+                  totalRooms={propertyData.totalRooms}
+                />
+              </div>
+            </div>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Sticky Bottom Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
+        {/* Full Booking Sheet (slide-up) */}
+        {showMobileBooking && (
+          <div className="fixed inset-0 z-50 flex flex-col justify-end">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowMobileBooking(false)}
+            />
+            {/* Sheet */}
+            <div className="relative bg-black rounded-t-3xl max-h-[90vh] overflow-y-auto pb-6">
+              {/* Sheet Handle */}
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-10 h-1 bg-white/20 rounded-full" />
+              </div>
+              {/* Close Button */}
+              <button
+                onClick={() => setShowMobileBooking(false)}
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+              >
+                <Icon name="XMarkIcon" size={16} className="text-white" />
+              </button>
+              <div className="px-4">
+                <BookingCard
+                  propertyId={propertyData.id}
+                  pricePerNight={propertyData.pricePerNight}
+                  currency={propertyData.currency}
+                  isAvailable={propertyData.isAvailable}
+                  hostResponseRate={propertyData.hostResponseRate}
+                  hostResponseTime={propertyData.hostResponseTime}
+                  totalRooms={propertyData.totalRooms}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Bar */}
+        <div className="bg-black/95 backdrop-blur-xl border-t border-sky-500/20 px-5 py-3 flex items-center justify-between">
+          <div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-xl font-bold text-white">
+                {propertyData.currency}{propertyData.pricePerNight.toLocaleString('en-IN')}
+              </span>
+              <span className="text-gray-400 text-xs">/ night</span>
+            </div>
+            <div className="flex items-center gap-1 mt-0.5">
+              <Icon name="StarIcon" size={11} variant="solid" className="text-amber-400" />
+              <span className="text-xs font-semibold text-white">4.92</span>
+              <span className="text-xs text-gray-500">· 128 reviews</span>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowMobileBooking(true)}
+            className="bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-black font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg shadow-sky-900/30 transition-all active:scale-95"
+          >
+            Reserve
+          </button>
         </div>
       </div>
     </div>
