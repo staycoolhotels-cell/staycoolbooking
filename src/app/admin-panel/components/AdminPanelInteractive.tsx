@@ -146,7 +146,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     setActiveTabState(tab);
     const newParams = new URLSearchParams(window.location.search);
     newParams.set('tab', tab);
-    router.replace(`${window.location.pathname}?${newParams.toString()}`, { scroll: false });
+    router.push(`${window.location.pathname}?${newParams.toString()}`, { scroll: false });
   };
 
   const [searchQuery, setSearchQuery] = useState('');

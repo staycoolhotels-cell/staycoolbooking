@@ -97,9 +97,19 @@ const HostDashboardInteractive = ({
   const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
-    const newProperty = searchParams.get('new_property');
-    if (newProperty) {
-      setActiveTab('properties');
+    const tab = searchParams.get('tab') as TabType;
+    if (tab && [
+      'overview', 'properties', 'bookings', 'earnings', 'profile',
+      'occupancy-pulse', 'revenue-velocity', 'smart-estate', 'financial-treasury',
+      'unified-inbox', 'aura-quality', 'document-vault', 'amenity-upsell',
+      'cleaning-maintenance', 'disputes', 'availability', 'support-chat'
+    ].includes(tab)) {
+      setActiveTab(tab);
+    } else {
+      const newProperty = searchParams.get('new_property');
+      if (newProperty) {
+        setActiveTab('properties');
+      }
     }
   }, [searchParams]);
 
@@ -497,7 +507,12 @@ const HostDashboardInteractive = ({
             return (
               <button
                 key={item.id}
-                onClick={() => { setActiveTab(item.id as TabType); setIsMobileMenuOpen(false); }}
+                onClick={() => {
+                  const newParams = new URLSearchParams(searchParams.toString());
+                  newParams.set('tab', item.id);
+                  router.push(`?${newParams.toString()}`, { scroll: false });
+                  setIsMobileMenuOpen(false);
+                }}
                 className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl transition-all duration-300 group ${isActive
                   ? 'bg-sky-500/10 text-sky-400'
                   : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'
