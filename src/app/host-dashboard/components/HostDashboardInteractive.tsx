@@ -508,6 +508,7 @@ const HostDashboardInteractive = ({
               <button
                 key={item.id}
                 onClick={() => {
+                  setActiveTab(item.id as TabType);
                   const newParams = new URLSearchParams(searchParams.toString());
                   newParams.set('tab', item.id);
                   router.push(`?${newParams.toString()}`, { scroll: false });

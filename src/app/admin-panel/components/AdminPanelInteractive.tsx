@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminPageHeader from './AdminPageHeader';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useScroll } from 'framer-motion';
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
@@ -123,24 +123,19 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       },
     },
   };
-  const { scrollY } = useScroll(); // Assuming you might have scroll sync but keep it focused on tabs
-  const { searchParams } = new URL(typeof window !== 'undefined' ? window.location.href : 'http://localhost'); // Simple fallback
-  // Better use Next.js navigation
-  const router = useRouter();
-  const searchParamsNext = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const router = useRouter(); // Restored
+  const searchParamsFromHook = useSearchParams();
 
   const [activeTab, setActiveTabState] = useState<
     'overview' | 'verifications' | 'disputes' | 'transactions' | 'users' | 'properties' | 'inbox'
   >('overview');
 
   useEffect(() => {
-    if (searchParamsNext) {
-      const tab = searchParamsNext.get('tab') as any;
-      if (tab && ['overview', 'verifications', 'disputes', 'transactions', 'users', 'properties', 'inbox'].includes(tab)) {
-        setActiveTabState(tab);
-      }
+    const tab = searchParamsFromHook.get('tab') as any;
+    if (tab && ['overview', 'verifications', 'disputes', 'transactions', 'users', 'properties', 'inbox'].includes(tab)) {
+      setActiveTabState(tab);
     }
-  }, [searchParamsNext]);
+  }, [searchParamsFromHook]);
 
   const setActiveTab = (tab: typeof activeTab) => {
     setActiveTabState(tab);

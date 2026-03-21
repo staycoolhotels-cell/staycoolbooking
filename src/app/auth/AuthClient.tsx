@@ -1,18 +1,49 @@
 'use client';
 
 import { login, signInWithMobile, verifyMobileOtp } from '@/lib/auth-actions';
-import { useActionState, useState } from 'react';
+import { useActionState, useState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Phone, ArrowRight, Loader2, Sparkles, Lock, User } from 'lucide-react';
+import { createBrowserClient } from '@supabase/ssr';
 
 import AppImage from '@/components/ui/AppImage';
 
 export default function AuthClient() {
+  const router = useRouter();
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const [mobileNumber, setMobileNumber] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+
+  // Client-side session check for history replacement
+  useEffect(() => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const checkSession = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Fetch role and replace history
+        const { data: profile } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        let target = '/user-profile';
+        if (profile?.role === 'admin') target = '/admin-panel';
+        else if (profile?.role === 'host') target = '/host-dashboard';
+
+        router.replace(target);
+      }
+    };
+
+    checkSession();
+  }, [router]);
 
   // Email Login State
   const [emailState, emailAction] = useActionState(login, undefined);
