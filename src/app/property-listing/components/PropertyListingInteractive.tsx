@@ -71,6 +71,14 @@ interface PropertyData {
   totalRooms: number;
   highlights: string[];
   amenities: Amenity[];
+  upsellAmenities?: {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    currency: string;
+    type: string;
+  }[];
   reviews: Review[];
   pricePerNight: number;
   currency: string;
@@ -129,6 +137,29 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
   const [currentUser, setCurrentUser] = React.useState<any>(null);
   const [isSaved, setIsSaved] = React.useState(false);
   const [showMobileBooking, setShowMobileBooking] = useState(false);
+  const [selectedAmenities, setSelectedAmenities] = useState<Record<string, number>>({});
+
+  const handleAmenityChange = (amenityId: string, type: string, operation: 'add' | 'remove' | 'toggle') => {
+    setSelectedAmenities(prev => {
+      const current = prev[amenityId] || 0;
+      if (operation === 'toggle') {
+        const newState = { ...prev };
+        if (current > 0) delete newState[amenityId];
+        else newState[amenityId] = 1;
+        return newState;
+      }
+      if (operation === 'add') {
+        return { ...prev, [amenityId]: current + 1 };
+      }
+      if (operation === 'remove') {
+        const newState = { ...prev };
+        if (current <= 1) delete newState[amenityId];
+        else newState[amenityId] = current - 1;
+        return newState;
+      }
+      return prev;
+    });
+  };
 
   React.useEffect(() => {
     const fetchUserAndWishlist = async () => {
@@ -155,7 +186,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
   const handleToggleSave = async () => {
     if (!currentUser) {
       alert("Please log in to save properties to your wishlist.");
-      router.push('/auth');
+      router.replace('/auth');
       return;
     }
 
@@ -202,7 +233,13 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
           {/* Back Button */}
           <div className="mb-3">
             <button
-              onClick={() => router.push('/homepage')}
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 2) {
+                  router.back();
+                } else {
+                  router.push('/homepage');
+                }
+              }}
               className="group flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl hover:border-white/30 hover:bg-white/[0.05] transition-all duration-300"
             >
               <Icon
@@ -248,6 +285,67 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
               />
 
               <AmenitiesSection amenities={propertyData.amenities} />
+
+              {propertyData.upsellAmenities && propertyData.upsellAmenities.length > 0 && (
+                <div className="py-8 border-t border-white/5">
+                  <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                    <Icon name="SparklesIcon" size={24} className="text-amber-400" /> Exclusive Upgrades
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {propertyData.upsellAmenities.map(amenity => (
+                      <div key={amenity.id} className="bg-white/5 border border-white/10 p-5 rounded-2xl flex flex-col justify-between hover:bg-white/10 transition-colors">
+                        <div>
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="text-lg font-bold text-white pr-2">{amenity.name}</h4>
+                            <span className="text-sky-400 font-bold bg-sky-500/10 px-3 py-1 rounded-full text-sm shrink-0">
+                               {amenity.currency === 'INR' || amenity.currency === '₹' ? '₹' : amenity.currency}{amenity.price.toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                          <p className="text-sm text-zinc-400 leading-relaxed mb-4">{amenity.description}</p>
+                        </div>
+                        <div className="flex items-center justify-between mt-auto border-t border-white/5 pt-4">
+                          <div className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
+                            {amenity.type === 'Physical' ? 'Physical Gear' : amenity.type}
+                          </div>
+                          
+                          {['Physical', 'Service'].includes(amenity.type) ? (
+                            <div className="flex items-center gap-3">
+                              <button 
+                                onClick={() => handleAmenityChange(amenity.id, amenity.type, 'remove')}
+                                className={`w-7 h-7 flex items-center justify-center rounded-full border transition-colors ${selectedAmenities[amenity.id] ? 'border-pink-500/50 text-pink-400 hover:bg-pink-500/10' : 'border-white/10 text-zinc-500'}`}
+                              >
+                                <Icon name="MinusIcon" size={14} />
+                              </button>
+                              <span className="text-white font-bold w-4 text-center">{selectedAmenities[amenity.id] || 0}</span>
+                              <button 
+                                onClick={() => handleAmenityChange(amenity.id, amenity.type, 'add')}
+                                className="w-7 h-7 flex items-center justify-center rounded-full border border-pink-500/50 text-pink-400 hover:bg-pink-500/10 transition-colors"
+                              >
+                                <Icon name="PlusIcon" size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="flex items-center gap-2 cursor-pointer relative group/checkbox">
+                              <input 
+                                type="checkbox" 
+                                className="sr-only peer"
+                                checked={!!selectedAmenities[amenity.id]}
+                                onChange={() => handleAmenityChange(amenity.id, amenity.type, 'toggle')}
+                              />
+                              <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${!!selectedAmenities[amenity.id] ? 'bg-pink-500 border-pink-500 text-white' : 'border-white/20 text-transparent group-hover/checkbox:border-white/40'}`}>
+                                <Icon name="CheckIcon" size={12} strokeWidth={3} />
+                              </div>
+                              <span className={`text-xs font-bold uppercase tracking-widest transition-colors ${!!selectedAmenities[amenity.id] ? 'text-pink-400' : 'text-zinc-500 group-hover/checkbox:text-zinc-400'}`}>
+                                Include
+                              </span>
+                            </label>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <LocationMap
                 latitude={propertyData.location_details.latitude}
@@ -298,6 +396,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                   hostResponseRate={propertyData.hostResponseRate}
                   hostResponseTime={propertyData.hostResponseTime}
                   totalRooms={propertyData.totalRooms}
+                  selectedAmenities={selectedAmenities}
                 />
               </div>
             </div>
@@ -337,6 +436,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                   hostResponseRate={propertyData.hostResponseRate}
                   hostResponseTime={propertyData.hostResponseTime}
                   totalRooms={propertyData.totalRooms}
+                  selectedAmenities={selectedAmenities}
                 />
               </div>
             </div>

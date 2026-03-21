@@ -164,7 +164,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                   </div>
                 </div>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 border border-white/20 bg-white/10 backdrop-blur-2xl rounded-3xl shadow-[0_8px_32px_rgba(31,38,135,0.37)] overflow-hidden mt-4" align="center">
+              <PopoverContent className="w-auto p-3 border border-white/10 bg-black/50 backdrop-blur-2xl rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.5)] mt-4 relative z-50 overflow-visible" align="center">
                 <Calendar
                   initialFocus
                   mode="range"
@@ -172,7 +172,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                   selected={dateRange}
                   onSelect={setDateRange}
                   numberOfMonths={1}
-                  className="p-5 text-zinc-800"
+                  className="p-5 text-zinc-100 bg-transparent relative z-10"
                 />
               </PopoverContent>
             </Popover>

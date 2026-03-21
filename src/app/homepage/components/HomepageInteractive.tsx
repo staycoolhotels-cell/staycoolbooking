@@ -117,8 +117,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
   );
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
 
-  // NEW FEATURE: Price Toggle (Taxes & Fees)
-  const [showTotalWithTax, setShowTotalWithTax] = useState(false);
+
 
   // Location-based sorting
   const [userCity, setUserCity] = useState<string | null>(null);
@@ -266,7 +265,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
   const handleToggleSaveProperty = async (propertyId: string) => {
     if (!currentUser) {
       alert("Please log in to save properties to your wishlist.");
-      router.push('/auth');
+      router.replace('/auth');
       return;
     }
 
@@ -447,23 +446,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
                 </div>
 
                 <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
-                  {/* FEATURE: Price Display Toggle */}
-                  <button
-                    onClick={() => setShowTotalWithTax(!showTotalWithTax)}
-                    className="group relative flex items-center justify-between sm:justify-start gap-4 px-6 py-4 bg-zinc-900/40 backdrop-blur-xl border border-white/5 rounded-2xl hover:border-white/20 transition-all duration-300 w-full md:w-auto"
-                  >
-                    <div className="flex flex-col items-start">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-zinc-400 transition-colors">Pricing Mode</span>
-                      <span className="text-sm font-bold text-zinc-200">Total with taxes</span>
-                    </div>
-                    <div className={`w-12 h-6 rounded-full transition-all relative shrink-0 p-1 ${showTotalWithTax ? 'bg-sky-500' : 'bg-zinc-700'}`}>
-                      <motion.div
-                        animate={{ x: showTotalWithTax ? 24 : 0 }}
-                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                        className="w-4 h-4 bg-white rounded-full shadow-md"
-                      />
-                    </div>
-                  </button>
+
 
                   {/* Grid/Map View Toggle */}
                   <div className="flex items-center bg-zinc-900/40 backdrop-blur-xl border border-white/5 p-1.5 rounded-2xl">
@@ -549,9 +532,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
                               transition={{ duration: 0.5, delay: idx * 0.1 }}
                             >
                               <PropertyCard
-                                property={
-                                  showTotalWithTax ? { ...property, price: property.price * 1.18 } : property
-                                }
+                                property={property}
                                 onSaveProperty={handleToggleSaveProperty}
                                 isSaved={savedProperties.includes(property.id)}
                               />
@@ -605,7 +586,6 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
               allProperties={allProperties}
               savedProperties={savedProperties}
               onSaveProperty={handleToggleSaveProperty}
-              showTotalWithTax={showTotalWithTax}
             />
           </AnimatedSection>
 

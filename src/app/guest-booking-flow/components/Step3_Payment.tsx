@@ -7,6 +7,7 @@ import { createBooking } from '@/lib/booking-actions';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabaseClient';
 
 interface Step3Props {
   bookingCart: Property[];
@@ -20,6 +21,37 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRazorpayLoaded, setIsRazorpayLoaded] = useState(false);
+
+  const [amenities, setAmenities] = useState<any[]>([]);
+  const [selectedAmenities, setSelectedAmenities] = useState<Record<string, number>>(() => {
+    try {
+      return JSON.parse(filters.amenities || '{}');
+    } catch {
+      return {};
+    }
+  });
+  const [loadingAmenities, setLoadingAmenities] = useState(true);
+
+  useEffect(() => {
+    const fetchAmenities = async () => {
+      setLoadingAmenities(true);
+      const property = bookingCart?.[0];
+      if (property?.host_id) {
+        const { data, error } = await supabase
+          .from('amenities')
+          .select('*')
+          .eq('host_id', property.host_id)
+          .eq('is_active', true)
+          .order('name');
+        
+        if (!error && data) {
+          setAmenities(data);
+        }
+      }
+      setLoadingAmenities(false);
+    };
+    fetchAmenities();
+  }, [bookingCart]);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -83,7 +115,13 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
 
   const discountedSubtotal = Math.max(0, baseTotal - discount);
   const serviceFee = discountedSubtotal * 0.1;
-  const total = discountedSubtotal + serviceFee;
+  
+  const amenitiesTotal = amenities.reduce((sum, amenity) => {
+    const count = selectedAmenities[amenity.id] || 0;
+    return sum + ((amenity.price || 0) * count);
+  }, 0);
+
+  const total = discountedSubtotal + serviceFee + amenitiesTotal;
 
   const handleInitiatePayment = async () => {
     setLoading(true);
@@ -91,6 +129,18 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
 
     try {
       // 1. Create Booking (Confirmed/Pending)
+      const selectedAmenitiesList = Object.entries(selectedAmenities)
+         .filter(([id, count]) => count > 0)
+         .map(([id, count]) => {
+            const amenity = amenities.find(a => a.id === id);
+            return {
+              id,
+              count,
+              price: amenity?.price || 0,
+              name: amenity?.name || '',
+            };
+         });
+
       const bookingDetails = {
         propertyId: bookingCart[0].id,
         checkIn: filters.checkIn,
@@ -99,6 +149,7 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
         guests: filters.guests,
         bookingType,
         roomCount: effectiveRooms,
+        amenities: selectedAmenitiesList,
       };
 
       const bookingRes = await createBooking(bookingDetails, null);
@@ -139,6 +190,64 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
           {error && (
             <div className="p-3 bg-red-500/10 border border-red-500/50 rounded text-red-400 text-sm">
               {error}
+            </div>
+          )}
+
+          {/* Amenities Upsell Section */}
+          {!loadingAmenities && amenities.length > 0 && (
+            <div className="mt-8 border-t border-brand-energetic/20 pt-6">
+              <h3 className="text-xl font-bold text-text-primary mb-4 flex items-center gap-2">
+                <Icon name="SparklesIcon" size={24} className="text-amber-400" />
+                Enhance Your Stay
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {amenities.map(amenity => (
+                  <div key={amenity.id} className={`p-4 rounded-xl bg-card border transition-colors flex flex-col justify-between ${selectedAmenities[amenity.id] ? 'border-sky-500/50 bg-sky-500/5' : 'border-border-secondary hover:border-sky-500/30'}`}>
+                    <div>
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-semibold text-text-primary pr-2">{amenity.name}</h4>
+                        <span className="text-sky-400 font-bold whitespace-nowrap">₹{(amenity.price || 0).toLocaleString('en-IN')}</span>
+                      </div>
+                      <p className="text-xs text-text-secondary line-clamp-2 mb-4">{amenity.description}</p>
+                    </div>
+                    {amenity.type === 'Physical' || amenity.type === 'Service' ? (
+                      <div className="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
+                        <span className="text-[10px] text-text-secondary uppercase tracking-wider font-semibold">Quantity</span>
+                        <div className="flex items-center gap-3 bg-background rounded-lg border border-border-secondary p-1">
+                          <button 
+                            type="button"
+                            onClick={() => setSelectedAmenities(prev => ({ ...prev, [amenity.id]: Math.max(0, (prev[amenity.id] || 0) - 1)}))}
+                            className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-sky-500/10 hover:text-sky-400 transition-colors"
+                          >
+                            <Icon name="MinusIcon" size={12} />
+                          </button>
+                          <span className="w-4 text-center text-sm font-semibold">{selectedAmenities[amenity.id] || 0}</span>
+                          <button 
+                            type="button"
+                            onClick={() => setSelectedAmenities(prev => ({ ...prev, [amenity.id]: (prev[amenity.id] || 0) + 1}))}
+                            className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-sky-500/10 hover:text-sky-400 transition-colors"
+                          >
+                            <Icon name="PlusIcon" size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
+                         <span className="text-[10px] text-text-secondary uppercase tracking-wider font-semibold">Include</span>
+                         <label className="relative inline-flex items-center cursor-pointer mb-0">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only peer"
+                            checked={!!selectedAmenities[amenity.id]}
+                            onChange={(e) => setSelectedAmenities(prev => ({ ...prev, [amenity.id]: e.target.checked ? 1 : 0 }))}
+                          />
+                          <div className="w-9 h-5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-500"></div>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -187,10 +296,16 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
             </div>
           )}
           <div className="flex justify-between text-sm">
-            <span className="text-text-primary">Service Fee (10%)</span>
-            <span>₹{serviceFee.toLocaleString('en-IN')}</span>
+            <span className="text-text-primary text-sky-400">Service Fee (10%)</span>
+            <span className="text-sky-400">₹{serviceFee.toLocaleString('en-IN')}</span>
           </div>
-          <div className="flex justify-between font-bold text-lg">
+          {amenitiesTotal > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-text-primary text-sky-400 font-medium">Add-ons (Amenities)</span>
+              <span className="text-sky-400">+₹{amenitiesTotal.toLocaleString('en-IN')}</span>
+            </div>
+          )}
+          <div className="flex justify-between font-bold text-lg pt-2 mt-2 border-t border-border-secondary">
             <span>Total</span>
             <span>₹{total.toLocaleString('en-IN')}</span>
           </div>

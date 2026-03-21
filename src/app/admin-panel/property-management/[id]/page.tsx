@@ -170,7 +170,7 @@ const PropertyDetailsPage = () => {
                     <div className="col-span-12 flex items-center justify-between bg-[#050505] border border-white/10 p-4 rounded-lg">
                         <div className="flex items-center gap-4">
                             <button
-                                onClick={() => router.push('/admin-panel/property-management')}
+                                onClick={() => router.back()}
                                 className="w-8 h-8 flex items-center justify-center rounded hover:bg-white/10 transition-colors text-zinc-400 hover:text-white"
                             >
                                 <ArrowLeft className="w-4 h-4" />

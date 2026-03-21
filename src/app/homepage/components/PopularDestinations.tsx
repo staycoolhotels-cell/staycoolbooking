@@ -23,7 +23,6 @@ interface PopularDestinationsProps {
     allProperties: PropertyForCard[];
     savedProperties: string[];
     onSaveProperty: (id: string) => void;
-    showTotalWithTax?: boolean;
 }
 
 // Seasonal badge config – rotates based on current month
@@ -41,7 +40,6 @@ const PopularDestinations: React.FC<PopularDestinationsProps> = ({
     allProperties,
     savedProperties,
     onSaveProperty,
-    showTotalWithTax = false,
 }) => {
     const [showAll, setShowAll] = useState(false);
     const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
@@ -196,11 +194,7 @@ const PopularDestinations: React.FC<PopularDestinationsProps> = ({
                             }}
                         >
                             <PropertyCard
-                                property={
-                                    showTotalWithTax
-                                        ? { ...property, price: property.price * 1.18 }
-                                        : property
-                                }
+                                property={property}
                                 onSaveProperty={onSaveProperty}
                                 isSaved={savedProperties.includes(property.id)}
                             />

@@ -101,6 +101,7 @@ export async function createBooking(bookingDetails: {
   guests: number;
   bookingType?: 'single' | 'bulk';
   roomCount?: number;
+  amenities?: Array<{ id: string; count: number; price: number; name: string }>;
 }, prevState: any) {
   try {
     const supabase = await createSupabaseServerClient();
@@ -122,7 +123,7 @@ export async function createBooking(bookingDetails: {
       return { error: profileError.message };
     }
 
-    const { propertyId, checkIn, checkOut, totalPrice, guests, bookingType = 'single', roomCount = 1 } = bookingDetails;
+    const { propertyId, checkIn, checkOut, totalPrice, guests, bookingType = 'single', roomCount = 1, amenities = [] } = bookingDetails;
 
     // Use RPC to create booking and assign rooms atomically
     const { data, error } = await supabase.rpc('create_bulk_booking', {
@@ -138,6 +139,43 @@ export async function createBooking(bookingDetails: {
     if (error) {
       console.error("Booking RPC Error:", error);
       return { error: error.message };
+    }
+
+    // Process amenities for tracking
+    if (amenities && amenities.length > 0) {
+      const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+      for (const amenity of amenities) {
+        // Try to find existing tracking record for this month
+        const { data: existingTracking } = await supabase
+          .from('amenity_tracking')
+          .select('*')
+          .eq('amenity_id', amenity.id)
+          .eq('month', currentMonth)
+          .maybeSingle();
+
+        const addedRevenue = amenity.price * amenity.count;
+
+        if (existingTracking) {
+          // Update
+          await supabase
+            .from('amenity_tracking')
+            .update({
+              booking_count: (existingTracking.booking_count || 0) + amenity.count,
+              revenue_generated: Number(existingTracking.revenue_generated || 0) + addedRevenue
+            })
+            .eq('id', existingTracking.id);
+        } else {
+          // Insert
+          await supabase
+            .from('amenity_tracking')
+            .insert({
+              amenity_id: amenity.id,
+              booking_count: amenity.count,
+              revenue_generated: addedRevenue,
+              month: currentMonth
+            });
+        }
+      }
     }
 
     // RPC returns booking UUID

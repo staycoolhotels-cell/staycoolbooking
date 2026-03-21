@@ -89,6 +89,13 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         .select('*, guest:guest_id(name, avatar_url)')
         .eq('property_id', id);
 
+    const { data: upsellAmenities } = await adminSupabase
+        .from('amenities')
+        .select('id, name, description, price, currency, type')
+        .eq('host_id', property.host_id)
+        .eq('is_active', true)
+        .or(`property_id.eq.${id},property_id.is.null`);
+
     // Helper to process amenities
     const processAmenities = (amenities: any[]) => {
         if (!amenities || !Array.isArray(amenities)) return [];
@@ -143,6 +150,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         area: 1200, // Still placeholder if no column
         highlights: property.amenities && Array.isArray(property.amenities) ? property.amenities.slice(0, 3).map((a: any) => typeof a === 'string' ? a : a.name) : ['Great location'],
         amenities: processAmenities(property.amenities),
+        upsellAmenities: upsellAmenities || [],
         reviews:
             reviews?.map((review) => ({
                 id: review.id,

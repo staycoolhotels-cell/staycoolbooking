@@ -16,7 +16,7 @@ export interface AmenityData {
   currency: string;
   type: AmenityType | string;
   is_active: boolean;
-  property_id?: string;
+  property_id?: string | null;
   created_at: string;
 }
 
@@ -38,6 +38,7 @@ const DynamicAmenityUpsell: React.FC = () => {
 
   const [amenities, setAmenities] = useState<AmenityData[]>([]);
   const [trackingData, setTrackingData] = useState<AmenityTrackingData[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -46,7 +47,8 @@ const DynamicAmenityUpsell: React.FC = () => {
     name: '',
     description: '',
     price: '',
-    type: 'Service'
+    type: 'Service',
+    property_id: ''
   });
 
   const handleAddSubmit = async (e: React.FormEvent) => {
@@ -63,7 +65,8 @@ const DynamicAmenityUpsell: React.FC = () => {
         price: parseFloat(newAmenity.price) || 0,
         currency: 'INR',
         type: newAmenity.type,
-        is_active: true
+        is_active: true,
+        property_id: newAmenity.property_id || null
       };
 
       const { data: insertedAmenity, error: insertError } = await supabase
@@ -88,7 +91,7 @@ const DynamicAmenityUpsell: React.FC = () => {
       }
 
       setShowAddModal(false);
-      setNewAmenity({ name: '', description: '', price: '', type: 'Service' });
+      setNewAmenity({ name: '', description: '', price: '', type: 'Service', property_id: '' });
     } catch (error: any) {
       console.error("Error adding amenity:", error);
       alert(error.message || "Failed to add amenity");
@@ -108,6 +111,17 @@ const DynamicAmenityUpsell: React.FC = () => {
       setLoading(true);
 
       try {
+        const { data: propertiesData, error: propErr } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('host_id', user.id);
+          
+        if (propErr) {
+          console.error("Properties fetch error:", propErr);
+        } else if (propertiesData) {
+          setProperties(propertiesData);
+        }
+
         const { data: amenitiesData, error: amenitiesError } = await supabase
           .from('amenities')
           .select('*')
@@ -448,6 +462,25 @@ const DynamicAmenityUpsell: React.FC = () => {
                         className="w-full bg-black/40 border border-white/10 rounded-xl py-3.5 px-4 text-white placeholder-zinc-600 focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 transition-all outline-none font-medium text-sm font-mono"
                         required
                       />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-widest">Linked Property (Optional)</label>
+                    <div className="relative">
+                      <select
+                        value={newAmenity.property_id}
+                        onChange={(e) => setNewAmenity(prev => ({ ...prev, property_id: e.target.value }))}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl py-3.5 px-4 text-white focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 transition-all outline-none appearance-none font-medium text-sm"
+                      >
+                        <option value="">Global (All Properties)</option>
+                        {properties.map(p => (
+                           <option key={p.id} value={p.id}>{p.title || p.name || 'Unnamed Property'}</option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none">
+                        <Icon name="ChevronDownIcon" size={16} />
+                      </div>
                     </div>
                   </div>
 

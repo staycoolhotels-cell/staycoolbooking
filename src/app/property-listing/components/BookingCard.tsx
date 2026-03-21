@@ -19,6 +19,7 @@ interface BookingCardProps {
   hostResponseRate: number;
   hostResponseTime: string;
   totalRooms: number;
+  selectedAmenities?: Record<string, number>;
 }
 
 const BookingCard = ({
@@ -29,6 +30,7 @@ const BookingCard = ({
   hostResponseRate,
   hostResponseTime,
   totalRooms,
+  selectedAmenities = {},
 }: BookingCardProps) => {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
@@ -162,6 +164,11 @@ const BookingCard = ({
       bookingType,
       roomCount: roomsToBook.toString(),
     });
+    
+    if (Object.keys(selectedAmenities).length > 0) {
+      params.append('amenities', JSON.stringify(selectedAmenities));
+    }
+    
     router.push(`/guest-booking-flow?${params.toString()}`);
   };
 
@@ -193,7 +200,7 @@ const BookingCard = ({
       color: '#f8fafc !important',
       padding: '8px',
     },
-    '& .MuiPickersDay-root': { 
+    '& .MuiPickersDay-root': {
       color: '#f8fafc !important',
       backgroundColor: 'transparent',
       fontWeight: '500',
@@ -201,7 +208,7 @@ const BookingCard = ({
     '& .MuiPickersDay-root:hover': {
       backgroundColor: 'rgba(56, 189, 248, 0.2) !important',
     },
-    '& .MuiPickersDay-root.Mui-selected': { 
+    '& .MuiPickersDay-root.Mui-selected': {
       backgroundColor: '#0ea5e9 !important',
       color: '#fff !important',
       boxShadow: '0 4px 12px rgba(14, 165, 233, 0.4) !important',
@@ -209,7 +216,7 @@ const BookingCard = ({
     '& .MuiPickersDay-today': {
       border: '1px solid #38bdf8 !important',
     },
-    '& .MuiPickersCalendarHeader-root': { 
+    '& .MuiPickersCalendarHeader-root': {
       color: '#f8fafc !important',
       paddingTop: '8px',
     },
@@ -218,11 +225,11 @@ const BookingCard = ({
       fontWeight: '700 !important',
       fontSize: '1.1rem',
     },
-    '& .MuiIconButton-root': { 
+    '& .MuiIconButton-root': {
       color: '#38bdf8 !important',
       backgroundColor: 'rgba(56, 189, 248, 0.05)',
     },
-    '& .MuiIconButton-root:hover': { 
+    '& .MuiIconButton-root:hover': {
       backgroundColor: 'rgba(56, 189, 248, 0.15)',
     },
     '& .MuiTypography-root': { // Day names (S M T W T F S)
@@ -241,53 +248,42 @@ const BookingCard = ({
   const datePickerSx = {
     width: '100%',
     '& .MuiInputBase-root': {
-      color: '#ffffff !important',
-      WebkitTextFillColor: '#ffffff !important',
       backgroundColor: 'transparent',
       borderRadius: '0',
       border: 'none',
-      fontSize: '0.9rem',
-      fontWeight: '600',
     },
-    '& .MuiInputBase-input, & .MuiOutlinedInput-input, & input': {
+    '& .MuiInputBase-input, & input': {
       color: '#ffffff !important',
       WebkitTextFillColor: '#ffffff !important',
       padding: '10px 12px',
+      fontSize: '0.9rem',
+      fontWeight: '600',
       cursor: 'pointer',
       opacity: '1 !important',
+      '&::placeholder': {
+        color: '#ffffff !important',
+        WebkitTextFillColor: '#ffffff !important',
+        opacity: '1 !important', // Pure white placeholder
+      },
+      '&::-webkit-input-placeholder': {
+        color: '#ffffff !important',
+        WebkitTextFillColor: '#ffffff !important',
+        opacity: '1 !important',
+      },
+      '&::-moz-placeholder': {
+        color: '#ffffff !important',
+        WebkitTextFillColor: '#ffffff !important',
+        opacity: '1 !important',
+      },
     },
-    '& .MuiInputBase-input.Mui-disabled, & .MuiInputBase-input.Mui-readOnly, & input:disabled, & input[readonly]': {
+    // Fix for disabled/readonly states which MUI often dims
+    '& .Mui-disabled, & .Mui-readOnly, & .MuiInputBase-input.Mui-disabled': {
       color: '#ffffff !important',
       WebkitTextFillColor: '#ffffff !important',
       opacity: '1 !important',
-    },
-    '& .MuiInputBase-input::placeholder, & input::placeholder': {
-      color: '#cbd5e1 !important',
-      WebkitTextFillColor: '#cbd5e1 !important',
-      opacity: '1 !important',
-    },
-    '& .MuiInputBase-input::-webkit-input-placeholder, & input::-webkit-input-placeholder': {
-      color: '#cbd5e1 !important',
-      WebkitTextFillColor: '#cbd5e1 !important',
-      opacity: '1 !important',
-    },
-    '& .MuiInputBase-input::-moz-placeholder, & input::-moz-placeholder': {
-      color: '#cbd5e1 !important',
-      WebkitTextFillColor: '#cbd5e1 !important',
-      opacity: '1 !important',
-    },
-    '& .MuiInputBase-input:-ms-input-placeholder, & input:-ms-input-placeholder': {
-      color: '#cbd5e1 !important',
-      WebkitTextFillColor: '#cbd5e1 !important',
-      opacity: '1 !important',
-    },
-    '& .MuiInputBase-input:focus, & input:focus': {
-      color: '#ffffff !important',
-      WebkitTextFillColor: '#ffffff !important',
     },
     '& .MuiSvgIcon-root': {
       color: '#38bdf8 !important',
-      WebkitTextFillColor: '#38bdf8 !important',
       fontSize: '1.1rem',
     },
     '& .MuiOutlinedInput-notchedOutline': {
@@ -379,7 +375,10 @@ const BookingCard = ({
                       disablePast
                       format="dd MMM yyyy"
                       slotProps={{
-                        textField: { size: 'small', placeholder: 'DD MMM YYYY' },
+                        textField: { 
+                          size: 'small', 
+                          placeholder: 'DD MMM YYYY',
+                        },
                         popper: { sx: popperSx }
                       }}
                       sx={datePickerSx}

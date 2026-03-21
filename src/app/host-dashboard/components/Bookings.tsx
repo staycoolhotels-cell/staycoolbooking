@@ -20,9 +20,13 @@ const Bookings = ({ bookings, searchTerm, setSearchTerm, onAction }: BookingsPro
   // Filter Logic
   const filteredBookings = bookings.filter((booking) => {
     // 1. Search term
+    const searchLower = searchTerm.toLowerCase();
+    const guestName = booking.guest?.name || '';
+    const propertyTitle = booking.properties?.title || '';
+
     const matchesSearch =
-      booking.guest?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.properties?.title.toLowerCase().includes(searchTerm.toLowerCase());
+      guestName.toLowerCase().includes(searchLower) ||
+      propertyTitle.toLowerCase().includes(searchLower);
 
     if (!matchesSearch) return false;
 

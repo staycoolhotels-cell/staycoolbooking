@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Stepper from './Stepper';
 import Step2_Verification from './Step2_Verification';
 import Step3_Payment from './Step3_Payment';
@@ -14,6 +14,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 const GuestBookingInteractive = () => {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const preSelectedPropertyId = searchParams.get('propertyId');
   const [currentStep, setCurrentStep] = useState(1);
@@ -25,6 +26,7 @@ const GuestBookingInteractive = () => {
     guests: Number(searchParams.get('guests')) || 1,
     bookingType: searchParams.get('bookingType') || 'single',
     roomCount: Number(searchParams.get('roomCount')) || 1,
+    amenities: searchParams.get('amenities') || '{}',
   });
 
   const [properties, setProperties] = useState<Property[]>([]);
@@ -91,7 +93,18 @@ const GuestBookingInteractive = () => {
                   {currentStep === 1 && (
                     <Step2_Verification
                       onNext={() => setCurrentStep(2)}
-                      onBack={() => { }} // No back action on first step
+                      onBack={() => {
+                        if (typeof window !== 'undefined' && window.history.length > 2) {
+                          router.back();
+                        } else {
+                          // Fallback to the property page if we have the ID
+                          if (preSelectedPropertyId) {
+                            router.push(`/property-listing/${preSelectedPropertyId}`);
+                          } else {
+                            router.push('/homepage');
+                          }
+                        }
+                      }}
                     />
                   )}
                   {currentStep === 2 && (

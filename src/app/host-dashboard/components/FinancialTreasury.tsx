@@ -83,10 +83,6 @@ const FinancialTreasury: React.FC<FinancialTreasuryProps> = ({ transactions = []
             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 group-hover:text-emerald-400/70 transition-colors">Lifetime Net Profit</p>
             <p className="text-2xl font-heading font-black text-white drop-shadow-sm font-mono tracking-tight">₹{lifetimeEarnings.toLocaleString('en-IN')}</p>
           </div>
-          <button className="flex-1 sm:flex-none px-6 py-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/50 rounded-2xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 group">
-            Withdraw Funds
-            <Icon name="ArrowRightIcon" size={16} className="group-hover:translate-x-1 transition-transform" />
-          </button>
         </div>
       </div>
 
