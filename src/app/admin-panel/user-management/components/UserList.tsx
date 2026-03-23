@@ -336,13 +336,13 @@ const UserList = ({ initialUsers }: UserListProps) => {
               />
               <label htmlFor="premium-search" className="flex items-center text-xs font-bold text-zinc-400 uppercase tracking-wider cursor-pointer">
                 <Star className="h-3.5 w-3.5 mr-1.5 text-amber-500" />
-                Premium
+                Filter
               </label>
             </div>
           </div>
         </div>
 
-        {/* Premium Features */}
+        {/* Advanced Filter Features */}
         <AnimatePresence>
           {isPremiumSearch && (
             <motion.div

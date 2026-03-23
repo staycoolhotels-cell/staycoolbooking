@@ -82,7 +82,7 @@ const PropertyCard = ({ property, onEdit, onDelete, onToggleStatus, onManageRoom
   const statusConfig = getStatusConfig(property.status);
 
   return (
-    <div className="group relative bg-[#0a0a0f] backdrop-blur-2xl border border-white/10 rounded-[2rem] overflow-hidden hover:border-indigo-500/50 transition-all duration-500 shadow-2xl hover:shadow-[0_0_40px_rgba(99,102,241,0.15)] flex flex-col h-full">
+    <div className="group relative bg-[#0a0a0f] backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-3xl overflow-hidden hover:border-indigo-500/50 transition-all duration-500 shadow-2xl hover:shadow-[0_0_40px_rgba(99,102,241,0.15)] flex flex-col h-full">
       {/* 1. ANIMATED SHIMMER EFFECT */}
       <motion.div
         animate={{ x: ['-100%', '200%'] }}
@@ -91,7 +91,7 @@ const PropertyCard = ({ property, onEdit, onDelete, onToggleStatus, onManageRoom
       />
 
       {/* 2. IMAGE SECTION WITH VIGNETTE */}
-      <div className="relative h-64 w-full overflow-hidden shrink-0">
+      <div className="relative h-40 md:h-52 w-full overflow-hidden shrink-0">
         {property.images && property.images.length > 0 ? (
           <img
             src={property.images[0].url}
@@ -148,51 +148,51 @@ const PropertyCard = ({ property, onEdit, onDelete, onToggleStatus, onManageRoom
       </div>
 
       {/* 3. CONTENT AREA */}
-      <div className="p-6 md:p-8 relative z-10 flex flex-col flex-1 -mt-8">
+      <div className="p-3 md:p-5 relative z-10 flex flex-col flex-1 -mt-5">
         <div className="flex-1">
-          <h3 className="text-2xl font-heading font-black text-white group-hover:text-indigo-400 transition-colors drop-shadow-md line-clamp-2 leading-tight">
+          <h3 className="text-lg md:text-xl font-heading font-black text-white group-hover:text-indigo-400 transition-colors drop-shadow-md line-clamp-2 leading-tight">
             {property.title || property.name}
           </h3>
 
-          <div className="flex items-center text-zinc-400 mt-3 group-hover:text-white/80 transition-colors">
-            <div className="p-1.5 bg-white/5 rounded-lg mr-3 shrink-0">
-              <Icon name="MapPinIcon" size={14} className="text-indigo-400" />
+          <div className="flex items-center text-zinc-400 mt-1.5 group-hover:text-white/80 transition-colors">
+            <div className="p-1 bg-white/5 rounded-lg mr-2 shrink-0">
+              <Icon name="MapPinIcon" size={12} className="text-indigo-400" />
             </div>
-            <span className="text-xs font-bold uppercase tracking-wider line-clamp-1">
+            <span className="text-[9px] font-bold uppercase tracking-wider line-clamp-1">
               {property.location || 'Location not specified'}
             </span>
           </div>
 
           {/* Metrics Mini-Grid */}
-          <div className="grid grid-cols-2 gap-3 mt-6">
-            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
-              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Base Price</p>
-              <p className="text-sm font-black text-white">₹{property.price || 0}</p>
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-2 md:p-2.5">
+              <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Base Price</p>
+              <p className="text-xs font-black text-white">₹{property.price || 0}</p>
             </div>
-            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
-              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Est. Earnings</p>
-              <p className="text-sm font-black text-emerald-400">₹0</p>
+            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-2 md:p-2.5">
+              <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Est. Earnings</p>
+              <p className="text-xs font-black text-emerald-400">₹0</p>
             </div>
           </div>
         </div>
 
         {/* 4. ACTIONS AREA */}
-        <div className="pt-6 mt-6 border-t border-white/5 flex items-center justify-between gap-2">
+        <div className="pt-2 mt-3 border-t border-white/5 flex items-center justify-between gap-1.5 md:gap-2">
 
           <button
             onClick={() => onManageRooms(property)}
-            className="flex-1 px-4 py-3 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 transition-all text-indigo-400 hover:text-indigo-300 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 group/btn"
+            className="flex-1 px-2 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 transition-all text-indigo-400 hover:text-indigo-300 text-[9px] md:text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 md:gap-2 group/btn"
           >
-            <Icon name="Squares2X2Icon" size={16} className="group-hover/btn:scale-110 transition-transform" /> Sub-Units
+            <Icon name="Squares2X2Icon" size={12} className="group-hover/btn:scale-110 transition-transform" /> Sub-Units
           </button>
 
-          <div className="flex gap-2 shrink-0">
+          <div className="flex gap-1 shrink-0">
             <button
               onClick={() => onEdit(property.id)}
-              className="w-10 h-10 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all text-zinc-400 hover:text-white flex items-center justify-center group/edit"
+              className="w-8 h-8 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all text-zinc-400 hover:text-white flex items-center justify-center group/edit"
               title="Configure Asset"
             >
-              <Icon name="AdjustmentsHorizontalIcon" size={16} className="group-hover/edit:rotate-90 transition-transform" />
+              <Icon name="AdjustmentsHorizontalIcon" size={12} className="group-hover/edit:rotate-90 transition-transform" />
             </button>
             <button
               onClick={() => {
@@ -200,10 +200,10 @@ const PropertyCard = ({ property, onEdit, onDelete, onToggleStatus, onManageRoom
                   onDelete(property.id);
                 }
               }}
-              className="w-10 h-10 bg-red-500/10 hover:bg-red-500/20 rounded-xl border border-red-500/20 transition-all text-red-500/70 hover:text-red-400 flex items-center justify-center group/del"
+              className="w-8 h-8 bg-red-500/10 hover:bg-red-500/20 rounded-xl border border-red-500/20 transition-all text-red-500/70 hover:text-red-400 flex items-center justify-center group/del"
               title="Terminate Asset"
             >
-              <Icon name="TrashIcon" size={16} className="group-hover/del:scale-110 transition-transform" />
+              <Icon name="TrashIcon" size={12} className="group-hover/del:scale-110 transition-transform" />
             </button>
           </div>
         </div>

@@ -69,7 +69,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
   const opacity = useTransform(scrollY, [0, 300], [1, 0]); // Fade out text
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden flex items-center justify-center text-white">
+    <div className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-start text-white">
       {/* Background Image */}
       <motion.div
         style={{ y: y1 }}
@@ -92,15 +92,18 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
 
       {/* Main Content */}
       <motion.div
-        style={{ y: y2, opacity }}
+        style={{ 
+          y: typeof window !== 'undefined' && window.innerWidth < 640 ? 0 : y2, 
+          opacity 
+        }}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="relative z-10 flex flex-col items-center text-center px-6 mt-24"
+        className="relative z-10 flex flex-col items-center text-center px-6 mt-20 sm:mt-0 pt-10 sm:pt-32 md:pt-36 pb-12 w-full"
       >
         <motion.h1
           variants={itemVariants}
-          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-4 tracking-tight leading-tight"
+          className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-4 tracking-tight leading-tight"
           style={{ textShadow: '0 4px 15px rgba(0,0,0,0.5)' }}
         >
           Find Your Stay

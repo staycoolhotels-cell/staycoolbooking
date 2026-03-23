@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     siteName: 'StayCool Booking',
     images: [
       {
-        url: '/logo.png',
+        url: '/assets/images/logo.png.jpg',
         width: 1200,
         height: 630,
         alt: 'StayCool Booking Logo',
@@ -63,15 +63,15 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'StayCool Booking - Find Your Perfect Stay',
     description: 'The ultimate platform for unique stays, hotel rooms, and nature lodges.',
-    images: ['/logo.png'],
+    images: ['/assets/images/logo.png.jpg'],
   },
   icons: {
     icon: [
-      { url: '/logo.png', type: 'image/png', sizes: '512x512' },
+      { url: '/assets/images/logo-round.png', type: 'image/png', sizes: '512x512' },
     ],
-    shortcut: '/logo.png',
+    shortcut: '/assets/images/logo-round.png',
     apple: [
-      { url: '/logo.png', type: 'image/png', sizes: '512x512' },
+      { url: '/assets/images/logo-round.png', type: 'image/png', sizes: '512x512' },
     ],
   },
 };
@@ -84,8 +84,8 @@ export default function RootLayout({
   return (
     <html suppressHydrationWarning lang="en" className={`${lora.variable} ${montserrat.variable} scroll-smooth`}>
       <head>
-        <link rel="icon" href="/logo.png" type="image/png" sizes="512x512" />
-        <link rel="apple-touch-icon" href="/logo.png" />
+        <link rel="icon" href="/assets/images/logo-round.png" type="image/png" sizes="512x512" />
+        <link rel="apple-touch-icon" href="/assets/images/logo-round.png" />
       </head>
       <body
         suppressHydrationWarning

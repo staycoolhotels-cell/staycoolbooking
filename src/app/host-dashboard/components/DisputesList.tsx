@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
 import { Dispute } from '@/lib/types';
-import { respondToDispute } from '@/lib/dispute-actions';
+import { respondToDispute, deleteDispute } from '@/lib/dispute-actions';
 import { toast } from 'sonner';
 
 interface DisputesListProps {
@@ -74,7 +74,7 @@ const DisputesList = ({ disputes, isLoading }: DisputesListProps) => {
     return (
         <div className="space-y-6 relative z-10">
             {/* Header Stats Strip */}
-            <div className="flex flex-wrap gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-3 mb-6">
                 <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-4 shadow-inner">
                     <div className="p-2 bg-indigo-500/20 rounded-xl">
                         <Icon name="ScaleIcon" size={16} className="text-indigo-400" />
@@ -166,21 +166,46 @@ const DisputesList = ({ disputes, isLoading }: DisputesListProps) => {
                                     </div>
                                 )}
 
-                                <button
-                                    onClick={() => {
-                                        setSelectedDispute(dispute);
-                                        const hostResponse = (dispute.description || '').split(' ||| ')[1] || dispute.host_response || '';
-                                        setResponseMessage(hostResponse);
-                                    }}
-                                    className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2
-                                        ${isClosed
-                                            ? 'bg-white/5 border border-white/10 text-zinc-400 hover:bg-white/10 hover:text-white'
-                                            : 'bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)]'
-                                        }`}
-                                >
-                                    {isClosed ? 'Review Case' : 'Resolve Conflict'}
-                                    <Icon name={isClosed ? "MagnifyingGlassIcon" : "ArrowRightIcon"} size={14} />
-                                </button>
+                                <div className="flex items-center gap-3">
+                                    {isClosed && (
+                                        <button
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                if (!confirm('Are you sure you want to delete this case?')) return;
+                                                try {
+                                                    const res = await deleteDispute(dispute.id);
+                                                    if (res.success) {
+                                                        toast.success('Case deleted successfully.');
+                                                        window.location.reload();
+                                                    } else {
+                                                        toast.error('Failed to delete case: ' + res.error);
+                                                    }
+                                                } catch (err) {
+                                                    toast.error('An unexpected error occurred.');
+                                                }
+                                            }}
+                                            className="p-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all shrink-0"
+                                            title="Delete Case"
+                                        >
+                                            <Icon name="TrashIcon" size={18} />
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => {
+                                            setSelectedDispute(dispute);
+                                            const hostResponse = (dispute.description || '').split(' ||| ')[1] || dispute.host_response || '';
+                                            setResponseMessage(hostResponse);
+                                        }}
+                                        className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 flex-1 lg:flex-none
+                                            ${isClosed
+                                                ? 'bg-white/5 border border-white/10 text-zinc-400 hover:bg-white/10 hover:text-white'
+                                                : 'bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)]'
+                                            }`}
+                                    >
+                                        {isClosed ? 'Review Case' : 'Resolve Conflict'}
+                                        <Icon name={isClosed ? "MagnifyingGlassIcon" : "ArrowRightIcon"} size={14} />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </motion.div>

@@ -6,7 +6,7 @@ import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Phone, ArrowRight, Loader2, Sparkles, Lock, User } from 'lucide-react';
+import { Mail, Phone, ArrowRight, Loader2, Sparkles, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
 
 import AppImage from '@/components/ui/AppImage';
@@ -16,6 +16,7 @@ export default function AuthClient() {
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const [mobileNumber, setMobileNumber] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Client-side session check for history replacement
   useEffect(() => {
@@ -79,7 +80,7 @@ export default function AuthClient() {
         <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] opacity-30 mix-blend-screen animate-pulse-subtle delay-1000" />
       </div>
 
-      <div className="w-full max-w-md px-6 relative z-10">
+      <div className="w-full max-w-md px-6 relative z-10 mt-28 mb-8 sm:mt-0 sm:mb-0">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -96,7 +97,7 @@ export default function AuthClient() {
                 className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.2)] bg-white p-[1px] border border-zinc-200/50"
               >
                 <AppImage
-                  src="/logo.png"
+                  src="/assets/images/logo.png.jpg"
                   alt="StayCool Logo"
                   fill
                   className="object-contain rounded-full"
@@ -199,12 +200,19 @@ export default function AuthClient() {
                         <Lock className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
                         <input
                           id="password"
-                          type="password"
+                          type={showPassword ? "text" : "password"}
                           name="password"
                           placeholder="••••••••"
                           required
-                          className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                          className="w-full pl-12 pr-12 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-4 top-3.5 text-zinc-500 hover:text-zinc-300 transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
                       </div>
                     </div>
 

@@ -392,7 +392,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
         </div>
       )}
       {/* 1. HERO SECTION: Full-width for immersive feel */}
-      <div className="w-full -mt-[100px]">
+      <div className="w-full">
         <UltraLuxuryHeroSection onSearch={handleSearch} />
       </div>
 

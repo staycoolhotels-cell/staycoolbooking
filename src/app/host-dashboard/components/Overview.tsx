@@ -129,7 +129,7 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
                   <div className="flex items-center gap-3">
                     <img src={booking.guest?.avatar_url || 'https://via.placeholder.com/32'} className="w-10 h-10 rounded-full border border-white/20 object-cover group-hover/item:border-primary/50 transition-colors shadow-inner" alt={booking.guest?.name || 'Guest'} />
                     <div>
-                      <p className="text-sm font-bold text-white group-hover/item:text-primary transition-colors">{booking.guest?.name || 'Guest'}</p>
+                      <p className="text-sm font-bold text-white group-hover/item:text-primary transition-colors">{booking.guest?.name?.trim() ? booking.guest.name : 'Verified Guest'}</p>
                       <p className="text-[10px] text-zinc-400 font-medium tracking-wide">New booking</p>
                     </div>
                   </div>

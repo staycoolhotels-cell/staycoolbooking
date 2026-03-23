@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
+import AppImage from '@/components/ui/AppImage';
 import { supabase } from '@/lib/supabaseClient';
 import { signOutUser } from '@/lib/auth-actions';
 import { useRouter } from 'next/navigation';
@@ -77,16 +78,22 @@ const AdminHeader = ({ onMenuToggle, isMobileMenuOpen }: AdminHeaderProps) => {
                             whileTap={{ scale: 0.95 }}
                             className="relative w-9 h-9 rounded-full overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.15)] bg-white p-[1px] border border-zinc-200/30"
                         >
-                            <img src="/assets/images/logo.png" alt="StayCool Logo" className="w-full h-full object-cover rounded-full" />
+                            <img src="/assets/images/logo.png.jpg" alt="StayCool Logo" className="w-full h-full object-cover rounded-full" />
                         </motion.div>
                         <div className="overflow-hidden hidden sm:block">
-                            <motion.span
+                            <motion.div
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                className="block text-[13px] font-black uppercase tracking-tighter text-white group-hover:text-[#0ea5e9] transition-colors duration-500 leading-none"
+                                className="relative w-[110px] h-[24px] -mb-1"
                             >
-                                StayCool
-                            </motion.span>
+                                <AppImage
+                                    src="/assets/Picsart_26-03-22_23-32-24-684.png"
+                                    alt="StayCool"
+                                    fill
+                                    objectFit="contain"
+                                    style={{ objectPosition: 'left' }}
+                                />
+                            </motion.div>
                             <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.2em]">
                                 Admin Panel
                             </span>
@@ -94,14 +101,17 @@ const AdminHeader = ({ onMenuToggle, isMobileMenuOpen }: AdminHeaderProps) => {
                         <span className="sm:hidden text-[13px] font-black uppercase tracking-tighter text-white">
                             Admin
                         </span>
+
                     </Link>
 
                     {/* CENTER: Desktop Nav Links */}
                     <nav className="hidden lg:flex items-center gap-1 xl:gap-2 flex-1 justify-center">
                         {adminNavLinks.map((link, i) => {
-                            const active = link.path === '/admin-panel'
-                                ? pathname === '/admin-panel'
-                                : pathname.startsWith(link.path);
+                            const active = link.path === '/'
+                                ? pathname === '/'
+                                : link.path === '/admin-panel'
+                                    ? pathname === '/admin-panel'
+                                    : pathname.startsWith(link.path);
                             return (
                                 <Link key={link.path} href={link.path} className="relative group py-2 px-3">
                                     <motion.span
@@ -184,9 +194,11 @@ const AdminHeader = ({ onMenuToggle, isMobileMenuOpen }: AdminHeaderProps) => {
 
                         <nav className="flex flex-col items-center gap-4 z-10 w-full px-8">
                             {adminNavLinks.map((link, i) => {
-                                const active = link.path === '/admin-panel'
-                                    ? pathname === '/admin-panel'
-                                    : pathname.startsWith(link.path);
+                                const active = link.path === '/'
+                                    ? pathname === '/'
+                                    : link.path === '/admin-panel'
+                                        ? pathname === '/admin-panel'
+                                        : pathname.startsWith(link.path);
                                 return (
                                     <motion.div
                                         key={link.path}

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -61,24 +60,6 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
     else if (hour < 17) setGreeting('Good Afternoon');
     else setGreeting('Good Evening');
   }, []);
-
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [activeTab, setActiveTabState] = useState<'dashboard' | 'bookings' | 'finance' | 'inbox' | 'profile'>('dashboard');
-
-  useEffect(() => {
-    const tab = searchParams.get('tab') as any;
-    if (tab && ['dashboard', 'bookings', 'finance', 'inbox', 'profile'].includes(tab)) {
-      setActiveTabState(tab);
-    }
-  }, [searchParams]);
-
-  const setActiveTab = (tab: typeof activeTab) => {
-    setActiveTabState(tab);
-    const newParams = new URLSearchParams(searchParams.toString());
-    newParams.set('tab', tab);
-    router.push(`?${newParams.toString()}`, { scroll: false });
-  };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -181,7 +162,7 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
       </div>
 
       {/* ── Cinematic Hero Banner ── */}
-      <div className="relative w-full h-48 md:h-64 overflow-hidden">
+      <div className="relative w-full h-24 md:h-32 overflow-hidden">
         {/* Layered gradient banner */}
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-[#0d0e2a] to-violet-950" />
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-600/10 to-transparent" />
@@ -200,12 +181,12 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#070711] to-transparent" />
 
         {/* Greeting + breadcrumb — top-left of hero */}
-        <div className="absolute bottom-8 left-6 md:left-10">
+        <div className="absolute top-4 md:top-6 left-6 md:left-10">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
-            <p className="text-indigo-400 text-[9px] md:text-[10px] font-black tracking-[0.4em] uppercase mb-1">
-              {greeting} ·&nbsp;Member Portal
+            <p className="text-indigo-400 text-[9px] md:text-[10px] font-black tracking-[0.4em] uppercase mb-1.5 translate-y-1">
+              {greeting}
             </p>
-            <h1 className="text-3xl md:text-5xl font-light tracking-tight text-white drop-shadow-xl">
+            <h1 className="text-2xl md:text-4xl font-light tracking-tight text-white drop-shadow-xl">
               <span className="font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
                 {user?.name?.split(' ')[0]}
               </span>
@@ -214,9 +195,9 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
             </h1>
           </motion.div>
         </div>
-
-        {/* Live badge — top-right of hero */}
-        <div className="absolute top-6 right-6">
+ 
+        {/* Secure session indicator — top-right of hero */}
+        <div className="absolute top-4 right-6 md:right-10">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -227,10 +208,11 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
             <span className="text-[9px] font-bold tracking-[0.25em] uppercase text-zinc-400">Secure Session</span>
           </motion.div>
         </div>
+
       </div>
 
       {/* ── Page Content ── */}
-      <div className="relative z-10 w-full max-w-[98%] mx-auto px-4 md:px-8 -mt-4 pb-16 space-y-8">
+      <div className="relative z-10 w-full max-w-[98%] mx-auto px-4 md:px-8 -mt-2 pb-16 space-y-8">
 
         {/* Profile Header Card */}
         {user && (
@@ -253,129 +235,77 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
           </motion.div>
         )}
 
-        {/* ── Tabs Navigation ── */}
-        <div className="flex items-center gap-1 bg-white/5 p-1 rounded-2xl border border-white/5 overflow-x-auto no-scrollbar">
-          {[
-            { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
-            { id: 'bookings', label: 'History', icon: '📋' },
-            { id: 'finance', label: 'Finance', icon: '💳' },
-            { id: 'inbox', label: 'Inbox', icon: '✉️' },
-            { id: 'profile', label: 'Identity', icon: '👤' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex-shrink-0
-                ${activeTab === tab.id
-                  ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]'
-                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'}`}
-            >
-              <span>{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-8">
 
           {/* ── Main Column ── */}
-          <div className="lg:col-span-3 xl:col-span-3 space-y-8">
-            <AnimatePresence mode="wait">
-              {activeTab === 'dashboard' && (
-                <motion.div
-                  key="dashboard"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  className="space-y-8"
-                >
-                  {/* Trip Command Center */}
-                  {activeBooking ? (
-                    <motion.section className="space-y-8">
-                      <TripCommandCenter activeBooking={activeBooking} />
-                      <SmartItineraryBuilder activeBooking={activeBooking} />
-                    </motion.section>
-                  ) : (
-                    <motion.div className="h-56 flex flex-col items-center justify-center border border-dashed border-indigo-900/50 rounded-[2rem] bg-indigo-950/10 backdrop-blur-sm">
-                      <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-3">
-                        <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                      </div>
-                      <p className="text-zinc-500 font-light italic text-sm">No expeditions planned yet.</p>
-                    </motion.div>
-                  )}
+          <div className="lg:col-span-2 xl:col-span-3 space-y-8">
 
-                  {/* Loyalty Snippet in Dashboard */}
-                  <LoyaltyAndEliteStatus
-                    achievements={achievements}
-                    totalBookings={bookings.length}
-                    rewardPoints={user?.reward_points || 0}
-                  />
-                </motion.div>
-              )}
+            {/* Trip Command Center */}
+            {activeBooking ? (
+              <motion.section
+                initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }}
+                className="space-y-8"
+              >
+                <TripCommandCenter activeBooking={activeBooking} />
+                <SmartItineraryBuilder activeBooking={activeBooking} />
+              </motion.section>
+            ) : (
+              <motion.div
+                initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }}
+                className="h-56 flex flex-col items-center justify-center border border-dashed border-indigo-900/50 rounded-[2rem] bg-indigo-950/10 backdrop-blur-sm"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-3">
+                  <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                </div>
+                <p className="text-zinc-500 font-light italic text-sm">No expeditions planned yet.</p>
+                <button className="mt-3 text-[10px] font-bold text-indigo-400 uppercase tracking-[0.2em] hover:text-indigo-300 transition-colors">
+                  Begin Discovery →
+                </button>
+              </motion.div>
+            )}
 
-              {activeTab === 'finance' && (
-                <motion.section
-                  key="finance"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  className="group"
-                >
-                  <SectionLabel icon="💳" label="Financial Treasury" />
-                  <FinancialTreasury transactions={transactions} />
-                </motion.section>
-              )}
+            {/* Section Divider helper */}
+            {[
+              <motion.section key="finance" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="group">
+                <SectionLabel icon="💳" label="Financial Treasury" />
+                <FinancialTreasury transactions={transactions} />
+              </motion.section>,
 
-              {activeTab === 'bookings' && (
-                <motion.div
-                  key="bookings"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                >
-                  <SectionLabel icon="📋" label="Booking History" />
-                  <BookingHistory bookings={bookings} guestId={user?.id} />
-                </motion.div>
-              )}
+              <motion.div key="bookings" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.45 }}>
+                <BookingHistory bookings={bookings} guestId={user?.id} />
+              </motion.div>,
 
-              {activeTab === 'inbox' && user && (
-                <motion.div
-                  key="inbox"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                >
-                  <SectionLabel icon="✉️" label="Guest Inbox" />
+              user && (
+                <motion.div key="inbox" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
                   <GuestInbox guestId={user.id} />
                 </motion.div>
-              )}
+              ),
 
-              {activeTab === 'profile' && (
-                <motion.div
-                  key="profile"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  className="space-y-8"
-                >
-                  <SectionLabel icon="👤" label="Trust and Verification" />
-                  {verifications && (
-                    <VerificationAndTrust verifications={verifications} bookings={bookings} />
-                  )}
-                  <div className="pt-4">
-                    <SectionLabel icon="⭐" label="Your Reviews" />
-                    <ReviewHistory reviews={reviews} userRole={user?.role || 'guest'} />
-                  </div>
-                  <div className="pt-4">
-                    <SectionLabel icon="💎" label="Wishlist" />
-                    <SmartWishlist wishlist={wishlist} userId={user?.id || ''} />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+              <motion.div key="reviews" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.55 }}>
+                <ReviewHistory reviews={reviews} userRole={user?.role || 'guest'} />
+              </motion.div>,
+            ]}
           </div>
 
+          {/* ── Sidebar ── */}
+          <aside className="space-y-8">
+            <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
+              <LoyaltyAndEliteStatus
+                achievements={achievements}
+                totalBookings={bookings.length}
+                rewardPoints={user?.reward_points || 0}
+              />
+            </motion.div>
+            <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.48 }}>
+              <SmartWishlist wishlist={wishlist} userId={user?.id || ''} />
+            </motion.div>
+            {verifications && (
+              <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.56 }}>
+                <VerificationAndTrust verifications={verifications} bookings={bookings} />
+              </motion.div>
+            )}
+          </aside>
         </div>
       </div>
     </div>

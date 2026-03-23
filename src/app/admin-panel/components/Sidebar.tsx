@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
 import { signOutUser } from '@/lib/auth-actions';
 import { updateAdminCredentials } from '@/lib/admin-actions';
@@ -20,6 +20,7 @@ const navLinks = [
   { href: '/admin-panel/user-management', label: 'User Management', icon: 'UsersIcon' },
   { href: '/admin-panel/marketing', label: 'Marketing', icon: 'MegaphoneIcon' },
   { href: '/admin-panel/reviews', label: 'Reviews', icon: 'ChatBubbleBottomCenterTextIcon' },
+  { href: '/admin-panel?tab=inbox', label: 'Chat', icon: 'ChatBubbleLeftRightIcon' },
 ];
 
 interface SidebarProps {
@@ -30,6 +31,8 @@ interface SidebarProps {
 
 const Sidebar = ({ isMobileMenuOpen, onMobileToggle, onCloseMobileMenu }: SidebarProps) => {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeTabQuery = searchParams.get('tab');
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
   const [newEmail, setNewEmail] = React.useState('');
@@ -158,20 +161,28 @@ const Sidebar = ({ isMobileMenuOpen, onMobileToggle, onCloseMobileMenu }: Sideba
 
       <aside className={`fixed top-[64px] bottom-0 left-0 z-[95] w-64 flex-shrink-0 bg-[#0a0a0f] border-r border-white/10 flex flex-col transition-transform duration-300 lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={onCloseMobileMenu}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${pathname === link.href
-                ? 'bg-white/10 text-white'
-                : 'text-zinc-400 hover:bg-white/5 hover:text-white'
-                }`}
-            >
-              <Icon name={link.icon as any} size={22} />
-              <span className="font-heading font-medium">{link.label}</span>
-            </Link>
-          ))}
+            {navLinks.map((link) => {
+              const isActive = link.href.includes('?tab=')
+                ? pathname === '/admin-panel' && activeTabQuery === link.href.split('=')[1]
+                : link.href === '/admin-panel'
+                  ? pathname === '/admin-panel' && (!activeTabQuery || activeTabQuery === 'overview')
+                  : pathname === link.href;
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={onCloseMobileMenu}
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
+                    ? 'bg-white/10 text-white'
+                    : 'text-zinc-400 hover:bg-white/5 hover:text-white'
+                    }`}
+                >
+                  <Icon name={link.icon as any} size={22} />
+                  <span className="font-heading font-medium">{link.label}</span>
+                </Link>
+              );
+            })}
         </nav>
 
         <div className="px-4 py-6 border-t border-white/10 mt-auto relative">

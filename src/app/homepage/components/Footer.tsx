@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import AppImage from '@/components/ui/AppImage';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -37,8 +38,14 @@ const Footer = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
           
           <div className="lg:col-span-1">
-            <Link href="/" className="font-heading text-3xl font-bold text-sky-400">
-              StayCool Booking
+            <Link href="/" className="relative block w-[150px] h-[35px] sm:w-[220px] sm:h-[45px]">
+              <AppImage
+                src="/assets/Picsart_26-03-22_23-32-24-684.png"
+                alt="StayCool Booking"
+                fill
+                objectFit="contain"
+                style={{ objectPosition: 'left' }}
+              />
             </Link>
             <p className="font-sans mt-4 text-zinc-500">
               Discover unique stays and authentic travel experiences across the globe.

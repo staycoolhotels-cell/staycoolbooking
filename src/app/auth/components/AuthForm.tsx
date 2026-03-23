@@ -23,6 +23,7 @@ const ModernAuthForm: React.FC = () => {
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const [otpSent, setOtpSent] = useState(false);
   const [mobileNumber, setMobileNumber] = useState('');
+  const [mobileName, setMobileName] = useState('');
 
   // Form state for Email/Password Signup
   const [signupState, signupAction] = useActionState<any, FormData>(signUpUser, undefined);
@@ -145,6 +146,7 @@ const ModernAuthForm: React.FC = () => {
               <>
                 <input type="hidden" name="phone" value={mobileNumber} />
                 <input type="hidden" name="role" value={selectedRole} />
+                <input type="hidden" name="name" value={mobileName} />
                 {/* We might need to handle name persistence for verification if simpler flow desired, 
                     but here we assume name was needed for initial signup intent or verification takes it if provided again/hidden. 
                     Ideally verifyOtp doesn't need name if user exists, but for new users it's good. 

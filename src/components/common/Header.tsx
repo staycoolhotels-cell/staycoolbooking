@@ -107,20 +107,26 @@ const Header = () => {
               className="relative w-10 h-10 sm:w-16 sm:h-16 rounded-full overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.2)] bg-white p-[1px] border border-zinc-200/50"
             >
               <AppImage
-                src="/assets/images/logo.png"
+                src="/assets/images/logo.png.jpg"
                 alt="StayCool Logo"
                 fill
                 className="object-cover"
               />
             </motion.div>
-            <div className="overflow-hidden">
-              <motion.span
+            <div className="flex items-center">
+              <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="block text-[12px] sm:text-xl font-black uppercase tracking-tighter text-white group-hover:text-[#0ea5e9] transition-colors duration-500 whitespace-nowrap"
+                className="relative w-[150px] h-[35px] sm:w-[220px] sm:h-[45px] ml-1"
               >
-                StayCool Booking
-              </motion.span>
+                <AppImage
+                  src="/assets/Picsart_26-03-22_23-32-24-684.png"
+                  alt="StayCool Booking"
+                  fill
+                  objectFit="contain"
+                  style={{ objectPosition: 'left' }}
+                />
+              </motion.div>
             </div>
           </Link>
 

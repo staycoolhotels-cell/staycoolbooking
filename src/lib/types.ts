@@ -42,6 +42,7 @@ export interface Dispute {
   property_id?: string;
   description?: string;
   host_response?: string;
+  amount?: number;
 }
 
 export interface Transaction {

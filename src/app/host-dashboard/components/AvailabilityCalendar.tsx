@@ -164,27 +164,27 @@ export default function AvailabilityCalendar({ properties }: AvailabilityCalenda
     return (
         <div className="w-full space-y-6 md:space-y-8 relative">
             {/* 1. Ultra-Premium Header */}
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-[#0a0a0f]/80 p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-[#0a0a0f]/80 p-4 rounded-[1.25rem] border border-white/10 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 left-0 bottom-0 w-80 bg-gradient-to-r from-sky-500/10 to-transparent pointer-events-none" />
-
-                <div className="relative z-10 flex items-center gap-5 w-full lg:w-auto">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500/30 to-sky-500/10 border border-sky-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(14,165,233,0.3)] shrink-0">
-                        <Icon name="CalendarDaysIcon" size={32} className="text-sky-400 drop-shadow-md" />
+ 
+                <div className="relative z-10 flex items-center gap-3 w-full lg:w-auto">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500/30 to-sky-500/10 border border-sky-500/20 flex items-center justify-center shadow-[0_0_15px_rgba(14,165,233,0.3)] shrink-0">
+                        <Icon name="CalendarDaysIcon" size={20} className="text-sky-400 drop-shadow-md" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Inventory Matrix</h1>
-                        <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2 truncate whitespace-nowrap">
+                        <h1 className="text-xl md:text-2xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Inventory Matrix</h1>
+                        <p className="text-[9px] md:text-[10px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2 truncate whitespace-nowrap">
                             Asset Availability Schedule
                         </p>
                     </div>
                 </div>
-
+ 
                 <div className="relative z-10 w-full lg:w-auto">
                     <div className="relative group/select">
                         <select
                             value={selectedPropertyId}
                             onChange={(e) => setSelectedPropertyId(e.target.value)}
-                            className="w-full lg:w-72 bg-black/40 border border-white/10 hover:border-sky-500/30 rounded-xl py-4 px-5 pr-12 text-white font-bold text-sm focus:ring-2 focus:ring-sky-500/50 outline-none appearance-none transition-all shadow-inner cursor-pointer"
+                            className="w-full lg:w-64 bg-black/40 border border-white/10 hover:border-sky-500/30 rounded-lg py-2.5 px-4 pr-10 text-white font-bold text-xs focus:ring-2 focus:ring-sky-500/50 outline-none appearance-none transition-all shadow-inner cursor-pointer"
                         >
                             {properties.map(p => (
                                 <option key={p.id} value={p.id} className="bg-zinc-900 text-white font-medium">
@@ -192,39 +192,39 @@ export default function AvailabilityCalendar({ properties }: AvailabilityCalenda
                                 </option>
                             ))}
                         </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center pointer-events-none group-hover/select:bg-sky-500/10 transition-colors">
-                            <Icon name="ChevronDownIcon" size={16} className="text-sky-400" />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md bg-white/5 flex items-center justify-center pointer-events-none group-hover/select:bg-sky-500/10 transition-colors">
+                            <Icon name="ChevronDownIcon" size={12} className="text-sky-400" />
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* 2. Calendar Core Context */}
-            <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden flex flex-col p-6 md:p-8">
+            <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[1.25rem] border border-white/10 shadow-2xl relative overflow-hidden flex flex-col p-3 md:p-4">
                 <div className="absolute -top-40 -right-40 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
-
+ 
                 {/* Month Navigator */}
-                <div className="flex flex-col md:flex-row items-center justify-between mb-8 pb-6 border-b border-white/5 relative z-10 gap-6">
-                    <div className="flex items-center gap-4 bg-black/40 border border-white/10 p-1.5 rounded-full shadow-inner">
-                        <button onClick={prevMonth} className="w-10 h-10 rounded-full flex items-center justify-center bg-transparent hover:bg-white/10 text-zinc-400 hover:text-white transition-all">
-                            <Icon name="ChevronLeftIcon" size={20} />
+                <div className="flex flex-col md:flex-row items-center justify-between mb-4 pb-3 border-b border-white/5 relative z-10 gap-4">
+                    <div className="flex items-center gap-2 bg-black/40 border border-white/10 p-1 rounded-full shadow-inner">
+                        <button onClick={prevMonth} className="w-7 h-7 rounded-full flex items-center justify-center bg-transparent hover:bg-white/10 text-zinc-400 hover:text-white transition-all">
+                            <Icon name="ChevronLeftIcon" size={14} />
                         </button>
-                        <div className="flex items-center gap-3 px-4 min-w-[200px] justify-center">
-                            <Icon name="CalendarIcon" size={20} className="text-sky-400" />
-                            <h3 className="text-lg font-heading font-black tracking-widest text-white uppercase text-center">
+                        <div className="flex items-center gap-2 px-2 min-w-[140px] justify-center">
+                            <Icon name="CalendarIcon" size={14} className="text-sky-400" />
+                            <h3 className="text-[11px] font-heading font-black tracking-widest text-white uppercase text-center">
                                 {format(currentDate, 'MMMM yyyy')}
                             </h3>
                         </div>
-                        <button onClick={nextMonth} className="w-10 h-10 rounded-full flex items-center justify-center bg-transparent hover:bg-white/10 text-zinc-400 hover:text-white transition-all">
-                            <Icon name="ChevronRightIcon" size={20} />
+                        <button onClick={nextMonth} className="w-7 h-7 rounded-full flex items-center justify-center bg-transparent hover:bg-white/10 text-zinc-400 hover:text-white transition-all">
+                            <Icon name="ChevronRightIcon" size={14} />
                         </button>
                     </div>
-
+ 
                     {/* Legend */}
-                    <div className="flex flex-wrap items-center justify-center gap-4 text-[10px] font-bold uppercase tracking-widest">
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-white/5 border border-white/10 shadow-inner" /> <span className="text-zinc-500">Available</span></div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-purple-500/20 border border-purple-500/30 shadow-inner" /> <span className="text-purple-400">Reserved</span></div>
-                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/30 shadow-inner" /> <span className="text-red-400">Blocked</span></div>
+                    <div className="flex flex-wrap items-center justify-center gap-3 text-[9px] font-bold uppercase tracking-widest">
+                        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-white/5 border border-white/10 shadow-inner" /> <span className="text-zinc-500">Available</span></div>
+                        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-purple-500/20 border border-purple-500/30 shadow-inner" /> <span className="text-purple-400">Reserved</span></div>
+                        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500/20 border border-red-500/30 shadow-inner" /> <span className="text-red-400">Blocked</span></div>
                     </div>
                 </div>
 
@@ -236,16 +236,16 @@ export default function AvailabilityCalendar({ properties }: AvailabilityCalenda
                 ) : (
                     <div className="relative z-10">
                         {/* Days of Week Header */}
-                        <div className="grid grid-cols-7 mb-4">
+                        <div className="grid grid-cols-7 mb-2">
                             {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
-                                <div key={day} className="text-center text-[10px] text-zinc-500 font-bold uppercase tracking-widest pb-2">
+                                <div key={day} className="text-center text-[9px] text-zinc-500 font-bold uppercase tracking-widest pb-1">
                                     {day}
                                 </div>
                             ))}
                         </div>
 
                         {/* Calendar Grid */}
-                        <div className="grid grid-cols-7 gap-2 md:gap-3">
+                        <div className="grid grid-cols-7 gap-1 md:gap-2">
                             {paddingDays.map((_, i) => (
                                 <div key={`padding-${i}`} className="aspect-square opacity-0 pointer-events-none" />
                             ))}
@@ -280,29 +280,29 @@ export default function AvailabilityCalendar({ properties }: AvailabilityCalenda
                                         key={day.toISOString()}
                                         onClick={() => !isPast && handleDateClick(day)}
                                         className={`
-                                            relative aspect-square flex flex-col items-center justify-center cursor-pointer transition-all group overflow-hidden
-                                            ${isPast ? 'opacity-30 cursor-not-allowed scale-95' : 'hover:-translate-y-1 hover:shadow-xl hover:z-20'}
+                                            relative h-12 md:h-16 flex flex-col items-center justify-center cursor-pointer transition-all group overflow-hidden
+                                            ${isPast ? 'opacity-30 cursor-not-allowed scale-95' : 'hover:-translate-y-0.5 hover:shadow-xl hover:z-20'}
                                             ${isSelected ? 'z-10' : ''}
                                         `}
                                     >
                                         {/* Selection Indicators (Behind Card) */}
                                         {isSelected && (
                                             <div className={`absolute inset-0 bg-sky-500/20 z-0 pointer-events-none transition-all
-                                              ${isRangeStart ? 'rounded-l-2xl' : ''}
-                                              ${isRangeEnd ? 'rounded-r-2xl' : ''}
-                                              ${isInRange ? 'scale-y-[0.85]' : ''}
+                                              ${isRangeStart ? 'rounded-l-xl' : ''}
+                                              ${isRangeEnd ? 'rounded-r-xl' : ''}
+                                              ${isInRange ? 'scale-y-[0.8]' : ''}
                                            `} />
                                         )}
-
+ 
                                         {/* Card Surface */}
                                         <div className={`
-                                            w-full h-full rounded-2xl border flex flex-col items-center justify-center relative z-10 p-1 md:p-2 transition-colors
-                                            ${status === 'blocked' ? 'bg-red-500/10 border-red-500/20 text-red-400 shadow-[inset_0_0_15px_rgba(239,68,68,0.1)]' :
-                                                status === 'booked' ? 'bg-purple-500/10 border-purple-500/20 text-purple-400 shadow-[inset_0_0_15px_rgba(168,85,247,0.1)]' :
-                                                    isSelected ? 'bg-sky-500 border-sky-400 text-black shadow-[0_0_20px_rgba(14,165,233,0.4)]' :
+                                            w-full h-full rounded-xl border flex flex-col items-center justify-center relative z-10 p-0.5 transition-colors
+                                            ${status === 'blocked' ? 'bg-red-500/10 border-red-500/20 text-red-400 shadow-[inset_0_0_10px_rgba(239,68,68,0.1)]' :
+                                                status === 'booked' ? 'bg-purple-500/10 border-purple-500/20 text-purple-400 shadow-[inset_0_0_10px_rgba(168,85,247,0.1)]' :
+                                                    isSelected ? 'bg-sky-500 border-sky-400 text-black shadow-[0_0_15px_rgba(14,165,233,0.4)]' :
                                                         'bg-white/[0.02] border-white/5 hover:border-white/20 text-white/70 hover:text-white'}
                                         `}>
-                                            <span className={`text-sm md:text-lg font-bold ${isSelected ? 'font-black' : ''}`}>
+                                            <span className={`text-[10px] md:text-sm font-bold ${isSelected ? 'font-black' : ''}`}>
                                                 {format(day, 'd')}
                                             </span>
 

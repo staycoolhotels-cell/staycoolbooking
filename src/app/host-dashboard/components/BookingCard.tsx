@@ -88,12 +88,11 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
       {/* Animated Top Border Glow */}
       <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity duration-1000 ${statusStyles.glow}`} />
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between p-6 md:p-8 gap-6 relative z-10">
-
+      <div className="flex flex-col md:flex-row md:items-center justify-between p-5 md:p-6 gap-5 relative z-10">
         {/* Guest & Property Info */}
-        <div className="flex items-center gap-5">
+        <div className="flex items-start sm:items-center gap-4">
           <div className="relative shrink-0">
-            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white/10 group-hover:border-white/30 transition-colors bg-zinc-900 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/10 group-hover:border-white/30 transition-colors bg-zinc-900 flex items-center justify-center">
               {booking.guest?.avatar_url ? (
                 <img
                   src={booking.guest.avatar_url}
@@ -101,30 +100,36 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <Icon name="UserIcon" size={24} className="text-zinc-600" />
+                <Icon name="UserIcon" size={20} className="text-zinc-600" />
               )}
             </div>
             {/* Status Dot Ring */}
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#0a0a0f] rounded-full flex items-center justify-center border border-white/10">
-              <div className={`w-2.5 h-2.5 rounded-full ${statusStyles.indicator}`} />
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#0a0a0f] rounded-full flex items-center justify-center border border-white/10">
+              <div className={`w-2 h-2 rounded-full ${statusStyles.indicator}`} />
             </div>
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-1">
-              <h3 className="text-xl font-heading font-black text-white truncate">{booking.guest?.name || 'Guest Profile'}</h3>
-              <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border backdrop-blur-md ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} ${statusStyles.shadow}`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-2 sm:gap-4">
+              <h3 className="text-base md:text-lg font-bold text-white md:truncate leading-tight">
+                {booking.guest?.name?.trim() ? booking.guest.name : 'Verified Guest'}
+              </h3>
+              <span className={`px-2.5 py-1 text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-md border backdrop-blur-md shrink-0 flex items-center justify-center w-fit ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} ${statusStyles.shadow}`}>
                 {booking.status.replace('_', ' ')}
               </span>
             </div>
-            <p className="text-sm text-zinc-400 font-bold truncate flex items-center gap-2 mb-2">
-              <Icon name="HomeIcon" size={14} className="text-zinc-500" /> {booking.properties?.title || 'External Asset'}
-            </p>
-            <div className="flex items-center gap-2 bg-white/[0.02] border border-white/5 py-1.5 px-3 rounded-lg w-fit">
-              <Icon name="CalendarDaysIcon" size={14} className="text-indigo-400" />
-              <p suppressHydrationWarning className="text-[10px] sm:text-xs text-white/80 font-bold uppercase tracking-widest leading-none">
-                {new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} <span className="text-zinc-600 font-normal mx-1">→</span> {new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            
+            <div className="space-y-2">
+              <p className="text-xs md:text-sm text-zinc-400 font-bold md:truncate flex items-center gap-2">
+                <Icon name="HomeIcon" size={14} className="text-zinc-500" /> {booking.properties?.title || booking.properties?.name || 'Property'}
               </p>
+              
+              <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 py-1.5 px-3 rounded-lg w-fit">
+                <Icon name="CalendarDaysIcon" size={14} className="text-indigo-400" />
+                <p suppressHydrationWarning className="text-[11px] md:text-[12px] text-white/70 font-bold uppercase tracking-widest leading-none">
+                  {new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} <span className="text-zinc-600 font-normal mx-1">→</span> {new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -141,23 +146,22 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
             </button>
           )}
 
-          <div className="flex items-center justify-between sm:justify-start gap-2 h-full">
+          <div className="flex items-center justify-between sm:justify-start gap-3 h-full">
             <button
               onClick={() => onAction('unified-inbox')}
-              className="flex-1 sm:flex-none h-[42px] px-4 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 text-indigo-400 hover:text-indigo-300 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+              className="flex-1 sm:flex-none h-[48px] px-6 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 text-indigo-400 hover:text-indigo-300 transition-all font-bold text-[11px] md:text-[12px] uppercase tracking-widest flex items-center justify-center gap-2"
             >
-              <Icon name="ChatBubbleLeftRightIcon" size={16} /> <span className="sm:hidden">Message</span>
+              <Icon name="ChatBubbleLeftRightIcon" size={18} /> <span>Message</span>
             </button>
 
             <button
               onClick={() => setIsDisputeModalOpen(true)}
-              className="flex-1 sm:flex-none h-[42px] px-4 bg-red-500/5 hover:bg-red-500/10 rounded-xl border border-red-500/10 text-red-500/60 hover:text-red-400 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+              className="flex-1 sm:flex-none h-[48px] px-6 bg-red-500/5 hover:bg-red-500/10 rounded-xl border border-red-500/10 text-red-500/60 hover:text-red-400 transition-all font-bold text-[11px] md:text-[12px] uppercase tracking-widest flex items-center justify-center gap-2"
             >
-              <Icon name="ScaleIcon" size={16} /> <span className="sm:hidden">Dispute</span>
+              <Icon name="ScaleIcon" size={18} /> <span>Dispute</span>
             </button>
           </div>
         </div>
-
       </div>
 
       {/* Dispute Modal (Ultra-Premium) */}

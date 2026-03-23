@@ -7,7 +7,7 @@ import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Phone, ArrowRight, Loader2, Sparkles, Lock, User, Home, UserCheck, Smartphone, Check } from 'lucide-react';
+import { Mail, Phone, ArrowRight, Loader2, Sparkles, Lock, User, Home, UserCheck, Smartphone, Check, Eye, EyeOff } from 'lucide-react';
 import Script from 'next/script';
 
 export default function SignupPage() {
@@ -28,6 +28,8 @@ function SignupContent() {
   const [name, setName] = useState('');
   const router = useRouter();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Email Signup State
   const [emailState, emailAction] = useActionState<any, FormData>(signUpUser, undefined);
@@ -270,7 +272,7 @@ function SignupContent() {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#050505] overflow-hidden relative selection:bg-primary/30 selection:text-primary-foreground py-12">
+    <div className="min-h-screen flex items-center justify-center bg-[#050505] overflow-hidden relative selection:bg-primary/30 selection:text-primary-foreground pt-32 pb-12">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" />
       {/* Dynamic Background Elements */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
@@ -411,12 +413,19 @@ function SignupContent() {
                           <Lock className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
                           <input
                             id="password"
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             name="password"
                             placeholder="••••••"
                             required
-                            className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                            className="w-full pl-12 pr-12 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-3.5 text-zinc-500 hover:text-zinc-300 transition-colors"
+                          >
+                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -427,12 +436,19 @@ function SignupContent() {
                           <Lock className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
                           <input
                             id="confirmPassword"
-                            type="password"
+                            type={showConfirmPassword ? "text" : "password"}
                             name="confirmPassword"
                             placeholder="••••••"
                             required
-                            className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                            className="w-full pl-12 pr-12 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-4 top-3.5 text-zinc-500 hover:text-zinc-300 transition-colors"
+                          >
+                            {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
                         </div>
                       </div>
                     </div>

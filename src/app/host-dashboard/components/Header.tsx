@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
+import AppImage from '@/components/ui/AppImage';
 
 interface HeaderProps {
   activeTab: string;
@@ -33,9 +34,15 @@ const Header = ({ activeTab, setActiveTab, hostName, hostPhotoUrl }: HeaderProps
             <Icon name="SparklesIcon" className="text-white" size={20} />
           </div>
           <div className="hidden sm:block">
-            <span className="text-xl font-heading font-bold tracking-tighter text-white">
-              StayCool
-            </span>
+            <div className="relative w-[100px] h-[20px] -mb-1">
+              <AppImage
+                src="/assets/Picsart_26-03-22_23-32-24-684.png"
+                alt="StayCool"
+                fill
+                objectFit="contain"
+                style={{ objectPosition: 'left' }}
+              />
+            </div>
             <p className="text-[8px] uppercase tracking-[0.3em] text-primary font-black leading-none">
               Portal
             </p>

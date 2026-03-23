@@ -71,6 +71,21 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Delete Confirmation State
+  const [deleteConf, setDeleteConf] = useState<{
+    isOpen: boolean;
+    type: 'alert' | 'checklist' | null;
+    id: string | null;
+    title: string;
+    description: string;
+  }>({
+    isOpen: false,
+    type: null,
+    id: null,
+    title: '',
+    description: ''
+  });
+
   const DEFAULT_TASKS = ['Clean bathrooms', 'Change bedsheets', 'Vacuum floors', 'Empty trash'];
 
   const [newChecklist, setNewChecklist] = useState({
@@ -266,6 +281,62 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
     }
   };
 
+  const deleteAlert = async (alertId: string) => {
+    const alertToDelete = alerts.find(a => a.id === alertId);
+    setDeleteConf({
+      isOpen: true,
+      type: 'alert',
+      id: alertId,
+      title: 'Delete Maintenance Signal',
+      description: `This will permanently remove the signal: "${alertToDelete?.issue || 'this item'}". Action cannot be undone.`
+    });
+  };
+
+  const confirmDeleteAlert = async (alertId: string) => {
+    try {
+      const { error } = await supabase
+        .from('maintenance_alerts')
+        .delete()
+        .eq('id', alertId);
+
+      if (error) throw error;
+      toast.success('Maintenance signal deleted!');
+      setAlerts(prev => prev.filter(a => a.id !== alertId));
+      setDeleteConf(prev => ({ ...prev, isOpen: false }));
+    } catch (error: any) {
+      console.error('Error deleting alert:', error);
+      toast.error('Failed to delete signal: ' + error.message);
+    }
+  };
+
+  const deleteChecklist = async (checklistId: string) => {
+    const listToDelete = checklists.find(c => c.id === checklistId);
+    setDeleteConf({
+      isOpen: true,
+      type: 'checklist',
+      id: checklistId,
+      title: 'Delete Checklist',
+      description: `Permanently delete the checklist for "${listToDelete?.property_name || 'this property'}".`
+    });
+  };
+
+  const confirmDeleteChecklist = async (checklistId: string) => {
+    try {
+      const { error } = await supabase
+        .from('cleaning_checklists')
+        .delete()
+        .eq('id', checklistId);
+
+      if (error) throw error;
+      toast.success('Checklist deleted!');
+      setChecklists(prev => prev.filter(c => c.id !== checklistId));
+      setDeleteConf(prev => ({ ...prev, isOpen: false }));
+    } catch (error: any) {
+      console.error('Error deleting checklist:', error);
+      toast.error('Failed to delete checklist: ' + error.message);
+    }
+  };
+
   const removeNewTask = (indexToRemove: number) => {
     setNewChecklist(prev => ({
       ...prev,
@@ -403,14 +474,25 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
                         <Icon name="UserIcon" size={12} className="text-zinc-500" />
                         {alert.reported_by} • {new Date(alert.reported_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                       </p>
-                      {!isResolved && (
-                        <button
-                          onClick={() => markAlertCompleted(alert.id)}
-                          className="px-3 py-1.5 rounded-xl bg-success/20 hover:bg-success/30 border border-success/30 text-success text-[10px] font-bold uppercase tracking-widest transition-all shadow-inner flex items-center gap-1.5 group-hover/alert:border-success/50"
-                        >
-                          <Icon name="CheckIcon" size={12} /> Mark Fixed
-                        </button>
-                      )}
+                        <div className="flex items-center gap-2">
+                          {isResolved ? (
+                            <button
+                              onClick={() => deleteAlert(alert.id)}
+                              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all flex items-center gap-1.5"
+                              title="Delete Signal"
+                            >
+                              <Icon name="TrashIcon" size={14} />
+                              <span className="text-[10px] font-bold uppercase tracking-widest">Delete</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => markAlertCompleted(alert.id)}
+                              className="px-3 py-1.5 rounded-xl bg-success/20 hover:bg-success/30 border border-success/30 text-success text-[10px] font-bold uppercase tracking-widest transition-all shadow-inner flex items-center gap-1.5 group-hover/alert:border-success/50"
+                            >
+                              <Icon name="CheckIcon" size={12} /> Mark Fixed
+                            </button>
+                          )}
+                        </div>
                     </div>
                   </motion.div>
                 );
@@ -473,6 +555,15 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
                           <div className="shrink-0 flex items-center justify-center w-12 h-12 rounded-full border border-cyan-500/30 bg-cyan-500/10 shadow-[inset_0_0_15px_rgba(6,182,212,0.1)]">
                             <span className="text-[10px] font-bold text-cyan-400 font-mono tracking-tighter">{progress}%</span>
                           </div>
+                        )}
+                        {isCompleted && (
+                          <button
+                            onClick={() => deleteChecklist(checklist.id)}
+                            className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all"
+                            title="Delete Checklist"
+                          >
+                            <Icon name="TrashIcon" size={14} />
+                          </button>
                         )}
                       </div>
 
@@ -675,6 +766,53 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
                       Deploy Tasks <Icon name="PaperAirplaneIcon" size={16} className="hidden sm:block" />
                     </>
                   )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 5. Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConf.isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/90 backdrop-blur-md z-[110] flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-[#0f0f15] border border-white/10 rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl relative"
+            >
+              <div className="absolute top-0 left-0 right-0 h-1 bg-red-500/50" />
+              
+              <div className="p-8 pb-4 text-center">
+                <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 text-red-500">
+                  <Icon name="TrashIcon" size={32} />
+                </div>
+                <h3 className="text-2xl font-heading font-bold text-white mb-2">{deleteConf.title}</h3>
+                <p className="text-zinc-400 text-sm font-medium">{deleteConf.description}</p>
+              </div>
+
+              <div className="flex gap-4 p-8 pt-6">
+                <button
+                  onClick={() => setDeleteConf(prev => ({ ...prev, isOpen: false }))}
+                  className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-zinc-300 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all border border-white/5"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (deleteConf.type === 'alert' && deleteConf.id) confirmDeleteAlert(deleteConf.id);
+                    if (deleteConf.type === 'checklist' && deleteConf.id) confirmDeleteChecklist(deleteConf.id);
+                  }}
+                  className="flex-1 py-4 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-bold text-xs uppercase tracking-widest transition-all shadow-lg shadow-red-900/20 border border-red-500/50"
+                >
+                  Delete Now
                 </button>
               </div>
             </motion.div>

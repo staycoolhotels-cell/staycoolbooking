@@ -472,14 +472,8 @@ const HostDashboardInteractive = ({
 
       {/* 1. SIDEBAR NAVIGATION */}
       <aside className={`fixed top-[100px] left-0 z-[95] w-72 h-[calc(100vh-100px)] bg-zinc-950 border-r border-zinc-900 flex flex-col items-center md:items-start py-6 px-4 transition-transform duration-500 ease-[0.32,0.72,0,1] md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-[20px_0_40px_rgba(0,0,0,0.8)]' : '-translate-x-full'}`}>
-        <div className="flex w-full items-center justify-between mb-6 px-4 md:hidden">
+        <div className="flex w-full items-center justify-between mt-4 mb-6 px-4 md:hidden">
           <span className="text-sm font-black uppercase tracking-widest text-white/40">Navigation</span>
-          <button
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="p-2 bg-white/5 rounded-lg text-white/60"
-          >
-            <Plus className="rotate-45" size={18} />
-          </button>
         </div>
         <div className="mb-0 px-4"></div>
 

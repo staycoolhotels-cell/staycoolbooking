@@ -24,7 +24,11 @@ import {
     Cpu,
     Zap,
     Layers,
-    IndianRupee
+    IndianRupee,
+    FileText,
+    Download,
+    Eye,
+    ExternalLink
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -338,6 +342,74 @@ const PropertyDetailsPage = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {/* Verification Documents Section */}
+                <div className="bg-[#050505] border border-white/10 rounded-lg p-8 relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-20" />
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-3">
+                            <Shield className="w-5 h-5 text-emerald-500/50" />
+                            <h3 className="text-sm text-zinc-400 font-mono uppercase tracking-wider">Verification Documents</h3>
+                        </div>
+                        <div className="text-[10px] text-zinc-600 font-mono flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/20 animate-pulse" />
+                            EXTERNAL_STORAGE_SYNC: ACTIVE
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {[
+                            { label: 'Property License', url: property.license_url, id: 'license' },
+                            { label: 'Tax Bill', url: property.tax_bill_url, id: 'tax_bill' },
+                            { label: 'Current Utility Bill', url: property.current_bill_url, id: 'current_bill' }
+                        ].map((doc) => (
+                            <div key={doc.id} className="relative group/doc">
+                                <div className={cn(
+                                    "p-6 border rounded-lg transition-all duration-300 flex flex-col items-center text-center gap-4 bg-white/5",
+                                    doc.url ? "border-white/10 hover:border-emerald-500/30 hover:bg-emerald-500/5" : "border-white/5 opacity-50 grayscale"
+                                )}>
+                                    <div className={cn(
+                                        "w-12 h-12 rounded-lg flex items-center justify-center border transition-colors",
+                                        doc.url ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-zinc-900 border-zinc-800 text-zinc-700"
+                                    )}>
+                                        <FileText className="w-6 h-6" />
+                                    </div>
+
+                                    <div>
+                                        <p className="text-xs font-mono uppercase tracking-wider text-zinc-400 mb-1">{doc.label}</p>
+                                        <p className="text-[10px] text-zinc-600 font-mono truncate max-w-[150px]">
+                                            {doc.url ? `${doc.id.toUpperCase()}_REV_01.PDF` : 'NULL_OBJECT'}
+                                        </p>
+                                    </div>
+
+                                    {doc.url ? (
+                                        <div className="flex items-center gap-2 mt-2 w-full">
+                                            <a
+                                                href={doc.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-zinc-800 hover:bg-zinc-700 border border-white/10 rounded text-[10px] uppercase font-mono tracking-wider transition-colors"
+                                            >
+                                                <Eye className="w-3 h-3" /> View
+                                            </a>
+                                            <a
+                                                href={doc.url}
+                                                download
+                                                className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/20 text-emerald-500 rounded text-[10px] uppercase font-mono tracking-wider transition-colors"
+                                            >
+                                                <Download className="w-3 h-3" /> Get
+                                            </a>
+                                        </div>
+                                    ) : (
+                                        <div className="py-2 px-3 border border-white/5 rounded text-[10px] uppercase font-mono tracking-wider text-zinc-700 mt-2 w-full">
+                                            NOT_PROVIDED
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
 

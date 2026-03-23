@@ -1,0 +1,121 @@
+﻿node_modules/@types/babel__core/index.d.ts(2,31): error TS2792: Cannot find module '@babel/parser'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+node_modules/@types/babel__core/index.d.ts(5,20): error TS2792: Cannot find module '@babel/types'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+node_modules/@types/babel__core/index.d.ts(10,52): error TS2792: Cannot find module '@babel/parser'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+node_modules/@types/babel__generator/index.d.ts(1,20): error TS2792: Cannot find module '@babel/types'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+node_modules/@types/babel__template/index.d.ts(1,31): error TS2792: Cannot find module '@babel/parser'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+node_modules/@types/babel__template/index.d.ts(2,48): error TS2792: Cannot find module '@babel/types'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+node_modules/@types/babel__traverse/index.d.ts(1,20): error TS2792: Cannot find module '@babel/types'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+node_modules/@types/babel__traverse/index.d.ts(361,28): error TS2536: Type '"type"' cannot be used to index type 'T'.
+node_modules/@types/jest/index.d.ts(643,32): error TS2792: Cannot find module 'expect'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+node_modules/@types/jest/index.d.ts(661,44): error TS2792: Cannot find module 'pretty-format'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+node_modules/@types/jest/index.d.ts(705,32): error TS2792: Cannot find module 'expect'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+node_modules/@types/jsdom/base.d.ts(6,23): error TS2792: Cannot find module 'parse5'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+node_modules/@types/node/web-globals/fetch.d.ts(3,25): error TS2792: Cannot find module 'undici-types'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+node_modules/@types/node/worker_threads.d.ts(62,34): error TS2792: Cannot find module 'undici-types'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+node_modules/@types/react/index.d.ts(7,22): error TS2792: Cannot find module 'csstype'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+node_modules/@types/react/jsx-runtime.d.ts(1,24): error TS2792: Cannot find module './'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+node_modules/@types/react/jsx-runtime.d.ts(2,26): error TS2792: Cannot find module './'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+src/app/host-dashboard/components/BookingCard.tsx(3,8): error TS1259: Module '"E:/staycoolbooking1/node_modules/@types/react/index"' can only be default-imported using the 'allowSyntheticDefaultImports' flag
+src/app/host-dashboard/components/BookingCard.tsx(4,18): error TS2792: Cannot find module '@/components/ui/AppIcon'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+src/app/host-dashboard/components/BookingCard.tsx(5,25): error TS2792: Cannot find module '@/lib/types'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+src/app/host-dashboard/components/BookingCard.tsx(6,32): error TS2792: Cannot find module '@/lib/booking-actions'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+src/app/host-dashboard/components/BookingCard.tsx(8,41): error TS2792: Cannot find module 'framer-motion'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+src/app/host-dashboard/components/BookingCard.tsx(9,31): error TS2792: Cannot find module '@/lib/dispute-actions'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+src/app/host-dashboard/components/BookingCard.tsx(10,23): error TS2792: Cannot find module 'sonner'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?
+src/app/host-dashboard/components/BookingCard.tsx(86,5): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(89,7): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(91,7): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(93,9): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(94,11): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(95,13): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(97,17): error TS2339: Property 'img' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(105,13): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(107,13): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(108,15): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(109,13): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(110,11): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(112,11): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(113,13): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(114,15): error TS2339: Property 'h3' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(116,15): error TS2339: Property 'h3' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(117,15): error TS2339: Property 'span' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(119,15): error TS2339: Property 'span' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(120,13): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(122,13): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(123,15): error TS2339: Property 'p' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(125,15): error TS2339: Property 'p' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(127,15): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(129,17): error TS2339: Property 'p' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(130,112): error TS2339: Property 'span' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(130,164): error TS2339: Property 'span' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(131,17): error TS2339: Property 'p' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(132,15): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(133,13): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(134,11): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(135,9): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(138,9): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(141,13): error TS2339: Property 'button' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(146,13): error TS2339: Property 'button' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(149,11): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(150,13): error TS2339: Property 'button' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(154,65): error TS2339: Property 'span' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(154,100): error TS2339: Property 'span' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(155,13): error TS2339: Property 'button' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(157,13): error TS2339: Property 'button' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(161,51): error TS2339: Property 'span' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(161,86): error TS2339: Property 'span' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(162,13): error TS2339: Property 'button' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(163,11): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(164,9): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(166,7): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(171,11): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(180,15): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(182,15): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(183,17): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(185,17): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(186,17): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(187,19): error TS2339: Property 'h3' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(187,111): error TS2339: Property 'h3' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(188,19): error TS2339: Property 'p' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(188,140): error TS2339: Property 'p' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(189,17): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(190,15): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(192,15): error TS2339: Property 'form' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(220,17): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(221,19): error TS2339: Property 'label' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(221,128): error TS2339: Property 'label' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(222,19): error TS2339: Property 'select' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(227,21): error TS2339: Property 'option' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(227,101): error TS2339: Property 'option' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(228,21): error TS2339: Property 'option' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(228,110): error TS2339: Property 'option' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(229,21): error TS2339: Property 'option' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(229,111): error TS2339: Property 'option' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(230,21): error TS2339: Property 'option' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(230,111): error TS2339: Property 'option' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(231,21): error TS2339: Property 'option' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(231,87): error TS2339: Property 'option' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(232,19): error TS2339: Property 'select' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(233,17): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(235,17): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(236,19): error TS2339: Property 'label' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(236,135): error TS2339: Property 'label' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(237,19): error TS2339: Property 'textarea' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(245,17): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(247,17): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(248,19): error TS2339: Property 'label' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(248,121): error TS2339: Property 'label' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(249,19): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(251,23): error TS2339: Property 'button' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(261,23): error TS2339: Property 'button' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(263,19): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(264,17): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(266,17): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(267,19): error TS2339: Property 'button' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(273,19): error TS2339: Property 'button' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(274,19): error TS2339: Property 'button' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(281,19): error TS2339: Property 'button' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(282,17): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(283,15): error TS2339: Property 'form' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(285,11): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.
+src/app/host-dashboard/components/BookingCard.tsx(288,5): error TS2339: Property 'div' does not exist on type 'JSX.IntrinsicElements'.

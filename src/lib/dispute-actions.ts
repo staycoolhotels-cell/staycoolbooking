@@ -109,3 +109,19 @@ export async function respondToDispute(disputeId: string, response: string, newS
 
     return { success: true, data: dispute };
 }
+
+export async function deleteDispute(disputeId: string) {
+    const supabase = await createClient();
+
+    const { error } = await supabase
+        .from('disputes')
+        .delete()
+        .eq('id', disputeId);
+
+    if (error) {
+        console.error('Error deleting dispute:', error);
+        return { success: false, error: error.message };
+    }
+
+    return { success: true };
+}

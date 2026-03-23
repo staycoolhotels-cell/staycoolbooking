@@ -134,6 +134,8 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     const tab = searchParamsFromHook.get('tab') as any;
     if (tab && ['overview', 'verifications', 'disputes', 'transactions', 'users', 'properties', 'inbox'].includes(tab)) {
       setActiveTabState(tab);
+    } else {
+      setActiveTabState('overview');
     }
   }, [searchParamsFromHook]);
 
@@ -554,7 +556,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         </div>
 
         {/* Tab Navigation */}
-        <div className="relative mb-8 sticky top-20 z-40">
+        <div className="relative mb-8 z-40">
           <div className="bg-[#0a0a0f]/70 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
             <div className="flex items-center gap-1 overflow-x-auto no-scrollbar px-1">
               {(
