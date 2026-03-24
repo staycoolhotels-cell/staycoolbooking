@@ -2,76 +2,79 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
 import crypto from 'crypto';
 
+/**
+ * POST /api/payment/razorpay/verify
+ *
+ * Verifies Razorpay payment signature, confirms the booking,
+ * and updates the payment_transfers record with all IDs.
+ */
 export async function POST(req: Request) {
     try {
         const {
-            orderCreationId,
-            razorpayPaymentId,
             razorpayOrderId,
+            razorpayPaymentId,
             razorpaySignature,
-            bookingId // We need this to update the DB
+            bookingId,
         } = await req.json();
 
-        const signature = razorpayOrderId + "|" + razorpayPaymentId;
+        if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature || !bookingId) {
+            return NextResponse.json({ error: 'Missing required payment verification fields.' }, { status: 400 });
+        }
+
+        // ─────────────────────────────────────────────
+        // 1. Verify HMAC signature
+        // ─────────────────────────────────────────────
+        const signatureBody = `${razorpayOrderId}|${razorpayPaymentId}`;
         const expectedSignature = crypto
             .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
-            .update(signature.toString())
+            .update(signatureBody)
             .digest('hex');
 
         if (expectedSignature !== razorpaySignature) {
-            return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+            return NextResponse.json({ error: 'Invalid payment signature. Payment verification failed.' }, { status: 400 });
         }
 
-        // Signature valid, update database
+        // ─────────────────────────────────────────────
+        // 2. Update booking status to confirmed
+        // ─────────────────────────────────────────────
         const supabase = await createClient();
 
-        // 1. Update Booking Status
-        const { error: updateError } = await supabase
+        const { error: bookingUpdateError } = await supabase
             .from('bookings')
-            .update({ status: 'confirmed' }) // Ensure it's confirmed/paid
+            .update({
+                status: 'confirmed',
+                razorpay_payment_id: razorpayPaymentId,
+            })
             .eq('id', bookingId);
 
-        if (updateError) {
-            console.error('Booking update failed:', updateError);
-            // Transaction is valid but DB update failed.
+        if (bookingUpdateError) {
+            console.error('Booking update failed:', bookingUpdateError);
+            // Payment is valid even if DB update fails — log but don't block response
         }
 
-        // 2. Record Transaction
-        const { data: booking } = await supabase
-            .from('bookings')
-            .select('guest_id, property_id, total_price')
-            .eq('id', bookingId)
-            .single();
+        // ─────────────────────────────────────────────
+        // 3. Update payment_transfers with payment ID
+        // ─────────────────────────────────────────────
+        const { error: transferUpdateError } = await supabase
+            .from('payment_transfers')
+            .update({
+                razorpay_payment_id: razorpayPaymentId,
+                transfer_status: 'processing',
+            })
+            .eq('razorpay_order_id', razorpayOrderId);
 
-        if (booking) {
-            const totalAmount = Number(booking.total_price);
-            let paidAmount = totalAmount;
-            if (totalAmount > 100000) {
-                paidAmount = totalAmount / 2;
-            }
-
-            // Get host_id from property
-            const { data: property } = await supabase
-                .from('properties')
-                .select('host_id')
-                .eq('id', booking.property_id)
-                .single();
-
-            await supabase
-                .from('transactions')
-                .insert({
-                    booking_id: bookingId,
-                    guest_id: booking.guest_id,
-                    host_id: property?.host_id,
-                    amount: paidAmount, // Record actual paid amount (50% or full)
-                    status: 'completed', // or 'succeeded'
-                });
+        if (transferUpdateError) {
+            console.error('Transfer record update failed:', transferUpdateError);
         }
 
-        return NextResponse.json({ success: true, message: 'Payment verified' });
+        return NextResponse.json({
+            success: true,
+            message: 'Payment verified and booking confirmed.',
+            bookingId,
+        });
 
     } catch (error: any) {
         console.error('Payment verification failed:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error.message || 'Payment verification error' }, { status: 500 });
     }
 }

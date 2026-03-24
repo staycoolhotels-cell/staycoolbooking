@@ -76,32 +76,23 @@ const AdminHeader = ({ onMenuToggle, isMobileMenuOpen }: AdminHeaderProps) => {
                         <motion.div
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="relative w-9 h-9 rounded-full overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.15)] bg-white p-[1px] border border-zinc-200/30"
+                            className="flex items-center gap-4"
                         >
-                            <img src="/assets/images/logo.png.jpg" alt="StayCool Logo" className="w-full h-full object-cover rounded-full" />
-                        </motion.div>
-                        <div className="overflow-hidden hidden sm:block">
-                            <motion.div
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className="relative w-[110px] h-[24px] -mb-1"
-                            >
-                                <AppImage
-                                    src="/assets/Picsart_26-03-22_23-32-24-684.png"
-                                    alt="StayCool"
-                                    fill
-                                    objectFit="contain"
-                                    style={{ objectPosition: 'left' }}
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <div className="rounded-full border-2 border-sky-500/70 p-[4px] shadow-[0_0_8px_rgba(14,165,233,0.4)] flex items-center justify-center">
+                                <img
+                                    src="/assets/images/logo.png"
+                                    alt="StayCool Logo"
+                                    className="h-7 sm:h-8 w-auto object-contain"
                                 />
-                            </motion.div>
-                            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.2em]">
-                                Admin Panel
-                            </span>
-                        </div>
-                        <span className="sm:hidden text-[13px] font-black uppercase tracking-tighter text-white">
-                            Admin
-                        </span>
-
+                            </div>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                                src="/assets/Picsart_26-03-22_23-32-24-684.png"
+                                alt="StayCool"
+                                className="hidden sm:block h-7 sm:h-8 w-auto object-contain"
+                            />
+                        </motion.div>
                     </Link>
 
                     {/* CENTER: Desktop Nav Links */}

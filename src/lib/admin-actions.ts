@@ -545,3 +545,50 @@ export async function updateDisputeStatusAsAdmin(disputeId: string, status: 'ope
   }
 }
 
+
+/**
+ * Fetches all host KYC records joined with user profiles for the admin KYC Management page.
+ */
+export async function fetchHostKycList() {
+  const supabase = await createAdminSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('host_kyc_details')
+    .select(`
+      id,
+      user_id,
+      legal_business_name,
+      email,
+      phone,
+      pan_number,
+      bank_account_number,
+      bank_ifsc,
+      bank_beneficiary_name,
+      razorpay_account_id,
+      razorpay_product_id,
+      kyc_status,
+      kyc_error_message,
+      created_at,
+      updated_at
+    `)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('fetchHostKycList error:', error);
+    return [];
+  }
+
+  const userIds = (data || []).map((r: any) => r.user_id);
+  const { data: users } = await supabase
+    .from('users')
+    .select('id, name, email')
+    .in('id', userIds);
+
+  const userMap = Object.fromEntries((users || []).map((u: any) => [u.id, u]));
+
+  return (data || []).map((record: any) => ({
+    ...record,
+    host_name: userMap[record.user_id]?.name || 'Unknown Host',
+    host_email: userMap[record.user_id]?.email || record.email,
+  }));
+}

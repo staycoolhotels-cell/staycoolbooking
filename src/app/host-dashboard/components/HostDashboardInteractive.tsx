@@ -33,13 +33,14 @@ import Profile from './Profile';
 import OccupancyPulse from './OccupancyPulse'; // Imported OccupancyPulse
 import RevenueForecasting from './RevenueForecasting'; // Imported RevenueForecasting
 import SmartEstateManagement from './SmartEstateManagement'; // Imported SmartEstateManagement
-import FinancialTreasury from './FinancialTreasury'; // Imported FinancialTreasury
 import UnifiedInbox from './UnifiedInbox'; // Imported UnifiedInbox
 import AuraQualityScore from './AuraQualityScore'; // Imported AuraQualityScore
 import SmartDocumentVault from './SmartDocumentVault'; // Imported SmartDocumentVault
 import DynamicAmenityUpsell from './DynamicAmenityUpsell'; // Imported DynamicAmenityUpsell
 import CleaningMaintenanceLog from './CleaningMaintenanceLog';
 import DisputesList from './DisputesList';
+import BankingDetails from './BankingDetails';
+import PayoutHistory from './PayoutHistory';
 import AddPropertyModal, { FormData } from './AddPropertyModal';
 import { Property, Transaction } from '@/lib/types';
 import { createBrowserClient } from '@supabase/ssr';
@@ -77,7 +78,6 @@ const HostDashboardInteractive = ({
     | 'occupancy-pulse'
     | 'revenue-velocity'
     | 'smart-estate'
-    | 'financial-treasury'
     | 'unified-inbox'
     | 'aura-quality'
     | 'document-vault'
@@ -85,7 +85,9 @@ const HostDashboardInteractive = ({
     | 'cleaning-maintenance'
     | 'disputes'
     | 'availability'
-    | 'support-chat';
+    | 'support-chat'
+    | 'banking-details'
+    | 'payout-history';
 
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -102,7 +104,8 @@ const HostDashboardInteractive = ({
       'overview', 'properties', 'bookings', 'earnings', 'profile',
       'occupancy-pulse', 'revenue-velocity', 'smart-estate', 'financial-treasury',
       'unified-inbox', 'aura-quality', 'document-vault', 'amenity-upsell',
-      'cleaning-maintenance', 'disputes', 'availability', 'support-chat'
+      'cleaning-maintenance', 'disputes', 'availability', 'support-chat',
+      'banking-details', 'payout-history'
     ].includes(tab)) {
       setActiveTab(tab);
     } else {
@@ -366,7 +369,8 @@ const HostDashboardInteractive = ({
     { id: 'occupancy-pulse', label: 'Occupancy Pulse', icon: Calendar },
     { id: 'revenue-velocity', label: 'Revenue Velocity', icon: DollarSign },
     { id: 'smart-estate', label: 'Smart Estate', icon: Building },
-    { id: 'financial-treasury', label: 'Financial Treasury', icon: Banknote },
+    { id: 'banking-details', label: 'Banking & KYC', icon: Banknote },
+    { id: 'payout-history', label: 'Payout History', icon: Wallet },
     { id: 'unified-inbox', label: 'Unified Inbox', icon: MessageSquare },
     { id: 'aura-quality', label: 'Aura Quality', icon: Star },
     { id: 'document-vault', label: 'Document Vault', icon: FolderKanban },
@@ -619,7 +623,6 @@ const HostDashboardInteractive = ({
                   {activeTab === 'occupancy-pulse' && <OccupancyPulse bookings={hostData.bookings} />}
                   {activeTab === 'revenue-velocity' && <RevenueForecasting bookings={hostData.bookings} />}
                   {activeTab === 'smart-estate' && <SmartEstateManagement properties={properties} />}
-                  {activeTab === 'financial-treasury' && <FinancialTreasury transactions={hostData.transactions} />}
                   {activeTab === 'unified-inbox' && <UnifiedInbox />}
                   {activeTab === 'aura-quality' && <AuraQualityScore properties={properties} />}
                   {activeTab === 'document-vault' && <SmartDocumentVault properties={properties} />}
@@ -627,6 +630,8 @@ const HostDashboardInteractive = ({
                   {activeTab === 'cleaning-maintenance' && <CleaningMaintenanceLog properties={properties} />}
                   {activeTab === 'disputes' && <DisputesList disputes={disputes} isLoading={isLoadingDisputes} />}
                   {activeTab === 'availability' && <AvailabilityCalendar properties={properties} />}
+                  {activeTab === 'banking-details' && <BankingDetails />}
+                  {activeTab === 'payout-history' && <PayoutHistory />}
                   {activeTab === 'support-chat' && (
                     <SupportChatSection currentUser={{ id: hostData.id, name: hostData.name }} />
                   )}

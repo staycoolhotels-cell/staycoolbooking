@@ -3,7 +3,6 @@
 import React, { useState, useMemo } from 'react';
 import EarningsChart from './EarningsChart';
 import { Transaction } from '@/lib/types';
-import HostConnectRazorpay from '@/components/HostConnectRazorpay';
 import PayoutsTable from './PayoutsTable';
 import Icon from '@/components/ui/AppIcon';
 
@@ -76,51 +75,29 @@ const Earnings = ({ earnings }: EarningsProps) => {
         </div>
       </div>
 
-      {/* 2. Top Stats & Routing */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Core Earnings Metric */}
-        <div className="lg:col-span-1 bg-gradient-to-br from-[#0a0a0f] to-zinc-900/80 p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden flex flex-col justify-center min-h-[220px]">
-          <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/20 rounded-full blur-[60px] pointer-events-none" />
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-emerald-500/20 rounded-lg">
-                <Icon name="ChartBarIcon" size={20} className="text-emerald-400" />
-              </div>
-              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Gross Revenue (Lifetime)</h3>
+      {/* 2. Top Stats */}
+      <div className="bg-gradient-to-br from-[#0a0a0f] to-zinc-900/80 p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden flex flex-col justify-center min-h-[180px]">
+        <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/20 rounded-full blur-[60px] pointer-events-none" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-emerald-500/20 rounded-lg">
+              <Icon name="ChartBarIcon" size={20} className="text-emerald-400" />
             </div>
+            <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Gross Revenue (Lifetime)</h3>
+          </div>
 
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-emerald-500">₹</span>
-              <h2 className="text-5xl lg:text-6xl font-black text-white tracking-tighter drop-shadow-lg">
-                {totalEarnings.toLocaleString()}
-              </h2>
-            </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-black text-emerald-500">₹</span>
+            <h2 className="text-5xl lg:text-6xl font-black text-white tracking-tighter drop-shadow-lg">
+              {totalEarnings.toLocaleString()}
+            </h2>
+          </div>
 
-            <div className="mt-6 flex items-center gap-2 text-emerald-400 bg-emerald-500/10 w-fit px-3 py-1.5 rounded-lg border border-emerald-500/20">
-              <Icon name="ArrowTrendingUpIcon" size={14} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">+₹{recentEarnings.toLocaleString()} This Month</span>
-            </div>
+          <div className="mt-6 flex items-center gap-2 text-emerald-400 bg-emerald-500/10 w-fit px-3 py-1.5 rounded-lg border border-emerald-500/20">
+            <Icon name="ArrowTrendingUpIcon" size={14} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">+₹{recentEarnings.toLocaleString()} This Month</span>
           </div>
         </div>
-
-        {/* Payout Routing (Razorpay) */}
-        <div className="lg:col-span-2 bg-[#0a0a0f]/60 backdrop-blur-xl p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden flex flex-col justify-center">
-          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
-          <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center justify-between">
-            <div className="flex-1">
-              <h3 className="text-xl font-heading font-black text-white mb-2 flex items-center gap-3">
-                <Icon name="BuildingLibraryIcon" size={24} className="text-indigo-400" /> Payment Routing
-              </h3>
-              <p className="text-sm text-zinc-400 mb-6 max-w-md">Connect your verified bank account via Razorpay to receive automated, scheduled payout disbursements directly to your institution.</p>
-              <HostConnectRazorpay />
-            </div>
-            <div className="hidden md:flex w-32 h-32 rounded-full border-[8px] border-indigo-500/20 items-center justify-center shrink-0">
-              <Icon name="ShieldCheckIcon" size={48} className="text-indigo-500/50" />
-            </div>
-          </div>
-        </div>
-
       </div>
 
       {/* 3. Analytics Chart Section */}

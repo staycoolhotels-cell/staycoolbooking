@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     siteName: 'StayCool Booking',
     images: [
       {
-        url: '/assets/images/logo.png.jpg',
+        url: '/assets/images/logo.png',
         width: 1200,
         height: 630,
         alt: 'StayCool Booking Logo',
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'StayCool Booking - Find Your Perfect Stay',
     description: 'The ultimate platform for unique stays, hotel rooms, and nature lodges.',
-    images: ['/assets/images/logo.png.jpg'],
+    images: ['/assets/images/logo.png'],
   },
   icons: {
     icon: [

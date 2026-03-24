@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
 import { razorpay } from '@/lib/razorpay';
 
+/**
+ * POST /api/payment/razorpay/create-order
+ *
+ * Creates a Razorpay order with automatic payment split via Route.
+ * Commission is fetched dynamically from commission_rules table.
+ */
 export async function POST(req: Request) {
     try {
         const supabase = await createClient();
@@ -17,14 +23,19 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 });
         }
 
-        // Fetch Booking Details with Property and Host Info
+        // ─────────────────────────────────────────────
+        // 1. Fetch Booking with property info
+        // ─────────────────────────────────────────────
         const { data: booking, error: bookingError } = await supabase
             .from('bookings')
             .select(`
-                id, 
-                total_price, 
+                id,
+                total_price,
                 status,
+                guest_id,
+                property_id,
                 property:properties!property_id (
+                    id,
                     host_id
                 )
             `)
@@ -32,109 +43,146 @@ export async function POST(req: Request) {
             .single();
 
         if (bookingError || !booking) {
-            console.error("Booking fetch error:", bookingError);
+            console.error('Booking fetch error:', bookingError);
             return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
         }
 
-        // Fetch Host's Razorpay Account ID
-        // Note: property is single object because of !property_id relation or array?
-        // Usually properties is singular if property_id is FK.
-        // But Typescript might complain.
-        const hostId = (booking.property as any)?.host_id;
-
-        let transfers = [];
-        const totalAmount = Number(booking.total_price);
-        let payableAmount = totalAmount;
-        let isSplitPayment = false;
-
-        if (totalAmount > 100000) {
-            payableAmount = totalAmount / 2;
-            isSplitPayment = true;
+        // Ensure access: only the guest can pay for their own booking
+        if (booking.guest_id !== user.id) {
+            return NextResponse.json({ error: 'Forbidden: this is not your booking' }, { status: 403 });
         }
 
-        const amount = Math.round(payableAmount * 100); // Amount in paise
-        // The `transfers` array was declared twice in the original code.
-        // The new code provided by the user also has `let transfers = [];` here.
-        // To avoid redeclaration, I will keep the first declaration and remove this one.
-        // let transfers = []; 
+        if (booking.status === 'confirmed') {
+            return NextResponse.json({ error: 'This booking is already paid.' }, { status: 409 });
+        }
+
+        const totalAmount = Number(booking.total_price);
+        const property = booking.property as any;
+        const hostId = property?.host_id;
+
+        // ─────────────────────────────────────────────
+        // 2. Calculate commission dynamically
+        // ─────────────────────────────────────────────
+        let commissionAmount = totalAmount * 0.20; // default 20%
+        let hostAmount = totalAmount - commissionAmount;
+        let commissionType = 'percentage';
+        let commissionValue = 20;
+
+        const { data: commissionData } = await supabase
+            .rpc('get_commission_for_booking', {
+                p_property_id: booking.property_id,
+                p_total_price: totalAmount,
+            });
+
+        if (commissionData) {
+            commissionAmount = Number(commissionData.commission_amount);
+            hostAmount = Number(commissionData.host_amount);
+            commissionType = commissionData.commission_type;
+            commissionValue = Number(commissionData.commission_value);
+        }
+
+        // ─────────────────────────────────────────────
+        // 3. Fetch host's linked account (only if activated)
+        // ─────────────────────────────────────────────
+        let hostRazorpayAccountId: string | null = null;
 
         if (hostId) {
-            const { data: wallet } = await supabase
-                .from('user_wallets')
-                .select('razorpay_account_id')
+            const { data: hostKyc } = await supabase
+                .from('host_kyc_details')
+                .select('razorpay_account_id, kyc_status')
                 .eq('user_id', hostId)
                 .single();
 
-            if (wallet?.razorpay_account_id) {
-                // Guest pays 10% on top of base amount (totalAmount = baseAmount * 1.1)
-                // We need to reverse-calculate the base amount to deduct the 10% correctly.
-                const baseAmount = totalAmount / 1.1;
-
-                // Platform fee is 20% of base amount (10% from guest, 10% from host)
-                const platformFee = baseAmount * 0.20;
-
-                // Host's total share (90% of base amount, meaning 10% service fee is deducted)
-                const totalHostShare = baseAmount * 0.90;
-
-                let transferAmount = 0;
-
-                if (isSplitPayment) {
-                    // Host collects 50% offline directly
-                    const offlineCollection = totalAmount / 2;
-                    transferAmount = totalHostShare - offlineCollection;
-                } else {
-                    // Full payment online, transfer full host share
-                    transferAmount = totalHostShare;
-                }
-
-                if (transferAmount > 0) {
-                    transfers.push({
-                        account: wallet.razorpay_account_id,
-                        amount: Math.round(transferAmount * 100), // Convert to paise
-                        currency: 'INR',
-                        notes: {
-                            booking_id: bookingId,
-                            type: 'host_payout',
-                            split_payment: isSplitPayment ? 'yes' : 'no'
-                        },
-                        linked_account_notes: [
-                            'booking_id'
-                        ],
-                        on_hold: 0
-                    });
-                }
+            if (hostKyc?.razorpay_account_id && hostKyc.kyc_status === 'activated') {
+                hostRazorpayAccountId = hostKyc.razorpay_account_id;
             }
         }
-        const currency = 'INR';
 
-        const options: any = {
-            amount: amount.toString(),
-            currency,
-            receipt: bookingId,
+        // ─────────────────────────────────────────────
+        // 4. Build Razorpay order with Route transfers
+        // ─────────────────────────────────────────────
+        const amountInPaise = Math.round(totalAmount * 100);
+
+        const transfers = [];
+        if (hostRazorpayAccountId && hostAmount > 0) {
+            transfers.push({
+                account: hostRazorpayAccountId,
+                amount: Math.round(hostAmount * 100), // paise
+                currency: 'INR',
+                notes: {
+                    booking_id: bookingId,
+                    type: 'host_payout',
+                    host_id: hostId,
+                },
+                linked_account_notes: ['booking_id'],
+                on_hold: 0,
+            });
+        }
+
+        const orderOptions: any = {
+            amount: amountInPaise.toString(),
+            currency: 'INR',
+            receipt: `booking_${bookingId.slice(0, 20)}`,
             notes: {
                 booking_id: bookingId,
-                guest_id: user.id
-            }
+                guest_id: user.id,
+                property_id: booking.property_id,
+                platform_commission: commissionAmount.toFixed(2),
+                host_amount: hostAmount.toFixed(2),
+            },
         };
 
         if (transfers.length > 0) {
-            options.transfers = transfers;
+            orderOptions.transfers = transfers;
         }
 
-        const order = await razorpay.orders.create(options);
+        const order = await razorpay.orders.create(orderOptions);
 
-        // Update booking with order ID? Not strictly matching yet, but good for tracking.
-        // We can rely on notes for now.
+        // ─────────────────────────────────────────────
+        // 5. Persist order ID on booking
+        // ─────────────────────────────────────────────
+        await supabase
+            .from('bookings')
+            .update({ razorpay_order_id: order.id })
+            .eq('id', bookingId);
+
+        // ─────────────────────────────────────────────
+        // 6. Create pending payment_transfers record
+        // ─────────────────────────────────────────────
+        await supabase
+            .from('payment_transfers')
+            .upsert(
+                {
+                    booking_id: bookingId,
+                    host_id: hostId,
+                    razorpay_order_id: order.id,
+                    total_amount: totalAmount,
+                    platform_commission: commissionAmount,
+                    host_amount: hostAmount,
+                    commission_type: commissionType,
+                    commission_value: commissionValue,
+                    transfer_status: 'pending',
+                },
+                { onConflict: 'booking_id' }
+            );
 
         return NextResponse.json({
             orderId: order.id,
-            amount: amount,
-            currency: currency,
-            keyId: process.env.RAZORPAY_KEY_ID
+            amount: amountInPaise,
+            currency: 'INR',
+            keyId: process.env.RAZORPAY_KEY_ID,
+            breakdown: {
+                total: totalAmount,
+                platformCommission: commissionAmount,
+                hostAmount: hostAmount,
+                commissionType,
+                commissionValue,
+                splitEnabled: transfers.length > 0,
+            },
         });
 
     } catch (error: any) {
-        console.error('Razorpay Order creation failed:', error);
-        return NextResponse.json({ error: error.message || 'Error creating order' }, { status: 500 });
+        console.error('Razorpay order creation failed:', error);
+        return NextResponse.json({ error: error.message || 'Error creating payment order' }, { status: 500 });
     }
 }

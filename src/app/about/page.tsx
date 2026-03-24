@@ -150,7 +150,64 @@ export default function AboutUsPage() {
       </section>
 
       {/* Values section ends here */}
-      
+
+      {/* Meet the Team */}
+      <section className="px-6 md:px-20 py-24 max-w-7xl mx-auto">
+        <motion.div {...fadeUp} className="text-center mb-20">
+          <p className="text-xs uppercase tracking-[0.3em] text-sky-400 font-bold mb-4">The People Behind Stay Cool</p>
+          <h2 className="font-heading text-4xl md:text-5xl font-bold text-white">Meet the Team</h2>
+        </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-3xl mx-auto">
+          {/* Team Member 1 */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            viewport={{ once: true }}
+            className="flex flex-col items-center text-center group"
+          >
+            <div className="relative w-64 h-80 rounded-3xl overflow-hidden mb-6 border border-zinc-800/50 shadow-2xl shadow-black/60 group-hover:border-sky-500/30 transition-all duration-500">
+              <AppImage
+                src="/assets/images/team-member-1.JPG"
+                alt="Co-founder"
+                fill={true}
+                objectFit="cover"
+                style={{ objectPosition: 'center top' }}
+              />
+            </div>
+            <h3 className="font-heading text-2xl font-bold text-white mb-1">Mr. Raju</h3>
+            <p className="text-sky-400 text-sm font-medium tracking-wider uppercase mb-3">Founder</p>
+            <p className="text-zinc-500 text-sm leading-relaxed max-w-xs">
+              Passionate about creating fair and transparent experiences for both hosts and guests.
+            </p>
+          </motion.div>
+
+          {/* Team Member 2 */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.15 }}
+            viewport={{ once: true }}
+            className="flex flex-col items-center text-center group"
+          >
+            <div className="relative w-64 h-80 rounded-3xl overflow-hidden mb-6 border border-zinc-800/50 shadow-2xl shadow-black/60 group-hover:border-sky-500/30 transition-all duration-500">
+              <AppImage
+                src="/assets/images/team-member-2.JPG"
+                alt="Co-founder"
+                fill={true}
+                objectFit="cover"
+                style={{ objectPosition: 'center top' }}
+              />
+            </div>
+            <h3 className="font-heading text-2xl font-bold text-white mb-1">Mr. Suraj</h3>
+            <p className="text-sky-400 text-sm font-medium tracking-wider uppercase mb-3">Founder</p>
+            <p className="text-zinc-500 text-sm leading-relaxed max-w-xs">
+              Dedicated to building a platform that empowers hosts and delivers exceptional value to every traveller.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
       {/* CTA section follows */}
 
       {/* CTA */}

@@ -17,6 +17,7 @@ const navLinks = [
     icon: 'HomeModernIcon',
   },
   { href: '/admin-panel/financials', label: 'Financials', icon: 'BanknotesIcon' },
+  { href: '/admin-panel/kyc-management', label: 'KYC Management', icon: 'IdentificationIcon' },
   { href: '/admin-panel/user-management', label: 'User Management', icon: 'UsersIcon' },
   { href: '/admin-panel/marketing', label: 'Marketing', icon: 'MegaphoneIcon' },
   { href: '/admin-panel/reviews', label: 'Reviews', icon: 'ChatBubbleBottomCenterTextIcon' },
