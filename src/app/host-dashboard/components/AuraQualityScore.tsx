@@ -50,6 +50,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
   const [marketComparisons, setMarketComparisons] = useState<MarketComparisonData[]>([]);
   const [loading, setLoading] = useState(true);
   const [guestReviews, setGuestReviews] = useState<GuestReview[]>([]);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   const propertyMap = useMemo(() => {
     return properties.reduce((acc, prop) => {
@@ -72,7 +73,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
       try {
         const { data: reviewsData, error: reviewsError } = await supabase
           .from('reviews')
-          .select('id, rating, comment, created_at, property_id, reviewer_id, reviewer:users!reviewer_id(name, avatar_url), property:properties!property_id(title, name)')
+          .select('id, rating, cleanliness_rating, accuracy_rating, check_in_rating, communication_rating, location_rating, value_rating, comment, created_at, property_id, reviewer_id, reviewer:users!reviewer_id(name, avatar_url), property:properties!property_id(title, name)')
           .in('property_id', propertyIds)
           .order('created_at', { ascending: false });
 
@@ -301,10 +302,11 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
           <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Chronological Reviews</p>
         </div>
 
-        <div className="relative z-10 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
+        <div className={`relative z-10 ${!showAllReviews ? 'max-h-[500px]' : ''} overflow-y-auto pr-2 no-scrollbar transition-all duration-500`}>
           {guestReviews.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {guestReviews.map((review, idx) => (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(showAllReviews ? guestReviews : guestReviews.slice(0, 4)).map((review, idx) => (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -345,6 +347,24 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
                 </motion.div>
               ))}
             </div>
+
+            {guestReviews.length > 4 && (
+              <div className="flex justify-center mt-8 pb-2">
+                <button
+                  onClick={() => setShowAllReviews(!showAllReviews)}
+                  className="group/btn relative px-8 py-3 bg-white/5 hover:bg-amber-500/10 border border-white/10 hover:border-amber-500/30 rounded-2xl transition-all duration-300 flex items-center gap-3 overflow-hidden shadow-lg"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/5 to-amber-500/0 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-1000" />
+                  <span className="relative z-10 text-xs font-black uppercase tracking-[0.2em] text-zinc-400 group-hover/btn:text-amber-400">
+                    {showAllReviews ? 'Show Fewer Signals' : `Show All ${guestReviews.length} Signals`}
+                  </span>
+                  <div className={`relative z-10 transition-transform duration-500 ${showAllReviews ? 'rotate-180' : ''}`}>
+                    <Icon name="ChevronDownIcon" size={14} className="text-amber-500/50 group-hover/btn:text-amber-400" />
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center opacity-60">
               <Icon name="FaceSmileIcon" size={40} className="text-zinc-500 mb-4" />

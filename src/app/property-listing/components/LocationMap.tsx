@@ -1,11 +1,43 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+
+// --- Geocoding cache to avoid duplicate API calls ---
+const geocodeCache: Record<string, { lat: number; lng: number } | null> = {};
+
+async function geocodeLocation(locationStr: string): Promise<{ lat: number; lng: number } | null> {
+  if (!locationStr || locationStr.trim() === '') return null;
+  if (geocodeCache[locationStr] !== undefined) return geocodeCache[locationStr];
+  try {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) throw new Error('API Key missing');
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationStr)}&key=${apiKey}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.status === 'OK' && data.results[0]) {
+      const result = data.results[0].geometry.location;
+      geocodeCache[locationStr] = result;
+      return result;
+    }
+    
+    if (data.status === 'REQUEST_DENIED') {
+      console.error('Geocoding API access denied. Ensure "Geocoding API" is enabled in Google Cloud Console.');
+    }
+    
+    geocodeCache[locationStr] = null;
+    return null;
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    geocodeCache[locationStr] = null;
+    return null;
+  }
+}
 
 interface LocationMapProps {
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
   locationName: string;
   address: string;
   nearbyAttractions: Array<{
@@ -15,6 +47,37 @@ interface LocationMapProps {
   }>;
 }
 
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%',
+};
+
+const darkMapStyle = [
+  { elementType: 'geometry', stylers: [{ color: '#1d2c4d' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#8ec3b9' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#1a3646' }] },
+  { featureType: 'administrative.country', elementType: 'geometry.stroke', stylers: [{ color: '#4b6878' }] },
+  { featureType: 'administrative.province', elementType: 'geometry.stroke', stylers: [{ color: '#4b6878' }] },
+  { featureType: 'landscape.man_made', elementType: 'geometry.stroke', stylers: [{ color: '#334e87' }] },
+  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#023e58' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#283d6a' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#6f9ba5' }] },
+  { featureType: 'poi.park', elementType: 'geometry.fill', stylers: [{ color: '#023e58' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#304a7d' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#98a5be' }] },
+  { featureType: 'road', elementType: 'labels.text.stroke', stylers: [{ color: '#1d2c4d' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#2c6675' }] },
+  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#255761' }] },
+  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#b0d5ce' }] },
+  { featureType: 'road.highway', elementType: 'labels.text.stroke', stylers: [{ color: '#023e58' }] },
+  { featureType: 'transit', elementType: 'labels.text.fill', stylers: [{ color: '#98a5be' }] },
+  { featureType: 'transit', elementType: 'labels.text.stroke', stylers: [{ color: '#1d2c4d' }] },
+  { featureType: 'transit.line', elementType: 'geometry.fill', stylers: [{ color: '#283d6a' }] },
+  { featureType: 'transit.station', elementType: 'geometry', stylers: [{ color: '#3a4762' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0e1626' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#4e6d70' }] },
+];
+
 const LocationMap = ({
   latitude,
   longitude,
@@ -22,13 +85,50 @@ const LocationMap = ({
   address,
   nearbyAttractions,
 }: LocationMapProps) => {
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+  });
 
   useEffect(() => {
-    setIsHydrated(true);
+    const resolveCoords = async () => {
+      setError(null);
+      // If valid coordinates are provided, use them
+      if (latitude && longitude && !(latitude === 32.24 && longitude === 77.18)) {
+        setCoords({ lat: latitude, lng: longitude });
+        return;
+      }
+      
+      if (!address) {
+        setError('No address provided for map location.');
+        return;
+      }
+
+      // Otherwise geocode the address
+      const result = await geocodeLocation(address);
+      if (result) {
+        setCoords(result);
+      } else {
+        setError('Unable to resolve location coordinates. Please ensure Google Geocoding API is enabled.');
+      }
+    };
+    resolveCoords();
+  }, [latitude, longitude, address]);
+
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+
+  const onLoad = useCallback(function callback(map: google.maps.Map) {
+    setMap(map);
   }, []);
 
-  if (!isHydrated) {
+  const onUnmount = useCallback(function callback() {
+    setMap(null);
+  }, []);
+
+  if (!isLoaded) {
     return (
       <div className="bg-card rounded-xl p-4 md:p-8 border border-border">
         <div className="h-48 md:h-96 bg-muted animate-pulse rounded-lg"></div>
@@ -61,16 +161,59 @@ const LocationMap = ({
       </div>
 
       {/* Map — shorter on mobile */}
-      <div className="w-full h-48 md:h-96 rounded-2xl overflow-hidden mb-4 md:mb-8 border border-white/10 shadow-lg shadow-black/50">
-        <iframe
-          width="100%"
-          height="100%"
-          loading="lazy"
-          title={locationName}
-          referrerPolicy="no-referrer-when-downgrade"
-          src={`https://www.google.com/maps?q=${latitude},${longitude}&z=14&output=embed`}
-          className="border-0"
-        ></iframe>
+      <div className="w-full h-48 md:h-96 rounded-2xl overflow-hidden mb-4 md:mb-8 border border-white/10 shadow-lg shadow-black/50 bg-zinc-900 flex items-center justify-center relative p-6">
+        {coords ? (
+          <GoogleMap
+            mapContainerStyle={mapContainerStyle}
+            center={coords}
+            zoom={14}
+            onLoad={onLoad}
+            onUnmount={onUnmount}
+            options={{
+              styles: darkMapStyle,
+              disableDefaultUI: true,
+              zoomControl: true,
+            }}
+          >
+            <Marker 
+              position={coords}
+              icon={{
+                path: "M11 0C4.925 0 0 4.925 0 11C0 18.5 11 34 11 34C11 34 22 18.5 22 11C22 4.925 17.075 0 11 0Z",
+                fillColor: "#0ea5e9",
+                fillOpacity: 1,
+                strokeWeight: 1,
+                strokeColor: "#ffffff",
+                scale: 1,
+                anchor: new google.maps.Point(11, 34),
+              }}
+            />
+          </GoogleMap>
+        ) : error ? (
+          <div className="flex flex-col items-center gap-4 text-center max-w-sm px-4">
+            <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center">
+              <Icon name="ExclamationTriangleIcon" size={24} className="text-red-400" />
+            </div>
+            <div>
+              <p className="text-zinc-200 text-sm font-bold mb-1">Map Loading Failed</p>
+              <p className="text-zinc-500 text-xs leading-relaxed">
+                Google Geocoding API is not activated for this key. Please enable it in the Google Cloud Console.
+              </p>
+            </div>
+            <a 
+              href="https://console.cloud.google.com/google/maps-apis/api-list" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-sky-500/10 border border-sky-500/30 rounded-full text-sky-400 text-[10px] font-bold uppercase tracking-widest hover:bg-sky-500/20 transition-all font-sans"
+            >
+              Open Console
+            </a>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-zinc-400 text-sm font-medium">Loading map…</p>
+          </div>
+        )}
       </div>
 
       {/* Nearby Attractions */}

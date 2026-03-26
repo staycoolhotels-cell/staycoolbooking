@@ -36,14 +36,14 @@ interface ReviewsSectionProps {
 
 const ReviewsSection = ({ reviews, averageRating, totalReviews, categoryRatings, badges }: ReviewsSectionProps) => {
   const [isHydrated, setIsHydrated] = useState(false);
-  const [visibleReviews, setVisibleReviews] = useState(3);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     setIsHydrated(true);
   }, []);
 
-  const loadMoreReviews = () => {
-    setVisibleReviews((prev) => Math.min(prev + 3, reviews.length));
+  const toggleReviews = () => {
+    setShowAll(!showAll);
   };
 
   if (!isHydrated) {
@@ -143,7 +143,7 @@ const ReviewsSection = ({ reviews, averageRating, totalReviews, categoryRatings,
             <div className="h-px bg-gradient-to-r from-white/10 to-transparent flex-1 ml-2" />
           </h3>
           <div className="space-y-5 md:space-y-8">
-            {reviews.slice(0, visibleReviews).map((review) => (
+            {reviews.slice(0, showAll ? reviews.length : 2).map((review) => (
               <div key={review.id} className="border-b border-white/[0.06] pb-5 md:pb-8 last:border-b-0">
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0 relative w-9 h-9 md:w-12 md:h-12 rounded-full overflow-hidden border border-white/10 bg-white/[0.05]">
@@ -202,13 +202,19 @@ const ReviewsSection = ({ reviews, averageRating, totalReviews, categoryRatings,
             ))}
           </div>
 
-          {visibleReviews < reviews.length && (
-            <div className="mt-6 text-center">
+          {reviews.length > 2 && (
+            <div className="mt-8 text-center">
               <button
-                onClick={loadMoreReviews}
-                className="px-6 py-2.5 bg-white/[0.05] border border-white/10 text-white/70 rounded-2xl text-sm font-semibold hover:bg-white/[0.08] hover:text-white transition-all duration-300 active:scale-95"
+                onClick={toggleReviews}
+                className="group relative px-8 py-3 bg-white/[0.05] border border-white/10 text-white/70 rounded-2xl text-sm font-bold hover:bg-white/[0.1] hover:text-white transition-all duration-300 active:scale-95 flex items-center gap-3 mx-auto overflow-hidden shadow-2xl"
               >
-                Show More ({reviews.length - visibleReviews} remaining)
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/0 via-yellow-500/5 to-yellow-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                <span className="relative z-10 uppercase tracking-widest">
+                  {showAll ? 'Show Fewer Reviews' : `Show All ${reviews.length} Reviews`}
+                </span>
+                <div className={`relative z-10 transition-transform duration-500 ${showAll ? 'rotate-180' : ''}`}>
+                  <Icon name="ChevronDownIcon" size={16} className="text-yellow-500/50 group-hover:text-yellow-400" />
+                </div>
               </button>
             </div>
           )}

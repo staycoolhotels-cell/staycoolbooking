@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion, Variants, useScroll, useTransform } from 'framer-motion';
 import { Button, TextField } from '@mui/material';
-import { Search, MapPin, Star, Shield, Award } from 'lucide-react';
+import { Search, MapPin, Star, Shield, Award, X } from 'lucide-react';
 import AppImage from '@/components/ui/AppImage';
 
 import { DateRange } from 'react-day-picker';
@@ -19,10 +19,20 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
 
+  const hasFilters = searchTerm.trim() !== '' || !!dateRange;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (onSearch) {
       onSearch({ location: searchTerm, dates: dateRange });
+    }
+  };
+
+  const handleCancel = () => {
+    setSearchTerm('');
+    setDateRange(undefined);
+    if (onSearch) {
+      onSearch({ location: '', dates: undefined });
     }
   };
 
@@ -137,6 +147,16 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    className="flex-shrink-0 text-zinc-300 hover:text-white transition-colors"
+                    aria-label="Clear location"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -172,16 +192,39 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                   initialFocus
                   mode="range"
                   defaultMonth={dateRange?.from || new Date()}
+                  disabled={{ before: new Date() }}
                   selected={dateRange}
-                  onSelect={setDateRange}
+                  onSelect={(range) => {
+                    if (
+                      range?.from &&
+                      range?.to &&
+                      range.from.toDateString() === range.to.toDateString()
+                    ) {
+                      // User clicked a single date — keep only check-in, clear check-out
+                      setDateRange({ from: range.from, to: undefined });
+                    } else {
+                      setDateRange(range);
+                    }
+                  }}
                   numberOfMonths={1}
                   className="p-5 text-zinc-100 bg-transparent relative z-10"
                 />
               </PopoverContent>
             </Popover>
 
-            {/* Search Button */}
-            <div className="w-full md:w-auto p-2 flex items-center justify-center border-t border-white/20 md:border-t-0">
+            {/* Search & Cancel Buttons */}
+            <div className="w-full md:w-auto p-2 flex items-center justify-center gap-2 border-t border-white/20 md:border-t-0">
+              {hasFilters && (
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/20 text-white font-semibold py-3.5 px-5 md:py-4 rounded-[1.5rem] md:rounded-full border border-white/20 hover:border-white/40 transition-all duration-300"
+                  aria-label="Clear search"
+                >
+                  <X className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-[14px] tracking-wide">Cancel</span>
+                </button>
+              )}
               <button
                 type="submit"
                 className="flex items-center justify-center gap-2 bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-white font-bold py-3.5 px-6 md:px-8 md:py-4 rounded-[1.5rem] md:rounded-full shadow-[0_4px_20px_rgba(14,165,233,0.4)] hover:shadow-[0_8px_25px_rgba(14,165,233,0.6)] hover:scale-[1.02] transition-all duration-300 w-full md:w-auto"

@@ -6,6 +6,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import RealTimeChat from '@/components/chat/RealTimeChat';
 import Icon from '@/components/ui/AppIcon';
 import { motion, AnimatePresence } from 'framer-motion';
+import GuestDetailsModal from './GuestDetailsModal';
 
 const getSentimentColor = (sentiment: SentimentLabel): { bg: string, text: string, border: string, icon: string } => {
   switch (sentiment) {
@@ -31,6 +32,7 @@ const UnifiedInbox: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
+  const [isGuestDetailsOpen, setIsGuestDetailsOpen] = useState(false);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -257,7 +259,10 @@ const UnifiedInbox: React.FC = () => {
                 </div>
 
                 <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                  <button className="flex-1 sm:flex-none px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+                  <button 
+                    onClick={() => setIsGuestDetailsOpen(true)}
+                    className="flex-1 sm:flex-none px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                  >
                     <Icon name="DocumentTextIcon" size={14} /> Details
                   </button>
                   <button className="flex-1 sm:flex-none px-3 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center justify-center gap-2">
@@ -292,6 +297,14 @@ const UnifiedInbox: React.FC = () => {
           )}
         </div>
       </div>
+
+      {selectedMessage && (
+        <GuestDetailsModal
+          userId={selectedMessage.sender_id}
+          isOpen={isGuestDetailsOpen}
+          onClose={() => setIsGuestDetailsOpen(false)}
+        />
+      )}
     </div>
   );
 };

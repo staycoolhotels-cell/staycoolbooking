@@ -66,17 +66,17 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
 
   /* ── shared input class ── */
   const inputClass =
-    'w-full p-3 bg-indigo-950/30 border border-indigo-500/20 rounded-xl mt-1 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all duration-200 text-zinc-100 placeholder:text-zinc-600 text-sm';
+    'w-full p-3 bg-sky-950/30 border border-sky-500/20 rounded-xl mt-1 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 outline-none transition-all duration-200 text-zinc-100 placeholder:text-zinc-600 text-sm';
 
   /* ── tile wrapper ── */
   const FieldTile = ({
     icon, label, children,
   }: { icon: string; label: string; children: React.ReactNode }) => (
-    <div className="group relative p-5 rounded-2xl bg-zinc-900/40 border border-indigo-500/10 hover:border-indigo-500/25 backdrop-blur-sm transition-all duration-300 hover:bg-zinc-900/60">
+    <div className="group relative p-5 rounded-2xl bg-zinc-900/40 border border-sky-500/10 hover:border-sky-500/25 backdrop-blur-sm transition-all duration-300 hover:bg-zinc-900/60">
       {/* Icon + label header */}
       <div className="flex items-center gap-2 mb-3">
         <span className="text-base leading-none">{icon}</span>
-        <span className="text-[9px] font-black uppercase tracking-[0.28em] text-indigo-400/80">{label}</span>
+        <span className="text-[9px] font-black uppercase tracking-[0.28em] text-sky-400/80">{label}</span>
       </div>
       {children}
     </div>
@@ -90,9 +90,9 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
     >
       <div className="flex items-center gap-3 mb-5">
         <h2 className="text-[10px] font-black uppercase tracking-[0.28em] text-zinc-500">Personal Information</h2>
-        <div className="h-px flex-grow bg-gradient-to-r from-indigo-500/20 to-transparent" />
+        <div className="h-px flex-grow bg-gradient-to-r from-sky-500/20 to-transparent" />
         {isEditing && (
-          <span className="text-[9px] font-bold uppercase tracking-widest text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-full">
+          <span className="text-[9px] font-bold uppercase tracking-widest text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2.5 py-1 rounded-full">
             Editing
           </span>
         )}
@@ -190,7 +190,7 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
                     <option key={g} value={g} className="bg-zinc-900 text-zinc-100">{g}</option>
                   ))}
                 </select>
-                <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-indigo-400 text-xs mt-0.5">▾</span>
+                <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-sky-400 text-xs mt-0.5">▾</span>
               </motion.div>
             ) : (
               <motion.p key="gender-view" className={`text-sm ${userInfo.gender ? 'text-zinc-300' : 'text-zinc-600 italic'}`}
@@ -218,23 +218,23 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
                     tabIndex={0}
                     onClick={() => setLangOpen((o) => !o)}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLangOpen((o) => !o); } }}
-                    className="w-full min-h-[44px] p-3 bg-indigo-950/30 border border-indigo-500/20 rounded-xl text-left flex flex-wrap gap-1.5 items-center focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all duration-200 cursor-pointer hover:border-indigo-400/50"
+                    className="w-full min-h-[44px] p-3 bg-sky-950/30 border border-sky-500/20 rounded-xl text-left flex flex-wrap gap-1.5 items-center focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 outline-none transition-all duration-200 cursor-pointer hover:border-sky-400/50"
                   >
                     {selectedLangs.length === 0 ? (
                       <span className="text-zinc-600 text-sm">Select languages…</span>
                     ) : (
                       selectedLangs.map((lang) => (
-                        <span key={lang} className="inline-flex items-center gap-1 bg-indigo-500/20 text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full border border-indigo-500/30">
+                        <span key={lang} className="inline-flex items-center gap-1 bg-sky-500/20 text-sky-300 text-xs font-semibold px-2.5 py-1 rounded-full border border-sky-500/30">
                           {lang}
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); removeLanguage(lang); }}
-                            className="ml-0.5 text-indigo-400 hover:text-white transition-colors leading-none"
+                            className="ml-0.5 text-sky-400 hover:text-white transition-colors leading-none"
                           >×</button>
                         </span>
                       ))
                     )}
-                    <span className={`ml-auto text-indigo-400 transition-transform duration-200 text-xs ${langOpen ? 'rotate-180' : ''}`}>▾</span>
+                    <span className={`ml-auto text-sky-400 transition-transform duration-200 text-xs ${langOpen ? 'rotate-180' : ''}`}>▾</span>
                   </div>
 
                   {/* Dropdown */}
@@ -245,7 +245,7 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -6, scale: 0.98 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute z-50 mt-1.5 w-full max-h-52 overflow-y-auto bg-zinc-950 border border-indigo-500/20 rounded-2xl shadow-2xl shadow-black/60 backdrop-blur-2xl"
+                        className="absolute z-50 mt-1.5 w-full max-h-52 overflow-y-auto bg-zinc-950 border border-sky-500/20 rounded-2xl shadow-2xl shadow-black/60 backdrop-blur-2xl"
                       >
                         {LANGUAGE_OPTIONS.map((lang) => {
                           const selected = selectedLangs.includes(lang);
@@ -256,11 +256,11 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
                               onClick={() => toggleLanguage(lang)}
                               className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between first:rounded-t-2xl last:rounded-b-2xl
                                 ${selected
-                                  ? 'bg-indigo-500/20 text-indigo-300 font-semibold'
-                                  : 'text-zinc-300 hover:bg-indigo-950/60'}`}
+                                  ? 'bg-sky-500/20 text-sky-300 font-semibold'
+                                  : 'text-zinc-300 hover:bg-sky-950/60'}`}
                             >
                               {lang}
-                              {selected && <span className="text-indigo-400 text-xs">✓</span>}
+                              {selected && <span className="text-sky-400 text-xs">✓</span>}
                             </button>
                           );
                         })}
@@ -273,7 +273,7 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   {selectedLangs.length > 0 ? (
                     selectedLangs.map((lang) => (
-                      <span key={lang} className="bg-indigo-500/15 text-indigo-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-indigo-500/20 uppercase tracking-wider">
+                      <span key={lang} className="bg-sky-500/15 text-sky-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-sky-500/20 uppercase tracking-wider">
                         {lang}
                       </span>
                     ))

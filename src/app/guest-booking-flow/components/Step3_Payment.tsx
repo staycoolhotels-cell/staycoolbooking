@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Property } from '@/lib/types';
 import Icon from '@/components/ui/AppIcon';
 import { createBooking } from '@/lib/booking-actions';
@@ -31,6 +31,32 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
     }
   });
   const [loadingAmenities, setLoadingAmenities] = useState(true);
+
+  // Room details for summary
+  const [selectedRooms, setSelectedRooms] = useState<any[]>([]);
+  const parsedRoomIds = useMemo(() => {
+    try {
+      return JSON.parse(filters.selectedRoomIds || '[]');
+    } catch {
+      return [];
+    }
+  }, [filters.selectedRoomIds]);
+
+  useEffect(() => {
+    const fetchRoomDetails = async () => {
+      if (parsedRoomIds.length > 0) {
+        const { data, error } = await supabase
+          .from('rooms')
+          .select('id, name')
+          .in('id', parsedRoomIds);
+        
+        if (!error && data) {
+          setSelectedRooms(data);
+        }
+      }
+    };
+    fetchRoomDetails();
+  }, [parsedRoomIds]);
 
   useEffect(() => {
     const fetchAmenities = async () => {
@@ -128,7 +154,7 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
     setError(null);
 
     try {
-      // 1. Create Booking (Confirmed/Pending)
+      // 1. Create Booking (status = pending_payment)
       const selectedAmenitiesList = Object.entries(selectedAmenities)
          .filter(([id, count]) => count > 0)
          .map(([id, count]) => {
@@ -150,6 +176,7 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
         bookingType,
         roomCount: effectiveRooms,
         amenities: selectedAmenitiesList,
+        selectedRoomIds: parsedRoomIds,
       };
 
       const bookingRes = await createBooking(bookingDetails, null);
@@ -163,15 +190,91 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
       }
       const newBookingId = bookingRes.data[0].id;
 
-      // 2. Direct Confirmation (Bypass Payment)
-      const { approveBooking } = await import('@/lib/booking-actions');
-      await approveBooking(newBookingId);
+      // 2. Create Razorpay Order via API
+      const orderRes = await fetch('/api/payment/razorpay/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: newBookingId }),
+      });
 
-      toast.success('Booking confirmed successfully!');
+      const orderData = await orderRes.json();
+      if (!orderRes.ok || orderData.error) {
+        throw new Error(orderData.error || 'Failed to create payment order');
+      }
+
+      const { orderId, amount, keyId } = orderData;
+
+      // 3. Open Razorpay Checkout Popup
+      await new Promise<void>((resolve, reject) => {
+        const options: any = {
+          key: keyId,
+          amount: amount,
+          currency: 'INR',
+          name: 'Stay Cool',
+          description: `Booking #${newBookingId.slice(0, 8)}`,
+          order_id: orderId,
+          handler: async (response: any) => {
+            try {
+              // 4. Verify signature on our server
+              const verifyRes = await fetch('/api/payment/razorpay/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+                  bookingId: newBookingId,
+                }),
+              });
+
+              const verifyData = await verifyRes.json();
+              if (!verifyRes.ok || !verifyData.success) {
+                reject(new Error(verifyData.error || 'Payment verification failed'));
+                return;
+              }
+
+              toast.success('Payment successful! Booking confirmed.');
+              resolve();
+            } catch (err: any) {
+              reject(err);
+            }
+          },
+          prefill: {},
+          theme: { color: '#0ea5e9' },
+          modal: {
+            ondismiss: () => {
+              reject(new Error('Payment cancelled. Please try again.'));
+            },
+          },
+        };
+
+        if (!isRazorpayLoaded || typeof (window as any).Razorpay === 'undefined') {
+          reject(new Error('Razorpay failed to load. Please refresh and try again.'));
+          return;
+        }
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on('payment.failed', (response: any) => {
+          const description = response?.error?.description || '';
+          const reason = response?.error?.reason || '';
+          // Provide a clearer message for international card errors
+          if (
+            description.toLowerCase().includes('international') ||
+            reason.toLowerCase().includes('international')
+          ) {
+            reject(new Error('Only Indian debit/credit cards, UPI, and net banking are accepted. Please use an Indian payment method.'));
+          } else {
+            reject(new Error(description || 'Payment failed. Please try again.'));
+          }
+        });
+        rzp.open();
+      });
+
+      // 5. Navigate to success page
       onNext();
 
     } catch (err: any) {
-      console.error('Booking Error:', err);
+      console.error('Booking/Payment Error:', err);
       setError(err.message || 'An unexpected error occurred.');
       setLoading(false);
     }
@@ -280,6 +383,18 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
               <span>₹{(p.price_per_night || p.price || 0).toLocaleString('en-IN')}</span>
             </div>
           ))}
+          {selectedRooms.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
+              <p className="text-[10px] font-bold text-sky-400 uppercase tracking-widest">Selected Units</p>
+              <div className="flex flex-wrap gap-2">
+                {selectedRooms.map(room => (
+                  <span key={room.id} className="px-2 py-1 bg-sky-500/10 border border-sky-500/20 rounded text-[10px] font-semibold text-sky-200">
+                    {room.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <div className="border-t border-border-secondary my-4"></div>
         <div className="space-y-2">

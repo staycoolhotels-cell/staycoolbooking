@@ -168,7 +168,13 @@ export interface Review {
   booking_id: string;
   reviewer_id: string;
   receiver_id: string;
-  rating: number;
+  rating: number; // Overall rating
+  cleanliness_rating?: number;
+  accuracy_rating?: number;
+  check_in_rating?: number;
+  communication_rating?: number;
+  location_rating?: number;
+  value_rating?: number;
   comment: string;
   created_at: string;
   guestName?: string;

@@ -28,6 +28,14 @@ const LeaveReviewModal: React.FC<LeaveReviewModalProps> = ({ booking, onClose, o
     const [comment, setComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
+    // Category Ratings
+    const [cleanliness, setCleanliness] = useState(0);
+    const [accuracy, setAccuracy] = useState(0);
+    const [checkIn, setCheckIn] = useState(0);
+    const [communication, setCommunication] = useState(0);
+    const [location, setLocation] = useState(0);
+    const [value, setValue] = useState(0);
+
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -37,9 +45,18 @@ const LeaveReviewModal: React.FC<LeaveReviewModalProps> = ({ booking, onClose, o
 
     const handleSubmit = async () => {
         if (rating === 0) {
-            toast.error('Please select at least 1 star');
+            toast.error('Please select an overall rating');
             return;
         }
+
+        // Optional: Ensure all categories are rated if mandatory.
+        // For now, I'll allow finishing even if some are missed, or I could default them.
+        // But better to ask for them.
+        if (cleanliness === 0 || accuracy === 0 || checkIn === 0 || communication === 0 || location === 0 || value === 0) {
+            toast.error('Please rate all categories (Cleanliness, Accuracy, etc.)');
+            return;
+        }
+
         if (!comment.trim()) {
             toast.error('Please write a short review');
             return;
@@ -53,6 +70,12 @@ const LeaveReviewModal: React.FC<LeaveReviewModalProps> = ({ booking, onClose, o
             reviewer_id: booking.guest_id,
             receiver_id: booking.properties?.host_id || null,
             rating,
+            cleanliness_rating: cleanliness,
+            accuracy_rating: accuracy,
+            check_in_rating: checkIn,
+            communication_rating: communication,
+            location_rating: location,
+            value_rating: value,
             comment: comment.trim(),
         });
 
@@ -72,7 +95,14 @@ const LeaveReviewModal: React.FC<LeaveReviewModalProps> = ({ booking, onClose, o
     };
 
     const ratingLabels = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent!'];
-    const displayRating = hoverRating || rating;
+    const categories = [
+        { label: 'Cleanliness', value: cleanliness, setter: setCleanliness },
+        { label: 'Accuracy', value: accuracy, setter: setAccuracy },
+        { label: 'Check-in', value: checkIn, setter: setCheckIn },
+        { label: 'Communication', value: communication, setter: setCommunication },
+        { label: 'Location', value: location, setter: setLocation },
+        { label: 'Value for Money', value: value, setter: setValue },
+    ];
 
     return (
         <AnimatePresence>
@@ -89,10 +119,10 @@ const LeaveReviewModal: React.FC<LeaveReviewModalProps> = ({ booking, onClose, o
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.9, opacity: 0, y: 30 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                        className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden"
+                        className="w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
                     >
                         {/* Property banner */}
-                        <div className="relative h-32 overflow-hidden">
+                        <div className="relative h-28 overflow-hidden shrink-0">
                             <img
                                 src={booking.properties.images?.[0]?.url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6'}
                                 alt={booking.properties.title}
@@ -107,13 +137,14 @@ const LeaveReviewModal: React.FC<LeaveReviewModalProps> = ({ booking, onClose, o
                             </button>
                             <div className="absolute bottom-3 left-4">
                                 <p className="text-[10px] text-sky-400 font-bold uppercase tracking-widest">Rate Your Stay</p>
-                                <h3 className="text-white font-bold truncate max-w-[280px]">{booking.properties.title}</h3>
+                                <h3 className="text-white font-bold truncate max-w-[350px]">{booking.properties.title}</h3>
                             </div>
                         </div>
 
-                        <div className="p-6 space-y-6">
-                            {/* Star Rating */}
-                            <div className="text-center">
+                        <div className="p-6 space-y-6 overflow-y-auto no-scrollbar">
+                            {/* Overall Rating */}
+                            <div className="text-center pb-4 border-b border-zinc-800/50">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 block">Overall Satisfaction</label>
                                 <div className="flex items-center justify-center gap-2 mb-2">
                                     {[1, 2, 3, 4, 5].map((star) => (
                                         <motion.button
@@ -126,8 +157,8 @@ const LeaveReviewModal: React.FC<LeaveReviewModalProps> = ({ booking, onClose, o
                                             className="text-3xl transition-all duration-150"
                                         >
                                             <Star
-                                                size={36}
-                                                className={`transition-colors duration-100 ${star <= displayRating
+                                                size={32}
+                                                className={`transition-colors duration-100 ${star <= (hoverRating || rating)
                                                     ? 'text-amber-400 fill-amber-400'
                                                     : 'text-zinc-700'
                                                     }`}
@@ -136,45 +167,76 @@ const LeaveReviewModal: React.FC<LeaveReviewModalProps> = ({ booking, onClose, o
                                     ))}
                                 </div>
                                 <AnimatePresence mode="wait">
-                                    {displayRating > 0 && (
+                                    {(hoverRating || rating) > 0 && (
                                         <motion.p
-                                            key={displayRating}
+                                            key={hoverRating || rating}
                                             initial={{ opacity: 0, y: -5 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0 }}
                                             className="text-sm font-bold text-amber-400"
                                         >
-                                            {ratingLabels[displayRating]}
+                                            {ratingLabels[hoverRating || rating]}
                                         </motion.p>
                                     )}
                                 </AnimatePresence>
                             </div>
 
+                            {/* Detailed Category Ratings */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 py-4">
+                                {categories.map((cat) => (
+                                    <div key={cat.label} className="flex flex-col gap-1.5">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-bold text-zinc-300">{cat.label}</span>
+                                            <span className="text-[10px] font-bold text-amber-500">{cat.value > 0 ? `${cat.value}.0` : '-'}</span>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <button
+                                                    key={star}
+                                                    onClick={() => cat.setter(star)}
+                                                    className="focus:outline-none"
+                                                >
+                                                    <Star
+                                                        size={18}
+                                                        className={`transition-colors duration-150 ${star <= cat.value
+                                                            ? 'text-amber-400 fill-amber-400'
+                                                            : 'text-zinc-800'
+                                                            }`}
+                                                    />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
                             {/* Comment */}
-                            <div>
-                                <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 block">
+                            <div className="pt-4 border-t border-zinc-800/50">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 block">
                                     Share your experience
                                 </label>
                                 <textarea
                                     value={comment}
                                     onChange={(e) => setComment(e.target.value)}
-                                    placeholder="Tell others about your stay — the highlights, the ambiance, what made it special..."
-                                    rows={4}
+                                    placeholder="Tell others about your stay..."
+                                    rows={3}
                                     className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/30 transition-all resize-none"
                                 />
                                 <p className="text-[10px] text-zinc-600 mt-1 text-right">{comment.length}/500</p>
                             </div>
+                        </div>
 
-                            {/* Submit */}
+                        {/* Footer / Submit */}
+                        <div className="p-6 bg-zinc-900/40 border-t border-zinc-800 shrink-0">
                             <button
                                 onClick={handleSubmit}
                                 disabled={submitting || rating === 0}
-                                className="w-full flex items-center justify-center gap-2 py-3.5 bg-sky-600 hover:bg-sky-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-lg shadow-sky-900/30"
+                                className="w-full flex items-center justify-center gap-2 py-4 bg-sky-600 hover:bg-sky-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all shadow-lg shadow-sky-900/30"
                             >
                                 {submitting ? (
-                                    <><Loader2 size={18} className="animate-spin" /> Submitting...</>
+                                    <><Loader2 size={20} className="animate-spin" /> Submitting Reflection...</>
                                 ) : (
-                                    <><Send size={16} /> Submit Review</>
+                                    <><Send size={18} /> Publish Review</>
                                 )}
                             </button>
                         </div>

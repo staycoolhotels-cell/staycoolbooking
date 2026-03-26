@@ -98,16 +98,13 @@ function SignupContent() {
           return;
         }
 
-        // MOCK PAYMENT DETECTION
-        if (order.key_id === "rzp_test_mock_12345") {
-          console.log("Mock Payment Order Created:", order);
-          setPendingOrder(order);
-          setPendingFormData(formData);
-          setShowMockPayment(true);
-          return;
-        }
 
         const payment: any = await new Promise((resolve, reject) => {
+          if (typeof (window as any).Razorpay === 'undefined') {
+            reject(new Error('Razorpay SDK not loaded. Please check your internet connection or script tag.'));
+            return;
+          }
+
           const options = {
             key: order.key_id,
             amount: order.amount,
@@ -115,10 +112,17 @@ function SignupContent() {
             name: "StayCool",
             description: "Host Account Signup Fee",
             order_id: order.orderId,
-            handler: (response: any) => resolve(response),
+            handler: (response: any) => {
+              console.log("✅ Payment authorized (Mobile):", response.razorpay_payment_id);
+              resolve(response);
+            },
             modal: {
-              ondismiss: () => reject(new Error('Payment cancelled')),
-              escape: false
+              ondismiss: () => {
+                console.log("ℹ️ Payment modal (Mobile) closed by user");
+                reject(new Error('Payment cancelled'));
+              },
+              escape: true,
+              confirm_close: true
             },
             prefill: {
               contact: mobileNumber,
@@ -141,8 +145,10 @@ function SignupContent() {
         });
 
       } catch (err: any) {
-        console.error("Payment failed", err);
-        if (err.message !== 'Payment cancelled') {
+        if (err.message === 'Payment cancelled') {
+          console.warn("Payment was cancelled by the user.");
+        } else {
+          console.error("Payment failed (Mobile):", err);
           alert('Payment failed: ' + err.message);
         }
       }
@@ -165,16 +171,13 @@ function SignupContent() {
           return;
         }
 
-        // MOCK PAYMENT DETECTION
-        if (order.key_id === "rzp_test_mock_12345") {
-          console.log("Mock Payment Order Created:", order);
-          setPendingOrder(order);
-          setPendingFormData(formData);
-          setShowMockPayment(true);
-          return;
-        }
 
         const payment: any = await new Promise((resolve, reject) => {
+          if (typeof (window as any).Razorpay === 'undefined') {
+            reject(new Error('Razorpay SDK not loaded. Please check your internet connection or script tag.'));
+            return;
+          }
+
           const options = {
             key: order.key_id,
             amount: order.amount,
@@ -182,10 +185,17 @@ function SignupContent() {
             name: "StayCool",
             description: "Host Account Signup Fee",
             order_id: order.orderId,
-            handler: (response: any) => resolve(response),
+            handler: (response: any) => {
+              console.log("✅ Payment authorized:", response.razorpay_payment_id);
+              resolve(response);
+            },
             modal: {
-              ondismiss: () => reject(new Error('Payment cancelled')),
-              escape: false
+              ondismiss: () => {
+                console.log("ℹ️ Payment modal closed by user");
+                reject(new Error('Payment cancelled'));
+              },
+              escape: true,
+              confirm_close: true
             },
             prefill: {
               email: formData.get('email') as string,
@@ -208,8 +218,10 @@ function SignupContent() {
         });
 
       } catch (err: any) {
-        console.error("Payment failed", err);
-        if (err.message !== 'Payment cancelled') {
+        if (err.message === 'Payment cancelled') {
+          console.warn("Payment was cancelled by the user.");
+        } else {
+          console.error("Payment failed:", err);
           alert('Payment failed: ' + err.message);
         }
       }
@@ -635,71 +647,6 @@ function SignupContent() {
         </motion.div>
       </div >
 
-      {/* Mock Payment Modal */}
-      <AnimatePresence>
-        {showMockPayment && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-              onClick={handleMockPaymentCancel}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl p-6 overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 to-yellow-500" />
-
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2 text-orange-400">
-                  <div className="p-2 bg-orange-500/10 rounded-lg">
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                  <span className="font-bold text-lg">Test Mode Payment</span>
-                </div>
-                <button
-                  onClick={handleMockPaymentCancel}
-                  className="p-2 hover:bg-white/5 rounded-full transition-colors text-zinc-400 hover:text-white"
-                >
-                  <span className="sr-only">Close</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-              </div>
-
-              <div className="space-y-4 mb-8">
-                <div className="bg-zinc-800/50 p-4 rounded-xl border border-white/5 flex items-center justify-between">
-                  <span className="text-zinc-400">Amount to Pay</span>
-                  <span className="text-2xl font-bold text-white">
-                    {pendingOrder ? (pendingOrder.amount / 100).toLocaleString('en-IN', { style: 'currency', currency: pendingOrder.currency }) : '₹0'}
-                  </span>
-                </div>
-                <p className="text-zinc-400 text-sm leading-relaxed">
-                  This is a mock payment for testing purposes. No actual money will be deducted. Click the button below to simulate a successful transaction.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={handleMockPaymentCancel}
-                  className="py-3 px-4 rounded-xl border border-white/10 text-white font-medium hover:bg-white/5 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleMockPaymentSuccess}
-                  className="py-3 px-4 rounded-xl bg-orange-500 hover:bg-orange-400 text-white font-bold shadow-lg shadow-orange-500/20 transition-all transform active:scale-95"
-                >
-                  Simulate Success
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Success Modal */}
       <AnimatePresence>

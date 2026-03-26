@@ -101,6 +101,7 @@ export async function createBooking(bookingDetails: {
   guests: number;
   bookingType?: 'single' | 'bulk';
   roomCount?: number;
+  selectedRoomIds?: string[];
   amenities?: Array<{ id: string; count: number; price: number; name: string }>;
 }, prevState: any) {
   try {
@@ -123,18 +124,34 @@ export async function createBooking(bookingDetails: {
       return { error: profileError.message };
     }
 
-    const { propertyId, checkIn, checkOut, totalPrice, guests, bookingType = 'single', roomCount = 1, amenities = [] } = bookingDetails;
+    const { propertyId, checkIn, checkOut, totalPrice, guests, bookingType = 'single', roomCount = 1, amenities = [], selectedRoomIds = [] } = bookingDetails;
 
     // Use RPC to create booking and assign rooms atomically
-    const { data, error } = await supabase.rpc('create_bulk_booking', {
-      p_booking_type: bookingType,
-      p_check_in: checkIn,
-      p_check_out: checkOut,
-      p_guest_id: user.id,
-      p_property_id: propertyId,
-      p_room_count: roomCount,
-      p_total_price: totalPrice,
-    });
+    const rpcName = (selectedRoomIds && selectedRoomIds.length > 0) 
+      ? 'create_booking_with_rooms' 
+      : 'create_bulk_booking';
+
+    const rpcParams = (selectedRoomIds && selectedRoomIds.length > 0)
+      ? {
+          p_booking_type: bookingType,
+          p_check_in: checkIn,
+          p_check_out: checkOut,
+          p_guest_id: user.id,
+          p_property_id: propertyId,
+          p_room_ids: selectedRoomIds,
+          p_total_price: totalPrice,
+        }
+      : {
+          p_booking_type: bookingType,
+          p_check_in: checkIn,
+          p_check_out: checkOut,
+          p_guest_id: user.id,
+          p_property_id: propertyId,
+          p_room_count: roomCount,
+          p_total_price: totalPrice,
+        };
+
+    const { data, error } = await supabase.rpc(rpcName, rpcParams);
 
     if (error) {
       console.error("Booking RPC Error:", error);

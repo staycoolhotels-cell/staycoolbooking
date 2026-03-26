@@ -122,7 +122,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
   // Location-based sorting
   const [userCity, setUserCity] = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'granted' | 'denied'>('idle');
-  const [showLocationBanner, setShowLocationBanner] = useState(true);
+  const [showLocationBanner, setShowLocationBanner] = useState(false);
 
   // Dynamic Counts Calculation
   const counts = useMemo(() => {
@@ -184,14 +184,62 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
             null;
           if (city) setUserCity(city);
           setLocationStatus('granted');
+          localStorage.setItem('sc_location_preference', 'granted');
         } catch {
           setLocationStatus('denied');
         }
       },
-      () => setLocationStatus('denied'),
+      () => {
+        setLocationStatus('denied');
+        localStorage.setItem('sc_location_preference', 'denied');
+      },
       { timeout: 8000 }
     );
   };
+
+  // Check location permission and preference on mount
+  useEffect(() => {
+    const checkLocationPersistence = async () => {
+      if (typeof window === 'undefined') return;
+
+      const preference = localStorage.getItem('sc_location_preference');
+
+      // If user already dismissed or denied, don't show banner
+      if (preference === 'dismissed' || preference === 'denied') {
+        return;
+      }
+
+      // If permission is already granted in the browser, just request location silently
+      if (typeof navigator !== 'undefined' && navigator.permissions) {
+        try {
+          // Geolocation permission query might not be supported in all environments
+          const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+          if (status.state === 'granted') {
+            requestLocation();
+            return;
+          } else if (status.state === 'denied') {
+            // Respect browser-level denial
+            return;
+          }
+        } catch (e) {
+          console.warn("Permissions API check skipped:", e);
+        }
+      }
+
+      // If preference is already granted but we didn't trigger via permission API above
+      if (preference === 'granted') {
+        requestLocation();
+        return;
+      }
+
+      // If no preference set and not already granted/denied, show the banner
+      if (!preference) {
+        setShowLocationBanner(true);
+      }
+    };
+
+    checkLocationPersistence();
+  }, []);
 
   useEffect(() => {
     setIsHydrated(true);
@@ -260,6 +308,17 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
     }
 
     setFilteredProperties(filtered);
+
+    // Only scroll on an actual search (not on cancel which sends empty filters)
+    const isActualSearch = !!(locationStr || dates);
+    if (isActualSearch) {
+      setTimeout(() => {
+        const section = document.getElementById('featured-collections');
+        if (section) {
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
   };
 
   const handleToggleSaveProperty = async (propertyId: string) => {
@@ -372,7 +431,10 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
                 Allow Location Access
               </motion.button>
               <button
-                onClick={() => setShowLocationBanner(false)}
+                onClick={() => {
+                  setShowLocationBanner(false);
+                  localStorage.setItem('sc_location_preference', 'dismissed');
+                }}
                 className="w-full py-3 text-zinc-500 hover:text-zinc-300 text-sm font-medium transition-colors"
               >
                 Maybe later
@@ -413,7 +475,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
           </AnimatedSection>
 
           <AnimatedSection>
-            <div className="w-full">
+            <div id="featured-collections" className="w-full">
               {/* Premium Section Header */}
               <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-16 gap-8">
                 <div className="space-y-4 max-w-2xl">
@@ -547,11 +609,11 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
                 <div className="h-[750px] w-full rounded-[3rem] overflow-hidden border border-white/5 shadow-3xl relative">
                   <InteractiveMap
                     properties={filteredProperties.map((p) => ({
-                      ...p,
                       id: p.id,
-                      lat: parseFloat((Math.random() * (51.6 - 51.2) + 51.2).toFixed(3)),
-                      lng: parseFloat((Math.random() * (0.2 - -0.4) + -0.4).toFixed(3)),
+                      title: p.title,
+                      price: p.price,
                       available: true,
+                      location: p.location,
                       image:
                         p.images && p.images.length > 0
                           ? p.images[0].url

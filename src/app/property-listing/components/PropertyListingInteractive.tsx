@@ -397,6 +397,9 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                   hostResponseTime={propertyData.hostResponseTime}
                   totalRooms={propertyData.totalRooms}
                   selectedAmenities={selectedAmenities}
+                  upsellAmenities={propertyData.upsellAmenities}
+                  rating={propertyData.rating}
+                  reviewCount={propertyData.reviewCount}
                 />
               </div>
             </div>
@@ -437,6 +440,9 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                   hostResponseTime={propertyData.hostResponseTime}
                   totalRooms={propertyData.totalRooms}
                   selectedAmenities={selectedAmenities}
+                  upsellAmenities={propertyData.upsellAmenities}
+                  rating={propertyData.rating}
+                  reviewCount={propertyData.reviewCount}
                 />
               </div>
             </div>
@@ -454,8 +460,8 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
             </div>
             <div className="flex items-center gap-1 mt-0.5">
               <Icon name="StarIcon" size={11} variant="solid" className="text-amber-400" />
-              <span className="text-xs font-semibold text-white">4.92</span>
-              <span className="text-xs text-gray-500">· 128 reviews</span>
+              <span className="text-xs font-semibold text-white">{propertyData.rating.toFixed(2)}</span>
+              <span className="text-xs text-gray-500">· {propertyData.reviewCount} reviews</span>
             </div>
           </div>
           <button

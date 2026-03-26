@@ -27,6 +27,7 @@ const GuestBookingInteractive = () => {
     bookingType: searchParams.get('bookingType') || 'single',
     roomCount: Number(searchParams.get('roomCount')) || 1,
     amenities: searchParams.get('amenities') || '{}',
+    selectedRoomIds: searchParams.get('selectedRoomIds') || '[]',
   });
 
   const [properties, setProperties] = useState<Property[]>([]);

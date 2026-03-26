@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { getNearbyPlaces } from '@/lib/google-places';
 import PropertyListingInteractive from '../components/PropertyListingInteractive';
 import Footer from '../../homepage/components/Footer';
 import { createClient } from '@supabase/supabase-js';
@@ -86,8 +87,9 @@ export default async function PropertyListingPage({ params }: { params: Promise<
 
     const { data: reviews, error: reviewsError } = await adminSupabase
         .from('reviews')
-        .select('*, guest:guest_id(name, avatar_url)')
-        .eq('property_id', id);
+        .select('*, guest:reviewer_id(name, avatar_url)')
+        .eq('property_id', id)
+        .order('created_at', { ascending: false });
 
     const { data: upsellAmenities } = await adminSupabase
         .from('amenities')
@@ -95,6 +97,25 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         .eq('host_id', property.host_id)
         .eq('is_active', true)
         .or(`property_id.eq.${id},property_id.is.null`);
+
+    // Fetch real-time booking count (excluding cancelled)
+    const { count: totalBookingsCount } = await adminSupabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true })
+        .eq('property_id', id)
+        .neq('status', 'cancelled');
+
+    // Fetch real-time nearby places using Google Places API
+    const fullAddress = property.show_specific_location
+        ? `${property.address_line1 || ''} ${property.address_line2 || ''}, ${property.city || ''}, ${property.state || ''} ${property.postal_code || ''}`.trim()
+        : property.location;
+    
+    const nearbyPlacesData = await getNearbyPlaces(fullAddress);
+    const nearbyAttractions = (nearbyPlacesData?.suggestions || []).map(p => ({
+        name: p.name,
+        distance: p.distance,
+        type: p.type.toLowerCase().includes('cafe') ? 'restaurant' : p.type.toLowerCase().includes('spot') ? 'park' : 'attraction'
+    }));
 
     // Helper to process amenities
     const processAmenities = (amenities: any[]) => {
@@ -126,6 +147,14 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         return [{ id: 1, url: fallbackUrl, alt: title }];
     };
 
+    const calculateAverage = (reviews: any[], field: string) => {
+        if (!reviews || reviews.length === 0) return 0;
+        const validReviews = reviews.filter(r => r[field] !== undefined && r[field] !== null);
+        if (validReviews.length === 0) return 0;
+        const sum = validReviews.reduce((acc, r) => acc + (r[field] || 0), 0);
+        return parseFloat((sum / validReviews.length).toFixed(1));
+    };
+
     const propertyData = {
         id: property.id,
         name: property.title,
@@ -139,7 +168,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
                 : 0,
         reviewCount: reviews?.length || 0,
         isVerified: host.kyc_status === 'verified',
-        totalBookings: property.total_bookings || 0,
+        totalBookings: totalBookingsCount || 0,
         images: processImages(property.images, property.image_url, property.title),
         description: property.description,
         propertyType: property.type || 'Apartment',
@@ -181,13 +210,11 @@ export default async function PropertyListingPage({ params }: { params: Promise<
             id: property.host_id,
         },
         location_details: {
-            latitude: 32.24, // Use actual lat/long if available in future
-            longitude: 77.18,
+            latitude: nearbyPlacesData?.coordinates?.lat,
+            longitude: nearbyPlacesData?.coordinates?.lng,
             locationName: property.location,
-            address: property.show_specific_location
-                ? `${property.address_line1 || ''} ${property.address_line2 || ''}, ${property.city || ''}, ${property.state || ''} ${property.postal_code || ''}`.trim()
-                : property.location,
-            nearbyAttractions: [],
+            address: fullAddress,
+            nearbyAttractions: nearbyAttractions,
         },
         cancellationPolicy: {
             title: 'Cancellation policy',
@@ -212,12 +239,12 @@ export default async function PropertyListingPage({ params }: { params: Promise<
             linkText: 'Read more'
         },
         categoryRatings: [
-            { name: 'Cleanliness', score: 4.9, icon: 'SparklesIcon' },
-            { name: 'Accuracy', score: 4.9, icon: 'CheckCircleIcon' },
-            { name: 'Check-in', score: 4.9, icon: 'KeyIcon' },
-            { name: 'Communication', score: 4.9, icon: 'ChatBubbleLeftRightIcon' },
-            { name: 'Location', score: 4.8, icon: 'MapIcon' },
-            { name: 'Value', score: 4.9, icon: 'TagIcon' }
+            { name: 'Cleanliness', score: calculateAverage(reviews || [], 'cleanliness_rating'), icon: 'SparklesIcon' },
+            { name: 'Accuracy', score: calculateAverage(reviews || [], 'accuracy_rating'), icon: 'CheckCircleIcon' },
+            { name: 'Check-in', score: calculateAverage(reviews || [], 'check_in_rating'), icon: 'KeyIcon' },
+            { name: 'Communication', score: calculateAverage(reviews || [], 'communication_rating'), icon: 'ChatBubbleLeftRightIcon' },
+            { name: 'Location', score: calculateAverage(reviews || [], 'location_rating'), icon: 'MapIcon' },
+            { name: 'Value', score: calculateAverage(reviews || [], 'value_rating'), icon: 'TagIcon' }
         ],
         badges: ['Great hospitality', 'Clean', 'Great communication', 'Quiet area', 'Value for money']
     };

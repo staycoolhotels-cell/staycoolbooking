@@ -128,8 +128,13 @@ const TripCommandCenter = ({ activeBooking }: TripCommandCenterProps) => {
   const property = properties;
 
   const handleNavigation = () => {
-    const query = encodeURIComponent(property?.location || '');
-    window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+    const mapSection = document.getElementById('location-map-section');
+    if (mapSection) {
+      mapSection.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      const query = encodeURIComponent(property?.location || '');
+      window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+    }
   };
 
   return (

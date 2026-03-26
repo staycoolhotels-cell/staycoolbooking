@@ -6,7 +6,7 @@ import { Transaction } from '@/lib/types';
 
 const COLORS = {
   accommodation: '#0ea5e9', // sky-500
-  service_fee: '#8b5cf6', // violet-500
+  service_fee: '#38bdf8', // sky-400
   taxes: '#ef4444', // red-500
 };
 
@@ -53,7 +53,7 @@ const SpendingChart = ({ transactions }: SpendingChartProps) => {
             labelLine={false}
             outerRadius={80}
             innerRadius={50}
-            fill="#8884d8"
+            fill="#38bdf8"
             dataKey="value"
             stroke="none"
           >

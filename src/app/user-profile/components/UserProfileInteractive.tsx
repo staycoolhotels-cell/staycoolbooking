@@ -27,6 +27,7 @@ import ProfileHeader from './NewProfileHeader';
 import ReviewHistory from './NewReviewHistory';
 import BookingHistory from './BookingHistory';
 import GuestInbox from './GuestInbox';
+import LocationMap from '@/app/property-listing/components/LocationMap';
 
 const UserProfileInteractive = ({ userData }: { userData: any }) => {
   const [status, setStatus] = useState<'loading' | 'error' | 'success'>('success');
@@ -164,14 +165,14 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
       {/* ── Cinematic Hero Banner ── */}
       <div className="relative w-full h-24 md:h-32 overflow-hidden">
         {/* Layered gradient banner */}
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-[#0d0e2a] to-violet-950" />
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-600/10 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-[#0d0e2a] to-sky-950" />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-sky-600/10 to-transparent" />
 
         {/* Bokeh orbs */}
-        <div className="absolute top-8 left-[15%] w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl" />
-        <div className="absolute top-4 right-[20%] w-24 h-24 bg-violet-500/25 rounded-full blur-2xl" />
-        <div className="absolute bottom-0 left-[40%] w-40 h-20 bg-sky-500/15 rounded-full blur-3xl" />
-        <div className="absolute top-12 right-[8%] w-16 h-16 bg-indigo-400/20 rounded-full blur-xl" />
+        <div className="absolute top-8 left-[15%] w-32 h-32 bg-sky-500/20 rounded-full blur-3xl" />
+        <div className="absolute top-4 right-[20%] w-24 h-24 bg-blue-500/25 rounded-full blur-2xl" />
+        <div className="absolute bottom-0 left-[40%] w-40 h-20 bg-sky-400/15 rounded-full blur-3xl" />
+        <div className="absolute top-12 right-[8%] w-16 h-16 bg-sky-300/20 rounded-full blur-xl" />
 
         {/* Horizontal scan-line effect */}
         <div className="absolute inset-0 opacity-10"
@@ -183,14 +184,14 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
         {/* Greeting + breadcrumb — top-left of hero */}
         <div className="absolute top-4 md:top-6 left-6 md:left-10">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
-            <p className="text-indigo-400 text-[9px] md:text-[10px] font-black tracking-[0.4em] uppercase mb-1.5 translate-y-1">
+            <p className="text-sky-400 text-[9px] md:text-[10px] font-black tracking-[0.4em] uppercase mb-1.5 translate-y-1">
               {greeting}
             </p>
             <h1 className="text-2xl md:text-4xl font-light tracking-tight text-white drop-shadow-xl">
-              <span className="font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+              <span className="font-bold bg-gradient-to-r from-white to-sky-200 bg-clip-text text-transparent">
                 {user?.name?.split(' ')[0]}
               </span>
-              <span className="text-indigo-200/60">'s</span>
+              <span className="text-sky-200/60">'s</span>
               <span className="text-zinc-400 font-light ml-2 text-xl md:text-3xl">Profile</span>
             </h1>
           </motion.div>
@@ -202,7 +203,7 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="flex items-center gap-2 bg-zinc-950/70 border border-indigo-500/20 px-4 py-2 rounded-full backdrop-blur-xl shadow-lg shadow-indigo-900/10"
+            className="flex items-center gap-2 bg-zinc-950/70 border border-sky-500/20 px-4 py-2 rounded-full backdrop-blur-xl shadow-lg shadow-sky-900/10"
           >
             <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
             <span className="text-[9px] font-bold tracking-[0.25em] uppercase text-zinc-400">Secure Session</span>
@@ -249,6 +250,13 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
               >
                 <TripCommandCenter activeBooking={activeBooking} />
                 <SmartItineraryBuilder activeBooking={activeBooking} />
+                <div id="location-map-section" className="scroll-mt-24">
+                  <LocationMap
+                    locationName={activeBooking.properties.title || activeBooking.properties.name || 'Property Location'}
+                    address={activeBooking.properties.location || ''}
+                    nearbyAttractions={[]}
+                  />
+                </div>
               </motion.section>
             ) : (
               <motion.div

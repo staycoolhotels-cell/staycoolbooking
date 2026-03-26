@@ -159,3 +159,24 @@
   -webkit-text-fill-color: rgba(255, 255, 255, 0.7) !important;
   opacity: 1 !important;
 }
+
+/* Force white on MUI DatePicker format mask sections (DD / MMM / YYYY spans) */
+.MuiInputBase-root .MuiInputBase-input[type="text"],
+.MuiMultiSectionDigitalClockSection-root,
+.MuiDateField-root input,
+.MuiPickersTextField-root input {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* The format mask placeholder spans inside the date field */
+.MuiInputBase-root span,
+.MuiPickersTextField-root span,
+.MuiDateField-root span {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+
+

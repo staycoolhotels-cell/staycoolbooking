@@ -47,18 +47,18 @@ const ProfileHeader = ({
 
   return (
     <motion.div
-      className="relative rounded-[2rem] overflow-hidden shadow-2xl shadow-indigo-950/40 border border-indigo-500/10"
+      className="relative rounded-[2rem] overflow-hidden shadow-2xl shadow-sky-950/40 border border-sky-500/10"
       layout
     >
       {/* Card gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-zinc-900/90 via-[#0e0e24]/95 to-indigo-950/70 backdrop-blur-2xl" />
+      <div className="absolute inset-0 bg-gradient-to-br from-zinc-900/90 via-[#0e0e24]/95 to-sky-950/70 backdrop-blur-2xl" />
 
       {/* Inner subtle glow top-left */}
-      <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-500/8 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-48 h-48 bg-violet-500/6 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 left-0 w-64 h-64 bg-sky-500/8 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-48 h-48 bg-blue-500/6 rounded-full blur-3xl pointer-events-none" />
 
       {/* Border highlight line */}
-      <div className="absolute top-0 left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-indigo-400/30 to-transparent" />
+      <div className="absolute top-0 left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-sky-400/30 to-transparent" />
 
       {/* Hidden file input */}
       <input
@@ -105,8 +105,8 @@ const ProfileHeader = ({
 
             {/* Tier badge */}
             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2">
-              <div className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-zinc-950/90 border border-indigo-500/20 backdrop-blur-sm shadow-lg`}>
-                <div className={`w-1.5 h-1.5 rounded-full ${tier.dot} shadow-[0_0_6px_rgba(99,102,241,0.6)]`} />
+              <div className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-zinc-950/90 border border-sky-500/20 backdrop-blur-sm shadow-lg`}>
+                <div className={`w-1.5 h-1.5 rounded-full ${tier.dot} shadow-[0_0_6px_rgba(14,165,233,0.6)]`} />
                 <span className={`text-[9px] font-black uppercase tracking-widest bg-gradient-to-r ${tier.color} bg-clip-text text-transparent`}>
                   {tier.label}
                 </span>
@@ -125,14 +125,14 @@ const ProfileHeader = ({
                   exit={{ opacity: 0, y: 8 }}
                   className="flex flex-col mb-1"
                 >
-                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-400 mb-1.5">
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] text-sky-400 mb-1.5">
                     Display Name
                   </label>
                   <input
                     type="text"
                     value={user.name}
                     onChange={(e) => setUser({ ...user, name: e.target.value })}
-                    className="bg-indigo-950/40 border-b-2 border-indigo-500 text-white text-2xl md:text-4xl font-bold px-2 py-1 outline-none rounded-t-lg focus:ring-0 max-w-md transition-all"
+                    className="bg-sky-950/40 border-b-2 border-sky-500 text-white text-2xl md:text-4xl font-bold px-2 py-1 outline-none rounded-t-lg focus:ring-0 max-w-md transition-all"
                   />
                 </motion.div>
               ) : (
@@ -149,13 +149,13 @@ const ProfileHeader = ({
               )}
             </AnimatePresence>
 
-            <p className="text-sm md:text-base text-indigo-300/70 font-medium mt-1 tracking-wide truncate">
+            <p className="text-sm md:text-base text-sky-300/70 font-medium mt-1 tracking-wide truncate">
               {user.email}
             </p>
 
             {/* Meta badges row */}
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-3">
-              <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
+              <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-sky-500/10 border border-sky-500/20 text-sky-300">
                 ✦ Guest Member
               </span>
               {points > 0 && (
@@ -179,8 +179,8 @@ const ProfileHeader = ({
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               className={`relative overflow-hidden px-7 py-3 rounded-full font-bold text-sm transition-all duration-300 shadow-lg ${isEditing
-                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-indigo-700/40 hover:shadow-indigo-600/60'
-                  : 'bg-indigo-500/10 text-indigo-200 border border-indigo-500/25 hover:bg-indigo-500/20 hover:border-indigo-400/40 backdrop-blur-md'
+                  ? 'bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-sky-700/40 hover:shadow-sky-600/60'
+                  : 'bg-sky-500/10 text-sky-200 border border-sky-500/25 hover:bg-sky-500/20 hover:border-sky-400/40 backdrop-blur-md'
                 }`}
             >
               {/* Shine sweep on save button */}
@@ -206,7 +206,7 @@ const ProfileHeader = ({
 
         {/* ── Personal Information ── */}
         {personalInfo && setPersonalInfo && (
-          <div className="mt-8 pt-8 border-t border-indigo-500/10 w-full">
+          <div className="mt-8 pt-8 border-t border-sky-500/10 w-full">
             <PersonalInformation
               userInfo={personalInfo}
               setUserInfo={setPersonalInfo}

@@ -4,16 +4,39 @@ import { razorpay } from './razorpay';
 import crypto from 'crypto';
 
 export async function createHostSignupOrder() {
-    // MOCK IMPLEMENTATION FOR TESTING
-    console.log("⚠️ USING MOCK PAYMENT ORDER");
-    return {
-        success: true,
-        orderId: "order_mock_" + Date.now(),
-        amount: 29900,
-        currency: "INR",
-        key_id: "rzp_test_mock_12345",
-        error: null
-    };
+    try {
+        const key_id = process.env.RAZORPAY_KEY_ID;
+        if (!key_id) {
+            throw new Error('RAZORPAY_KEY_ID is not configured');
+        }
+
+        const options = {
+            amount: 29900, // Amount in paise (299 INR)
+            currency: "INR",
+            receipt: "receipt_host_signup_" + Date.now(),
+        };
+
+        const order = await razorpay.orders.create(options);
+        
+        return {
+            success: true,
+            orderId: order.id,
+            amount: order.amount,
+            currency: order.currency,
+            key_id: key_id,
+            error: null
+        };
+    } catch (error: any) {
+        console.error('Error creating Razorpay order:', error);
+        return {
+            success: false,
+            orderId: null,
+            amount: 0,
+            currency: "INR",
+            key_id: null,
+            error: error.message
+        };
+    }
 }
 
 export async function verifyPaymentSignature(
@@ -21,7 +44,16 @@ export async function verifyPaymentSignature(
     paymentId: string,
     signature: string
 ) {
-    // MOCK IMPLEMENTATION - ALWAYS VERIFY TRUE
-    console.log("⚠️ VERIFYING MOCK PAYMENT SIGNATURE");
-    return true;
+    const key_secret = process.env.RAZORPAY_KEY_SECRET;
+    if (!key_secret) {
+        console.error('RAZORPAY_KEY_SECRET is not configured');
+        return false;
+    }
+
+    const generated_signature = crypto
+        .createHmac('sha256', key_secret)
+        .update(orderId + "|" + paymentId)
+        .digest('hex');
+
+    return generated_signature === signature;
 }

@@ -11,6 +11,15 @@ import ConfirmationModal from './ConfirmationModal';
 import { supabase } from '@/lib/supabaseClient'; // Ensure this matches your project structure
 import { toast } from 'sonner';
 
+interface UpsellAmenity {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  type: string;
+}
+
 interface BookingCardProps {
   propertyId: string;
   pricePerNight: number;
@@ -20,6 +29,9 @@ interface BookingCardProps {
   hostResponseTime: string;
   totalRooms: number;
   selectedAmenities?: Record<string, number>;
+  upsellAmenities?: UpsellAmenity[];
+  rating?: number;
+  reviewCount?: number;
 }
 
 const BookingCard = ({
@@ -31,6 +43,9 @@ const BookingCard = ({
   hostResponseTime,
   totalRooms,
   selectedAmenities = {},
+  upsellAmenities = [],
+  rating = 0,
+  reviewCount = 0,
 }: BookingCardProps) => {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
@@ -47,6 +62,11 @@ const BookingCard = ({
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+
+  // New Sub-units State
+  const [availableRoomsList, setAvailableRoomsList] = useState<any[]>([]);
+  const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([]);
+  const [loadingRooms, setLoadingRooms] = useState(false);
 
   useEffect(() => {
     setIsHydrated(true);
@@ -106,10 +126,49 @@ const BookingCard = ({
       }
     };
 
+    const fetchAvailableRooms = async () => {
+      if (!checkIn || !checkOut || !propertyId) return;
+      
+      setLoadingRooms(true);
+      try {
+        const { data, error } = await supabase.rpc('get_available_rooms', {
+          p_property_id: propertyId,
+          p_check_in: checkIn.toISOString().split('T')[0],
+          p_check_out: checkOut.toISOString().split('T')[0],
+        });
+
+        if (error) {
+          console.error('Error fetching available rooms (Raw):', error);
+          console.error('Error details:', {
+             message: error.message,
+             details: error.details,
+             hint: error.hint,
+             code: error.code
+          });
+          
+          if (!data || error) {
+            toast.error('Sub-units fetch failed. Ensure SQL migrations are applied.');
+          }
+        } else {
+          setAvailableRoomsList(data || []);
+          // Auto-select first available room for single booking if none selected
+          if (bookingType === 'single' && (data || []).filter((r: any) => r.is_available).length > 0) {
+            const firstAvailable = data.find((r: any) => r.is_available);
+            if (firstAvailable) setSelectedRoomIds([firstAvailable.id]);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch rooms', err);
+      } finally {
+        setLoadingRooms(false);
+      }
+    };
+
     if (checkIn && checkOut) {
       checkRoomAvailability();
+      fetchAvailableRooms();
     }
-  }, [checkIn, checkOut, propertyId]);
+  }, [checkIn, checkOut, propertyId, bookingType]);
 
 
   if (!isHydrated) {
@@ -145,7 +204,14 @@ const BookingCard = ({
 
   const discountedTotal = Math.max(0, baseTotal - discount);
   const serviceFee = discountedTotal * 0.1;
-  const total = discountedTotal + serviceFee;
+
+  // Calculate selected upgrades total
+  const upgradesTotal = Object.entries(selectedAmenities).reduce((sum, [id, qty]) => {
+    const amenity = upsellAmenities.find(a => a.id === id);
+    return amenity ? sum + amenity.price * qty : sum;
+  }, 0);
+
+  const total = discountedTotal + serviceFee + upgradesTotal;
 
   const handleBookClick = () => {
     if (bookingType === 'bulk') {
@@ -163,6 +229,7 @@ const BookingCard = ({
       guests: guests.toString(),
       bookingType,
       roomCount: roomsToBook.toString(),
+      selectedRoomIds: JSON.stringify(selectedRoomIds),
     });
     
     if (Object.keys(selectedAmenities).length > 0) {
@@ -180,13 +247,13 @@ const BookingCard = ({
   // But initialIsAvailable is boolean.
 
   const isBookable = isDateSelected
-    ? (availableRooms >= roomsToBook)
+    ? (bookingType === 'single' ? selectedRoomIds.length === 1 : selectedRoomIds.length > 0 && selectedRoomIds.length <= availableRooms)
     : initialIsAvailable;
 
   const unavailableMessage = checkingAvailability
     ? 'Checking availability...'
-    : (isDateSelected && availableRooms < roomsToBook
-      ? `Only ${availableRooms} rooms available`
+    : (isDateSelected 
+      ? (selectedRoomIds.length === 0 ? 'Select a unit' : `Only ${availableRooms} available`)
       : 'Unavailable');
 
   const popperSx = {
@@ -255,8 +322,8 @@ const BookingCard = ({
     '& .MuiInputBase-input, & input': {
       color: '#ffffff !important',
       WebkitTextFillColor: '#ffffff !important',
-      padding: '10px 12px',
-      fontSize: '0.9rem',
+      padding: '8px 0px 8px 6px',
+      fontSize: '0.72rem',
       fontWeight: '600',
       cursor: 'pointer',
       opacity: '1 !important',
@@ -284,7 +351,7 @@ const BookingCard = ({
     },
     '& .MuiSvgIcon-root': {
       color: '#38bdf8 !important',
-      fontSize: '1.1rem',
+      fontSize: '0.85rem',
     },
     '& .MuiOutlinedInput-notchedOutline': {
       border: 'none !important',
@@ -294,6 +361,10 @@ const BookingCard = ({
     },
     '& .MuiInputAdornment-root': {
       marginLeft: '0',
+      marginRight: '0',
+    },
+    '& .MuiIconButton-root': {
+      padding: '2px !important',
     },
   };
 
@@ -330,9 +401,9 @@ const BookingCard = ({
               </div>
               <div className="flex items-center gap-1 text-[13px] bg-sky-900/25 px-2.5 py-1 rounded-full border border-sky-500/20">
                 <Icon name="StarIcon" size={12} variant="solid" className="text-amber-400" />
-                <span className="font-semibold text-white">4.92</span>
+                <span className="font-semibold text-white">{rating.toFixed(2)}</span>
                 <span className="text-gray-500">·</span>
-                <span className="text-gray-400 font-medium">128 reviews</span>
+                <span className="text-gray-400 font-medium">{reviewCount} reviews</span>
               </div>
             </div>
 
@@ -364,20 +435,21 @@ const BookingCard = ({
             <div className="space-y-3 mb-5">
 
               {/* Date Pickers */}
-              <div className="flex gap-3">
+              <div className="flex gap-1">
                 {/* Check-in */}
                 <div className="flex-1 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden">
-                  <div className="px-3 pt-2 pb-1">
+                  <div className="px-1 pt-2 pb-1">
                     <p className="text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">Check-in</p>
                     <DatePicker
                       value={checkIn}
                       onChange={(newValue) => setCheckIn(newValue)}
                       disablePast
-                      format="dd MMM yyyy"
+                      format="dd MM yyyy"
+                      desktopModeMediaQuery="@media (min-width: 0px)"
                       slotProps={{
                         textField: { 
                           size: 'small', 
-                          placeholder: 'DD MMM YYYY',
+                          placeholder: 'DD MM YYYY',
                         },
                         popper: { sx: popperSx }
                       }}
@@ -388,15 +460,16 @@ const BookingCard = ({
 
                 {/* Check-out */}
                 <div className="flex-1 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden">
-                  <div className="px-3 pt-2 pb-1">
+                  <div className="px-1 pt-2 pb-1">
                     <p className="text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">Check-out</p>
                     <DatePicker
                       value={checkOut}
                       onChange={(newValue) => setCheckOut(newValue)}
                       minDate={checkIn || new Date()}
-                      format="dd MMM yyyy"
+                      format="dd MM yyyy"
+                      desktopModeMediaQuery="@media (min-width: 0px)"
                       slotProps={{
-                        textField: { size: 'small', placeholder: 'DD MMM YYYY' },
+                        textField: { size: 'small', placeholder: 'DD MM YYYY' },
                         popper: { sx: popperSx }
                       }}
                       sx={datePickerSx}
@@ -521,18 +594,97 @@ const BookingCard = ({
                 </div>
               )}
 
+              {/* Sub-unit Selection UI */}
+              {isDateSelected && availableRoomsList.length > 0 && (
+                <div className="space-y-2 p-3 bg-gray-900/80 border border-gray-700/60 rounded-xl">
+                  <label className="block text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-2">
+                    Select Preferred {bookingType === 'bulk' ? 'Units' : 'Unit'}
+                  </label>
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                    {availableRoomsList.map((room) => (
+                      <div 
+                        key={room.id}
+                        onClick={() => {
+                          if (!room.is_available) return;
+                          if (bookingType === 'single') {
+                            setSelectedRoomIds([room.id]);
+                          } else {
+                            setSelectedRoomIds(prev => 
+                              prev.includes(room.id) 
+                                ? prev.filter(id => id !== room.id)
+                                : [...prev, room.id]
+                            );
+                          }
+                        }}
+                        className={`flex items-center justify-between p-2.5 rounded-lg border transition-all cursor-pointer ${
+                          selectedRoomIds.includes(room.id)
+                            ? 'bg-sky-500/10 border-sky-500/50'
+                            : room.is_available 
+                              ? 'bg-black/40 border-gray-800 hover:border-gray-600' 
+                              : 'bg-black/20 border-gray-800/50 opacity-50 cursor-not-allowed'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3.5 h-3.5 rounded flex items-center justify-center border ${
+                            selectedRoomIds.includes(room.id) 
+                              ? 'bg-sky-500 border-sky-500' 
+                              : 'border-gray-600'
+                          }`}>
+                            {selectedRoomIds.includes(room.id) && <Icon name="CheckIcon" size={10} className="text-black" />}
+                          </div>
+                          <span className="text-xs font-medium text-white">{room.name}</span>
+                        </div>
+                        {!room.is_available && (
+                          <span className="text-[10px] font-bold text-red-400/70 uppercase">Booked</span>
+                        )}
+                        {room.is_available && selectedRoomIds.includes(room.id) && (
+                          <span className="text-[10px] font-bold text-sky-400 uppercase">Selected</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {bookingType === 'bulk' && selectedRoomIds.length > 0 && (
+                    <p className="text-[10px] text-sky-400 font-semibold mt-1">
+                      {selectedRoomIds.length} units selected
+                    </p>
+                  )}
+                  {bookingType === 'single' && selectedRoomIds.length === 0 && (
+                     <p className="text-[10px] text-amber-400 font-semibold mt-1">
+                       Please select a unit to proceed
+                     </p>
+                  )}
+                </div>
+              )}
+
             </div>
 
             {/* Primary CTA */}
             <button
               onClick={handleBookClick}
               disabled={!isBookable || checkingAvailability}
-              className="w-full bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-black font-bold rounded-xl py-3 text-base shadow-lg shadow-sky-900/40 transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed mb-4"
+              className="w-full bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-black font-bold rounded-xl py-3 text-base shadow-lg shadow-sky-900/40 transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed mb-2"
             >
               {isBookable
                 ? (nights ? (bookingType === 'bulk' ? 'Request Bulk Booking' : 'Reserve') : 'Select dates')
                 : unavailableMessage}
             </button>
+
+            {/* Cancel Button — only shown when dates are selected */}
+            {(checkIn || checkOut) && (
+              <button
+                onClick={() => {
+                  setCheckIn(null);
+                  setCheckOut(null);
+                  setGuests(2);
+                  setSelectedRooms(1);
+                  setBookingType('single');
+                }}
+                className="w-full py-2.5 text-sm font-semibold text-gray-400 hover:text-white border border-gray-700/60 hover:border-gray-500 rounded-xl transition-all active:scale-[0.98] mb-2"
+              >
+                Clear selection
+              </button>
+            )}
+
 
             {/* Price Breakdown */}
             {nights > 0 && (
@@ -559,6 +711,15 @@ const BookingCard = ({
                     <span className="underline decoration-gray-700">Service fee</span>
                     <span>{currency}{serviceFee.toLocaleString()}</span>
                   </div>
+                  {upgradesTotal > 0 && (
+                    <div className="flex justify-between text-amber-400">
+                      <span className="flex items-center gap-1">
+                        <Icon name="SparklesIcon" size={14} />
+                        Exclusive Upgrades
+                      </span>
+                      <span>+{currency}{upgradesTotal.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="border-t border-sky-900/40 pt-4 flex justify-between font-bold text-lg text-white">
                   <span>Total</span>

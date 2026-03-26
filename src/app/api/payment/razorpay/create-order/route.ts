@@ -34,6 +34,7 @@ export async function POST(req: Request) {
                 status,
                 guest_id,
                 property_id,
+                razorpay_payment_id,
                 property:properties!property_id (
                     id,
                     host_id
@@ -52,7 +53,10 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Forbidden: this is not your booking' }, { status: 403 });
         }
 
-        if (booking.status === 'confirmed') {
+        // Only block if a real Razorpay payment was already captured.
+        // The create_bulk_booking RPC may set status='confirmed' by default,
+        // so we check for an actual payment ID, not just the status.
+        if (booking.razorpay_payment_id) {
             return NextResponse.json({ error: 'This booking is already paid.' }, { status: 409 });
         }
 
