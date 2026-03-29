@@ -48,7 +48,7 @@ const BookingHistory = ({ bookings, guestId }: BookingHistoryProps) => {
         (a, b) => new Date(b.check_in).getTime() - new Date(a.check_in).getTime()
     );
 
-    const displayedBookings = showAll ? sortedBookings : sortedBookings.slice(0, 5);
+    const displayedBookings = showAll ? sortedBookings : sortedBookings.slice(0, 2);
 
     const totalBookings = bookings.length;
     const totalSpent = bookings.reduce((acc, curr) => acc + curr.total_price, 0);
@@ -64,6 +64,14 @@ const BookingHistory = ({ bookings, guestId }: BookingHistoryProps) => {
             default:
                 return 'text-gray-400 bg-gray-500/10 border-gray-500/20';
         }
+    };
+
+    const getPropertyImage = (prop: any) => {
+        if (prop.images && Array.isArray(prop.images) && prop.images.length > 0) {
+            const first = prop.images[0];
+            return typeof first === 'string' ? first : first.url;
+        }
+        return prop.image_url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6';
     };
 
     return (
@@ -115,65 +123,79 @@ const BookingHistory = ({ bookings, guestId }: BookingHistoryProps) => {
                                 transition={{ delay: index * 0.05 }}
                                 whileHover={{ scale: 1.01, backgroundColor: 'rgba(39, 39, 42, 0.4)' }}
                                 onClick={() => setSelectedBooking(booking)}
-                                className="group p-4 rounded-xl bg-zinc-900/40 border border-zinc-800 hover:border-sky-500/30 transition-all cursor-pointer flex flex-col md:flex-row gap-4 items-center"
+                                className="group p-3 rounded-xl bg-zinc-900/40 border border-zinc-800 hover:border-sky-500/30 transition-all cursor-pointer flex flex-row gap-3 items-center min-w-0"
                             >
-                                <div className="relative w-full md:w-24 h-24 md:h-20 rounded-lg overflow-hidden flex-shrink-0">
+                                {/* Thumbnail Image */}
+                                <div className="relative w-14 h-14 sm:w-20 sm:h-16 rounded-lg overflow-hidden flex-shrink-0">
                                     <img
-                                        src={booking.properties.images?.[0]?.url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6'}
+                                        src={getPropertyImage(booking.properties)}
                                         alt={booking.properties.title || 'Property'}
                                         className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
                                     />
                                 </div>
 
-                                <div className="flex-grow text-center md:text-left">
-                                    <h3 className="font-bold text-white group-hover:text-sky-400 transition-colors">
+                                {/* Title & Location */}
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-sm font-bold text-white group-hover:text-sky-400 transition-colors truncate">
                                         {booking.properties.title}
                                     </h3>
-                                    <p className="text-xs text-zinc-400 mb-2">{booking.properties.location}</p>
-                                    <div className="flex items-center justify-center md:justify-start gap-4 text-xs text-zinc-500">
-                                        <span className="flex items-center gap-1">
-                                            <Icon name="CalendarIcon" size={12} />
-                                            {format(new Date(booking.check_in), 'MMM dd, yyyy')}
-                                        </span>
-                                        <span>→</span>
+                                    <p className="text-[10px] text-zinc-500 truncate">{booking.properties.location}</p>
+                                    
+                                    {/* Dates — hidden on small mobile, show on sm+ */}
+                                    <div className="hidden sm:flex items-center gap-2 text-[10px] text-zinc-600 mt-1">
+                                        <span>{format(new Date(booking.check_in), 'MMM dd')}</span>
+                                        <span className="opacity-40">→</span>
                                         <span>{format(new Date(booking.check_out), 'MMM dd, yyyy')}</span>
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col items-center md:items-end gap-2 min-w-[120px]">
-                                    <span className="text-lg font-bold text-white">
+                                {/* Price & Status Area */}
+                                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                    <span className="text-sm font-bold text-white">
                                         ₹{booking.total_price.toLocaleString('en-IN')}
                                     </span>
                                     <span
-                                        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(
+                                        className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${getStatusColor(
                                             booking.status
                                         )}`}
                                     >
                                         {booking.status}
                                     </span>
-                                    {/* Rate Stay button — show if checkout date has passed */}
-                                    {new Date(booking.check_out) < new Date() && !reviewedIds.has(booking.id) && booking.status !== 'cancelled' && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setReviewBooking(booking);
-                                            }}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
-                                        >
-                                            <Star size={11} className="fill-current" />
-                                            Rate Stay
-                                        </button>
-                                    )}
-                                    {reviewedIds.has(booking.id) && (
-                                        <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
-                                            <Star size={10} className="fill-current" /> Reviewed
-                                        </span>
-                                    )}
-                                </div>
+                                    
+                                    {/* Action icons for mobile view */}
+                                    <div className="flex md:hidden items-center gap-2 mt-1">
+                                         {new Date(booking.check_out) < new Date() && !reviewedIds.has(booking.id) && booking.status !== 'cancelled' && (
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); setSelectedBooking(booking); }}
+                                                className="px-2 py-0.5 rounded-md bg-amber-500 text-black text-[8px] font-black uppercase flex items-center gap-1 shadow-lg shadow-amber-900/20 active:scale-95 transition-transform"
+                                            >
+                                                <Star size={8} className="fill-current" />
+                                                Rate
+                                            </button>
+                                         )}
+                                         {reviewedIds.has(booking.id) && (
+                                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-500">
+                                                <Star size={8} className="fill-current" />
+                                                <span className="text-[7px] font-bold uppercase tracking-wider">Rated</span>
+                                            </div>
+                                         )}
+                                    </div>
 
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity -mr-2 hidden md:block">
-                                    <div className="p-2 rounded-full bg-sky-500/10 text-sky-400 hover:bg-sky-500/20">
-                                        <Icon name="ChevronRightIcon" size={20} />
+                                    {/* Action icons for desktop view */}
+                                    <div className="hidden md:flex items-center gap-2 mt-1">
+                                         {new Date(booking.check_out) < new Date() && !reviewedIds.has(booking.id) && booking.status !== 'cancelled' && (
+                                            <div title="Rate Stay" className="p-1 rounded-md bg-amber-500/10 text-amber-500">
+                                                <Star size={10} className="fill-current" />
+                                            </div>
+                                         )}
+                                         {reviewedIds.has(booking.id) && (
+                                            <div title="Reviewed" className="p-1 rounded-md bg-emerald-500/10 text-emerald-500">
+                                                <Star size={10} className="fill-current" />
+                                            </div>
+                                         )}
+                                         <div className="p-1 rounded-md bg-sky-500/10 text-sky-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Icon name="ChevronRightIcon" size={12} />
+                                         </div>
                                     </div>
                                 </div>
                             </motion.div>
@@ -186,7 +208,7 @@ const BookingHistory = ({ bookings, guestId }: BookingHistoryProps) => {
                     )}
                 </div>
 
-                {bookings.length > 5 && (
+                {bookings.length > 2 && (
                     <button
                         onClick={() => setShowAll(!showAll)}
                         className="w-full mt-6 py-3 text-xs font-bold uppercase tracking-widest text-sky-400 hover:text-white hover:bg-white/5 rounded-xl transition-all border border-transparent hover:border-sky-500/20"

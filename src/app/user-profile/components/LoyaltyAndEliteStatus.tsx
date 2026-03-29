@@ -39,29 +39,29 @@ const LoyaltyAndEliteStatus = ({ achievements, totalBookings, rewardPoints }: Lo
   const milestoneAchievements = [];
   if (totalBookings >= 1) {
     milestoneAchievements.push({
-      id: 'm1', title: 'First Trip', description: 'Completed your first booking',
-      icon: <Ticket className="w-8 h-8 text-white drop-shadow-md" />,
+      id: 'm1', title: 'First\nTrip', description: 'Completed your first booking',
+      icon: <Ticket className="w-6 h-6 text-white drop-shadow-md" />,
       bg: 'bg-gradient-to-br from-blue-400 to-indigo-600 shadow-blue-500/30'
     });
   }
   if (totalBookings >= 5) {
     milestoneAchievements.push({
-      id: 'm2', title: 'Frequent Traveler', description: 'Completed 5 bookings',
-      icon: <Star className="w-8 h-8 text-yellow-100 drop-shadow-md" fill="currentColor" />,
+      id: 'm2', title: 'Frequent\nTraveler', description: 'Completed 5 bookings',
+      icon: <Star className="w-6 h-6 text-yellow-100 drop-shadow-md" fill="currentColor" />,
       bg: 'bg-gradient-to-br from-amber-400 to-orange-600 shadow-orange-500/30'
     });
   }
   if (totalBookings >= 10) {
     milestoneAchievements.push({
-      id: 'm3', title: 'Globetrotter', description: 'Completed 10 bookings',
-      icon: <Trophy className="w-8 h-8 text-amber-100 drop-shadow-md" />,
+      id: 'm3', title: 'Globe\ntrotter', description: 'Completed 10 bookings',
+      icon: <Trophy className="w-6 h-6 text-amber-100 drop-shadow-md" />,
       bg: 'bg-gradient-to-br from-red-500 to-rose-700 shadow-red-500/30'
     });
   }
   if (totalBookings >= 20) {
     milestoneAchievements.push({
       id: 'm4', title: 'Elite Voyager', description: 'Completed 20 bookings',
-      icon: <Crown className="w-8 h-8 text-white drop-shadow-md" fill="currentColor" />,
+      icon: <Crown className="w-6 h-6 text-white drop-shadow-md" fill="currentColor" />,
       bg: 'bg-gradient-to-br from-violet-500 to-fuchsia-700 shadow-fuchsia-500/30'
     });
   }
@@ -100,7 +100,7 @@ const LoyaltyAndEliteStatus = ({ achievements, totalBookings, rewardPoints }: Lo
         <div>
           <h3 className="font-semibold text-gray-300 mb-2">Milestone Badges</h3>
           {milestoneAchievements.length > 0 ? (
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 gap-4 md:gap-5">
               {milestoneAchievements.map((badge, i) => (
                 <motion.div
                   key={badge.id}
@@ -110,10 +110,12 @@ const LoyaltyAndEliteStatus = ({ achievements, totalBookings, rewardPoints }: Lo
                   className="flex flex-col items-center text-center"
                   title={`${badge.title} - ${badge.description}`}
                 >
-                  <div className={`p-4 rounded-full shadow-lg border border-white/20 flex items-center justify-center ${badge.bg}`}>
-                    {badge.icon}
+                  <div className={`p-3.5 rounded-full shadow-lg border border-white/20 flex items-center justify-center ${badge.bg}`}>
+                    <div className="transform transition-transform group-hover:scale-110">
+                      {badge.icon}
+                    </div>
                   </div>
-                  <p className="text-xs font-bold mt-2 text-zinc-200">{badge.title}</p>
+                  <p className="text-[10px] font-bold mt-2 text-zinc-200 leading-tight whitespace-pre-line">{badge.title}</p>
                 </motion.div>
               ))}
             </div>

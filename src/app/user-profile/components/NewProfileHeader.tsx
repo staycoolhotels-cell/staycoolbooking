@@ -141,10 +141,18 @@ const ProfileHeader = ({
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 8 }}
+                  className="flex items-center justify-center md:justify-start gap-4"
                 >
                   <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-br from-white to-zinc-300 bg-clip-text text-transparent leading-tight">
                     {user.name}
                   </h2>
+                  <button
+                    onClick={onEditToggle}
+                    className="p-1.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500/20 transition-all shadow-lg hover:scale-110 active:scale-90"
+                    title="Edit Profile"
+                  >
+                    <Icon name="PencilSquareIcon" size={18} />
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -172,35 +180,36 @@ const ProfileHeader = ({
           </div>
 
           {/* ── Edit / Save CTA ── */}
-          <div className="flex-shrink-0 self-start md:self-center">
-            <motion.button
-              onClick={isEditing ? onSave : onEditToggle}
-              disabled={isSaving}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className={`relative overflow-hidden px-7 py-3 rounded-full font-bold text-sm transition-all duration-300 shadow-lg ${isEditing
-                  ? 'bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-sky-700/40 hover:shadow-sky-600/60'
-                  : 'bg-sky-500/10 text-sky-200 border border-sky-500/25 hover:bg-sky-500/20 hover:border-sky-400/40 backdrop-blur-md'
-                }`}
-            >
-              {/* Shine sweep on save button */}
+          <div className="flex-shrink-0 self-start md:self-center min-w-[120px] flex justify-end">
+            <AnimatePresence>
               {isEditing && (
-                <span className="absolute inset-0 -skew-x-12 translate-x-[-120%] bg-white/10 group-hover:translate-x-[120%] transition-transform duration-700 ease-in-out pointer-events-none" />
+                <motion.button
+                  key="save-button"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  onClick={onSave}
+                  disabled={isSaving}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="relative overflow-hidden px-7 py-3 rounded-full font-bold text-sm transition-all duration-300 shadow-lg bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-sky-700/40 hover:shadow-sky-600/60"
+                >
+                  {/* Shine sweep on save button */}
+                  <span className="absolute inset-0 -skew-x-12 translate-x-[-120%] bg-white/10 group-hover:translate-x-[120%] transition-transform duration-700 ease-in-out pointer-events-none" />
+                  {isSaving ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Saving…
+                    </span>
+                  ) : (
+                    '✓ Save Changes'
+                  )}
+                </motion.button>
               )}
-              {isSaving ? (
-                <span className="flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Saving…
-                </span>
-              ) : isEditing ? (
-                '✓ Save Changes'
-              ) : (
-                '✎ Edit Profile'
-              )}
-            </motion.button>
+            </AnimatePresence>
           </div>
         </div>
 

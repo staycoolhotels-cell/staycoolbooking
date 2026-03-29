@@ -128,12 +128,38 @@ const TripCommandCenter = ({ activeBooking }: TripCommandCenterProps) => {
   const property = properties;
 
   const handleNavigation = () => {
-    const mapSection = document.getElementById('location-map-section');
-    if (mapSection) {
-      mapSection.scrollIntoView({ behavior: 'smooth' });
+    // Construct the most precise destination address possible
+    const destAddress = property?.address_line1 
+      ? `${property.address_line1}, ${property.city || ''}, ${property.state || ''} ${property.postal_code || ''}`.trim()
+      : property?.location || '';
+    
+    const destination = encodeURIComponent(destAddress);
+    
+    if (typeof window !== 'undefined' && "geolocation" in navigator) {
+      toast.info("Accessing your location for precise navigation...");
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const origin = `${latitude},${longitude}`;
+          // Use Google Maps Directions URL for real-time routing
+          const navUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+          window.open(navUrl, '_blank');
+        },
+        (error) => {
+          console.warn("Geolocation failed or denied, falling back to search:", error);
+          const fallbackUrl = `https://www.google.com/maps/search/?api=1&query=${destination}`;
+          window.open(fallbackUrl, '_blank');
+          if (error.code === 1) {
+            toast.error("Location access denied. Opening address search instead.");
+          }
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
     } else {
-      const query = encodeURIComponent(property?.location || '');
-      window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+      // Fallback if browser doesn't support geolocation
+      const fallbackUrl = `https://www.google.com/maps/search/?api=1&query=${destination}`;
+      window.open(fallbackUrl, '_blank');
     }
   };
 

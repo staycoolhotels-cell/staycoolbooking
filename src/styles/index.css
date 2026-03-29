@@ -1,4 +1,5 @@
 @import './tailwind.css';
+@import 'leaflet/dist/leaflet.css';
 
 :root {
   --color-border: 59 78 102;
@@ -176,6 +177,11 @@
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
   opacity: 1 !important;
+}
+
+/* Leaflet Dark Detail Filter - Shows more POIs from OSM while keeping it dark */
+.leaflet-dark-detailed .leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
 }
 
 

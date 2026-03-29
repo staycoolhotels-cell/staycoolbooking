@@ -46,7 +46,7 @@ const HostResourcesPage = () => {
 
     const stats = [
         { label: 'Active Hosts', value: '50,000+' },
-        { label: 'Avg. Monthly Earnings', value: '$2,400' },
+        { label: 'Avg. Monthly Earnings', value: '₹2,400' },
         { label: 'Host Satisfaction', value: '4.9/5' },
         { label: 'Global Destinations', value: '120+' }
     ];

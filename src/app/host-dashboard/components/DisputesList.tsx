@@ -315,7 +315,7 @@ const DisputesList = ({ disputes, isLoading }: DisputesListProps) => {
                                             <div className="flex justify-between items-center">
                                                 <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Est. Amount</span>
                                                 <span className="text-sm font-bold text-white tracking-widest font-mono">
-                                                    ${selectedDispute.amount?.toFixed(2) || '0.00'}
+                                                    ₹{selectedDispute.amount?.toFixed(2) || '0.00'}
                                                 </span>
                                             </div>
                                             <div className="flex justify-between items-center">

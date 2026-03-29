@@ -14,6 +14,7 @@ interface GuestDetailsModalProps {
 
 const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, onClose }) => {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [guest, setGuest] = useState<User | null>(null);
   const [personalInfo, setPersonalInfo] = useState<PersonalInfo | null>(null);
   const [verifications, setVerifications] = useState<UserVerificationStatus | null>(null);
@@ -27,6 +28,7 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
 
   const fetchGuestDetails = async () => {
     setLoading(true);
+    setError(null);
     try {
       const result = await getGuestProfileForHost(userId);
       
@@ -38,8 +40,9 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
       } else {
         throw new Error(result.error);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching guest details:', error);
+      setError(error.message || 'Failed to fetch guest details');
     } finally {
       setLoading(false);
     }
@@ -82,6 +85,24 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
               <div className="flex flex-col items-center justify-center py-20 space-y-4">
                 <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
                 <p className="text-zinc-500 font-medium animate-pulse">Fetching guest profile...</p>
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center py-20 space-y-4 text-center">
+                 <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                    <Icon name="ExclamationTriangleIcon" size={32} className="text-red-500" />
+                 </div>
+                 <div className="space-y-2">
+                    <h2 className="text-lg font-bold text-white">Guest Not Found</h2>
+                    <p className="text-sm text-zinc-500 max-w-[250px] mx-auto leading-relaxed">
+                      {error}
+                    </p>
+                 </div>
+                 <button 
+                  onClick={fetchGuestDetails}
+                  className="mt-4 px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-zinc-400 hover:text-white transition-colors"
+                 >
+                   Try Again
+                 </button>
               </div>
             ) : (
               <div className="space-y-8">

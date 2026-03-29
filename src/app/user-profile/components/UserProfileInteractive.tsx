@@ -241,6 +241,20 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
 
           {/* ── Main Column ── */}
           <div className="lg:col-span-2 xl:col-span-3 space-y-8">
+            
+            {/* Loyalty & Elite Status — mobile-only position under Personal Info */}
+            <motion.div 
+              initial={{ y: 20, opacity: 0 }} 
+              animate={{ y: 0, opacity: 1 }} 
+              transition={{ delay: 0.3 }}
+              className="lg:hidden"
+            >
+              <LoyaltyAndEliteStatus
+                achievements={achievements}
+                totalBookings={bookings.length}
+                rewardPoints={user?.reward_points || 0}
+              />
+            </motion.div>
 
             {/* Trip Command Center */}
             {activeBooking ? (
@@ -298,7 +312,13 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
 
           {/* ── Sidebar ── */}
           <aside className="space-y-8">
-            <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
+            {/* Loyalty & Elite Status — desktop-only sidebar position */}
+            <motion.div 
+              initial={{ x: 20, opacity: 0 }} 
+              animate={{ x: 0, opacity: 1 }} 
+              transition={{ delay: 0.4 }}
+              className="hidden lg:block"
+            >
               <LoyaltyAndEliteStatus
                 achievements={achievements}
                 totalBookings={bookings.length}

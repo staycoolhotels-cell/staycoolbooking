@@ -41,3 +41,23 @@ export const ResortIcon = ({ className = '', size = 24 }: { className?: string; 
         <path d="M12 21v-1" />
     </svg>
 );
+
+export const VillaIcon = ({ className = '', size = 24 }: { className?: string; size?: number }) => (
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+    >
+        <path d="M2 20h20" />
+        <path d="M7 20v-7l5-5 5 5v7" />
+        <path d="M18 12h4v8h-4z" />
+        <path d="M2 12h4v8H2z" />
+        <path d="M10 20v-4h4v4" />
+    </svg>
+);

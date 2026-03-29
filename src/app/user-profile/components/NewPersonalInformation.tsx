@@ -37,6 +37,7 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
 
   /* ── languages multi-select ── */
   const [langOpen, setLangOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -96,9 +97,31 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
             Editing
           </span>
         )}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-[9px] font-bold uppercase tracking-widest hover:bg-sky-500/20 transition-all cursor-pointer"
+        >
+          {isExpanded ? 'Collapse' : 'Expand'}
+          <motion.span
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            className="text-[10px] inline-block"
+          >
+            ▾
+          </motion.span>
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <motion.div
+        initial={false}
+        animate={{
+          height: (isExpanded || isEditing ? 'auto' : '0px'),
+          opacity: (isExpanded || isEditing ? 1 : 0),
+          marginTop: (isExpanded || isEditing ? '0px' : '-20px')
+        }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="overflow-hidden"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
 
         {/* ── Bio ── */}
         <div className="sm:col-span-2 xl:col-span-3">
@@ -285,10 +308,10 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
             </AnimatePresence>
           </FieldTile>
         </div>
-
       </div>
     </motion.div>
-  );
+  </motion.div>
+);
 };
 
 export default PersonalInformation;

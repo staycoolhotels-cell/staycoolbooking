@@ -4,7 +4,7 @@ import React from 'react';
 import * as HeroIcons from '@heroicons/react/24/outline';
 import * as HeroIconsSolid from '@heroicons/react/24/solid';
 import { QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
-import { TentIcon, ResortIcon } from './CustomIcons';
+import { TentIcon, ResortIcon, VillaIcon } from './CustomIcons';
 
 type IconVariant = 'outline' | 'solid';
 
@@ -34,6 +34,10 @@ function Icon({
 
   if (name === 'ResortIcon') {
     return <ResortIcon className={`${disabled ? 'opacity-50 cursor-not-allowed' : onClick ? 'cursor-pointer hover:opacity-80' : ''} ${className}`} size={size} />;
+  }
+
+  if (name === 'VillaIcon') {
+    return <VillaIcon className={`${disabled ? 'opacity-50 cursor-not-allowed' : onClick ? 'cursor-pointer hover:opacity-80' : ''} ${className}`} size={size} />;
   }
 
   const iconSet = variant === 'solid' ? HeroIconsSolid : HeroIcons;

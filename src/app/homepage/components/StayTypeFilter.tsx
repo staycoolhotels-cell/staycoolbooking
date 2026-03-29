@@ -28,7 +28,7 @@ const StayTypeFilter = ({ stayTypes, selectedType, onTypeSelect }: StayTypeFilte
           Show All
         </button>
       </div>
-      <div className="grid grid-cols-4 gap-2 px-4 md:grid-cols-4 lg:grid-cols-7 scrollbar-hide">
+      <div className="grid grid-cols-4 gap-2 px-4 md:grid-cols-4 lg:grid-cols-8 scrollbar-hide">
         {stayTypes
           .filter((type) => type.id !== 'all')
           .map((type) => (

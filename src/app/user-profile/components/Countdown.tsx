@@ -43,22 +43,22 @@ const Countdown = ({ targetDate }: { targetDate: string }) => {
 
     return (
       <div key={interval} className="flex flex-col items-center">
-        <div className="relative w-20 h-20 flex justify-center items-center">
+        <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex justify-center items-center">
           <motion.div
             initial={{ y: -10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-4xl font-bold text-white tabular-nums"
+            className="text-2xl sm:text-4xl font-bold text-white tabular-nums"
           >
             {String(value).padStart(2, '0')}
           </motion.div>
         </div>
-        <div className="text-xs uppercase text-sky-300/60 mt-1 tracking-wider font-semibold">{interval}</div>
+        <div className="text-[10px] sm:text-xs uppercase text-sky-300/60 mt-1 tracking-wider font-semibold">{interval}</div>
       </div>
     );
   });
 
-  return <div className="flex justify-center gap-4">{timerComponents}</div>;
+  return <div className="flex justify-center gap-2 sm:gap-4">{timerComponents}</div>;
 };
 
 export default Countdown;

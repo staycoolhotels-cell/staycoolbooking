@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
     const { data: property } = await adminSupabase
         .from('properties')
-        .select('title, description')
+        .select('title, description, image_url, location, city, state')
         .eq('id', id)
         .single();
 
@@ -33,11 +33,41 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
         };
     }
 
+    const title = `${property.title} - StayCool Booking`;
+    const description = property.description || `Book your stay at ${property.title} in ${property.city || property.location}.`;
+    const imageUrl = property.image_url || '/assets/images/logo.png';
+    const canonicalUrl = `https://staycoolbooking.com/property-listing/${id}`;
+
     return {
-        title: `${property.title} - StayCool Booking`,
-        description: property.description,
+        title,
+        description,
+        alternates: {
+            canonical: canonicalUrl,
+        },
+        openGraph: {
+            title,
+            description,
+            url: canonicalUrl,
+            siteName: 'StayCool Booking',
+            images: [
+                {
+                    url: imageUrl,
+                    width: 1200,
+                    height: 630,
+                    alt: property.title,
+                },
+            ],
+            type: 'website',
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title,
+            description,
+            images: [imageUrl],
+        },
     };
 }
+
 
 // This is now an async Server Component
 export default async function PropertyListingPage({ params }: { params: Promise<{ id: string }> }) {
@@ -249,11 +279,43 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         badges: ['Great hospitality', 'Clean', 'Great communication', 'Quiet area', 'Value for money']
     };
 
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'LodgingBusiness',
+        name: propertyData.name,
+        description: propertyData.description,
+        image: propertyData.images[0]?.url,
+        url: `https://staycoolbooking.com/property-listing/${propertyData.id}`,
+        address: {
+            '@type': 'PostalAddress',
+            streetAddress: propertyData.location_details.address,
+            addressLocality: property.city,
+            addressRegion: property.state,
+        },
+        geo: {
+            '@type': 'GeoCoordinates',
+            latitude: propertyData.location_details.latitude,
+            longitude: propertyData.location_details.longitude,
+        },
+        ...(propertyData.reviewCount > 0 && {
+            aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: propertyData.rating,
+                reviewCount: propertyData.reviewCount,
+            },
+        }),
+        priceRange: `${propertyData.currency}${propertyData.pricePerNight} per night`,
+    };
+
     return (
         <>
-
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
             <PropertyListingInteractive propertyData={propertyData as any} />
             <Footer />
         </>
     );
 }
+

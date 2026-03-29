@@ -61,7 +61,49 @@ export async function getGuestProfileForHost(guestId: string) {
       .maybeSingle(); // Changed from .single() for better error handling
 
     if (userError) throw userError;
-    if (!guest) throw new Error('Guest not found');
+    
+    let finalGuest = guest;
+
+    // Self-healing: if guest not in public.users, try fetching from auth.users
+    if (!guest) {
+      console.log(`⚠️ Guest profile not found for ${guestId}, attempting self-heal from Auth...`);
+      try {
+        const { data: { user: authUser }, error: authFetchError } = await supabaseAdmin.auth.admin.getUserById(guestId);
+        
+        if (!authFetchError && authUser) {
+          const userRole = authUser.user_metadata?.role || 'guest';
+          const userName = authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Guest User';
+          // Standard logic: new hosts pending, guests active
+          const userStatus = authUser.user_metadata?.status || (userRole === 'host' ? 'pending' : 'active');
+
+          const { data: newProfile, error: createError } = await supabaseAdmin
+            .from('users')
+            .upsert({
+              id: guestId,
+              email: authUser.email,
+              name: userName,
+              role: userRole,
+              status: userStatus,
+              created_at: authUser.created_at || new Date().toISOString(),
+            }, { onConflict: 'id' })
+            .select('*')
+            .maybeSingle();
+
+          if (!createError && newProfile) {
+            console.log(`✅ Successfully self-healed guest profile for ${guestId}`);
+            finalGuest = newProfile;
+          } else {
+            console.error(`❌ Failed to self-heal guest profile for ${guestId}:`, createError);
+          }
+        }
+      } catch (e) {
+        console.error('Self-heal retrieval failed:', e);
+      }
+    }
+
+    if (!finalGuest) {
+      throw new Error('Guest not found in database or authentication records.');
+    }
 
     // 2. Fetch Personal Info
     const { data: personalInfo } = await supabaseAdmin
@@ -96,7 +138,7 @@ export async function getGuestProfileForHost(guestId: string) {
     return {
       success: true,
       data: {
-        guest,
+        guest: finalGuest,
         personalInfo,
         verifications,
         bookingCount: bookingCount || 0

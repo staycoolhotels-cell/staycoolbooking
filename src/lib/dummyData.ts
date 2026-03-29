@@ -97,7 +97,7 @@ export const createMockPreferences = (): Preferences => ({
   emailNotifications: true,
   smsNotifications: false,
   instantBook: true,
-  currency: 'USD',
+  currency: 'INR',
   language: 'en-US',
   timezone: 'Europe/Lisbon',
 });

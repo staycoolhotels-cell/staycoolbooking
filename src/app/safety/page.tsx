@@ -47,7 +47,7 @@ const SafetyPage = () => {
         },
         {
             title: '5. Guest & Host Insurance',
-            content: 'StayCool provides comprehensive $1M liability insurance for every booking, covering accidental damage to the property and personal injury protection for guests. Peace of mind is built into every stay.',
+            content: 'StayCool provides comprehensive ₹1M liability insurance for every booking, covering accidental damage to the property and personal injury protection for guests. Peace of mind is built into every stay.',
             icon: 'BriefcaseIcon'
         }
     ];

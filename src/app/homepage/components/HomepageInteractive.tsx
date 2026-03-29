@@ -135,6 +135,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
       dormitory: 0,
       apartment: 0,
       resort: 0,
+      villa: 0,
     };
 
     allProperties.forEach((p) => {
@@ -145,7 +146,8 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
       else if (type.includes('wooden') || type.includes('cabin')) calc.wooden++;
       else if (type.includes('dorm') || type.includes('hostel')) calc.dormitory++;
       else if (type.includes('apartment') || type.includes('flat')) calc.apartment++;
-      else if (type.includes('resort') || type.includes('villa')) calc.resort++; // Include villa in resort or separate if needed
+      else if (type.includes('villa')) calc.villa++;
+      else if (type.includes('resort')) calc.resort++;
     });
 
     return calc;
@@ -155,6 +157,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
     { id: 'all', name: 'All Stays', icon: 'HomeIcon', count: counts.all },
     { id: 'hotel', name: 'Hotel Rooms', icon: 'BuildingOffice2Icon', count: counts.hotel },
     { id: 'homestay', name: 'Home Stays', icon: 'HomeIcon', count: counts.homestay },
+    { id: 'villa', name: 'Villas', icon: 'VillaIcon', count: counts.villa },
     { id: 'tent', name: 'Tents', icon: 'TentIcon', count: counts.tent },
     { id: 'wooden', name: 'Wooden Stays', icon: 'HomeModernIcon', count: counts.wooden },
     { id: 'dormitory', name: 'Dormitory Stays', icon: 'UserGroupIcon', count: counts.dormitory },

@@ -1,36 +1,41 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Icon from '@/components/ui/AppIcon';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix for Leaflet default icon issues in Next.js
+const DefaultIcon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 // --- Geocoding cache to avoid duplicate API calls ---
 const geocodeCache: Record<string, { lat: number; lng: number } | null> = {};
 
-async function geocodeLocation(locationStr: string): Promise<{ lat: number; lng: number } | null> {
-  if (!locationStr || locationStr.trim() === '') return null;
-  if (geocodeCache[locationStr] !== undefined) return geocodeCache[locationStr];
+async function geocodeLocation(address: string): Promise<{ lat: number; lng: number } | null> {
+  if (geocodeCache[address] !== undefined) return geocodeCache[address];
   try {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) throw new Error('API Key missing');
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationStr)}&key=${apiKey}`;
-    const res = await fetch(url);
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&countrycodes=in`;
+    const res = await fetch(url, {
+      headers: { 'Accept-Language': 'en', 'User-Agent': 'StayCoolBooking/1.0' },
+    });
     const data = await res.json();
-    if (data.status === 'OK' && data.results[0]) {
-      const result = data.results[0].geometry.location;
-      geocodeCache[locationStr] = result;
+    if (data && data.length > 0) {
+      const result = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      geocodeCache[address] = result;
       return result;
     }
-    
-    if (data.status === 'REQUEST_DENIED') {
-      console.error('Geocoding API access denied. Ensure "Geocoding API" is enabled in Google Cloud Console.');
-    }
-    
-    geocodeCache[locationStr] = null;
+    geocodeCache[address] = null;
     return null;
-  } catch (error) {
-    console.error('Geocoding error:', error);
-    geocodeCache[locationStr] = null;
+  } catch (err) {
+    console.error('Geocoding failed:', err);
+    geocodeCache[address] = null;
     return null;
   }
 }
@@ -47,36 +52,41 @@ interface LocationMapProps {
   }>;
 }
 
-const mapContainerStyle = {
-  width: '100%',
-  height: '100%',
+// Component to handle map center updates
+const ChangeView = ({ center }: { center: [number, number] }) => {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, 14);
+  }, [center, map]);
+  return null;
 };
 
-const darkMapStyle = [
-  { elementType: 'geometry', stylers: [{ color: '#1d2c4d' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#8ec3b9' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#1a3646' }] },
-  { featureType: 'administrative.country', elementType: 'geometry.stroke', stylers: [{ color: '#4b6878' }] },
-  { featureType: 'administrative.province', elementType: 'geometry.stroke', stylers: [{ color: '#4b6878' }] },
-  { featureType: 'landscape.man_made', elementType: 'geometry.stroke', stylers: [{ color: '#334e87' }] },
-  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#023e58' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#283d6a' }] },
-  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#6f9ba5' }] },
-  { featureType: 'poi.park', elementType: 'geometry.fill', stylers: [{ color: '#023e58' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#304a7d' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#98a5be' }] },
-  { featureType: 'road', elementType: 'labels.text.stroke', stylers: [{ color: '#1d2c4d' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#2c6675' }] },
-  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#255761' }] },
-  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#b0d5ce' }] },
-  { featureType: 'road.highway', elementType: 'labels.text.stroke', stylers: [{ color: '#023e58' }] },
-  { featureType: 'transit', elementType: 'labels.text.fill', stylers: [{ color: '#98a5be' }] },
-  { featureType: 'transit', elementType: 'labels.text.stroke', stylers: [{ color: '#1d2c4d' }] },
-  { featureType: 'transit.line', elementType: 'geometry.fill', stylers: [{ color: '#283d6a' }] },
-  { featureType: 'transit.station', elementType: 'geometry', stylers: [{ color: '#3a4762' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0e1626' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#4e6d70' }] },
-];
+// Custom Marker Icon
+const customMarkerIcon = L.divIcon({
+  className: 'custom-div-icon',
+  html: `<div style="
+    width: 34px;
+    height: 34px;
+    background: #0ea5e9;
+    border: 3px solid white;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg) translate(2px, -2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  ">
+    <div style="
+      width: 10px;
+      height: 10px;
+      background: white;
+      border-radius: 50%;
+      transform: rotate(45deg);
+    "></div>
+  </div>`,
+  iconSize: [34, 34],
+  iconAnchor: [17, 34],
+});
 
 const LocationMap = ({
   latitude,
@@ -85,20 +95,17 @@ const LocationMap = ({
   address,
   nearbyAttractions,
 }: LocationMapProps) => {
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [coords, setCoords] = useState<[number, number] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-  });
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     const resolveCoords = async () => {
       setError(null);
       // If valid coordinates are provided, use them
       if (latitude && longitude && !(latitude === 32.24 && longitude === 77.18)) {
-        setCoords({ lat: latitude, lng: longitude });
+        setCoords([latitude, longitude]);
         return;
       }
       
@@ -107,31 +114,20 @@ const LocationMap = ({
         return;
       }
 
-      // Otherwise geocode the address
       const result = await geocodeLocation(address);
       if (result) {
-        setCoords(result);
+        setCoords([result.lat, result.lng]);
       } else {
-        setError('Unable to resolve location coordinates. Please ensure Google Geocoding API is enabled.');
+        setError('Unable to resolve location coordinates. Falling back to default view.');
       }
     };
     resolveCoords();
   }, [latitude, longitude, address]);
 
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-
-  const onLoad = useCallback(function callback(map: google.maps.Map) {
-    setMap(map);
-  }, []);
-
-  const onUnmount = useCallback(function callback() {
-    setMap(null);
-  }, []);
-
-  if (!isLoaded) {
+  if (!isMounted) {
     return (
-      <div className="bg-card rounded-xl p-4 md:p-8 border border-border">
-        <div className="h-48 md:h-96 bg-muted animate-pulse rounded-lg"></div>
+      <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-3xl p-4 md:p-8 min-h-[500px] flex items-center justify-center">
+        <div className="w-10 h-10 border-3 border-sky-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -161,33 +157,21 @@ const LocationMap = ({
       </div>
 
       {/* Map — shorter on mobile */}
-      <div className="w-full h-48 md:h-96 rounded-2xl overflow-hidden mb-4 md:mb-8 border border-white/10 shadow-lg shadow-black/50 bg-zinc-900 flex items-center justify-center relative p-6">
+      <div className="w-full h-48 md:h-96 rounded-2xl overflow-hidden mb-4 md:mb-8 border border-white/10 shadow-lg shadow-black/50 bg-zinc-950 flex items-center justify-center relative p-0 leaflet-dark-container leaflet-dark-detailed">
         {coords ? (
-          <GoogleMap
-            mapContainerStyle={mapContainerStyle}
+          <MapContainer
             center={coords}
             zoom={14}
-            onLoad={onLoad}
-            onUnmount={onUnmount}
-            options={{
-              styles: darkMapStyle,
-              disableDefaultUI: true,
-              zoomControl: true,
-            }}
+            style={{ width: '100%', height: '100%', background: '#111' }}
+            zoomControl={true}
+            attributionControl={false}
           >
-            <Marker 
-              position={coords}
-              icon={{
-                path: "M11 0C4.925 0 0 4.925 0 11C0 18.5 11 34 11 34C11 34 22 18.5 22 11C22 4.925 17.075 0 11 0Z",
-                fillColor: "#0ea5e9",
-                fillOpacity: 1,
-                strokeWeight: 1,
-                strokeColor: "#ffffff",
-                scale: 1,
-                anchor: new google.maps.Point(11, 34),
-              }}
+            <ChangeView center={coords} />
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-          </GoogleMap>
+            <Marker position={coords} icon={customMarkerIcon} />
+          </MapContainer>
         ) : error ? (
           <div className="flex flex-col items-center gap-4 text-center max-w-sm px-4">
             <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center">
@@ -196,22 +180,20 @@ const LocationMap = ({
             <div>
               <p className="text-zinc-200 text-sm font-bold mb-1">Map Loading Failed</p>
               <p className="text-zinc-500 text-xs leading-relaxed">
-                Google Geocoding API is not activated for this key. Please enable it in the Google Cloud Console.
+                {error}
               </p>
             </div>
-            <a 
-              href="https://console.cloud.google.com/google/maps-apis/api-list" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="px-4 py-2 bg-sky-500/10 border border-sky-500/30 rounded-full text-sky-400 text-[10px] font-bold uppercase tracking-widest hover:bg-sky-500/20 transition-all font-sans"
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-sky-500/10 border border-sky-500/30 rounded-full text-sky-400 text-[10px] font-bold uppercase tracking-widest hover:bg-sky-500/20 transition-all"
             >
-              Open Console
-            </a>
+              Retry
+            </button>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-zinc-400 text-sm font-medium">Loading map…</p>
+            <p className="text-zinc-400 text-sm font-medium">Loading map engine…</p>
           </div>
         )}
       </div>
@@ -268,6 +250,19 @@ const LocationMap = ({
           Exact location will be shared after booking confirmation for your safety and privacy.
         </p>
       </div>
+
+      <style jsx global>{`
+        .leaflet-dark-container .leaflet-bar a {
+          background-color: rgba(24, 24, 27, 0.9) !important;
+          color: #fff !important;
+          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          backdrop-filter: blur(10px);
+        }
+        .leaflet-dark-container .leaflet-bar a:hover {
+          background-color: #38bdf8 !important;
+          color: white !important;
+        }
+      `}</style>
     </div>
   );
 };

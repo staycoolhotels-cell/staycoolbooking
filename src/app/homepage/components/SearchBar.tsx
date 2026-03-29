@@ -35,6 +35,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
     { value: 'all', label: 'All Types', icon: 'HomeIcon' },
     { value: 'hotel', label: 'Hotel Rooms', icon: 'BuildingOffice2Icon' },
     { value: 'homestay', label: 'Home Stays', icon: 'HomeIcon' },
+    { value: 'villa', label: 'Villas', icon: 'VillaIcon' },
     { value: 'tent', label: 'Tents', icon: 'TentIcon' },
     { value: 'wooden', label: 'Wooden Stays', icon: 'HomeModernIcon' },
     { value: 'dormitory', label: 'Dormitory Stays', icon: 'UserGroupIcon' },
