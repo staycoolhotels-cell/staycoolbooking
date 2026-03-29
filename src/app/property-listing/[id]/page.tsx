@@ -34,13 +34,26 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     }
 
     const title = `${property.title} - StayCool Booking`;
-    const description = property.description || `Book your stay at ${property.title} in ${property.city || property.location}.`;
+    const description = property.description 
+        ? `${property.description.slice(0, 150)} | Book on StayCool Bookings` 
+        : `Book your stay at ${property.title} in ${property.city || property.location} on StayCool Bookings. Find the best hotels and villas.`;
     const imageUrl = property.image_url || '/assets/images/logo.png';
     const canonicalUrl = `https://staycoolbooking.com/property-listing/${id}`;
 
     return {
         title,
         description,
+        keywords: [
+            property.title, 
+            property.city || '', 
+            property.state || '', 
+            'staycool', 
+            'staycool booking', 
+            'staycool bookings', 
+            'hotel booking', 
+            'luxury stays', 
+            'vacation rentals'
+        ],
         alternates: {
             canonical: canonicalUrl,
         },
