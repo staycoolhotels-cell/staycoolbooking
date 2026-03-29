@@ -7,7 +7,18 @@ import SearchBar from './SearchBar';
 import StayTypeFilter from './StayTypeFilter';
 import PopularDestinations from './PopularDestinations';
 import PropertyCard from './PropertyCard';
-import InteractiveMap from './InteractiveMap';
+import dynamic from 'next/dynamic';
+
+const InteractiveMap = dynamic(() => import('./InteractiveMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full w-full bg-zinc-900/50 backdrop-blur-xl flex flex-col items-center justify-center gap-4">
+      <div className="w-10 h-10 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+      <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Synchronizing Maps…</p>
+    </div>
+  )
+});
+
 
 import BecomeHostCTA from './BecomeHostCTA';
 import TrustIndicators from './TrustIndicators';
@@ -609,8 +620,9 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
                   })()}
                 </div>
               ) : (
-                <div className="h-[750px] w-full rounded-[3rem] overflow-hidden border border-white/5 shadow-3xl relative">
+                <div key="main-map-view-container" className="h-[750px] w-full rounded-[3rem] overflow-hidden border border-white/5 shadow-3xl relative">
                   <InteractiveMap
+                    key="homepage-map-instance"
                     properties={filteredProperties.map((p) => ({
                       id: p.id,
                       title: p.title,

@@ -10,7 +10,20 @@ import AmenitiesSection from './AmenitiesSection';
 import ReviewsSection from './ReviewsSection';
 import BookingCard from './BookingCard';
 import HostProfile from './HostProfile';
-import LocationMap from './LocationMap';
+import dynamic from 'next/dynamic';
+
+const LocationMap = dynamic(() => import('./LocationMap'), { 
+  ssr: false,
+  loading: () => (
+    <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-3xl p-4 md:p-8 min-h-[500px] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-zinc-400 text-sm font-medium">Initializing map engine…</p>
+      </div>
+    </div>
+  )
+});
+
 import ThingsToKnowSection from './ThingsToKnowSection';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -329,13 +342,13 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                               <input 
                                 type="checkbox" 
                                 className="sr-only peer"
-                                checked={!!selectedAmenities[amenity.id]}
+                                checked={Boolean(selectedAmenities[amenity.id])}
                                 onChange={() => handleAmenityChange(amenity.id, amenity.type, 'toggle')}
                               />
-                              <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${!!selectedAmenities[amenity.id] ? 'bg-pink-500 border-pink-500 text-white' : 'border-white/20 text-transparent group-hover/checkbox:border-white/40'}`}>
+                              <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${selectedAmenities[amenity.id] ? 'bg-pink-500 border-pink-500 text-white' : 'border-white/20 text-transparent group-hover/checkbox:border-white/40'}`}>
                                 <Icon name="CheckIcon" size={12} strokeWidth={3} />
                               </div>
-                              <span className={`text-xs font-bold uppercase tracking-widest transition-colors ${!!selectedAmenities[amenity.id] ? 'text-pink-400' : 'text-zinc-500 group-hover/checkbox:text-zinc-400'}`}>
+                              <span className={`text-xs font-bold uppercase tracking-widest transition-colors ${selectedAmenities[amenity.id] ? 'text-pink-400' : 'text-zinc-500 group-hover/checkbox:text-zinc-400'}`}>
                                 Include
                               </span>
                             </label>

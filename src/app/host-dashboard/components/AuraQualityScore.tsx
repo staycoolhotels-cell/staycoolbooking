@@ -147,7 +147,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
           const numBedrooms = prop.bedrooms || 1;
           const numImages = prop.images?.length || 0;
 
-          let availableTips: string[] = [];
+          const availableTips: string[] = [];
 
           if (currentPrice > 10000) {
             availableTips.push('Consider offering a premium welcome package to justify the high price point.');

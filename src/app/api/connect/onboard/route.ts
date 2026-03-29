@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
 import { razorpay } from '@/lib/razorpay';
+import fs from 'fs';
 
 export async function POST(req: Request) {
     try {
@@ -12,7 +13,7 @@ export async function POST(req: Request) {
         }
 
         // 1. Check if wallet exists, if not create one (safe guard)
-        let { data: wallet } = await supabase
+        const { data: wallet } = await supabase
             .from('user_wallets')
             .select('razorpay_account_id')
             .eq('user_id', user.id)
@@ -36,7 +37,6 @@ export async function POST(req: Request) {
 
         let accountId = '';
         try {
-            // @ts-ignore - Razorpay TS types are incomplete for route accounts
             const account: any = await razorpay.accounts.create({
                 type: 'route',
                 name: name,
@@ -65,9 +65,10 @@ export async function POST(req: Request) {
         if (updateError) {
             console.error('DB Update Error:', updateError);
             try {
-                const fs = require('fs');
                 fs.appendFileSync('C:\\Users\\VSHARE\\.gemini\\antigravity\\brain\\db_error.log', JSON.stringify(updateError) + '\n');
-            } catch (e) { }
+            } catch (fsError) { 
+                console.error('Failed to log to file:', fsError);
+            }
             throw new Error('Failed to save account ID');
         }
 

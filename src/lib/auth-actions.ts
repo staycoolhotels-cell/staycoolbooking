@@ -304,11 +304,14 @@ export async function login(prevState: string | undefined, formData: FormData) {
 
   // Fetch role from public.users table (source of truth)
   const supabaseAdmin = await createSupabaseAdminClient();
-  let { data: userProfile, error: profileError } = await supabaseAdmin
+  const profileResponse = await supabaseAdmin
     .from('users')
     .select('role, status')
     .eq('id', userId)
     .single();
+  
+  let userProfile = profileResponse.data;
+  const profileError = profileResponse.error;
 
   if (profileError || !userProfile) {
     // Self-heal: Create missing profile — use auth metadata for role/status to not overwrite approved state
@@ -482,11 +485,14 @@ export async function verifyMobileOtp(prevState: string | undefined, formData: F
 
     // Check if user profile exists
     // We MUST fetch the role from public.users to be secure
-    let { data: userProfile, error: profileError } = await supabaseAdmin
+    const profileResponse = await supabaseAdmin
       .from('users')
       .select('role, status')
       .eq('id', userId)
       .single();
+    
+    let userProfile = profileResponse.data;
+    const profileError = profileResponse.error;
 
     if (profileError || !userProfile) {
       // Create new profile for mobile user

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createRoot } from 'react-dom/client';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -48,15 +48,6 @@ async function geocodeLocation(locationStr: string): Promise<{ lat: number; lng:
 // India center fallback
 const INDIA_CENTER: [number, number] = [20.5937, 78.9629];
 
-// Component to handle map center/zoom updates
-const ChangeView = ({ center, zoom }: { center: [number, number], zoom: number }) => {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center, zoom);
-  }, [center, zoom, map]);
-  return null;
-};
-
 // Custom Marker Icon to match the premium style
 const createCustomIcon = (isHovered: boolean) => L.divIcon({
   className: 'custom-div-icon',
@@ -87,10 +78,19 @@ const createCustomIcon = (isHovered: boolean) => L.divIcon({
   popupAnchor: [0, -32],
 });
 
-const LeafletMapInner: React.FC<InteractiveMapProps> = ({ properties, onPropertySelect }) => {
+const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertySelect }) => {
   const [geoProperties, setGeoProperties] = useState<(MapProperty & { lat: number; lng: number })[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hoveredId, setHoveredId] = useState<string | number | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+  
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const markerLayerRef = useRef<L.LayerGroup | null>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   // Geocode all property locations
   useEffect(() => {
@@ -157,7 +157,10 @@ const LeafletMapInner: React.FC<InteractiveMapProps> = ({ properties, onProperty
         fontFamily: 'system-ui,-apple-system,sans-serif',
         cursor: 'pointer',
       }}
-      onClick={() => onPropertySelect(prop.id)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onPropertySelect(prop.id);
+      }}
     >
       <div style={{ width: '100%', height: 115, overflow: 'hidden', position: 'relative' }}>
         <img
@@ -190,58 +193,112 @@ const LeafletMapInner: React.FC<InteractiveMapProps> = ({ properties, onProperty
     </div>
   );
 
+  // Initialize Map
+  useEffect(() => {
+    if (!mapContainerRef.current || !isMounted || loading) return;
+
+    // Cleanup any existing instance
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
+
+    // Initialize map
+    const map = L.map(mapContainerRef.current, {
+      center: mapCenter,
+      zoom: mapZoom,
+      zoomControl: true,
+      attributionControl: false,
+    });
+
+    // Add TileLayer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Initialize Marker Layer
+    const markers = L.layerGroup().addTo(map);
+    markerLayerRef.current = markers;
+    mapInstanceRef.current = map;
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [isMounted, loading]);
+
+  // Sync View
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView(mapCenter, mapZoom);
+    }
+  }, [mapCenter, mapZoom]);
+
+  // Sync Markers
+  useEffect(() => {
+    if (!mapInstanceRef.current || !markerLayerRef.current) return;
+
+    const markers = markerLayerRef.current;
+    markers.clearLayers();
+
+    geoProperties.forEach((prop) => {
+      const marker = L.marker([prop.lat, prop.lng], {
+        icon: createCustomIcon(false),
+      });
+
+      // Simple hover effect
+      marker.on('mouseover', () => {
+        marker.setIcon(createCustomIcon(true));
+      });
+      marker.on('mouseout', () => {
+        marker.setIcon(createCustomIcon(false));
+      });
+      marker.on('click', () => {
+        onPropertySelect(prop.id);
+      });
+
+      // Bind Popup
+      const popupNode = document.createElement('div');
+      const root = createRoot(popupNode);
+      root.render(renderPropertyCard(prop));
+      
+      marker.bindPopup(popupNode, {
+        className: 'premium-popup',
+        minWidth: 210,
+      });
+
+      marker.addTo(markers);
+    });
+  }, [geoProperties, onPropertySelect]);
+
   return (
     <div style={{ width: '100%', height: '750px', position: 'relative' }} className="leaflet-dark-container leaflet-dark-detailed">
-      {loading && (
+      {(!isMounted || loading) ? (
         <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-zinc-950/80 backdrop-blur-md">
           <div className="flex flex-col items-center gap-4">
             <div className="w-10 h-10 border-3 border-sky-500 border-t-transparent rounded-full animate-spin" />
             <p className="text-zinc-200 text-sm font-bold tracking-wide">Mapping your stay…</p>
           </div>
         </div>
+      ) : (
+        <>
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[1000] px-6 py-3 bg-zinc-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl flex flex-col items-center">
+            <p className="text-white text-xs font-black tracking-widest uppercase mb-1">
+              Explore Properties
+            </p>
+            <div className="h-0.5 w-12 bg-sky-500 rounded-full mb-1" />
+            <p className="text-zinc-400 text-[10px] font-bold">
+              {geoProperties.length} active listings found
+            </p>
+          </div>
+
+          <div 
+            ref={mapContainerRef} 
+            style={{ width: '100%', height: '100%', background: '#111' }} 
+            className="w-full h-full"
+          />
+        </>
       )}
-
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[1000] px-6 py-3 bg-zinc-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl flex flex-col items-center">
-        <p className="text-white text-xs font-black tracking-widest uppercase mb-1">
-          Explore Properties
-        </p>
-        <div className="h-0.5 w-12 bg-sky-500 rounded-full mb-1" />
-        <p className="text-zinc-400 text-[10px] font-bold">
-          {geoProperties.length} active listings found
-        </p>
-      </div>
-
-      <MapContainer
-        center={mapCenter}
-        zoom={mapZoom}
-        style={{ width: '100%', height: '100%', background: '#111' }}
-        zoomControl={true}
-        attributionControl={false}
-      >
-        <ChangeView center={mapCenter} zoom={mapZoom} />
-        
-        {/* Use standard OSM + detailed filter applied via CSS class leaflet-dark-detailed */}
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-
-        {geoProperties.map((prop) => (
-          <Marker
-            key={prop.id}
-            position={[prop.lat, prop.lng]}
-            icon={createCustomIcon(hoveredId === prop.id)}
-            eventHandlers={{
-              mouseover: () => setHoveredId(prop.id),
-              mouseout: () => setHoveredId(null),
-              click: () => onPropertySelect(prop.id),
-            }}
-          >
-            <Popup className="premium-popup" minWidth={210}>
-              {renderPropertyCard(prop)}
-            </Popup>
-          </Marker>
-        ))}
-      </MapContainer>
       
       <style jsx global>{`
         .leaflet-container {
@@ -275,24 +332,6 @@ const LeafletMapInner: React.FC<InteractiveMapProps> = ({ properties, onProperty
       `}</style>
     </div>
   );
-};
-
-// Wrapper with SSR disabled
-const InteractiveMap = (props: InteractiveMapProps) => {
-  const [isMounted, setIsMounted] = React.useState(false);
-  useEffect(() => setIsMounted(true), []);
-
-  if (!isMounted) {
-    return (
-      <div className="w-full h-[750px] flex items-center justify-center bg-zinc-950">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-3 border-sky-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-zinc-500 text-sm font-bold uppercase tracking-widest">Initialising Map Engine</p>
-        </div>
-      </div>
-    );
-  }
-  return <LeafletMapInner {...props} />;
 };
 
 export default InteractiveMap;
