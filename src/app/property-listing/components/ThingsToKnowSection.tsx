@@ -47,18 +47,30 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty }:
                             <h3 className="text-2xl font-bold text-foreground">{cancellationPolicy.title}</h3>
                         </div>
                         <div className="prose prose-invert max-w-none overflow-y-auto premium-scrollbar pr-2 pb-2">
-                            {cancellationPolicy.title === 'Tiered' ? (
-                                <div className="space-y-4">
-                                    <p className="text-text-secondary text-lg">Strict tiered cancellation policy applies:</p>
-                                    <ul className="list-disc pl-5 space-y-2 text-text-secondary text-base">
-                                        <li><strong className="text-foreground">7 Days Before Check-in:</strong> Guest cancel chesthe 100% refund guest ki return avuthundi.</li>
-                                        <li><strong className="text-foreground">5-7 Days Before Check-in:</strong> Guest cancel chesthe 70% refund guest ki, 30% admin charge.</li>
-                                        <li><strong className="text-foreground">2-4 Days Before Check-in:</strong> Guest cancel chesthe 30% refund guest ki, 70% admin charge.</li>
-                                        <li><strong className="text-foreground">Check-in Day Cancellation:</strong> Guest same day cancel chesthe No refund guest ki. Payment split: 65% host ki, 35% admin ki.</li>
-                                    </ul>
+                            {cancellationPolicy.description === 'Tiered' ? (
+                                <div className="space-y-3">
+                                    <p className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Strict tiered cancellation policy applies:</p>
+                                    <div className="grid gap-1">
+                                        {[
+                                            { period: '7 Days Before', refund: '100% Refund', color: 'text-green-400', bg: 'bg-green-400/5', border: 'border-green-400/10' },
+                                            { period: '5-7 Days Before', refund: '70% Refund', color: 'text-yellow-400', bg: 'bg-yellow-400/5', border: 'border-yellow-400/10' },
+                                            { period: '2-4 Days Before', refund: '30% Refund', color: 'text-orange-400', bg: 'bg-orange-400/5', border: 'border-orange-400/10' },
+                                            { period: 'Check-in day', refund: 'No Refund', color: 'text-red-400', bg: 'bg-red-400/5', border: 'border-red-400/10' }
+                                        ].map((item, i) => (
+                                            <div key={i} className={`${item.bg} ${item.border} border px-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2`}>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-xs font-bold ${item.color} min-w-[75px]`}>{item.refund}</span>
+                                                    <span className="text-[9px] font-medium text-zinc-500 uppercase">
+                                                        {item.period === 'Check-in day' ? item.period : `${item.period} check-in`}
+                                                    </span>
+                                                </div>
+                                                <Icon name={item.refund === 'No Refund' ? 'XMarkIcon' : 'CheckIcon'} size={12} className={item.color} />
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             ) : (
-                                <p className="text-text-secondary text-lg leading-relaxed whitespace-pre-wrap">
+                                <p className="text-text-secondary text-sm leading-relaxed whitespace-pre-wrap">
                                     {cancellationPolicy.description}
                                 </p>
                             )}
@@ -68,17 +80,17 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty }:
             case 'rules':
                 return (
                     <div className="flex flex-col max-h-[60vh]">
-                        <div className="flex items-center gap-3 mb-5 flex-shrink-0">
-                            <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center">
-                                <Icon name="KeyIcon" size={20} className="text-amber-400" />
+                        <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                            <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center">
+                                <Icon name="KeyIcon" size={16} className="text-amber-400" />
                             </div>
-                            <h3 className="text-xl font-bold text-foreground">{houseRules.title}</h3>
+                            <h3 className="text-base font-bold text-foreground">{houseRules.title}</h3>
                         </div>
-                        <ul className="space-y-2 overflow-y-auto premium-scrollbar pr-2 pb-2">
+                        <ul className="space-y-0.5 overflow-y-auto premium-scrollbar pr-2 pb-1">
                             {houseRules.rules.map((rule, index) => (
-                                <li key={index} className="flex items-center gap-3 py-2.5 border-b border-border/30 last:border-0">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                                    <span className="text-foreground text-sm">{rule}</span>
+                                <li key={index} className="flex items-center gap-2 py-1 border-b border-border/10 last:border-0">
+                                    <span className="w-1 h-1 rounded-full bg-amber-400 flex-shrink-0" />
+                                    <span className="text-foreground text-xs">{rule}</span>
                                 </li>
                             ))}
                         </ul>
@@ -87,17 +99,17 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty }:
             case 'safety':
                 return (
                     <div className="flex flex-col max-h-[60vh]">
-                        <div className="flex items-center gap-3 mb-5 flex-shrink-0">
-                            <div className="w-10 h-10 rounded-2xl bg-green-500/15 border border-green-500/20 flex items-center justify-center">
-                                <Icon name="ShieldCheckIcon" size={20} className="text-green-400" />
+                        <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                            <div className="w-8 h-8 rounded-xl bg-green-500/15 border border-green-500/20 flex items-center justify-center">
+                                <Icon name="ShieldCheckIcon" size={16} className="text-green-400" />
                             </div>
-                            <h3 className="text-xl font-bold text-foreground">{safetyProperty.title}</h3>
+                            <h3 className="text-base font-bold text-foreground">{safetyProperty.title}</h3>
                         </div>
-                        <ul className="space-y-2 overflow-y-auto premium-scrollbar pr-2 pb-2">
+                        <ul className="space-y-0.5 overflow-y-auto premium-scrollbar pr-2 pb-1">
                             {safetyProperty.items.map((item, index) => (
-                                <li key={index} className="flex items-center gap-3 py-2.5 border-b border-border/30 last:border-0">
-                                    <Icon name="CheckCircleIcon" size={16} className="text-green-400 flex-shrink-0" />
-                                    <span className="text-foreground text-sm">{item}</span>
+                                <li key={index} className="flex items-center gap-2 py-1 border-b border-border/10 last:border-0">
+                                    <Icon name="CheckCircleIcon" size={12} className="text-green-400 flex-shrink-0" />
+                                    <span className="text-foreground text-xs">{item}</span>
                                 </li>
                             ))}
                         </ul>
@@ -219,7 +231,7 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty }:
                         </div>
 
                         {/* Scrollable Content Container */}
-                        <div className="p-6 md:p-8">
+                        <div className="p-4 md:p-5">
                             {renderModalContent()}
                         </div>
                     </div>

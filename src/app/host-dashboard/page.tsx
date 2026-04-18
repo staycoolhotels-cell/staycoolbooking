@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
-
-import HostDashboardInteractive from './components/HostDashboardInteractive';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { getHostProperties, getHostBookings, getCachedUser } from '@/lib/data-service';
+import { createServerClient } from '@supabase/ssr';
+import { Metadata } from 'next';
+import { cookies } from 'next/headers';
+import HostDashboardInteractive from './components/HostDashboardInteractive';
 
 export const metadata: Metadata = {
   title: 'Host Dashboard - StayCool',
@@ -35,15 +35,11 @@ export default async function HostDashboardPage() {
     redirect('/auth');
   }
 
-  const { data: host, error: hostError } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', user.id)
-    .single();
+  // Use cached user fetch
+  const host = await getCachedUser(user.id);
 
   // Role-based access control
-  if (hostError || !host) {
-    await supabase.auth.signOut();
+  if (!host) {
     redirect('/auth');
   }
 
@@ -76,21 +72,16 @@ export default async function HostDashboardPage() {
 
   const accessToken = user.id; // Use user ID instead of access token
 
-  const { data: properties, error: propertiesError } = await supabase
-    .from('properties')
-    .select('*')
-    .eq('host_id', user.id);
+  // Use cached data services for better performance
+  const propertiesPromise = getHostProperties(user.id);
+  const bookingsPromise = getHostBookings(user.id);
+
+  const [properties, bookings] = await Promise.all([propertiesPromise, bookingsPromise]);
 
   const { data: reviews, error: reviewsError } = await supabase
     .from('reviews')
     .select('*')
     .eq('receiver_id', user.id);
-
-  const { data: bookings, error: bookingsError } = await supabase
-    .from('bookings')
-    .select('*, properties!inner(*), guest:users!guest_id(name, avatar_url)')
-    .in('properties.host_id', [user.id])
-    .order('created_at', { ascending: false });
 
   const { data: transactions, error: transactionsError } = await supabase
     .from('transactions')

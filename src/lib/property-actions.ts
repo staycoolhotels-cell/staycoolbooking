@@ -4,8 +4,10 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { logActivity } from './activity-actions';
-import { Property } from './types'; // Assuming Property type is defined in types.ts
 import { createClient } from '@supabase/supabase-js'; // Import createClient for admin client
+import { revalidateTag } from 'next/cache';
+import { CACHE_TAGS, getHostProperties } from './data-service';
+import { Property } from './types';
 
 const createSupabaseServerClient = async () => {
   const cookieStore = await cookies();
@@ -165,6 +167,11 @@ export async function addProperty(prevState: any, formData: FormData) {
 
   if (data && data.length > 0) {
     await logActivity('new_property', `New property added: ${name}`, host_id);
+
+    // Invalidate caches
+    revalidateTag(CACHE_TAGS.properties);
+    revalidateTag(CACHE_TAGS.host_properties(host_id));
+
     redirect('/host-dashboard'); // Redirect to host dashboard after successful addition
   }
 
@@ -176,20 +183,11 @@ export async function fetchHostProperties(): Promise<Property[]> {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/login'); // Or handle unauthorized access appropriately
+    redirect('/login');
   }
 
-  const { data, error } = await supabase
-    .from('properties')
-    .select('*')
-    .eq('host_id', user.id);
-
-  if (error) {
-    console.error('Error fetching host properties:', error);
-    return [];
-  }
-
-  return data as Property[];
+  // Use the cached data service
+  return getHostProperties(user.id);
 }
 
 export const createProperty = async (propertyData: Omit<Property, 'id' | 'created_at' | 'host_id' | 'status'>) => {
@@ -215,6 +213,10 @@ export const createProperty = async (propertyData: Omit<Property, 'id' | 'create
     console.error('Error creating property:', error);
     return null;
   }
+
+  // Invalidate caches
+  revalidateTag(CACHE_TAGS.properties);
+  if (user.id) revalidateTag(CACHE_TAGS.host_properties(user.id));
 
   return data;
 };

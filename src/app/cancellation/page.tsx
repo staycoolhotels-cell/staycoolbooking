@@ -18,10 +18,10 @@ const CancellationPolicyPage = () => {
                     <p className="text-zinc-400">Our refund schedule is strictly enforced based on the time remaining before the scheduled check-in (local time of the property):</p>
                     <div className="grid gap-4 mt-6">
                         {[
-                            { period: '7 Days Before', refund: '100% Refund', detail: 'Guest cancel chesthe 100% refund guest ki return avuthundi.', color: 'text-green-400' },
-                            { period: '5-7 Days Before', refund: '70% Refund', detail: 'Guest cancel chesthe 70% refund guest ki, 30% admin charge.', color: 'text-yellow-400' },
-                            { period: '2-4 Days Before', refund: '30% Refund', detail: 'Guest cancel chesthe 30% refund guest ki, 70% admin charge.', color: 'text-orange-400' },
-                            { period: 'Check-in day', refund: 'No Refund', detail: 'Guest same day cancel chesthe No refund guest ki. Payment split: 65% host ki, 35% admin ki.', color: 'text-red-400' }
+                            { period: '7 Days Before', refund: '100% Refund', detail: 'Full Refund', color: 'text-green-400' },
+                            { period: '5-7 Days Before', refund: '70% Refund', detail: '70% Refund', color: 'text-yellow-400' },
+                            { period: '2-4 Days Before', refund: '30% Refund', detail: '30% Refund', color: 'text-orange-400' },
+                            { period: 'Check-in day', refund: 'No Refund', detail: 'No Refund', color: 'text-red-400' }
                         ].map((item, i) => (
                             <div key={i} className="bg-zinc-800/50 p-4 rounded-xl border border-zinc-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div>

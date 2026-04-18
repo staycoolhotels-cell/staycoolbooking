@@ -7,6 +7,7 @@ import { approveProperty, rejectProperty } from '@/lib/admin-actions';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, MapPin, Tag, Eye, Home, Clock, Ban } from 'lucide-react';
+import { useAppStore } from '@/lib/store';
 
 interface PropertyListProps {
   initialProperties: Property[];
@@ -46,27 +47,30 @@ const STATUS_CONFIG: Record<string, {
 
 const PropertyList = ({ initialProperties }: PropertyListProps) => {
   const router = useRouter();
-  const [properties, setProperties] = useState<Property[]>(initialProperties);
+  const { properties, setProperties, updateProperty } = useAppStore();
   const [loading, setLoading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Sync with initial properties ONLY if store is empty or we have fresh data
   useEffect(() => {
-    setProperties(initialProperties);
-  }, [initialProperties]);
+    if (properties.length === 0 && initialProperties.length > 0) {
+      setProperties(initialProperties);
+    }
+  }, [initialProperties, setProperties, properties.length]);
 
   useEffect(() => {
     const channel = supabase
       .channel('realtime-properties')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          setProperties((prev) => [...prev, payload.new as Property]);
+          // Check if already in store to avoid duplicates
+          const exists = properties.some(p => p.id === payload.new.id);
+          if (!exists) setProperties([...properties, payload.new as Property]);
         } else if (payload.eventType === 'UPDATE') {
-          setProperties((prev) =>
-            prev.map((p) => (p.id === payload.new.id ? (payload.new as Property) : p))
-          );
+          updateProperty(payload.new as Property);
         } else if (payload.eventType === 'DELETE') {
-          setProperties((prev) => prev.filter((p) => p.id !== (payload.old as Property).id));
+          setProperties(properties.filter((p) => p.id !== (payload.old as Property).id));
         }
       })
       .subscribe();
@@ -82,9 +86,9 @@ const PropertyList = ({ initialProperties }: PropertyListProps) => {
     try {
       const result = await approveProperty(propertyId);
       if (!result) throw new Error('Failed to approve property');
-      setProperties((prev) =>
-        prev.map((p) => (p.id === propertyId ? { ...p, status: 'active' } : p))
-      );
+      
+      // Update store state instantly
+      updateProperty({ id: propertyId, status: 'active' });
     } catch (error) {
       console.error('Error approving property:', error);
       alert('Failed to approve property');
@@ -99,9 +103,9 @@ const PropertyList = ({ initialProperties }: PropertyListProps) => {
     try {
       const result = await rejectProperty(propertyId, 'Rejected by admin');
       if (!result) throw new Error('Failed to reject property');
-      setProperties((prev) =>
-        prev.map((p) => (p.id === propertyId ? { ...p, status: 'rejected' } : p))
-      );
+      
+      // Update store state instantly
+      updateProperty({ id: propertyId, status: 'rejected' });
     } catch (error) {
       console.error('Error rejecting property:', error);
       alert('Failed to reject property');

@@ -31,6 +31,7 @@ import CursorSpotlight from '@/components/ui/CursorSpotlight';
 import { supabase } from '@/lib/supabaseClient';
 
 import { motion } from 'framer-motion';
+import { Property } from '@/lib/types';
 
 // Animation wrapper for sections
 interface AnimatedSectionProps {
@@ -52,21 +53,7 @@ const AnimatedSection = ({ children }: AnimatedSectionProps) => {
   );
 };
 
-interface PropertyFromDB {
-  id: string;
-  name: string;
-  location: string;
-  tier: string;
-  status: string;
-  host_id: string;
-  created_at: string;
-  price_per_night: number;
-  image_url?: string;
-  images?: { url: string; alt: string }[];
-  title: string;
-  description: string;
-  // Add other properties from your database schema here
-}
+// Types moved to lib/types.ts or using specific local interfaces for UI needs
 
 interface PropertyForCard {
   id: string;
@@ -84,7 +71,7 @@ interface PropertyForCard {
   };
 }
 
-const mapPropertyForCard = (property: PropertyFromDB): PropertyForCard => {
+const mapPropertyForCard = (property: Property): PropertyForCard => {
   let displayImages: { url: string; alt: string }[] = [];
 
   if (property.images && property.images.length > 0) {
@@ -100,7 +87,7 @@ const mapPropertyForCard = (property: PropertyFromDB): PropertyForCard => {
     title: property.title || property.name,
     location: property.location,
     type: property.tier,
-    price: property.price_per_night,
+    price: property.price_per_night || 0,
     rating: parseFloat((Math.random() * (5.0 - 4.0) + 4.0).toFixed(2)), // Random rating 4.0-5.0
     reviews: Math.floor(Math.random() * 200) + 10, // Random reviews
     images: displayImages,
@@ -111,7 +98,7 @@ const mapPropertyForCard = (property: PropertyFromDB): PropertyForCard => {
 };
 
 interface HomepageInteractiveProps {
-  initialProperties: PropertyFromDB[];
+  initialProperties: Property[];
 }
 
 const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProperties }) => {

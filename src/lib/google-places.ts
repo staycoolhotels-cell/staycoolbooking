@@ -10,12 +10,11 @@ export async function getNearbyPlaces(address: string) {
     const geocodeData = await geocodeRes.json();
 
     if (!geocodeData || geocodeData.length === 0) {
-      console.error('Geocoding failed for address:', address);
-      return null;
+      console.warn('Geocoding failed for address (using fallback):', address);
     }
 
-    const lat = parseFloat(geocodeData[0].lat);
-    const lng = parseFloat(geocodeData[0].lon);
+    const lat = geocodeData?.[0]?.lat ? parseFloat(geocodeData[0].lat) : null;
+    const lng = geocodeData?.[0]?.lon ? parseFloat(geocodeData[0].lon) : null;
 
     // 2. Fetch nearby places (Tourist Attractions, Cafes, Parks)
     // We'll provide high-quality mock data for the demo since Google Places requires an active billing account.
@@ -49,11 +48,24 @@ export async function getNearbyPlaces(address: string) {
     ];
 
     return {
-      coordinates: { lat, lng },
+      coordinates: lat !== null && lng !== null ? { lat, lng } : null,
       suggestions: allSuggestions,
     };
   } catch (error) {
     console.error('Error fetching nearby places:', error);
-    return null;
+    // Even on network error, return mock data so UI doesn't break
+    return {
+      coordinates: null,
+      suggestions: [
+        {
+          name: 'Local City Center Park',
+          type: 'Spot',
+          distance: '0.8 km',
+          icon: 'SunIcon',
+          rating: 4.5,
+          address: 'Downtown area',
+        }
+      ],
+    };
   }
 }

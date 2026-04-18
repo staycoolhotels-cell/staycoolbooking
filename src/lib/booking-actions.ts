@@ -3,7 +3,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
+import { CACHE_TAGS } from './data-service';
 
 const createSupabaseServerClient = async () => {
   const cookieStore = await cookies();
@@ -214,6 +215,7 @@ export async function approveBooking(bookingId: string) {
   if (error) {
     throw error;
   }
+  revalidateTag(CACHE_TAGS.bookings);
   revalidatePath('/host-dashboard');
   return data;
 }
@@ -262,6 +264,7 @@ export async function rejectBooking(bookingId: string) {
     }
   }
 
+  revalidateTag(CACHE_TAGS.bookings);
   revalidatePath('/host-dashboard');
   return { success: true };
 }
