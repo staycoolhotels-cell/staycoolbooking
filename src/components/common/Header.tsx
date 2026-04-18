@@ -73,6 +73,7 @@ const Header = () => {
   const baseLinks = [
     { name: 'Home', path: '/homepage' },
     { name: 'About Us', path: '/about' },
+    { name: 'Community', path: '/community' },
     { name: 'Contact', path: '/contact' },
   ];
 

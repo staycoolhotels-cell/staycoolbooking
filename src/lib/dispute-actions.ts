@@ -71,8 +71,13 @@ export async function respondToDispute(disputeId: string, response: string, newS
         return { success: false, error: 'Dispute not found or database error' };
     }
 
-    const guestStatement = (currentDispute.description || '').split(' ||| ')[0];
-    const newDescription = `${guestStatement} ||| ${response}`;
+    const parts = (currentDispute.description || '').split(' ||| ');
+    const guestStatement = parts[0] || '';
+    let newDescription = `${guestStatement} ||| ${response}`;
+    if (parts.length > 2) {
+        // preserve admin messages
+        newDescription += ' ||| ' + parts.slice(2).join(' ||| ');
+    }
 
     const { data: dispute, error } = await supabase
         .from('disputes')

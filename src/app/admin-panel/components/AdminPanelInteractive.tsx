@@ -129,6 +129,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   const [activeTab, setActiveTabState] = useState<
     'overview' | 'verifications' | 'disputes' | 'transactions' | 'users' | 'properties' | 'inbox'
   >('overview');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const tab = searchParamsFromHook.get('tab') as any;
@@ -523,42 +524,50 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   });
 
   return (
-    <div className="min-h-screen bg-[#050505] pt-0 pb-16 px-4 md:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
-        <AdminPageHeader
-          title="Control Center"
-          subtitle="Real-time platform oversight and management"
-        >
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative group p-3 bg-white/5 backdrop-blur-sm text-zinc-400 border border-white/10 rounded-xl hover:text-white hover:border-white/25 hover:bg-white/10 transition-all duration-300"
-            >
-              <Icon name="BellIcon" size={20} />
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#050505] animate-pulse" />
-            </button>
-            <button
-              onClick={handleExportReport}
-              className="px-4 py-3 bg-white/5 backdrop-blur-sm text-zinc-300 border border-white/10 rounded-xl hover:text-white hover:border-white/25 hover:bg-white/10 transition-all duration-300 flex items-center gap-2"
-            >
-              <Icon name="ArrowDownTrayIcon" size={18} />
-              <span className="hidden sm:inline text-sm font-semibold tracking-wide">Export</span>
-            </button>
-          </div>
-        </AdminPageHeader>
+    <div className="relative min-h-[calc(100vh-100px)] w-full bg-[#080808] flex text-zinc-100">
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8">
-          {stats.map((stat, index) => (
-            <StatsCard key={index} {...stat} />
-          ))}
-        </div>
 
-        {/* Tab Navigation */}
-        <div className="relative mb-8 z-40">
-          <div className="bg-[#0a0a0f]/70 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar px-1">
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 relative overflow-y-auto bg-[#080808] w-full min-w-0">
+        {/* Background Decorative Element */}
+        <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
+        
+        <div className="px-4 sm:px-6 md:px-16 py-6 md:py-8">
+          <div className="max-w-7xl mx-auto w-full">
+            {/* Header Section */}
+            <div className="pl-14 sm:pl-16 md:pl-0">
+              <AdminPageHeader
+                title="Control Center"
+                subtitle="Real-time platform oversight and management"
+              >
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    className="relative group p-3 bg-white/5 backdrop-blur-sm text-zinc-400 border border-white/10 rounded-xl hover:text-white hover:border-white/25 hover:bg-white/10 transition-all duration-300"
+                  >
+                    <Icon name="BellIcon" size={20} />
+                    <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#050505] animate-pulse" />
+                  </button>
+                  <button
+                    onClick={handleExportReport}
+                    className="px-4 py-3 bg-white/5 backdrop-blur-sm text-zinc-300 border border-white/10 rounded-xl hover:text-white hover:border-white/25 hover:bg-white/10 transition-all duration-300 flex items-center gap-2"
+                  >
+                    <Icon name="ArrowDownTrayIcon" size={18} />
+                    <span className="hidden sm:inline text-sm font-semibold tracking-wide">Export</span>
+                  </button>
+                </div>
+              </AdminPageHeader>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8">
+              {stats.map((stat, index) => (
+                <StatsCard key={index} {...stat} />
+              ))}
+            </div>
+
+            {/* Navigation Tabs */}
+            <nav className="flex items-center gap-3 overflow-x-auto custom-scrollbar pb-4 mb-6">
               {(
                 [
                   { id: 'overview', label: 'Overview', icon: 'ChartBarIcon' },
@@ -569,26 +578,32 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                   { id: 'properties', label: 'Listings', icon: 'HomeModernIcon' },
                   { id: 'inbox', label: 'Chat', icon: 'ChatBubbleLeftRightIcon' },
                 ] as const
-              ).map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-heading font-semibold text-xs uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${activeTab === tab.id
-                    ? 'bg-gradient-to-br from-white to-zinc-200 text-black shadow-[0_4px_14px_rgba(255,255,255,0.15)]'
-                    : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.07]'
-                    }`}
-                >
-                  <Icon name={tab.icon} size={15} />
-                  <span>{tab.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+              ).map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`relative flex flex-col items-center justify-center gap-2 px-6 py-4 rounded-2xl transition-all duration-300 min-w-[110px] shrink-0 border ${isActive
+                      ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.1)]'
+                      : 'text-zinc-500 border-white/5 bg-white/[0.02] hover:text-zinc-200 hover:bg-white/[0.04] hover:border-white/10'
+                      }`}
+                  >
+                    <Icon name={tab.icon} size={24} className={isActive ? 'stroke-[2px]' : 'stroke-[1.5px]'} />
+                    <span className="font-bold text-xs tracking-tight">{tab.label}</span>
+                    {isActive && (
+                      <div className="absolute -bottom-[1px] left-[20%] right-[20%] h-[3px] bg-indigo-500 rounded-t-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
 
-        {/* Content Area */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+
+
+            {/* Content Area */}
+        <div className="w-full">
+          <div>
             {/* Overview Tab — Premium Layout */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
@@ -906,18 +921,18 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
             {/* Users Tab */}
             {activeTab === 'users' && (
-              <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-6">
+              <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-4 md:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
                   <h2 className="text-xl font-heading font-bold text-zinc-100">
                     User Management
                   </h2>
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center w-full sm:w-auto">
                     <input
                       type="text"
                       placeholder="Search users..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
+                      className="w-full sm:w-auto px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
                     />
                   </div>
                 </div>
@@ -975,110 +990,11 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-5">
-
-            {/* Recent Activity */}
-            <div className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/10 p-5 hover:border-white/15 transition-all duration-500">
-              <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-white/5 border border-white/10">
-                    <Icon name="BoltIcon" size={14} className="text-zinc-400" />
-                  </div>
-                  <h3 className="text-sm font-heading font-bold text-white uppercase tracking-widest">Activity Feed</h3>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                  <span className="text-[10px] text-zinc-500 font-medium">Live</span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                {recentActivities.length > 0 ? (
-                  recentActivities.map((activity) => (
-                    <RecentActivityItem key={activity.id} activity={activity} />
-                  ))
-                ) : (
-                  <p className="text-xs text-zinc-600 italic text-center py-6">No recent activity</p>
-                )}
-              </div>
-            </div>
-
-            {/* System Status */}
-            <div className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/10 p-5 hover:border-white/15 transition-all duration-500">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                  <Icon name="ServerStackIcon" size={14} className="text-emerald-400" />
-                </div>
-                <h3 className="text-sm font-heading font-bold text-white uppercase tracking-widest">System Status</h3>
-              </div>
-              <div className="space-y-3.5">
-                {[
-                  { label: 'Platform Health', status: 'Operational', color: 'emerald' },
-                  { label: 'Payment Gateway', status: 'Active', color: 'emerald' },
-                  { label: 'Messaging System', status: 'Online', color: 'emerald' },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-500 font-medium">{item.label}</span>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                      <span className="text-xs font-bold text-emerald-400">{item.status}</span>
-                    </div>
-                  </div>
-                ))}
-                <div className="pt-1 border-t border-white/5">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs text-zinc-500 font-medium">Server Load</span>
-                    <span className="text-xs font-bold text-amber-400">42%</span>
-                  </div>
-                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full w-[42%] bg-gradient-to-r from-amber-500 to-amber-400 rounded-full" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Today's Summary */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f0f1a] to-[#0a0a0f] border border-indigo-500/15 p-5 hover:border-indigo-500/25 transition-all duration-500">
-              <div className="absolute -top-6 -right-6 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
-                  <Icon name="CalendarDaysIcon" size={14} className="text-indigo-400" />
-                </div>
-                <h3 className="text-sm font-heading font-bold text-white uppercase tracking-widest">Today's Summary</h3>
-              </div>
-              <div className="space-y-3">
-                {[
-                  {
-                    label: 'New Registrations',
-                    value: users.filter(u => new Date(u.created_at).toDateString() === new Date().toDateString()).length,
-                    color: 'text-sky-400',
-                    bg: 'bg-sky-500/10',
-                  },
-                  {
-                    label: 'Bookings',
-                    value: bookings.length,
-                    color: 'text-emerald-400',
-                    bg: 'bg-emerald-500/10',
-                  },
-                  {
-                    label: 'Revenue',
-                    value: `₹${(transactions.reduce((acc, t) => acc + t.amount, 0) / 1000).toFixed(1)}K`,
-                    color: 'text-amber-400',
-                    bg: 'bg-amber-500/10',
-                  },
-                ].map((item) => (
-                  <div key={item.label} className={`flex items-center justify-between p-2.5 rounded-xl ${item.bg} border border-white/5`}>
-                    <span className="text-xs text-zinc-400 font-medium">{item.label}</span>
-                    <span className={`text-lg font-heading font-black ${item.color}`}>{item.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
 
           </div>
         </div>
-      </div >
+      </div>
+      </main>
       <TransactionDetailsModal
         transaction={selectedTransaction}
         onClose={handleCloseModal}
@@ -1108,6 +1024,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     const [selectedThread, setSelectedThread] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [currentAdmin, setCurrentAdmin] = useState<{ id: string, name: string } | null>(null);
+    const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
 
     useEffect(() => {
       const fetchAdminAndThreads = async () => {
@@ -1163,40 +1080,78 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     if (loading) return <div className="p-8 text-center text-zinc-500">Loading inbox...</div>;
 
     return (
-      <div className="bg-[#0a0a0f] border border-white/10 rounded-xl overflow-hidden flex h-[700px]">
-        {/* Thread List */}
-        <div className="w-1/3 border-r border-white/10 overflow-y-auto">
-          <div className="p-4 border-b border-white/10 bg-white/5">
-            <h3 className="font-heading font-bold text-white">Support Communications</h3>
+      <div className="bg-[#0a0a0f] border border-white/10 rounded-xl overflow-hidden flex flex-col md:flex-row h-[600px] md:h-[700px]">
+
+        {/* Thread List: full width on mobile (hidden when viewing chat), fixed width on desktop */}
+        <div className={`
+          ${mobileView === 'chat' ? 'hidden' : 'flex'} md:flex
+          flex-col w-full md:w-[260px] lg:w-[300px] flex-shrink-0
+          border-b md:border-b-0 md:border-r border-white/10
+          overflow-hidden
+        `}>
+          <div className="p-4 border-b border-white/10 bg-white/5 flex-shrink-0">
+            <h3 className="font-heading font-bold text-white text-sm">Support Communications</h3>
+            <p className="text-[10px] text-zinc-500 mt-0.5">{threads.length} conversation{threads.length !== 1 ? 's' : ''}</p>
           </div>
-          {threads.length === 0 ? (
-            <div className="p-8 text-center text-zinc-600 italic">No messages yet</div>
-          ) : (
-            threads.map((thread) => (
-              <button
-                key={thread.user.id}
-                onClick={() => setSelectedThread(thread)}
-                className={`w-full p-4 text-left border-b border-white/5 hover:bg-white/5 transition-colors ${selectedThread?.user.id === thread.user.id ? 'bg-white/10' : ''
-                  }`}
-              >
-                <div className="font-bold text-zinc-100">{thread.user.name}</div>
-                <div className="text-sm text-zinc-500 truncate">{thread.lastMessage}</div>
-                <div className="text-[10px] text-zinc-600 mt-1">
-                  {new Date(thread.timestamp).toLocaleString()}
+          <div className="flex-1 overflow-y-auto">
+            {threads.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full gap-3 p-8">
+                <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center">
+                  <Icon name="ChatBubbleLeftRightIcon" size={22} className="text-zinc-600" />
                 </div>
-              </button>
-            ))
-          )}
+                <p className="text-sm text-zinc-600 italic text-center">No messages yet</p>
+              </div>
+            ) : (
+              threads.map((thread) => (
+                <button
+                  key={thread.user.id}
+                  onClick={() => { setSelectedThread(thread); setMobileView('chat'); }}
+                  className={`w-full p-3 text-left border-b border-white/5 hover:bg-white/5 transition-colors ${
+                    selectedThread?.user.id === thread.user.id ? 'bg-white/10 border-l-2 border-l-primary' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 flex-shrink-0 rounded-full bg-white/10 border border-white/10 flex items-center justify-center">
+                      <Icon name="UserIcon" size={14} className="text-zinc-400" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-zinc-100 text-sm truncate">{thread.user.name}</div>
+                      <div className="text-xs text-zinc-500 truncate mt-0.5">{thread.lastMessage}</div>
+                      <div className="text-[10px] text-zinc-600 mt-0.5">
+                        {new Date(thread.timestamp).toLocaleString()}
+                      </div>
+                    </div>
+                    <Icon name="ChevronRightIcon" size={14} className="text-zinc-600 flex-shrink-0 md:hidden" />
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
         </div>
 
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col">
+        {/* Chat Area: full width on mobile (hidden when viewing list), flex-1 on desktop */}
+        <div className={`
+          ${mobileView === 'list' ? 'hidden' : 'flex'} md:flex
+          flex-col flex-1 min-w-0
+        `}>
           {selectedThread && currentAdmin ? (
-            <div className="flex-1 flex flex-col min-h-0">
-              <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
-                <h3 className="font-bold text-white">Chatting with {selectedThread.user.name}</h3>
+            <div className="flex flex-col h-full min-h-0">
+              <div className="p-3 md:p-4 border-b border-white/10 bg-white/5 flex items-center gap-3 flex-shrink-0">
+                <button
+                  onClick={() => setMobileView('list')}
+                  className="md:hidden p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors flex-shrink-0"
+                >
+                  <Icon name="ChevronLeftIcon" size={20} />
+                </button>
+                <div className="w-8 h-8 rounded-full bg-white/10 border border-white/10 flex items-center justify-center flex-shrink-0">
+                  <Icon name="UserIcon" size={14} className="text-zinc-400" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-white text-sm truncate">{selectedThread.user.name}</h3>
+                  <p className="text-[10px] text-zinc-500">Platform Support</p>
+                </div>
               </div>
-              <div className="flex-1 p-4 min-h-0 overflow-y-auto">
+              <div className="flex-1 min-h-0 relative">
                 <RealTimeChat
                   currentUser={currentAdmin}
                   otherUser={selectedThread.user}
@@ -1205,8 +1160,14 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
               </div>
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-zinc-600 italic">
-              Select a conversation to begin
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-4">
+              <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center">
+                <Icon name="ChatBubbleLeftRightIcon" size={28} className="text-zinc-700" />
+              </div>
+              <div>
+                <p className="text-zinc-500 font-medium text-sm">No conversation selected</p>
+                <p className="text-zinc-700 text-xs mt-1">Choose a thread from the list to begin</p>
+              </div>
             </div>
           )}
         </div>

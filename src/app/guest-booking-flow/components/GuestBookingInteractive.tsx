@@ -116,7 +116,16 @@ const GuestBookingInteractive = () => {
                       onBack={() => setCurrentStep(1)}
                     />
                   )}
-                  {currentStep === 3 && <Step4_Confirmation />}
+                  {currentStep === 3 && (
+                    <Step4_Confirmation 
+                      latitude={(bookingCart[0] as any)?.latitude}
+                      longitude={(bookingCart[0] as any)?.longitude}
+                      address={bookingCart[0]?.show_specific_location 
+                        ? `${bookingCart[0]?.address_line1 || ''} ${bookingCart[0]?.address_line2 || ''}, ${bookingCart[0]?.city || ''}, ${bookingCart[0]?.state || ''}`.trim()
+                        : bookingCart[0]?.location
+                      }
+                    />
+                  )}
                 </div>
 
                 {/* Footer - Inline with the card */}

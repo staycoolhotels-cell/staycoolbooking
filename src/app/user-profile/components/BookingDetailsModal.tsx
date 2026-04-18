@@ -1,16 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format } from 'date-fns';
+import { format, differenceInDays, startOfDay } from 'date-fns';
 import Icon from '@/components/ui/AppIcon';
 import { Booking, Property } from '@/lib/types';
+import { toast } from 'sonner';
 
 interface BookingDetailsModalProps {
     booking: (Booking & { properties: Partial<Property> }) | null;
     onClose: () => void;
+    onStatusChange?: () => void;
 }
 
-const BookingDetailsModal = ({ booking, onClose }: BookingDetailsModalProps) => {
+const BookingDetailsModal = ({ booking, onClose, onStatusChange }: BookingDetailsModalProps) => {
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
     if (!booking) return null;
+
+    const getPropertyImage = (prop: Partial<Property>) => {
+        if (prop.images && Array.isArray(prop.images) && prop.images.length > 0) {
+            const first = prop.images[0] as any;
+            return typeof first === 'string' ? first : (first.url || first);
+        }
+        return prop.image_url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6';
+    };
 
     const getStatusColor = (status: string) => {
         switch (status.toLowerCase()) {
@@ -61,8 +74,8 @@ const BookingDetailsModal = ({ booking, onClose }: BookingDetailsModalProps) => 
                         <div className="flex flex-col md:flex-row gap-4 items-start">
                             <div className="w-full md:w-1/3 aspect-video rounded-xl overflow-hidden border border-white/10">
                                 <img
-                                    src={booking.properties.images?.[0]?.url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6'}
-                                    alt={booking.properties.title}
+                                    src={getPropertyImage(booking.properties)}
+                                    alt={booking.properties.title || 'Property'}
                                     className="w-full h-full object-cover"
                                 />
                             </div>
@@ -130,7 +143,17 @@ const BookingDetailsModal = ({ booking, onClose }: BookingDetailsModalProps) => 
                     </div>
 
                     {/* Footer - Actions could go here */}
-                    <div className="p-6 border-t border-white/10 bg-[#0a0a0f] flex justify-end">
+                    <div className="p-6 border-t border-white/10 bg-[#0a0a0f] flex justify-between items-center">
+                        <div>
+                            {booking.status === 'confirmed' && new Date(booking.check_in) > new Date() && (
+                                <button
+                                    onClick={() => setShowCancelConfirm(true)}
+                                    className="px-6 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors font-medium border border-red-500/20"
+                                >
+                                    Cancel Booking
+                                </button>
+                            )}
+                        </div>
                         <button
                             onClick={onClose}
                             className="px-6 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors font-medium border border-white/10"
@@ -138,6 +161,72 @@ const BookingDetailsModal = ({ booking, onClose }: BookingDetailsModalProps) => 
                             Close
                         </button>
                     </div>
+
+                    {/* Cancel Confirmation Overlay */}
+                    {showCancelConfirm && (
+                        <div className="absolute inset-0 z-20 bg-[#0a0a0f]/95 backdrop-blur-md flex items-center justify-center p-6">
+                            <div className="bg-zinc-900 border border-red-500/30 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+                                <div className="flex items-center gap-3 mb-4 text-red-400">
+                                    <Icon name="ExclamationTriangleIcon" size={24} />
+                                    <h3 className="text-xl font-bold">Cancel This Booking?</h3>
+                                </div>
+                                <p className="text-zinc-300 mb-6 text-sm leading-relaxed">
+                                    Are you sure you want to cancel your stay at <strong>{booking.properties.title}</strong>? 
+                                    Depending on when your check-in date is, our cancellation policy applies to calculate your refund amount.
+                                </p>
+                                
+                                <div className="bg-zinc-950 p-4 rounded-xl border border-white/5 mb-6 text-xs text-zinc-400 space-y-2">
+                                    <p><strong className="text-zinc-300">Policy Reminder:</strong></p>
+                                    <ul className="list-disc pl-4 space-y-1">
+                                        <li>7+ Days Before: 100% Refund</li>
+                                        <li>5-7 Days Before: 70% Refund</li>
+                                        <li>2-4 Days Before: 30% Refund</li>
+                                        <li>Check-in Day: No Refund</li>
+                                    </ul>
+                                </div>
+
+                                <div className="flex gap-3 justify-end">
+                                    <button
+                                        disabled={isCancelling}
+                                        onClick={() => setShowCancelConfirm(false)}
+                                        className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors font-medium text-sm disabled:opacity-50"
+                                    >
+                                        Keep Booking
+                                    </button>
+                                    <button
+                                        disabled={isCancelling}
+                                        onClick={async () => {
+                                            setIsCancelling(true);
+                                            try {
+                                                const res = await fetch('/api/bookings/cancel', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ bookingId: booking.id })
+                                                });
+                                                const data = await res.json();
+                                                
+                                                if (data.error) throw new Error(data.error);
+                                                
+                                                toast.success(
+                                                    `Booking Cancelled! Expected Refund: ₹${data.refundAmount?.toLocaleString('en-IN')}`, 
+                                                    { duration: 5000 }
+                                                );
+                                                setShowCancelConfirm(false);
+                                                if (onStatusChange) onStatusChange();
+                                            } catch (err: any) {
+                                                toast.error(err.message || "Failed to cancel booking");
+                                            } finally {
+                                                setIsCancelling(false);
+                                            }
+                                        }}
+                                        className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors font-medium text-sm flex items-center gap-2 disabled:opacity-50"
+                                    >
+                                        {isCancelling ? 'Processing...' : 'Yes, Cancel Now'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                 </motion.div>
             </div>

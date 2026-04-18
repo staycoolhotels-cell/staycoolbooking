@@ -3,15 +3,17 @@
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { Booking } from '@/lib/types';
-import { approveBooking } from '@/lib/booking-actions';
+import { approveBooking, rejectBooking } from '@/lib/booking-actions';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createDispute } from '@/lib/dispute-actions';
 import { toast } from 'sonner';
+import { createPortal } from 'react-dom';
+import { useEffect } from 'react';
 
 interface BookingCardProps {
   booking: Booking;
-  onAction: (tab: string) => void;
+  onAction: (tab: string, data?: any) => void;
 }
 
 const getStatusStyles = (status: Booking['status']) => {
@@ -76,9 +78,16 @@ const getStatusStyles = (status: Booking['status']) => {
 const BookingCard = ({ booking, onAction }: BookingCardProps) => {
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
   const [issueType, setIssueType] = useState('Damage to property');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const statusStyles = getStatusStyles(booking.status);
 
@@ -138,17 +147,66 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:pl-6 md:border-l border-white/5 shrink-0">
 
           {booking.status === 'pending' && (
-            <button
-              onClick={() => approveBooking(booking.id)}
-              className="w-full sm:w-auto px-6 py-3 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-400 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-colors shadow-[0_0_20px_rgba(52,211,153,0.15)] group/approve"
-            >
-              <Icon name="CheckCircleIcon" size={18} className="group-hover/approve:scale-110 transition-transform" /> Auth Release
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                disabled={isApproving || isRejecting}
+                onClick={async () => {
+                    setIsApproving(true);
+                    try {
+                        await approveBooking(booking.id);
+                        toast.success('Successfully authorized the release!');
+                    } catch (err: any) {
+                        toast.error('Failed to authorize release. Please try again.');
+                    } finally {
+                        setIsApproving(false);
+                    }
+                }}
+                className="w-full sm:w-auto px-6 py-3 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-400 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-colors shadow-[0_0_20px_rgba(52,211,153,0.15)] group/approve disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isApproving ? (
+                  <Icon name="ArrowPathIcon" size={18} className="animate-spin" /> 
+                ) : (
+                  <Icon name="CheckCircleIcon" size={18} className="group-hover/approve:scale-110 transition-transform" /> 
+                )}
+                {isApproving ? 'Authorizing...' : 'Auth Release'}
+              </button>
+
+              <button
+                disabled={isApproving || isRejecting}
+                onClick={async () => {
+                    if (confirm('Are you sure you want to reject this booking? This will count towards your cancellation record.')) {
+                      setIsRejecting(true);
+                      try {
+                          await rejectBooking(booking.id);
+                          toast.success('Booking rejected successfully.');
+                      } catch (err: any) {
+                          toast.error('Failed to reject booking.');
+                      } finally {
+                          setIsRejecting(false);
+                      }
+                    }
+                }}
+                className="w-full sm:w-auto px-6 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-500 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-colors shadow-[0_0_20px_rgba(239,68,68,0.15)] group/reject disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRejecting ? (
+                  <Icon name="ArrowPathIcon" size={18} className="animate-spin" /> 
+                ) : (
+                  <Icon name="NoSymbolIcon" size={18} className="group-hover/reject:scale-110 transition-transform" /> 
+                )}
+                {isRejecting ? 'Rejecting...' : 'Reject'}
+              </button>
+            </div>
           )}
 
           <div className="flex items-center justify-between sm:justify-start gap-3 h-full">
             <button
-              onClick={() => onAction('unified-inbox')}
+              onClick={() => onAction('unified-inbox', {
+                guest_id: booking.guest_id,
+                sender_name: booking.guest?.name || 'Verified Guest',
+                sender_avatar: booking.guest?.avatar_url,
+                property_id: booking.property_id,
+                property_name: booking.properties?.title || booking.properties?.name || 'Property'
+              })}
               className="flex-1 sm:flex-none h-[48px] px-6 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 text-indigo-400 hover:text-indigo-300 transition-all font-bold text-[11px] md:text-[12px] uppercase tracking-widest flex items-center justify-center gap-2"
             >
               <Icon name="ChatBubbleLeftRightIcon" size={18} /> <span>Message</span>
@@ -166,7 +224,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
 
       {/* Dispute Modal (Ultra-Premium) */}
       <AnimatePresence>
-        {isDisputeModalOpen && (
+        {isDisputeModalOpen && mounted && createPortal(
           <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -281,7 +339,8 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                 </div>
               </form>
             </motion.div>
-          </div>
+          </div>,
+          document.body
         )}
       </AnimatePresence>
     </div>

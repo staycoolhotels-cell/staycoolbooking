@@ -51,10 +51,10 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty }:
                                 <div className="space-y-4">
                                     <p className="text-text-secondary text-lg">Strict tiered cancellation policy applies:</p>
                                     <ul className="list-disc pl-5 space-y-2 text-text-secondary text-base">
-                                        <li><strong className="text-foreground">More than 7 days before check-in:</strong> Full refund.</li>
-                                        <li><strong className="text-foreground">5-7 days before check-in:</strong> 70% refund to guest.</li>
-                                        <li><strong className="text-foreground">2-4 days before check-in:</strong> 40% refund to guest.</li>
-                                        <li><strong className="text-foreground">Less than 2 days (or check-in day):</strong> No refund.</li>
+                                        <li><strong className="text-foreground">7 Days Before Check-in:</strong> Guest cancel chesthe 100% refund guest ki return avuthundi.</li>
+                                        <li><strong className="text-foreground">5-7 Days Before Check-in:</strong> Guest cancel chesthe 70% refund guest ki, 30% admin charge.</li>
+                                        <li><strong className="text-foreground">2-4 Days Before Check-in:</strong> Guest cancel chesthe 30% refund guest ki, 70% admin charge.</li>
+                                        <li><strong className="text-foreground">Check-in Day Cancellation:</strong> Guest same day cancel chesthe No refund guest ki. Payment split: 65% host ki, 35% admin ki.</li>
                                     </ul>
                                 </div>
                             ) : (

@@ -47,10 +47,11 @@ export default async function HostDashboardPage() {
     redirect('/auth');
   }
 
-  // Redirect admins to admin panel
+  /* 
   if (host.role === 'admin') {
     redirect('/admin-panel');
   }
+  */
 
   // Redirect guests to user profile
   if (host.role === 'guest') {

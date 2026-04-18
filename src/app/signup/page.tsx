@@ -7,7 +7,7 @@ import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Phone, ArrowRight, Loader2, Sparkles, Lock, User, Home, UserCheck, Smartphone, Check, Eye, EyeOff } from 'lucide-react';
+import { Mail, Phone, ArrowRight, Loader2, Sparkles, Lock, User, Home, UserCheck, Smartphone, Check, Eye, EyeOff, Gift } from 'lucide-react';
 import Script from 'next/script';
 
 export default function SignupPage() {
@@ -21,8 +21,10 @@ export default function SignupPage() {
 function SignupContent() {
   const searchParams = useSearchParams();
   const roleParam = searchParams.get('role');
+  const refParam = searchParams.get('ref') || '';
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const [selectedRole, setSelectedRole] = useState(roleParam?.toLowerCase() === 'host' ? 'Host' : 'Guest');
+  const [referralCode, setReferralCode] = useState(refParam);
   const [mobileNumber, setMobileNumber] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [name, setName] = useState('');
@@ -462,6 +464,25 @@ function SignupContent() {
                             {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                           </button>
                         </div>
+
+                    {/* Referral Code */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1" htmlFor="referralCode">
+                        Referral Code (Optional)
+                      </label>
+                      <div className="relative group">
+                        <Gift className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
+                        <input
+                          id="referralCode"
+                          type="text"
+                          name="referralCode"
+                          placeholder="e.g. SC-XXXXXX"
+                          value={referralCode}
+                          onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                          className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all uppercase"
+                        />
+                      </div>
+                    </div>
                       </div>
                     </div>
 
@@ -551,6 +572,25 @@ function SignupContent() {
                               value={mobileNumber}
                               onChange={(e) => setMobileNumber(e.target.value)}
                               className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Referral Code (Mobile) */}
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1" htmlFor="mobileReferralCode">
+                            Referral Code (Optional)
+                          </label>
+                          <div className="relative group">
+                            <Gift className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
+                            <input
+                              id="mobileReferralCode"
+                              type="text"
+                              name="referralCode"
+                              placeholder="e.g. SC-XXXXXX"
+                              value={referralCode}
+                              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                              className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all uppercase"
                             />
                           </div>
                         </div>

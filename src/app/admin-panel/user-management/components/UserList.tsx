@@ -380,7 +380,7 @@ const UserList = ({ initialUsers }: UserListProps) => {
         className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/8"
       >
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[800px]">
+          <table className="w-full min-w-[700px]">
             <thead>
               <tr className="border-b border-white/5">
                 {['User', 'Email', 'Role', 'Status', 'Join Date', 'Actions'].map((h) => (
@@ -530,7 +530,7 @@ const UserList = ({ initialUsers }: UserListProps) => {
 
         {/* Footer */}
         {filteredAndSortedUsers.length > 0 && (
-          <div className="px-6 py-4 border-t border-white/5 flex items-center justify-between">
+          <div className="px-4 md:px-6 py-4 border-t border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <p className="text-xs text-zinc-600">
               Showing <span className="text-zinc-400 font-semibold">{filteredAndSortedUsers.length}</span> of{' '}
               <span className="text-zinc-400 font-semibold">{users.length}</span> platform users

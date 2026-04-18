@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { motion } from 'framer-motion';
 
 interface ProfileProps {
   hostName: string;
@@ -16,6 +17,9 @@ interface ProfileProps {
   onUpdatePhoneNumber: (newPhoneNumber: string) => void;
   onUpdateAddress: (newAddress: string) => void;
   onUpdateBio: (newBio: string) => void;
+  cancellationCount?: number;
+  referralCode?: string;
+  referralBenefitCount?: number;
 }
 
 const Profile = ({
@@ -31,6 +35,9 @@ const Profile = ({
   onUpdatePhoneNumber,
   onUpdateAddress,
   onUpdateBio,
+  cancellationCount = 0,
+  referralCode = '',
+  referralBenefitCount = 0,
 }: ProfileProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(hostName);
@@ -85,15 +92,25 @@ const Profile = ({
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-[#0a0a0f]/80 p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 bottom-0 w-96 bg-gradient-to-l from-sky-500/10 to-transparent pointer-events-none" />
 
-        <div className="relative z-10 flex items-center gap-5 w-full lg:w-auto">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500/30 to-sky-500/10 border border-sky-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(14,165,233,0.3)] shrink-0">
-            <Icon name="IdentificationIcon" size={32} className="text-sky-400 drop-shadow-md" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Identity Control</h1>
-            <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2 truncate whitespace-nowrap">
-              Host Profile Management
-            </p>
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center gap-6 lg:gap-12 w-full">
+
+
+          <div className="flex-1 w-full max-w-xl p-3 bg-red-500/5 border border-amber-500/20 rounded-2xl relative overflow-hidden group">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 p-1.5 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                <Icon name="ExclamationTriangleIcon" size={30} className="text-amber-500" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <p className="text-[11px] font-bold text-white leading-tight">
+                  5 బుకింగ్స్ కంటే ఎక్కువ బుకింగ్స్ను రిజెక్ట్ చేస్తే మీ అకౌంట్ లాక్ చేయబడుతుంది. మళ్లీ అకౌంట్ ఓపెన్ చేయించుకోవాలంటే ₹299 పెనాల్టీ చెల్లించాలి.
+                </p>
+                <p>
+                </p>
+                <p className="text-[11px] text-amber-500/60 font-black uppercase tracking-wider leading-none">
+                  If you reject more than 5 bookings, your account will be locked. To reopen your account, you need to pay a penalty of ₹299.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -150,9 +167,17 @@ const Profile = ({
                   className="w-full text-3xl md:text-4xl font-heading font-black text-white bg-black/40 border border-white/10 hover:border-sky-500/50 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all placeholder:text-zinc-600"
                 />
               ) : (
-                <div>
-                  <h3 className="text-3xl md:text-4xl font-heading font-black text-white drop-shadow-md mb-2">{hostName}</h3>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-sky-500/10 border-sky-500/20 backdrop-blur-md">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3 md:gap-4 flex-wrap">
+                    <h3 className="text-2xl md:text-3xl lg:text-4xl font-heading font-black text-white drop-shadow-md">{hostName}</h3>
+                    {Number(cancellationCount) >= 5 && (
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-red-600 border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)] animate-pulse">
+                        <Icon name="NoSymbolIcon" size={12} className="text-white" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-white">Access Locked</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-sky-500/10 border-sky-500/20 backdrop-blur-md w-fit h-fit shrink-0">
                     <div className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-sky-400">Verified Host</span>
                   </div>
@@ -177,7 +202,7 @@ const Profile = ({
                   className="w-full text-base font-bold text-white bg-black/40 border border-white/10 hover:border-sky-500/50 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all"
                 />
               ) : (
-                <p className="text-base font-bold text-white bg-white/[0.02] border border-transparent rounded-xl px-4 py-3.5">{hostEmail}</p>
+                <p className="text-base font-bold text-white bg-white/[0.02] border border-transparent rounded-xl px-4 py-3.5 break-all">{hostEmail}</p>
               )}
             </div>
 
@@ -194,7 +219,7 @@ const Profile = ({
                   className="w-full text-base font-bold text-white bg-black/40 border border-white/10 hover:border-sky-500/50 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all"
                 />
               ) : (
-                <p className="text-base font-bold text-white bg-white/[0.02] border border-transparent rounded-xl px-4 py-3.5">{phoneNumber || 'Not Provided'}</p>
+                <p className="text-base font-bold text-white bg-white/[0.02] border border-transparent rounded-xl px-4 py-3.5 break-all">{phoneNumber || 'Not Provided'}</p>
               )}
             </div>
 
@@ -211,7 +236,7 @@ const Profile = ({
                   className="w-full text-base font-bold text-white bg-black/40 border border-white/10 hover:border-sky-500/50 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all"
                 />
               ) : (
-                <p className="text-base font-bold text-white bg-white/[0.02] border border-transparent rounded-xl px-4 py-3.5">{address || 'Not Provided'}</p>
+                <p className="text-base font-bold text-white bg-white/[0.02] border border-transparent rounded-xl px-4 py-3.5 break-all">{address || 'Not Provided'}</p>
               )}
             </div>
 
@@ -272,6 +297,79 @@ const Profile = ({
             )}
           </div>
 
+        </div>
+      </div>
+
+      {/* 3. Referral Program Module */}
+      <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-2xl p-6 md:p-10 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-amber-500/5 rounded-full blur-[80px] pointer-events-none" />
+        
+        <div className="relative z-10">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8 pb-6 border-b border-white/10">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/20">
+                <Icon name="GiftIcon" size={24} className="text-amber-500" />
+              </div>
+              <div>
+                <h3 className="text-xl md:text-2xl font-black text-white italic">Host Referral Reward</h3>
+                <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-0.5">Invite others & Save on Commission</p>
+              </div>
+            </div>
+
+            {referralBenefitCount > 0 && (
+              <div className="flex items-center gap-3 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-black text-emerald-400 uppercase tracking-widest leading-none">
+                  {referralBenefitCount} x 5% Commission Available
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Referral Instruction */}
+            <div className="md:col-span-2 space-y-4">
+              <p className="text-sm text-zinc-400 font-medium leading-relaxed">
+                Refer a new host to <span className="text-sky-400 font-bold">StayCool</span>. When they register their host account, you'll receive a <span className="text-emerald-400 font-bold">50% discount</span> on the platform commission (reducing it to 5%) for your next 5 bookings.
+              </p>
+              <div className="flex items-center gap-4 bg-white/[0.03] p-4 rounded-2xl border border-white/5">
+                <div className="flex-1 min-w-0">
+                  <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Your Referral Link</span>
+                  <p className="text-sm font-bold text-sky-400 break-all">
+                    {typeof window !== 'undefined' ? `${window.location.origin}/signup?ref=${referralCode}` : `signup?ref=${referralCode}`}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => {
+                    const link = `${window.location.origin}/signup?ref=${referralCode}`;
+                    navigator.clipboard.writeText(link);
+                    alert('Referral link copied to clipboard!');
+                  }}
+                  className="px-4 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                >
+                  Copy Link
+                </button>
+              </div>
+            </div>
+
+            {/* Referral Code Card */}
+            <div className="bg-gradient-to-br from-zinc-900 to-black p-6 rounded-3xl border border-white/5 relative group overflow-hidden flex flex-col items-center justify-center text-center">
+              <div className="absolute inset-0 bg-sky-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 relative z-10">Direct Code</span>
+              <div className="text-3xl font-black text-white tracking-tighter mb-4 relative z-10 selection:bg-sky-500/30 break-all">
+                {referralCode || 'NOT-SET'}
+              </div>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(referralCode);
+                  alert('Referral code copied!');
+                }}
+                className="relative z-10 w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-[9px] font-bold uppercase tracking-[0.2em] transition-all"
+              >
+                Copy Code
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

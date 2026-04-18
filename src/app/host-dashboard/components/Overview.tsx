@@ -13,7 +13,7 @@ interface OverviewProps {
   earnings: Earning[];
   reviews: Review[];
   disputes?: any[];
-  onAction?: (tabId: string) => void;
+  onAction?: (tabId: string, data?: any) => void;
 }
 
 const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [], disputes = [], onAction }: OverviewProps) => {

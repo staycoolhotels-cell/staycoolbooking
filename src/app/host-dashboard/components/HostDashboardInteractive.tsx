@@ -22,7 +22,11 @@ import {
   ClipboardList,
   Scale,
   LifeBuoy,
+  Lock,
+  AlertTriangle,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { resetCancellationPenalty } from '@/lib/booking-actions';
 import Overview from './Overview';
 import Properties from './Properties';
 import Bookings from './Bookings';
@@ -97,6 +101,73 @@ const HostDashboardInteractive = ({
   const [disputes, setDisputes] = useState<any[]>([]);
   const [isLoadingDisputes, setIsLoadingDisputes] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [inboxContext, setInboxContext] = useState<any>(null);
+
+  const isLocked = Number(hostData.cancellation_count || 0) >= 5;
+
+  const PenaltyOverlay = () => {
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handlePayment = async () => {
+      setIsProcessing(true);
+      try {
+        await resetCancellationPenalty();
+        toast.success("Payment successful! Your dashboard has been unlocked.");
+      } catch (err) {
+        toast.error("Payment failed. Please try again.");
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="max-w-xl w-full bg-[#0a0a0f] border border-red-500/20 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(239,68,68,0.15)] text-center relative overflow-hidden"
+        >
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent" />
+          
+          <div className="mb-8 flex justify-center">
+            <div className="w-20 h-20 rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shadow-[0_0_40px_rgba(239,68,68,0.2)]">
+              <AlertTriangle size={40} className="text-red-500" />
+            </div>
+          </div>
+
+          <h2 className="text-3xl font-black text-white mb-4 tracking-tight uppercase italic">Access Revoked</h2>
+          
+          <div className="space-y-4 mb-10">
+            <p className="text-lg text-white/90 font-bold leading-relaxed px-4">
+              మరీ ఎక్కువ బుకింగ్స్ రిజెక్ట్ చేయడం వల్ల మీ అకౌంట్ లాక్ చేయబడింది. మళ్ళీ అకౌంట్ ఓపెన్ అవ్వాలంటే 299 రూపాయలు పెనాల్టీ కట్టాలి.
+            </p>
+            <p className="text-sm text-zinc-500 font-medium uppercase tracking-[0.2em]">
+              Account locked due to 5+ rejected bookings
+            </p>
+          </div>
+
+          <button
+            onClick={handlePayment}
+            disabled={isProcessing}
+            className="w-full py-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-[0_20px_40px_-10px_rgba(16,185,129,0.3)] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 group"
+          >
+            {isProcessing ? (
+              <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <Banknote size={20} className="group-hover:rotate-12 transition-transform" />
+                Pay ₹299 Penalty & Unlock
+              </>
+            )}
+          </button>
+          
+          <p className="mt-6 text-[10px] text-zinc-600 font-bold uppercase tracking-widest">
+            Secure Payment Gateway • Instant Restoration
+          </p>
+        </motion.div>
+      </div>
+    );
+  };
 
   useEffect(() => {
     const tab = searchParams.get('tab') as TabType;
@@ -115,6 +186,19 @@ const HostDashboardInteractive = ({
       }
     }
   }, [searchParams]);
+
+  const handleAction = useCallback((tab: string, data?: any) => {
+    setActiveTab(tab as TabType);
+    if (tab === 'unified-inbox' && data) {
+      setInboxContext(data);
+    } else if (tab !== 'unified-inbox') {
+      setInboxContext(null);
+    }
+
+    const newParams = new URLSearchParams(window.location.search);
+    newParams.set('tab', tab);
+    router.push(`?${newParams.toString()}`, { scroll: false });
+  }, [router]);
 
   useEffect(() => {
     setProperties(hostData.properties);
@@ -185,6 +269,37 @@ const HostDashboardInteractive = ({
     };
   }, [hostData.id, supabase]);
 
+  // Real-time subscription for disputes updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('host-disputes-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'disputes',
+          filter: `host_id=eq.${hostData.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setDisputes((prev) => [payload.new as any, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setDisputes((prev) =>
+              prev.map((d) => (d.id === payload.new.id ? payload.new : d))
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setDisputes((prev) => prev.filter((d) => d.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [hostData.id, supabase]);
+
   const fetchDisputes = useCallback(async () => {
     setIsLoadingDisputes(true);
     const { data, error } = await supabase
@@ -224,19 +339,30 @@ const HostDashboardInteractive = ({
 
   const handleSaveProperty = React.useCallback(
     async (formData: FormData) => {
-      // Validate documents
-      const uploadedDocsCount = [
-        formData.license_url,
-        formData.tax_bill_url,
-        formData.current_bill_url
-      ].filter(Boolean).length;
-
-      if (uploadedDocsCount < 2) {
-        alert('Please upload at least two of the following documents: Property License, Tax Bill, or Current Bill.');
-        return;
+      // Validate documents — different requirements for Tent vs other property types
+      if (formData.type === 'Tent') {
+        const tentDocsCount = [
+          formData.aadhar_url,
+          formData.pan_url,
+          formData.noc_url,
+        ].filter(Boolean).length;
+        if (tentDocsCount < 1) {
+          alert('Tent property కోసం కనీసం Aadhaar Card upload చేయాలి. Please upload Aadhaar, PAN, or NOC document.');
+          return;
+        }
+      } else {
+        const uploadedDocsCount = [
+          formData.license_url,
+          formData.tax_bill_url,
+          formData.current_bill_url
+        ].filter(Boolean).length;
+        if (uploadedDocsCount < 2) {
+          alert('Please upload at least two of the following documents: Property License, Tax Bill, or Current Bill.');
+          return;
+        }
       }
 
-      const amenities = formData.amenities.map((amenityId) => {
+      const standardAmenities = formData.amenities.map((amenityId) => {
         const amenity = AMENITIES.find((a) => a.id === amenityId);
         if (!amenity) return null;
         return {
@@ -247,56 +373,94 @@ const HostDashboardInteractive = ({
         };
       }).filter((a): a is NonNullable<typeof a> => a !== null);
 
+      const customAmenities = formData.customAmenities?.map((name, index) => ({
+        id: 2000 + index, // Assign a unique ID for custom amenities
+        name,
+        description: 'Host added amenity',
+        available: true,
+        icon: 'CheckCircleIcon', // Default icon for custom amenities
+      })) || [];
+
+      const p_amenities = [...standardAmenities, ...customAmenities];
+      
+      const finalAmenities = p_amenities.length > 0 ? p_amenities : [{
+        id: 9999,
+        name: 'N/A',
+        description: 'No amenities specified',
+        available: true,
+        icon: 'HelpCircle'
+      }];
+      const finalRules = formData.rules.length > 0 ? formData.rules : ['N/A'];
+      const finalSafetyItems = formData.safetyItems.length > 0 ? formData.safetyItems : ['N/A'];
+      const finalCancellationPolicy = formData.cancellationPolicy || 'N/A';
+
       if (propertyToEdit) {
-        // Editing existing property
-        const rpcParams = {
-          p_id: propertyToEdit.id,
-          p_name: String(formData.name),
-          p_title: String(formData.name),
-          p_description: String(formData.description),
-          p_price_per_night: parseFloat(String(formData.price)) || 0,
-          p_weekend_price_per_night: parseFloat(String(formData.weekendPrice)) || 0,
-          p_tier: String(formData.type),
-          p_amenities: amenities.length > 0 ? amenities : [],
-          p_license_url: formData.license_url || '',
-          p_tax_bill_url: formData.tax_bill_url || '',
-          p_current_bill_url: formData.current_bill_url || '',
-          p_image_url: formData.photo_urls[0] || '',
-          p_images: formData.photo_urls.map((url, index) => ({ url, alt: `${formData.name} Photo ${index + 1}` })),
-          p_cancellation_policy: formData.cancellationPolicy,
-          p_rules: formData.rules,
-          p_safety_items: formData.safetyItems,
-          p_bedrooms: Number(formData.bedrooms) || 0,
-          p_beds: Number(formData.beds) || 0,
-          p_bathrooms: Number(formData.bathrooms) || 0,
-          p_max_guests: Number(formData.maxGuests) || 0,
-          p_area: Number(formData.area) || 0,
-          p_co_host_name: formData.coHostName,
-          p_co_host_email: formData.coHostEmail,
-          p_address_line1: formData.addressLine1,
-          p_address_line2: formData.addressLine2,
-          p_landmark: formData.landmark,
-          p_district: formData.district,
-          p_city: formData.city,
-          p_state: formData.state,
-          p_postal_code: formData.postalCode,
-          p_country: formData.country,
-          p_show_specific_location: formData.showSpecificLocation,
-          p_location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
-          p_total_rooms: Number(formData.totalRooms) || 0,
-          p_room_type: formData.roomType,
+        // Editing existing property — via server-side API route (bypasses client schema cache)
+        const updatePayload = {
+          title: String(formData.name),
+          description: String(formData.description),
+          price_per_night: parseFloat(String(formData.price)) || 0,
+          weekend_price_per_night: parseFloat(String(formData.weekendPrice)) || 0,
+          tier: String(formData.type),
+          amenities: finalAmenities,
+          license_url: formData.license_url || '',
+          tax_bill_url: formData.tax_bill_url || '',
+          current_bill_url: formData.current_bill_url || '',
+          aadhar_url: formData.aadhar_url || '',
+          pan_url: formData.pan_url || '',
+          noc_url: formData.noc_url || '',
+          image_url: formData.photo_urls[0] || '',
+          images: formData.photo_urls.map((url, index) => ({ url, alt: `${formData.name} Photo ${index + 1}` })),
+          cancellation_policy: finalCancellationPolicy,
+          rules: finalRules,
+          safety_items: finalSafetyItems,
+          bedrooms: Number(formData.bedrooms) || 0,
+          beds: Number(formData.beds) || 0,
+          bathrooms: Number(formData.bathrooms) || 0,
+          max_guests: Number(formData.maxGuests) || 0,
+          area: Number(formData.area) || 0,
+          co_host_name: formData.coHostName,
+          co_host_email: formData.coHostEmail,
+          address_line1: formData.addressLine1,
+          address_line2: formData.addressLine2,
+          landmark: formData.landmark,
+          district: formData.district,
+          city: formData.city,
+          state: formData.state,
+          postal_code: formData.postalCode,
+          country: formData.country,
+          show_specific_location: formData.showSpecificLocation,
+          location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
+          total_rooms: Number(formData.totalRooms) || 0,
+          room_type: formData.roomType,
+          updated_at: new Date().toISOString(),
         };
 
-        const { data, error } = await supabase.rpc('update_property', rpcParams);
+        try {
+          const res = await fetch('/api/properties/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              propertyId: propertyToEdit.id,
+              hostId: hostData.id,
+              updatePayload,
+            }),
+          });
 
-        if (!error && data) {
-          setProperties(
-            properties.map((p) => (p.id === propertyToEdit.id ? (data[0] as Property) : p))
-          );
-          fetchProperties();
-        } else if (error) {
-          console.error('Error updating property via RPC:', error);
-          alert(`Failed to update property: ${error.message || 'Unknown error'} (${error.code || 'N/A'})\n\nDetails: ${error.details || 'None'}\nHint: ${error.hint || 'None'}`);
+          const json = await res.json();
+
+          if (!res.ok || json.error) {
+            console.error('Error updating property:', json.error);
+            alert(`Failed to update property: ${json.error || 'Unknown error'}`);
+          } else {
+            setProperties(
+              properties.map((p) => (p.id === propertyToEdit.id ? (json.data as Property) : p))
+            );
+            fetchProperties();
+          }
+        } catch (err) {
+          console.error('Unexpected error updating property:', err);
+          alert(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
         setPropertyToEdit(null);
       } else {
@@ -309,15 +473,18 @@ const HostDashboardInteractive = ({
             p_price_per_night: parseFloat(String(formData.price)) || 0,
             p_weekend_price_per_night: parseFloat(String(formData.weekendPrice)) || 0,
             p_tier: String(formData.type),
-            p_amenities: amenities.length > 0 ? amenities : [],
+            p_amenities: finalAmenities,
             p_license_url: formData.license_url || '',
             p_tax_bill_url: formData.tax_bill_url || '',
             p_current_bill_url: formData.current_bill_url || '',
+            p_aadhar_url: formData.aadhar_url || '',
+            p_pan_url: formData.pan_url || '',
+            p_noc_url: formData.noc_url || '',
             p_image_url: formData.photo_urls[0] || '',
             p_images: formData.photo_urls.map((url, index) => ({ url, alt: `${formData.name} Photo ${index + 1}` })),
-            p_cancellation_policy: formData.cancellationPolicy,
-            p_rules: formData.rules,
-            p_safety_items: formData.safetyItems,
+            p_cancellation_policy: finalCancellationPolicy,
+            p_rules: finalRules,
+            p_safety_items: finalSafetyItems,
             p_bedrooms: Number(formData.bedrooms) || 0,
             p_beds: Number(formData.beds) || 0,
             p_bathrooms: Number(formData.bathrooms) || 0,
@@ -372,7 +539,7 @@ const HostDashboardInteractive = ({
     { id: 'banking-details', label: 'Banking & KYC', icon: Banknote },
     { id: 'payout-history', label: 'Payout History', icon: Wallet },
     { id: 'unified-inbox', label: 'Unified Inbox', icon: MessageSquare },
-    { id: 'aura-quality', label: 'Aura Quality', icon: Star },
+    { id: 'aura-quality', label: 'Aura Quality', subtitle: 'AI suggestions', icon: Star },
     { id: 'document-vault', label: 'Document Vault', icon: FolderKanban },
     { id: 'amenity-upsell', label: 'Amenity Upsell', icon: Gift },
     { id: 'cleaning-maintenance', label: 'Cleaning & Maintenance', icon: ClipboardList },
@@ -452,6 +619,9 @@ const HostDashboardInteractive = ({
 
   return (
     <div className="relative min-h-[calc(100vh-100px)] w-full bg-[#080808] flex text-zinc-100">
+      {/* Penalty Overlay (Moved to top level for maximum visibility) */}
+      {isLocked && <PenaltyOverlay />}
+
       {/* Mobile Toggle Button - Moved to a cleaner position */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -484,9 +654,13 @@ const HostDashboardInteractive = ({
         <nav className="flex-1 w-full space-y-2 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
+            const isSidebarLocked = isLocked;
+
             // Determine the icon to render
             let renderedIcon;
-            if (item.id === 'revenue-velocity') {
+            if (isSidebarLocked) {
+              renderedIcon = <Lock size={22} className="text-red-500/50" />;
+            } else if (item.id === 'revenue-velocity') {
               // Custom rendering for Indian Rupee symbol
               renderedIcon = (
                 <span
@@ -505,21 +679,30 @@ const HostDashboardInteractive = ({
             return (
               <button
                 key={item.id}
+                disabled={isSidebarLocked}
                 onClick={() => {
+                  if (isSidebarLocked) return;
                   setActiveTab(item.id as TabType);
                   const newParams = new URLSearchParams(searchParams.toString());
                   newParams.set('tab', item.id);
                   router.push(`?${newParams.toString()}`, { scroll: false });
                   setIsMobileMenuOpen(false);
                 }}
-                className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl transition-all duration-300 group ${isActive
+                className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl transition-all duration-300 group relative ${isActive
                   ? 'bg-sky-500/10 text-sky-400'
-                  : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'
+                  : isSidebarLocked
+                    ? 'text-zinc-700 cursor-not-allowed opacity-50'
+                    : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'
                   }`}
               >
                 {renderedIcon}
-                <span className="font-bold text-sm tracking-tight block flex-1 text-left">
-                  {item.label}
+                <span className="flex flex-col flex-1 text-left">
+                  <span className="font-bold text-sm tracking-tight">{item.label}</span>
+                  {(item as any).subtitle && (
+                    <span className={`text-[10px] font-semibold tracking-widest uppercase mt-0.5 ${
+                      isActive ? 'text-amber-400/80' : 'text-zinc-600 group-hover:text-zinc-400'
+                    }`}>{(item as any).subtitle}</span>
+                  )}
                 </span>
                 {/* Unread dot for inbox */}
                 {item.id === 'unified-inbox' && unreadMessages > 0 && activeTab !== 'unified-inbox' && (
@@ -574,7 +757,7 @@ const HostDashboardInteractive = ({
                       earnings={hostData.earnings}
                       reviews={hostData.reviews}
                       disputes={disputes}
-                      onAction={setActiveTab as (tab: string) => void}
+                      onAction={handleAction}
                     />
                   )}
                   {activeTab === 'properties' && (
@@ -617,13 +800,28 @@ const HostDashboardInteractive = ({
                     />
                   )}
                   {activeTab === 'bookings' && (
-                    <Bookings bookings={hostData.bookings} searchTerm="" setSearchTerm={() => { }} onAction={setActiveTab as (tab: string) => void} />
+                    <Bookings bookings={hostData.bookings} searchTerm="" setSearchTerm={() => { }} onAction={handleAction} />
                   )}
                   {activeTab === 'earnings' && <Earnings earnings={hostData.transactions} />}
                   {activeTab === 'occupancy-pulse' && <OccupancyPulse bookings={hostData.bookings} />}
                   {activeTab === 'revenue-velocity' && <RevenueForecasting bookings={hostData.bookings} />}
-                  {activeTab === 'smart-estate' && <SmartEstateManagement properties={properties} />}
-                  {activeTab === 'unified-inbox' && <UnifiedInbox />}
+                  {activeTab === 'smart-estate' && (
+                    <SmartEstateManagement 
+                      properties={properties} 
+                      onToggleStatus={async (id, newStatus) => {
+                        const { error } = await supabase.rpc('toggle_property_status', {
+                          p_id: id,
+                          p_status: newStatus,
+                        });
+                        if (error) throw error;
+                        // Optimistic update successful
+                        setProperties((p) =>
+                          p.map((x) => (x.id === id ? { ...x, status: newStatus } : x))
+                        );
+                      }}
+                    />
+                  )}
+                  {activeTab === 'unified-inbox' && <UnifiedInbox inboxContext={inboxContext} />}
                   {activeTab === 'aura-quality' && <AuraQualityScore properties={properties} />}
                   {activeTab === 'document-vault' && <SmartDocumentVault properties={properties} />}
                   {activeTab === 'amenity-upsell' && <DynamicAmenityUpsell />}
@@ -649,6 +847,9 @@ const HostDashboardInteractive = ({
                       onUpdatePhoneNumber={setPhoneNumber}
                       onUpdateAddress={setAddress}
                       onUpdateBio={setBio}
+                      cancellationCount={hostData.cancellation_count}
+                      referralCode={hostData.referral_code}
+                      referralBenefitCount={hostData.referral_benefit_count}
                     />
                   )}
                 </div>

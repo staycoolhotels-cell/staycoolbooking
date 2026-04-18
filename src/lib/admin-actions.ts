@@ -547,6 +547,56 @@ export async function updateDisputeStatusAsAdmin(disputeId: string, status: 'ope
 
 
 /**
+ * Fetches the KYC record for a specific host by their user_id.
+ * Used in the property details page to show host KYC inline.
+ */
+export async function fetchHostKycByUserId(userId: string) {
+  const supabase = await createAdminSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('host_kyc_details')
+    .select(`
+      id,
+      user_id,
+      legal_business_name,
+      email,
+      phone,
+      pan_number,
+      bank_account_number,
+      bank_ifsc,
+      bank_beneficiary_name,
+      razorpay_account_id,
+      razorpay_product_id,
+      kyc_status,
+      kyc_error_message,
+      created_at,
+      updated_at
+    `)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('fetchHostKycByUserId error:', error);
+    return null;
+  }
+
+  if (!data) return null;
+
+  // Fetch host profile name
+  const { data: user } = await supabase
+    .from('users')
+    .select('id, name, email')
+    .eq('id', userId)
+    .maybeSingle();
+
+  return {
+    ...data,
+    host_name: user?.name || 'Unknown Host',
+    host_email: user?.email || data.email,
+  };
+}
+
+/**
  * Fetches all host KYC records joined with user profiles for the admin KYC Management page.
  */
 export async function fetchHostKycList() {
@@ -591,4 +641,48 @@ export async function fetchHostKycList() {
     host_name: userMap[record.user_id]?.name || 'Unknown Host',
     host_email: userMap[record.user_id]?.email || record.email,
   }));
+}
+
+/**
+ * Appends an admin message to the dispute description field, formatted as "ADMIN_MSG: message"
+ */
+export async function sendAdminMessageToHost(disputeId: string, message: string) {
+  const supabase = await createAdminSupabaseClient();
+  
+  const { data: dispute, error: fetchError } = await supabase
+    .from('disputes')
+    .select('description')
+    .eq('id', disputeId)
+    .single();
+    
+  if (fetchError || !dispute) {
+    return { success: false, error: 'Dispute not found' };
+  }
+  
+  const parts = (dispute.description || '').split(' ||| ');
+  const guestStatement = parts[0] || ' ';
+  const hostResponse = parts[1] || ' ';
+  
+  // Ensure we have at least guest and host parts before appending admin
+  let newDescription = `${guestStatement} ||| ${hostResponse}`;
+  if (parts.length > 2) {
+      newDescription += ' ||| ' + parts.slice(2).join(' ||| ');
+  }
+  newDescription += ` ||| ADMIN_MSG: ${message}`;
+  
+  const { error: updateError } = await supabase
+    .from('disputes')
+    .update({ 
+        description: newDescription,
+        "lastUpdate": new Date().toISOString()
+    })
+    .eq('id', disputeId);
+    
+  if (updateError) {
+    return { success: false, error: updateError.message };
+  }
+  
+  // Also log activity
+  await logActivity('user_action', `Sent message to host on Dispute ${disputeId}`, undefined, 'Admin Message Sent', 'info');
+  return { success: true };
 }

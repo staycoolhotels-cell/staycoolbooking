@@ -42,6 +42,16 @@ const DisputesList = ({ disputes, isLoading }: DisputesListProps) => {
     const [responseMessage, setResponseMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Keep selectedDispute synced with real-time updates from parent
+    React.useEffect(() => {
+        if (selectedDispute) {
+            const updated = disputes.find(d => d.id === selectedDispute.id);
+            if (updated && updated.lastUpdate !== selectedDispute.lastUpdate) {
+                setSelectedDispute(updated);
+            }
+        }
+    }, [disputes, selectedDispute]);
+
     if (isLoading) {
         return (
             <div className="w-full h-[400px] flex flex-col items-center justify-center p-8">
@@ -327,6 +337,31 @@ const DisputesList = ({ disputes, isLoading }: DisputesListProps) => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Admin Messages Area */}
+                                {(() => {
+                                    const allParts = (selectedDispute.description || '').split(' ||| ');
+                                    const adminMsgs = allParts.slice(2).filter(p => p.startsWith('ADMIN_MSG: ')).map(p => p.replace('ADMIN_MSG: ', ''));
+                                    
+                                    if (adminMsgs.length === 0) return null;
+                                    
+                                    return (
+                                        <div className="relative z-10 w-full mb-6">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <Icon name="ChatBubbleOvalLeftEllipsisIcon" size={18} className="text-sky-400" />
+                                                <h4 className="text-[11px] font-black uppercase tracking-widest text-sky-400">Messages from Support</h4>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {adminMsgs.map((msg, i) => (
+                                                    <div key={i} className="bg-sky-500/10 border border-sky-500/20 rounded-xl p-4 flex gap-3 shadow-inner">
+                                                        <Icon name="ShieldCheckIcon" size={20} className="text-sky-400 shrink-0 mt-0.5" />
+                                                        <p className="text-sm text-sky-100">{msg}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* Host Response Area */}
                                 <div className="relative z-10 w-full">

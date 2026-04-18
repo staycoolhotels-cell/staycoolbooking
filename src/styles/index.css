@@ -1,5 +1,4 @@
 @import './tailwind.css';
-@import 'leaflet/dist/leaflet.css';
 
 :root {
   --color-border: 59 78 102;
@@ -179,10 +178,27 @@
   opacity: 1 !important;
 }
 
-/* Leaflet Dark Detail Filter - Shows more POIs from OSM while keeping it dark */
-.leaflet-dark-detailed .leaflet-tile-pane {
-  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+
+
+/* Interactive Map - Square on mobile, fixed height on desktop */
+.map-square-container {
+  aspect-ratio: 1 / 1; /* Perfect square on mobile */
+  height: auto;
+}
+@media (min-width: 768px) {
+  .map-square-container {
+    aspect-ratio: unset;
+    height: 750px;
+  }
 }
 
-
+/* Map inner responsive height */
+.map-responsive-height {
+  height: 100%;
+}
+@media (min-width: 768px) {
+  .map-responsive-height {
+    height: 750px;
+  }
+}
 

@@ -12,12 +12,6 @@ import { useRouter } from 'next/navigation';
 
 const adminNavLinks = [
     { name: 'Home', path: '/' },
-    { name: 'Dashboard', path: '/admin-panel' },
-    { name: 'Properties', path: '/admin-panel/property-management' },
-    { name: 'Financials', path: '/admin-panel/financials' },
-    { name: 'Users', path: '/admin-panel/user-management' },
-    { name: 'Marketing', path: '/admin-panel/marketing' },
-    { name: 'Reviews', path: '/admin-panel/reviews' },
 ];
 
 interface AdminHeaderProps {
@@ -166,68 +160,6 @@ const AdminHeader = ({ onMenuToggle, isMobileMenuOpen }: AdminHeaderProps) => {
                     </div>
                 </div>
             </motion.header>
-
-            {/* Mobile Full-Screen Menu */}
-            <AnimatePresence>
-                {isMobileMenuOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 1.05 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 1.05 }}
-                        transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-                        className="fixed inset-0 top-[64px] z-[190] bg-[#050505]/97 backdrop-blur-2xl lg:hidden flex flex-col items-center justify-start pt-12 pb-20 overflow-y-auto"
-                    >
-                        {/* Background glow */}
-                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                            <div className="absolute top-[-10%] right-[-10%] w-[400px] h-[400px] bg-sky-500/8 rounded-full blur-[120px]" />
-                            <div className="absolute bottom-[-5%] left-[-10%] w-[300px] h-[300px] bg-sky-500/5 rounded-full blur-[100px]" />
-                        </div>
-
-                        <nav className="flex flex-col items-center gap-4 z-10 w-full px-8">
-                            {adminNavLinks.map((link, i) => {
-                                const active = link.path === '/'
-                                    ? pathname === '/'
-                                    : link.path === '/admin-panel'
-                                        ? pathname === '/admin-panel'
-                                        : pathname.startsWith(link.path);
-                                return (
-                                    <motion.div
-                                        key={link.path}
-                                        initial={{ opacity: 0, y: 24 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.06 + i * 0.06, type: 'spring', stiffness: 100 }}
-                                        className="w-full text-center"
-                                    >
-                                        <Link
-                                            href={link.path}
-                                            onClick={onMenuToggle}
-                                            className={`block text-2xl font-bold uppercase tracking-[0.2em] transition-all duration-300 py-3 ${active ? 'text-[#0ea5e9]' : 'text-white hover:text-sky-400'
-                                                }`}
-                                        >
-                                            {link.name}
-                                        </Link>
-                                    </motion.div>
-                                );
-                            })}
-
-                            {/* Sign Out button in mobile menu */}
-                            <motion.div
-                                initial={{ opacity: 0, y: 24 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.5, type: 'spring', stiffness: 100 }}
-                                className="mt-8 w-full max-w-[260px]"
-                            >
-                                <button
-                                    onClick={handleLogout}
-                                    className="w-full px-10 py-4 border border-sky-500/30 bg-sky-500/10 text-sky-400 font-black uppercase tracking-[0.2em] hover:bg-sky-500 hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(14,165,233,0.15)] rounded-xl"
-                                >
-                                    Sign Out
-                                </button>
-                            </motion.div>
-                        </nav>
-                    </motion.div>
-                )}
-            </AnimatePresence>
         </>
     );
 };

@@ -9,7 +9,7 @@ interface BookingsProps {
   bookings: Booking[];
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  onAction: (tab: string) => void;
+  onAction: (tab: string, data?: any) => void;
 }
 
 const Bookings = ({ bookings, searchTerm, setSearchTerm, onAction }: BookingsProps) => {

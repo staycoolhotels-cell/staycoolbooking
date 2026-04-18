@@ -142,6 +142,10 @@ export interface Property {
   license_url?: string;
   tax_bill_url?: string;
   current_bill_url?: string;
+  // Tent-specific identity documents
+  aadhar_url?: string;
+  pan_url?: string;
+  noc_url?: string;
   safety_items?: string[];
   title?: string;
   image_url?: string;

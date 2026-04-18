@@ -271,7 +271,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
             <Icon name="StarIcon" size={32} className="text-amber-400 drop-shadow-md" />
           </div>
           <div>
-            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Aura Quality</h1>
+            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Aura Quality <span className="text-amber-400/70 text-2xl md:text-3xl font-semibold">(AI suggestions)</span></h1>
             <p className="text-sm font-medium text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
               Sentiment & Optimization
             </p>

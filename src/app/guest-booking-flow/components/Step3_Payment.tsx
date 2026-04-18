@@ -262,9 +262,9 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
             description.toLowerCase().includes('international') ||
             reason.toLowerCase().includes('international')
           ) {
-            reject(new Error('Only Indian debit/credit cards, UPI, and net banking are accepted. Please use an Indian payment method.'));
+            toast.error('Only Indian debit/credit cards, UPI, and net banking are accepted. Please use an Indian payment method.');
           } else {
-            reject(new Error(description || 'Payment failed. Please try again.'));
+            console.error('Payment failed:', description || 'Please try again.');
           }
         });
         rzp.open();

@@ -117,8 +117,38 @@ export async function signUpUser(prevState: string | undefined, formData: FormDa
     // HOST APPROVAL: Hosts start as 'pending'
     const userStatus = userRole === 'host' ? 'pending' : 'active';
 
-    // Create public user profile immediately with correct status
+    // --- Referral Logic ---
+    let referrerId = null;
+    const referralCode = formData.get('referralCode') as string;
     const supabaseAdmin = await createSupabaseAdminClient();
+
+    if (referralCode) {
+      console.log('🔍 Checking referral code:', referralCode);
+      const { data: referrer } = await supabaseAdmin
+        .from('users')
+        .select('id, referral_benefit_count')
+        .eq('referral_code', referralCode)
+        .single();
+
+      if (referrer) {
+        console.log('✅ Found referrer:', referrer.id);
+        referrerId = referrer.id;
+
+        // Reward the referrer if the new user is signing up as a HOST
+        if (userRole === 'host') {
+          console.log('🎁 Rewarding referrer with 5 bookings benefit');
+          await supabaseAdmin
+            .from('users')
+            .update({ referral_benefit_count: (referrer.referral_benefit_count || 0) + 5 })
+            .eq('id', referrer.id);
+        }
+      } else {
+        console.warn('⚠️ Referral code not found:', referralCode);
+      }
+    }
+
+    // Create public user profile immediately with correct status
+    const newReferralCode = `SC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const { error: profileError } = await supabaseAdmin
       .from('users')
       .upsert({
@@ -129,19 +159,21 @@ export async function signUpUser(prevState: string | undefined, formData: FormDa
         status: userStatus,
         avatar_url: null,
         created_at: new Date().toISOString(),
+        referred_by: referrerId,
+        referral_code: newReferralCode,
       }, { onConflict: 'id' });
 
     if (profileError) {
       console.error('CRITICAL: Failed to create public profile:', profileError);
       // We don't stop the flow, but we log it. The Admin Sync will heal this later if needed.
     } else {
-      console.log(`✅ Profile created for ${userId} [${userRole}] with status: ${userStatus}`);
+      console.log(`✅ Profile created for ${userId} [${userRole}] with status: ${userStatus} and referral code: ${newReferralCode}`);
     }
 
     // Log the activity
     await logActivity(
       'new_user',
-      `New ${role} signed up: ${name}`,
+      `New ${role} signed up (Referral: ${referralCode || 'None'}): ${name}`,
       userId
     );
 
@@ -494,6 +526,35 @@ export async function verifyMobileOtp(prevState: string | undefined, formData: F
     let userProfile = profileResponse.data;
     const profileError = profileResponse.error;
 
+    // --- Referral Logic ---
+    let referrerId = null;
+    const referralCode = formData.get('referralCode') as string;
+
+    if (referralCode) {
+      console.log('🔍 Checking (Mobile) referral code:', referralCode);
+      const { data: referrer } = await supabaseAdmin
+        .from('users')
+        .select('id, referral_benefit_count')
+        .eq('referral_code', referralCode)
+        .single();
+
+      if (referrer) {
+        console.log('✅ Found (Mobile) referrer:', referrer.id);
+        referrerId = referrer.id;
+
+        // Reward the referrer if the new user is signing up as a HOST
+        if (userRole === 'host') {
+          console.log('🎁 Rewarding referrer with 5 bookings benefit');
+          await supabaseAdmin
+            .from('users')
+            .update({ referral_benefit_count: (referrer.referral_benefit_count || 0) + 5 })
+            .eq('id', referrer.id);
+        }
+      } else {
+        console.warn('⚠️ Mobile referral code not found:', referralCode);
+      }
+    }
+
     if (profileError || !userProfile) {
       // Create new profile for mobile user
       console.log('Mobile user profile not found, creating...');
@@ -501,6 +562,7 @@ export async function verifyMobileOtp(prevState: string | undefined, formData: F
       const userRole = role === 'host' ? 'host' : 'guest';
       const userStatus = userRole === 'host' ? 'active' : 'active'; // Hosts are auto-approved now
       const userName = name || 'Mobile User';
+      const newReferralCode = `SC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
       const { data: newProfile, error: createError } = await supabaseAdmin
         .from('users')
@@ -508,17 +570,16 @@ export async function verifyMobileOtp(prevState: string | undefined, formData: F
           id: userId,
           name: userName,
           phone: phone,
-          // Email might be null for phone users, handle schema constraints if any
           role: userRole,
           status: userStatus,
+          referred_by: referrerId,
+          referral_code: newReferralCode,
         })
         .select('role, status')
         .single();
 
       if (createError) {
         console.error('Failed to create mobile user profile:', createError);
-        // Attempt to see if it failed because email is required (common in some schemas)
-        // For now, we assume schema supports it or we handle it.
         await supabase.auth.signOut();
         return 'Failed to create user profile. Please contact support.';
       }
@@ -527,7 +588,7 @@ export async function verifyMobileOtp(prevState: string | undefined, formData: F
       // Log new user
       await logActivity(
         'new_user',
-        `New ${userRole} signed up via Mobile: ${userName}`,
+        `New ${userRole} signed up via Mobile (Referral: ${referralCode || 'None'}): ${userName}`,
         userId
       );
     }

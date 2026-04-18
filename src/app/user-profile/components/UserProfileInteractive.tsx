@@ -15,6 +15,8 @@ import {
   Property,
 } from '@/lib/types';
 import AnimatedLoader from '@/components/ui/AnimatedLoader';
+import dynamic from 'next/dynamic';
+
 
 // Component Imports
 import TripCommandCenter from './TripCommandCenter';
@@ -27,7 +29,19 @@ import ProfileHeader from './NewProfileHeader';
 import ReviewHistory from './NewReviewHistory';
 import BookingHistory from './BookingHistory';
 import GuestInbox from './GuestInbox';
-import LocationMap from '@/app/property-listing/components/LocationMap';
+
+const LocationMap = dynamic(() => import('@/app/property-listing/components/LocationMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-3xl p-4 md:p-8 min-h-[500px] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-zinc-400 text-sm font-medium">Initializing map engine…</p>
+      </div>
+    </div>
+  )
+});
+
 
 const UserProfileInteractive = ({ userData }: { userData: any }) => {
   const [status, setStatus] = useState<'loading' | 'error' | 'success'>('success');
@@ -54,6 +68,17 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
   const [achievements, setAchievements] = useState<Achievement[]>(userData.achievements);
   const [transactions, setTransactions] = useState<Transaction[]>(userData.transactions || []);
   const [wishlist, setWishlist] = useState<WishlistItem[]>(userData.wishlist ?? []);
+
+  useEffect(() => {
+    setUser(userData);
+    setVerifications(userData.verifications);
+    setReviews(userData.reviews);
+    setBookings(userData.bookings);
+    setPersonalInfo(userData);
+    setAchievements(userData.achievements);
+    setTransactions(userData.transactions || []);
+    setWishlist(userData.wishlist ?? []);
+  }, [userData]);
 
   useEffect(() => {
     const hour = new Date().getHours();

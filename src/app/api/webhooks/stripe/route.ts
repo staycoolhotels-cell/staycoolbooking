@@ -67,6 +67,24 @@ export async function POST(req: Request) {
                             commission_amount: paymentIntent.application_fee_amount,
                             // host_payout_amount is implicit (amount - application_fee_amount)
                         });
+
+                    // --- Referral Benefit Decrement ---
+                    const discountApplied = paymentIntent.metadata.referral_discount_applied === 'true';
+                    if (discountApplied) {
+                        console.log('🎁 Referral discount was applied. Decrementing host benefit count.');
+                        // Fetch property to find host_id
+                        const { data: bookingData } = await supabase
+                            .from('bookings')
+                            .select('property_id, properties(host_id)')
+                            .eq('id', bookingId)
+                            .single();
+                        
+                        const hostId = (bookingData?.properties as any)?.host_id;
+                        if (hostId) {
+                            console.log(`📉 Decrementing benefit for host: ${hostId}`);
+                            await supabase.rpc('decrement_referral_benefit', { p_host_id: hostId });
+                        }
+                    }
                 }
                 break;
             }

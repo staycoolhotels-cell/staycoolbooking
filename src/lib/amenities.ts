@@ -50,7 +50,9 @@ import {
   Home,
   Calendar,
   Key,
+  Info,
 } from 'lucide-react';
+
 
 export interface AmenityItem {
   id: number;

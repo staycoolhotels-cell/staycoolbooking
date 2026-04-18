@@ -160,14 +160,14 @@ const PropertyList = ({ initialProperties }: PropertyListProps) => {
       </div>
 
       {/* Controls Row */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
         {/* Custom Tab Filter */}
-        <div className="flex-1 bg-[#0a0a0f]/70 backdrop-blur-xl border border-white/10 rounded-xl p-1 flex items-center gap-1 overflow-x-auto no-scrollbar">
+        <div className="w-full xl:flex-1 bg-[#0a0a0f]/70 backdrop-blur-xl border border-white/10 rounded-xl p-1 flex flex-wrap items-center gap-1">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-heading font-semibold uppercase tracking-wider whitespace-nowrap transition-all duration-300 ${activeTab === tab.key
+              className={`flex-1 sm:flex-none min-w-[30%] sm:min-w-0 flex justify-center items-center gap-1.5 px-2 sm:px-3.5 py-2 rounded-lg text-[10px] sm:text-xs font-heading font-semibold uppercase tracking-wider whitespace-nowrap transition-all duration-300 ${activeTab === tab.key
                   ? 'bg-gradient-to-br from-white to-zinc-200 text-black shadow-[0_4px_14px_rgba(255,255,255,0.1)]'
                   : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06]'
                 }`}

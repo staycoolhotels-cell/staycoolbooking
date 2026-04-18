@@ -2,10 +2,10 @@ const { Client } = require('pg');
 const fs = require('fs');
 
 const config = {
-    host: 'db.dlislsrlwovcxsuqdlvy.supabase.co',
-    port: 5432,
-    database: 'postgres',
-    user: 'postgres',
+    host: 'aws-0-ap-south-1.pooler.supabase.com',
+    port: 6543,
+    database: 'dlislsrlwovcxsuqdlvy',
+    user: 'postgres.dlislsrlwovcxsuqdlvy',
     password: '2bFZKr8g15GBpfng',
     ssl: { rejectUnauthorized: false }
 };
@@ -18,11 +18,15 @@ async function applySql() {
         await client.connect();
         console.log('Connected!');
 
-        const sql = fs.readFileSync('CREATE_ROOMS_FEATURE.sql', 'utf8');
-        console.log('Executing SQL (this might take a moment if it is a large file)...');
+        const sql1 = fs.readFileSync('FIX_MISSING_COLUMNS.sql', 'utf8');
+        const sql2 = fs.readFileSync('UPDATE_CREATE_PROPERTY_FUNCTION.sql', 'utf8');
+        console.log('Executing SQL...');
 
-        await client.query(sql);
-        console.log('SQL executed successfully!');
+        await client.query(sql1);
+        console.log('SQL1 executed successfully!');
+        
+        await client.query(sql2);
+        console.log('SQL2 executed successfully!');
 
         // Notify PostgREST to reload schema
         await client.query("NOTIFY pgrst, 'reload schema'");

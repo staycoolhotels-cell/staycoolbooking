@@ -91,10 +91,13 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
                  <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
                     <Icon name="ExclamationTriangleIcon" size={32} className="text-red-500" />
                  </div>
-                 <div className="space-y-2">
+                <div className="space-y-2">
                     <h2 className="text-lg font-bold text-white">Guest Not Found</h2>
                     <p className="text-sm text-zinc-500 max-w-[250px] mx-auto leading-relaxed">
                       {error}
+                    </p>
+                    <p className="text-[10px] text-zinc-600 font-mono break-all mt-2">
+                       ID: {userId}
                     </p>
                  </div>
                  <button 

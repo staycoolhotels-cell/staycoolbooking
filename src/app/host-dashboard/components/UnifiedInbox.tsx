@@ -23,7 +23,17 @@ const getSentimentColor = (sentiment: SentimentLabel): { bg: string, text: strin
   }
 };
 
-const UnifiedInbox: React.FC = () => {
+interface UnifiedInboxProps {
+  inboxContext?: {
+    guest_id: string;
+    sender_name: string;
+    sender_avatar?: string;
+    property_id: string;
+    property_name: string;
+  } | null;
+}
+
+const UnifiedInbox: React.FC<UnifiedInboxProps> = ({ inboxContext }) => {
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -78,6 +88,34 @@ const UnifiedInbox: React.FC = () => {
       setMessages(Array.from(uniqueSenders.values()));
     }
   };
+
+  // Handle inboxContext for auto-selection or new chat initialization
+  useEffect(() => {
+    if (!inboxContext || !currentUser) return;
+
+    // Check if we already have a thread with this guest
+    const existingThread = messages.find(m => m.sender_id === inboxContext.guest_id);
+
+    if (existingThread) {
+      setSelectedMessage(existingThread);
+    } else {
+      // Create a placeholder message to initialize a new chat
+      const placeholder: Message = {
+        id: 'new-chat-' + inboxContext.guest_id,
+        sender_id: inboxContext.guest_id,
+        receiver_id: currentUser.id,
+        property_id: inboxContext.property_id,
+        content: '',
+        sentiment: 'Neutral',
+        is_read: true,
+        created_at: new Date().toISOString(),
+        sender_name: inboxContext.sender_name,
+        sender_avatar: inboxContext.sender_avatar,
+        property_name: inboxContext.property_name
+      };
+      setSelectedMessage(placeholder);
+    }
+  }, [inboxContext, messages, currentUser]);
 
   useEffect(() => {
     if (!currentUser) return;

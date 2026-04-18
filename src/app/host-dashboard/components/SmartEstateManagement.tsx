@@ -9,9 +9,10 @@ import { toast } from 'sonner';
 
 interface SmartEstateManagementProps {
   properties?: Property[];
+  onToggleStatus?: (id: string, newStatus: string) => Promise<void>;
 }
 
-const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ properties: propData = [] }) => {
+const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ properties: propData = [], onToggleStatus }) => {
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const { controls, qualityScores } = useMemo(() => {
@@ -37,17 +38,20 @@ const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ propertie
     const newStatus = currentStatus ? 'active' : 'offline';
 
     try {
-      const { error } = await supabase
-        .rpc('toggle_property_status', { p_id: id, p_status: newStatus });
+      if (onToggleStatus) {
+        await onToggleStatus(id, newStatus);
+      } else {
+        const { error } = await supabase
+          .rpc('toggle_property_status', { p_id: id, p_status: newStatus });
 
-      if (error) throw error;
+        if (error) throw error;
+      }
 
       toast.success(`${name} is now ${newStatus === 'active' ? 'Live on Market' : 'Off-Market'}`, {
         icon: newStatus === 'active' ? <Icon name="CheckCircleIcon" className="text-success" /> : <Icon name="EyeSlashIcon" className="text-warning" />
       });
-      // In a real app we'd mutate or refetch the standard router cache here.
     } catch (err: any) {
-      toast.error('Failed to update property status: ' + err.message);
+      toast.error(err.message || 'Failed to update property status');
     } finally {
       setIsProcessing(null);
     }

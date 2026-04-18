@@ -123,6 +123,29 @@ export default function RootLayout({
     name: 'StayCool Booking',
     alternateName: ['StayCool', 'Stay Cool Booking', 'StayCool Bookings', 'Stay Cool Bookings', 'StayCool Stay', 'StayCool Hotels'],
     url: 'https://staycoolbooking.com',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: 'https://staycoolbooking.com/homepage?q={search_term_string}',
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
+  const organizationJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'StayCool Bookings',
+    alternateName: 'StayCool',
+    url: 'https://staycoolbooking.com',
+    logo: 'https://staycoolbooking.com/assets/images/logo.png',
+    sameAs: [
+      'https://twitter.com/staycoolbooking',
+      'https://github.com/vsharesoftwaresolutions/staycoolbooking'
+    ],
+    contactPoint: {
+      '@type': 'ContactPoint',
+      telephone: '+91-XXXXXXXXXX',
+      contactType: 'customer service',
+    },
   };
 
   return (
@@ -130,9 +153,14 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/assets/images/logo-round.png" type="image/png" sizes="512x512" />
         <link rel="apple-touch-icon" href="/assets/images/logo-round.png" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossOrigin="" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
       </head>
 

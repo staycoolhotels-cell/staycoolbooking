@@ -9,6 +9,7 @@ import BookingDetailsModal from './BookingDetailsModal';
 import LeaveReviewModal from './LeaveReviewModal';
 import { Star } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
+import { useRouter } from 'next/navigation';
 
 type BookingHistoryProps = {
     bookings: (Booking & { properties: Partial<Property> })[];
@@ -16,6 +17,7 @@ type BookingHistoryProps = {
 };
 
 const BookingHistory = ({ bookings, guestId }: BookingHistoryProps) => {
+    const router = useRouter();
     const [showAll, setShowAll] = useState(false);
     const [selectedBooking, setSelectedBooking] = useState<(Booking & { properties: Partial<Property> }) | null>(null);
     const [reviewBooking, setReviewBooking] = useState<(Booking & { properties: Partial<Property> }) | null>(null);
@@ -221,6 +223,9 @@ const BookingHistory = ({ bookings, guestId }: BookingHistoryProps) => {
             <BookingDetailsModal
                 booking={selectedBooking}
                 onClose={() => setSelectedBooking(null)}
+                onStatusChange={() => {
+                    router.refresh();
+                }}
             />
 
             <LeaveReviewModal

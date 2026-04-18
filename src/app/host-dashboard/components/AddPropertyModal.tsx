@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Property } from '@/lib/types';
 import { AMENITIES, CATEGORIZED_AMENITIES, AmenityItem } from '@/lib/amenities';
-import { Plus, X, ChevronRight, ChevronLeft, Home, Sparkles, Layers, Users, Bed, Building2 } from 'lucide-react';
+import { Plus, X, ChevronRight, ChevronLeft, Home, Sparkles, Layers, Users, Bed, Building2, CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient'; // Import supabase client
 import { NumberInput } from '@/components/ui/number-input';
 
@@ -28,6 +28,13 @@ export interface FormData {
   tax_bill_url: string; // New field for uploaded tax bill URL
   currentBill: File[];
   current_bill_url: string; // New field for uploaded current bill URL
+  // Tent-specific identity documents
+  aadhar: File[];
+  aadhar_url: string;
+  pan: File[];
+  pan_url: string;
+  noc: File[];
+  noc_url: string;
   cancellationPolicy: string;
   rules: string[];
   safetyItems: string[];
@@ -49,6 +56,7 @@ export interface FormData {
   showSpecificLocation: boolean;
   totalRooms: number; // New field for bulk booking
   roomType: string; // New field for detailed room classification
+  customAmenities: string[]; // New field for manually added amenities
 }
 
 interface AddPropertyModalProps {
@@ -80,7 +88,13 @@ const AddPropertyModal = ({
     tax_bill_url: '', // Initialize as empty string
     currentBill: [],
     current_bill_url: '', // Initialize as empty string
-    cancellationPolicy: 'Flexible',
+    aadhar: [],
+    aadhar_url: '',
+    pan: [],
+    pan_url: '',
+    noc: [],
+    noc_url: '',
+    cancellationPolicy: 'Tiered',
     rules: [],
     safetyItems: [],
     bedrooms: 1,
@@ -101,7 +115,9 @@ const AddPropertyModal = ({
     showSpecificLocation: false,
     totalRooms: 1, // Default to 1 room
     roomType: '', // Initialize new field
+    customAmenities: [], // Initialize new field
   });
+  const [newCustomAmenity, setNewCustomAmenity] = useState('');
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -151,7 +167,13 @@ const AddPropertyModal = ({
         tax_bill_url: propertyToEdit.tax_bill_url || '',
         currentBill: [],
         current_bill_url: propertyToEdit.current_bill_url || '',
-        cancellationPolicy: propertyToEdit.cancellation_policy || 'Flexible',
+        aadhar: [],
+        aadhar_url: propertyToEdit.aadhar_url || '',
+        pan: [],
+        pan_url: propertyToEdit.pan_url || '',
+        noc: [],
+        noc_url: propertyToEdit.noc_url || '',
+        cancellationPolicy: propertyToEdit.cancellation_policy || 'Tiered',
         rules: propertyToEdit.rules || [],
         safetyItems: propertyToEdit.safety_items || [],
         bedrooms: propertyToEdit.bedrooms || 1,
@@ -172,6 +194,9 @@ const AddPropertyModal = ({
         showSpecificLocation: propertyToEdit.show_specific_location || false,
         totalRooms: propertyToEdit.total_rooms || 1,
         roomType: propertyToEdit.room_type || '', // Load existing room type
+        customAmenities: propertyToEdit.amenities
+          ?.filter((a: any) => !AMENITIES.some(std => std.id === a.id))
+          ?.map((a: any) => a.name) || [],
       });
       setPhotoPreviews(initialPhotoUrls);
     } else {
@@ -191,7 +216,13 @@ const AddPropertyModal = ({
         tax_bill_url: '',
         currentBill: [],
         current_bill_url: '',
-        cancellationPolicy: 'Flexible',
+        aadhar: [],
+        aadhar_url: '',
+        pan: [],
+        pan_url: '',
+        noc: [],
+        noc_url: '',
+        cancellationPolicy: 'Tiered',
         rules: [],
         safetyItems: [],
         bedrooms: 1,
@@ -212,6 +243,7 @@ const AddPropertyModal = ({
         showSpecificLocation: false,
         totalRooms: 1,
         roomType: '',
+        customAmenities: [],
       });
       setPhotoPreviews([]);
     }
@@ -276,6 +308,23 @@ const AddPropertyModal = ({
     });
   };
 
+  const addCustomAmenity = () => {
+    if (newCustomAmenity.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        customAmenities: [...prev.customAmenities, newCustomAmenity.trim()]
+      }));
+      setNewCustomAmenity('');
+    }
+  };
+
+  const removeCustomAmenity = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      customAmenities: prev.customAmenities.filter((_, i) => i !== index)
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -297,19 +346,28 @@ const AddPropertyModal = ({
       }
       updatedFormData.photo_urls = photoUrls;
 
-      // Upload license
-      if (formData.license.length > 0) {
-        updatedFormData.license_url = await uploadFileToSupabase(formData.license[0], BUCKETS.propertyDocuments, `${userId}/properties/${propertyNameSlug}/documents/license`);
-      }
-
-      // Upload tax bill
-      if (formData.taxBill.length > 0) {
-        updatedFormData.tax_bill_url = await uploadFileToSupabase(formData.taxBill[0], BUCKETS.propertyDocuments, `${userId}/properties/${propertyNameSlug}/documents/tax-bill`);
-      }
-
-      // Upload current bill
-      if (formData.currentBill.length > 0) {
-        updatedFormData.current_bill_url = await uploadFileToSupabase(formData.currentBill[0], BUCKETS.propertyDocuments, `${userId}/properties/${propertyNameSlug}/documents/current-bill`);
+      if (formData.type === 'Tent') {
+        // Tent: upload Aadhaar, PAN, NOC instead
+        if (formData.aadhar.length > 0) {
+          updatedFormData.aadhar_url = await uploadFileToSupabase(formData.aadhar[0], BUCKETS.propertyDocuments, `${userId}/properties/${propertyNameSlug}/documents/aadhar`);
+        }
+        if (formData.pan.length > 0) {
+          updatedFormData.pan_url = await uploadFileToSupabase(formData.pan[0], BUCKETS.propertyDocuments, `${userId}/properties/${propertyNameSlug}/documents/pan`);
+        }
+        if (formData.noc.length > 0) {
+          updatedFormData.noc_url = await uploadFileToSupabase(formData.noc[0], BUCKETS.propertyDocuments, `${userId}/properties/${propertyNameSlug}/documents/noc`);
+        }
+      } else {
+        // Non-Tent: upload License, Tax Bill, Current Bill
+        if (formData.license.length > 0) {
+          updatedFormData.license_url = await uploadFileToSupabase(formData.license[0], BUCKETS.propertyDocuments, `${userId}/properties/${propertyNameSlug}/documents/license`);
+        }
+        if (formData.taxBill.length > 0) {
+          updatedFormData.tax_bill_url = await uploadFileToSupabase(formData.taxBill[0], BUCKETS.propertyDocuments, `${userId}/properties/${propertyNameSlug}/documents/tax-bill`);
+        }
+        if (formData.currentBill.length > 0) {
+          updatedFormData.current_bill_url = await uploadFileToSupabase(formData.currentBill[0], BUCKETS.propertyDocuments, `${userId}/properties/${propertyNameSlug}/documents/current-bill`);
+        }
       }
 
       onSaveProperty(updatedFormData);
@@ -458,18 +516,20 @@ const AddPropertyModal = ({
                   </select>
                 </div>
 
-                {/* Room Classification Dropdown - Shown mainly for Hotels/Resorts but available for all if needed */}
-                <div className="col-span-full md:col-span-1">
+                {/* Room Classification Dropdown */}
+                <div className={`col-span-full md:col-span-1 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
                   <div className="flex items-center gap-2 mb-2">
                     <Building2 className="w-5 h-5 text-sky-400" />
                     <label htmlFor="roomType" className="block text-sm font-medium text-zinc-300">Room Classification</label>
+                    {formData.type === 'Tent' && <span className="text-xs text-amber-400 ml-1">(Not applicable for Tent)</span>}
                   </div>
                   <select
                     id="roomType"
                     name="roomType"
                     value={formData.roomType}
                     onChange={handleInputChange}
-                    className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-primary focus:border-primary transition"
+                    disabled={formData.type === 'Tent'}
+                    className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-primary focus:border-primary transition disabled:cursor-not-allowed"
                   >
                     <option value="">Select Room Type (Optional)</option>
 
@@ -528,15 +588,16 @@ const AddPropertyModal = ({
                     </div>
                     <p className="text-xs text-zinc-500 mt-1 text-center">For bulk bookings.</p>
                   </div>
-                  <div className="bg-zinc-800 p-4 rounded-xl border border-zinc-700/50">
+                  <div className={`bg-zinc-800 p-4 rounded-xl border border-zinc-700/50 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <Home className="w-5 h-5 text-sky-400" />
                       <label htmlFor="bedrooms" className="block text-sm font-medium text-zinc-300">Bedrooms</label>
+                      {formData.type === 'Tent' && <span className="text-xs text-amber-400">(N/A)</span>}
                     </div>
                     <div className="flex justify-center">
                       <NumberInput
                         value={formData.bedrooms}
-                        onChange={(val) => setFormData(prev => ({ ...prev, bedrooms: val }))}
+                        onChange={(val) => formData.type !== 'Tent' && setFormData(prev => ({ ...prev, bedrooms: val }))}
                         min={0}
                       />
                     </div>
@@ -556,30 +617,32 @@ const AddPropertyModal = ({
                     </div>
                   </div>
 
-                  <div className="bg-zinc-800 p-4 rounded-xl border border-zinc-700/50">
+                  <div className={`bg-zinc-800 p-4 rounded-xl border border-zinc-700/50 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <Sparkles className="w-5 h-5 text-sky-400" />
                       <label htmlFor="bathrooms" className="block text-sm font-medium text-zinc-300">Bathrooms</label>
+                      {formData.type === 'Tent' && <span className="text-xs text-amber-400">(N/A)</span>}
                     </div>
                     <div className="flex justify-center">
                       <NumberInput
                         value={formData.bathrooms}
-                        onChange={(val) => setFormData(prev => ({ ...prev, bathrooms: val }))}
+                        onChange={(val) => formData.type !== 'Tent' && setFormData(prev => ({ ...prev, bathrooms: val }))}
                         min={0}
                         step={0.5}
                       />
                     </div>
                   </div>
 
-                  <div className="bg-zinc-800 p-4 rounded-xl border border-zinc-700/50">
+                  <div className={`bg-zinc-800 p-4 rounded-xl border border-zinc-700/50 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <Layers className="w-5 h-5 text-sky-400" />
                       <label htmlFor="area" className="block text-sm font-medium text-zinc-300">Area (sq ft)</label>
+                      {formData.type === 'Tent' && <span className="text-xs text-amber-400">(N/A)</span>}
                     </div>
                     <div className="flex justify-center">
                       <NumberInput
                         value={formData.area}
-                        onChange={(val) => setFormData(prev => ({ ...prev, area: val }))}
+                        onChange={(val) => formData.type !== 'Tent' && setFormData(prev => ({ ...prev, area: val }))}
                         min={0}
                         max={100000}
                         step={10}
@@ -639,6 +702,52 @@ const AddPropertyModal = ({
                     </div>
                   </div>
                 ))}
+
+                {/* Custom Amenities Section */}
+                <div className="pt-8 border-t border-zinc-800">
+                  <h4 className="text-xl font-semibold text-white mb-6">Other Amenities</h4>
+                  <div className="flex gap-4 mb-6">
+                    <input
+                      type="text"
+                      value={newCustomAmenity}
+                      onChange={(e) => setNewCustomAmenity(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomAmenity())}
+                      placeholder="e.g. Home Theater, Infinity Pool"
+                      className="flex-1 bg-zinc-800 border-zinc-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-primary focus:border-primary transition outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={addCustomAmenity}
+                      className="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-bold hover:bg-primary/90 transition flex items-center gap-2"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Add
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {formData.customAmenities.map((amenity, index) => (
+                      <div
+                        key={`custom-${index}`}
+                        className="p-4 bg-primary border-primary rounded-lg flex flex-col items-start gap-2 relative group transition-all"
+                      >
+                        <CheckCircle className="w-6 h-6 text-white" />
+                        <div>
+                          <p className="font-semibold text-sm text-white">{amenity}</p>
+                          <p className="text-xs text-white/70 mt-1">Host added amenity</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeCustomAmenity(index)}
+                          className="absolute top-2 right-2 p-1 bg-black/20 hover:bg-black/40 text-white rounded-md transition-colors"
+                          title="Remove amenity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -646,8 +755,8 @@ const AddPropertyModal = ({
               <div className="space-y-8 animate-fade-in">
                 <div>
                   <h3 className="text-xl font-semibold text-white mb-4">Cancellation Policy</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {['Flexible', 'Moderate', 'Strict', 'Super Strict', 'Non-refundable', 'Tiered'].map((policy) => (
+                  <div className="grid grid-cols-1 gap-4">
+                    {['Tiered'].map((policy) => (
                       <div
                         key={policy}
                         onClick={() => setFormData(prev => ({ ...prev, cancellationPolicy: policy }))}
@@ -735,10 +844,30 @@ const AddPropertyModal = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <FileUploadField label="Property License" name="license" onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'license')} fileName={formData.license[0]?.name} />
-                  <FileUploadField label="Tax Bill" name="taxBill" onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'taxBill')} fileName={formData.taxBill[0]?.name} />
-                  <FileUploadField label="Current Utility Bill" name="currentBill" onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'currentBill')} fileName={formData.currentBill[0]?.name} />
+                {formData.type === 'Tent' ? (
+                  <>
+                    <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                      <p className="text-sm font-semibold text-amber-400">🏕️ Tent Property — Identity Documents Required</p>
+                      <p className="text-xs text-zinc-400 mt-1">Please upload your Aadhaar Card, PAN Card, and a No Objection Certificate (NOC) for the land/site.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <FileUploadField label="Aadhaar Card" name="aadhar" onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'aadhar')} fileName={formData.aadhar[0]?.name} currentUrl={formData.aadhar_url} />
+                      <FileUploadField label="PAN Card" name="pan" onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'pan')} fileName={formData.pan[0]?.name} currentUrl={formData.pan_url} />
+                      <FileUploadField label="NOC (No Objection Certificate)" name="noc" onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'noc')} fileName={formData.noc[0]?.name} currentUrl={formData.noc_url} />
+                    </div>
+                  </>
+                ) : null}
+
+                {/* Property License, Tax Bill, Current Utility Bill - disabled for Tent */}
+                <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
+                  {formData.type === 'Tent' && (
+                    <div className="col-span-3 p-3 bg-zinc-800 border border-zinc-700 rounded-lg">
+                      <p className="text-xs text-amber-400">⚠️ Property License, Tax Bill, and Current Utility Bill are not required for Tent listings.</p>
+                    </div>
+                  )}
+                  <FileUploadField label="Property License" name="license" onChange={(e: React.ChangeEvent<HTMLInputElement>) => !formData.type.includes('Tent') && handleFileChange(e, 'license')} fileName={formData.license[0]?.name} currentUrl={formData.license_url} disabled={formData.type === 'Tent'} />
+                  <FileUploadField label="Tax Bill" name="taxBill" onChange={(e: React.ChangeEvent<HTMLInputElement>) => !formData.type.includes('Tent') && handleFileChange(e, 'taxBill')} fileName={formData.taxBill[0]?.name} currentUrl={formData.tax_bill_url} disabled={formData.type === 'Tent'} />
+                  <FileUploadField label="Current Utility Bill" name="currentBill" onChange={(e: React.ChangeEvent<HTMLInputElement>) => !formData.type.includes('Tent') && handleFileChange(e, 'currentBill')} fileName={formData.currentBill[0]?.name} currentUrl={formData.current_bill_url} disabled={formData.type === 'Tent'} />
                 </div>
               </div>
             )}
@@ -807,15 +936,21 @@ const InputField = ({ label, name, type = "text", value, onChange, placeholder }
   </div>
 );
 
-const FileUploadField = ({ label, name, onChange, fileName }: any) => (
+const FileUploadField = ({ label, name, onChange, fileName, currentUrl, disabled }: any) => (
   <div>
     <label htmlFor={name} className="block text-sm font-medium text-zinc-400 mb-2">{label}</label>
     <div className="relative">
-      <input type="file" id={name} name={name} onChange={onChange} className="hidden" />
-      <label htmlFor={name} className="flex items-center justify-center w-full px-4 py-3 bg-zinc-800 border-zinc-700 rounded-lg cursor-pointer text-zinc-400 hover:bg-zinc-700 transition">
+      <input type="file" id={name} name={name} onChange={onChange} className="hidden" disabled={disabled} />
+      <label htmlFor={disabled ? undefined : name} className={`flex items-center justify-center w-full px-4 py-3 bg-zinc-800 border-zinc-700 rounded-lg text-zinc-400 transition ${disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-zinc-700'}`}>
         <Plus className="h-5 w-5 mr-2" />
         {fileName || 'Upload File'}
       </label>
+      {currentUrl && !fileName && !disabled && (
+        <p className="mt-1 text-xs text-emerald-400 flex items-center gap-1">
+          <span>✓</span> Already uploaded
+          <a href={currentUrl} target="_blank" rel="noopener noreferrer" className="underline ml-1">View</a>
+        </p>
+      )}
     </div>
   </div>
 )

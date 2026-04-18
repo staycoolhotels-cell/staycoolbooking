@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Dispute } from '@/lib/types';
 import Icon from '@/components/ui/AppIcon';
+import { toast } from 'sonner';
+import { sendAdminMessageToHost } from '@/lib/admin-actions';
 
 interface DisputeDetailsModalProps {
     dispute: Dispute | null;
@@ -10,12 +12,29 @@ interface DisputeDetailsModalProps {
 
 const DisputeDetailsModal = ({ dispute, onClose, onUpdateStatus }: DisputeDetailsModalProps) => {
     const [isUpdating, setIsUpdating] = useState(false);
+    const [message, setMessage] = useState('');
 
     if (!dispute) return null;
 
     const handleStatusChange = async (newStatus: Dispute['status']) => {
         setIsUpdating(true);
         await onUpdateStatus(dispute.id, newStatus);
+        setIsUpdating(false);
+    };
+
+    const handleSendMessage = async () => {
+        if (!message.trim()) return;
+        setIsUpdating(true);
+        
+        const res = await sendAdminMessageToHost(dispute.id, message.trim());
+        
+        if (res.success) {
+            toast.success(`Message sent to ${dispute.hostName}`);
+            setMessage('');
+        } else {
+            toast.error(`Failed to send message: ${res.error}`);
+        }
+        
         setIsUpdating(false);
     };
 
@@ -95,37 +114,26 @@ const DisputeDetailsModal = ({ dispute, onClose, onUpdateStatus }: DisputeDetail
                 </div>
 
                 {/* Footer Actions */}
-                <div className="p-6 border-t border-white/10 bg-white/5 flex flex-wrap gap-3 justify-end items-center">
-                    <span className="text-sm text-zinc-400 mr-auto hidden sm:block">Update Status:</span>
-
-                    <button
-                        onClick={() => handleStatusChange('open')}
-                        disabled={isUpdating || dispute.status === 'open'}
-                        className="px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-error/10 text-error hover:bg-error/20 border border-error/20"
-                    >
-                        Mark Open
-                    </button>
-                    <button
-                        onClick={() => handleStatusChange('in_progress')}
-                        disabled={isUpdating || dispute.status === 'in_progress'}
-                        className="px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-warning/10 text-warning hover:bg-warning/20 border border-warning/20"
-                    >
-                        Mark In Progress
-                    </button>
-                    <button
-                        onClick={() => handleStatusChange('resolved')}
-                        disabled={isUpdating || dispute.status === 'resolved'}
-                        className="px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-success/10 text-success hover:bg-success/20 border border-success/20"
-                    >
-                        Mark Resolved
-                    </button>
-                    <button
-                        onClick={() => handleStatusChange('closed')}
-                        disabled={isUpdating || dispute.status === 'closed'}
-                        className="px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-800 text-zinc-200 hover:bg-zinc-700 border border-zinc-700"
-                    >
-                        Close Dispute
-                    </button>
+                <div className="p-6 border-t border-white/10 bg-white/5 flex flex-col gap-3">
+                    <span className="text-sm font-semibold text-zinc-300">Message Host</span>
+                    <div className="flex gap-3 items-center">
+                        <input
+                            type="text"
+                            placeholder={`Type a message to ${dispute.hostName}...`}
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            disabled={isUpdating}
+                            className="flex-1 bg-[#050505] border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 focus:outline-none focus:border-brand-default focus:ring-1 focus:ring-brand-default transition-all placeholder-zinc-600"
+                        />
+                        <button
+                            onClick={handleSendMessage}
+                            disabled={isUpdating || !message.trim()}
+                            className="px-6 py-3 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-sky-500 text-white hover:bg-sky-600 flex items-center gap-2"
+                        >
+                            <Icon name="PaperAirplaneIcon" size={18} />
+                            Send
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -161,7 +161,7 @@ const SmartWishlist = ({ wishlist: initialWishlist, userId, onRemove, onBoardCha
   };
 
   const shareBoard = (boardName: string) => {
-    const url = `${window.location.origin}/wishlist/shared/${boardName.toLowerCase().replace(/\s+/g, '-')}`;
+    const url = `${window.location.origin}/wishlist/shared/${userId}/${encodeURIComponent(boardName)}`;
     navigator.clipboard.writeText(url);
     setCopiedBoard(boardName);
     setTimeout(() => setCopiedBoard(null), 2000);

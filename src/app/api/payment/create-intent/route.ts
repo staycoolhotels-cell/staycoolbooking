@@ -85,11 +85,30 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Host is not ready to receive payments.' }, { status: 400 });
         }
 
-        // Calculate amounts
+        // --- Referral Commission Logic ---
+        const { data: hostProfile } = await supabaseAdmin
+            .from('users')
+            .select('referral_benefit_count')
+            .eq('id', property.host_id)
+            .single();
+
+        let commissionRate = 0.10; // Default 10%
+        let discountApplied = false;
+
+        if (hostProfile && (hostProfile.referral_benefit_count || 0) > 0) {
+            commissionRate = 0.05; // 5% Discount rate
+            discountApplied = true;
+            console.log(`🎁 Host ${property.host_id} has referral benefit! Using 5% commission (Count: ${hostProfile.referral_benefit_count})`);
+            
+            // Mark the booking as having applied the discount
+            await supabaseAdmin
+                .from('bookings')
+                .update({ referral_discount_applied: true })
+                .eq('id', bookingId);
+        }
+
         const amount = Number(booking.total_price) * 100; // Convert to cents
-        const commissionRate = 0.10; // 10%
         const applicationFee = Math.round(amount * commissionRate);
-        // Stripe transfer amount is amount - application_fee. But with 'destination' charges we specify amount and application_fee.
 
         // Create PaymentIntent
         const paymentIntent = await stripe.paymentIntents.create({
@@ -103,6 +122,7 @@ export async function POST(req: Request) {
             metadata: {
                 booking_id: bookingId,
                 guest_id: user.id,
+                referral_discount_applied: String(discountApplied),
             },
         });
 

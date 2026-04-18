@@ -11,11 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const navLinks = [
   { href: '/admin-panel', label: 'Dashboard', icon: 'ChartBarIcon' },
-  {
-    href: '/admin-panel/property-management',
-    label: 'Property Management',
-    icon: 'HomeModernIcon',
-  },
+  { href: '/admin-panel/property-management', label: 'Property Management', icon: 'HomeModernIcon' },
   { href: '/admin-panel/financials', label: 'Financials', icon: 'BanknotesIcon' },
   { href: '/admin-panel/kyc-management', label: 'KYC Management', icon: 'IdentificationIcon' },
   { href: '/admin-panel/user-management', label: 'User Management', icon: 'UsersIcon' },
@@ -162,6 +158,26 @@ const Sidebar = ({ isMobileMenuOpen, onMobileToggle, onCloseMobileMenu }: Sideba
 
       <aside className={`fixed top-[64px] bottom-0 left-0 z-[95] w-64 flex-shrink-0 bg-[#0a0a0f] border-r border-white/10 flex flex-col transition-transform duration-300 lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            {/* Mobile-only top links */}
+            <div className="lg:hidden flex flex-col space-y-2 mb-2 pb-2 border-b border-white/10">
+              <Link
+                href="/"
+                onClick={onCloseMobileMenu}
+                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${pathname === '/' ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}
+              >
+                <Icon name="HomeIcon" size={22} />
+                <span className="font-heading font-medium">Home</span>
+              </Link>
+              <Link
+                href="/community"
+                onClick={onCloseMobileMenu}
+                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${pathname === '/community' ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}
+              >
+                <Icon name="UserGroupIcon" size={22} />
+                <span className="font-heading font-medium">Community</span>
+              </Link>
+            </div>
+
             {navLinks.map((link) => {
               const isActive = link.href.includes('?tab=')
                 ? pathname === '/admin-panel' && activeTabQuery === link.href.split('=')[1]
