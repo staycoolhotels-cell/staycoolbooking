@@ -128,7 +128,14 @@ const TripCommandCenter = ({ activeBooking }: TripCommandCenterProps) => {
   const property = properties;
 
   const handleNavigation = () => {
-    // Construct the most precise destination address possible
+    // 1. Prioritize scrolling to the Location Map section if it exists on the page
+    const mapSection = document.getElementById('location-map-section');
+    if (mapSection) {
+      mapSection.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+
+    // 2. Fallback: Open Google Maps directly if the section is not found
     const destAddress = property?.address_line1 
       ? `${property.address_line1}, ${property.city || ''}, ${property.state || ''} ${property.postal_code || ''}`.trim()
       : property?.location || '';

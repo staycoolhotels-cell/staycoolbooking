@@ -107,7 +107,7 @@ const Header = () => {
               whileTap={{ scale: 0.95 }}
               className="flex items-center gap-4"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <div className="rounded-full border-2 border-sky-500/70 p-[4px] shadow-[0_0_10px_rgba(14,165,233,0.4)] flex items-center justify-center">
                 <img
                   src="/assets/images/logo.png"
@@ -115,7 +115,7 @@ const Header = () => {
                   className="h-8 sm:h-10 w-auto object-contain"
                 />
               </div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img
                 src="/assets/Picsart_26-03-22_23-32-24-684.png"
                 alt="StayCool Booking"

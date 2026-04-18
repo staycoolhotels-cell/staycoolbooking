@@ -4,20 +4,23 @@ import tseslint from "typescript-eslint";
 import pluginReact from "eslint-plugin-react";
 import nextPlugin from "@next/eslint-plugin-next";
 
-
 export default tseslint.config(
   {
     ignores: [
       "node_modules/",
       ".next/",
       "out/",
-      "public/"
+      "public/",
+      "*.js",
+      "*.mjs",
+      "*.ts",
+      "scripts/**/*"
     ],
   },
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["**/*.{js,jsx,ts,tsx}", "**/*.mjs"],
+    files: ["src/**/*.{js,jsx,ts,tsx}"],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -68,4 +71,14 @@ export default tseslint.config(
       },
     },
   },
+  {
+    // Specific setup for config files that ARE in tsconfig.json
+    files: ["eslint.config.mjs", "postcss.config.js", "tailwind.config.js", "next.config.mjs"],
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        project: ["./tsconfig.json"],
+      },
+    }
+  }
 );

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminPageHeader from './AdminPageHeader';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useScroll } from 'framer-motion';
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
 import StatsCard from './StatsCard';
@@ -32,8 +31,6 @@ import {
   User,
   Dispute,
   Transaction,
-  Review,
-  Campaign,
   RecentActivity,
   Stat,
   VerificationItem,
@@ -129,7 +126,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   const [activeTab, setActiveTabState] = useState<
     'overview' | 'verifications' | 'disputes' | 'transactions' | 'users' | 'properties' | 'inbox'
   >('overview');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const tab = searchParamsFromHook.get('tab') as any;

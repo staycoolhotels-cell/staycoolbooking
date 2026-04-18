@@ -134,11 +134,11 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertyS
     if (!isMounted || !mapContainerRef.current) return;
 
     // Safety: check if element already has a map
-    // @ts-ignore
+    // @ts-expect-error - _leaflet_id is a private property of Leaflet
     if (mapContainerRef.current._leaflet_id) {
         // This is exactly the case that causes the crash. We fix it by deleting the ID
         // and clearing the HTML before Leaflet gets a chance to complain.
-        // @ts-ignore
+        // @ts-expect-error - _leaflet_id is a private property of Leaflet
         delete mapContainerRef.current._leaflet_id;
         mapContainerRef.current.innerHTML = '';
     }

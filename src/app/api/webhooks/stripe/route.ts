@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { stripe } from '@/lib/stripe';
-import { createClient } from '@/lib/supabase-server'; // We might need a service role client here actually
 import Stripe from 'stripe';
 
 // We need a service role client because webhooks are public (verified by signature) but need to write to DB
@@ -44,7 +43,7 @@ export async function POST(req: Request) {
         switch (event.type) {
             case 'payment_intent.succeeded': {
                 const paymentIntent = event.data.object as Stripe.PaymentIntent;
-                console.log('PaymentIntent Succeeded:', paymentIntent.id);
+                console.info('PaymentIntent Succeeded:', paymentIntent.id);
 
                 const bookingId = paymentIntent.metadata.booking_id;
 
@@ -71,7 +70,7 @@ export async function POST(req: Request) {
                     // --- Referral Benefit Decrement ---
                     const discountApplied = paymentIntent.metadata.referral_discount_applied === 'true';
                     if (discountApplied) {
-                        console.log('🎁 Referral discount was applied. Decrementing host benefit count.');
+                        console.info('🎁 Referral discount was applied. Decrementing host benefit count.');
                         // Fetch property to find host_id
                         const { data: bookingData } = await supabase
                             .from('bookings')
@@ -81,7 +80,7 @@ export async function POST(req: Request) {
                         
                         const hostId = (bookingData?.properties as any)?.host_id;
                         if (hostId) {
-                            console.log(`📉 Decrementing benefit for host: ${hostId}`);
+                            console.info(`📉 Decrementing benefit for host: ${hostId}`);
                             await supabase.rpc('decrement_referral_benefit', { p_host_id: hostId });
                         }
                     }
@@ -91,13 +90,13 @@ export async function POST(req: Request) {
 
             case 'payment_intent.payment_failed': {
                 const failedIntent = event.data.object as Stripe.PaymentIntent;
-                console.log('Payment Failed:', failedIntent.id);
+                console.warn('Payment Failed:', failedIntent.id);
                 // Handle failure logic (notify user, update booking to failed?)
                 break;
             }
 
             default:
-                console.log(`Unhandled event type ${event.type}`);
+                console.info(`Unhandled event type ${event.type}`);
         }
     } catch (error: any) {
         console.error('Error processing webhook:', error);

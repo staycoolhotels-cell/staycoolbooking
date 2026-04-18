@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 
         // 2. Create Razorpay Linked Account
         // We need user details. Fetch profile?
-        const { data: profile } = await supabase
+        const { data: _profile } = await supabase
             .from('user_personal_info')
             .select('email, bio') // Using bio as dummy name if needed, or fetch distinct name
             .eq('user_id', user.id)
@@ -37,7 +37,8 @@ export async function POST(req: Request) {
 
         let accountId = '';
         try {
-            const account: any = await razorpay.accounts.create({
+            // @ts-expect-error - Razorpay SDK types might be outdated for Route accounts
+            const account = await razorpay.accounts.create({
                 type: 'route',
                 name: name,
                 email: email,
@@ -85,7 +86,7 @@ export async function POST(req: Request) {
         }
 
         const safeDetails = error instanceof Error ? error.message : String(error);
-        console.log('API returning 500 with:', { error: errorMessage, details: safeDetails });
+        console.info('API returning 500 with:', { error: errorMessage, details: safeDetails });
 
         return NextResponse.json({ error: errorMessage, details: safeDetails }, { status: 500 });
     }
