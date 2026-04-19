@@ -1,9 +1,9 @@
 import { Transaction } from './types';
 
 export const generateInvoicePDF = async (t: Transaction) => {
-  // Use require for client-side libraries that might not be available during SSR
-  const { jsPDF } = require('jspdf');
-  const autoTable = require('jspdf-autotable').default;
+  // Use dynamic import for client-side libraries
+  const { jsPDF } = await import('jspdf');
+  const autoTable = (await import('jspdf-autotable')).default;
 
   const doc = new jsPDF();
   const invoiceId = t.invoice_id || (t.id ? t.id.split('-')[0].toUpperCase() : 'N/A');

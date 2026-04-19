@@ -12,7 +12,6 @@ import UserDetailsModal from './UserDetailsModal';
 import TransactionDetailsModal from './TransactionDetailsModal';
 import DisputeDetailsModal from './DisputeDetailsModal';
 import RealTimeChat from '@/components/chat/RealTimeChat';
-import RecentActivityItem from './RecentActivityItem';
 import PropertyApproval from './PropertyApproval';
 import HostApprovalCard from './HostApprovalCard';
 import VerificationDetailsModal from './VerificationDetailsModal';
@@ -26,7 +25,6 @@ import {
   LineElement,
   Title,
   Tooltip,
-  Legend,
   Filler,
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
@@ -42,7 +40,7 @@ import {
 } from '@/lib/types';
 import { supabase } from '@/lib/supabaseClient';
 import { logActivity } from '@/lib/activity-actions';
-import { getUsersData, updateUserStatusAndRoleAsAdmin, deleteUserAsAdmin, updateUserDetailsAsAdmin, approveHost, rejectHostWithReason, suspendUserAsAdmin, updatePropertyStatusAsAdmin, approveProperty, rejectProperty, updateDisputeStatusAsAdmin, fetchBookingDetailsAsAdmin } from '@/lib/admin-actions';
+import { deleteUserAsAdmin, updateUserDetailsAsAdmin, approveHost, approveProperty, rejectProperty, updateDisputeStatusAsAdmin, fetchBookingDetailsAsAdmin } from '@/lib/admin-actions';
 
 ChartJS.register(
   CategoryScale,
@@ -52,7 +50,6 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend,
   Filler
 );
 
