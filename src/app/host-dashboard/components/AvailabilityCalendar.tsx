@@ -172,8 +172,8 @@ export default function AvailabilityCalendar({ properties }: AvailabilityCalenda
                         <Icon name="CalendarDaysIcon" size={20} className="text-sky-400 drop-shadow-md" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <h1 className="text-xl md:text-2xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Inventory Matrix</h1>
-                        <p className="text-[9px] md:text-[10px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2 truncate whitespace-nowrap">
+                        <h1 className="text-lg sm:text-xl md:text-2xl font-heading font-black text-white tracking-tight drop-shadow-lg">Inventory Matrix</h1>
+                        <p className="text-[8px] sm:text-[9px] md:text-[10px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
                             Asset Availability Schedule
                         </p>
                     </div>

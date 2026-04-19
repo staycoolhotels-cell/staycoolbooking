@@ -115,7 +115,30 @@ const DisputeDetailsModal = ({ dispute, onClose, onUpdateStatus }: DisputeDetail
 
                 {/* Footer Actions */}
                 <div className="p-6 border-t border-white/10 bg-white/5 flex flex-col gap-3">
+                    <div className="flex justify-between items-center">
+                        <span className="text-sm font-semibold text-zinc-300">Update Status</span>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => handleStatusChange('resolved')}
+                                disabled={isUpdating || dispute.status === 'resolved'}
+                                className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-50"
+                            >
+                                Mark Resolved
+                            </button>
+                            <button
+                                onClick={() => handleStatusChange('closed')}
+                                disabled={isUpdating || dispute.status === 'closed'}
+                                className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 disabled:opacity-50"
+                            >
+                                Close & Delete
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="h-px bg-white/5 my-1" />
+
                     <span className="text-sm font-semibold text-zinc-300">Message Host</span>
+
                     <div className="flex gap-3 items-center">
                         <input
                             type="text"

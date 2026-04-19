@@ -79,17 +79,18 @@ export async function POST(req: Request) {
         }
 
         // ─────────────────────────────────────────────
-        // Step 1: Create the Razorpay Linked Account
-        // ─────────────────────────────────────────────
+        const reference_id = `host_${user.id.substring(0, 15)}_${Date.now()}`;
+
         const accountPayload: any = {
             email,
+            reference_id,
             profile: {
                 category: 'individual',
-                subcategory: 'mutual_fund',
+                subcategory: 'accommodation',
                 addresses: {
                     registered: {
-                        street1: 'N/A',
-                        city: 'N/A',
+                        street1: '123 Main St',
+                        city: 'Mumbai',
                         state: 'MH',
                         postal_code: '400001',
                         country: 'IN',
@@ -111,12 +112,36 @@ export async function POST(req: Request) {
             },
         };
 
+        console.log('DEBUG - Attempting Razorpay Linked Account Creation:', {
+            user_id: user.id,
+            reference_id,
+            email,
+            business_type: 'individual'
+        });
+
         let razorpayAccount: any;
         try {
+            if (!(razorpay as any).accounts) {
+                throw new Error('Razorpay client "accounts" property is missing. Check library version or initialization.');
+            }
             razorpayAccount = await (razorpay as any).accounts.create(accountPayload);
+            console.log('DEBUG - Razorpay Account Created Successfully:', razorpayAccount.id);
         } catch (rzpError: any) {
-            console.error('Razorpay account creation error:', rzpError);
+            console.error('Razorpay account creation error detailed:', JSON.stringify(rzpError, null, 2));
+            
+            // Extract description from different possible locations in error object
             const errMsg = rzpError?.error?.description || rzpError?.message || 'Failed to create Razorpay account';
+            const errCode = rzpError?.error?.code || 'ERROR';
+
+            console.error(`DEBUG - Razorpay Failure [${errCode}]: ${errMsg}`);
+            
+            // Helpful hint for Access Denied
+            if (errMsg === 'Access Denied') {
+                return NextResponse.json({ 
+                    error: 'Access Denied: Please check if your Razorpay account is in LIVE mode or if Route needs additional KYC on their dashboard.' 
+                }, { status: 502 });
+            }
+
             return NextResponse.json({ error: errMsg }, { status: 502 });
         }
 

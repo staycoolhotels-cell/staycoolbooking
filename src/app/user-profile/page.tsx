@@ -105,10 +105,21 @@ export default async function ProfilePage() {
     .select('*')
     .eq('user_id', user.id);
 
-  const { data: transactions, error: transactionsError } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('guest_id', user.id);
+  const mappedTransactions = (bookings || []).map(b => ({
+    id: b.id,
+    booking_id: b.id.slice(0, 8).toUpperCase(),
+    amount: Number(b.total_price),
+    date: new Date(b.created_at).toLocaleDateString(),
+    type: (b.status === 'confirmed' || b.status === 'completed') ? 'payment' : 
+          (b.status === 'cancelled' || b.status === 'refunded') ? 'refund' : 'other',
+    status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
+            (b.status === 'cancelled' ? 'refunded' : 'pending'),
+    breakdown: {
+      accommodation: Number(b.total_price) * 0.9,
+      service_fee: Number(b.total_price) * 0.1,
+      taxes: 0
+    }
+  }));
 
   const { data: wishlist, error: wishlistError } = await supabase
     .from('wishlist')
@@ -123,7 +134,7 @@ export default async function ProfilePage() {
     reviews,
     bookings,
     achievements,
-    transactions,
+    transactions: mappedTransactions,
     wishlist,
   };
 

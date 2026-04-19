@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { motion } from 'framer-motion';
+import { BASE_URL } from '@/lib/constants';
 
 interface ProfileProps {
   hostName: string;
@@ -336,12 +337,12 @@ const Profile = ({
                 <div className="flex-1 min-w-0">
                   <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Your Referral Link</span>
                   <p className="text-sm font-bold text-sky-400 break-all">
-                    {typeof window !== 'undefined' ? `${window.location.origin}/signup?ref=${referralCode}` : `signup?ref=${referralCode}`}
+                    {`${BASE_URL}/signup?ref=${referralCode}`}
                   </p>
                 </div>
                 <button 
                   onClick={() => {
-                    const link = `${window.location.origin}/signup?ref=${referralCode}`;
+                    const link = `${BASE_URL}/signup?ref=${referralCode}`;
                     navigator.clipboard.writeText(link);
                     alert('Referral link copied to clipboard!');
                   }}

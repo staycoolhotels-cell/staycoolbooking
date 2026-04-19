@@ -124,24 +124,46 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
                 <div
                   key={booking.id}
                   onClick={() => onAction?.('bookings')}
-                  className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/40 hover:bg-white/10 transition-all cursor-pointer group/item flex items-center justify-between shadow-sm"
+                  className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/40 hover:bg-white/10 transition-all cursor-pointer group/item shadow-sm"
                 >
-                  <div className="flex items-center gap-3">
-                    <img src={booking.guest?.avatar_url || 'https://via.placeholder.com/32'} className="w-10 h-10 rounded-full border border-white/20 object-cover group-hover/item:border-primary/50 transition-colors shadow-inner" alt={booking.guest?.name || 'Guest'} />
-                    <div>
-                      <p className="text-sm font-bold text-white group-hover/item:text-primary transition-colors">{booking.guest?.name?.trim() ? booking.guest.name : 'Verified Guest'}</p>
-                      <p className="text-[10px] text-zinc-400 font-medium tracking-wide">New booking</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img 
+                        src={booking.guest?.avatar_url || 'https://via.placeholder.com/32'} 
+                        className="w-10 h-10 rounded-full border border-white/20 object-cover group-hover/item:border-primary/50 transition-colors shadow-inner shrink-0" 
+                        alt={booking.guest?.name || 'Guest'} 
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-white group-hover/item:text-primary transition-colors truncate">
+                          {booking.guest?.name?.trim() ? booking.guest.name : 'Verified Guest'}
+                        </p>
+                        <p className="text-[10px] text-zinc-400 font-medium tracking-wide">New booking</p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p suppressHydrationWarning className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                        {new Date(booking.check_in).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right flex flex-col items-end">
-                    <p suppressHydrationWarning className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">{new Date(booking.check_in).toLocaleDateString([], { month: 'short', day: 'numeric' })}</p>
+                  
+                  <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
+                    <div className="flex items-center gap-2">
+                       <Icon name="HomeIcon" size={10} className="text-zinc-500" />
+                       <p className="text-[9px] text-zinc-500 font-bold truncate max-w-[120px] sm:max-w-none">
+                         {booking.properties?.title || 'Property'}
+                       </p>
+                    </div>
                     <div
-                      className={`mt-1.5 inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${booking.status === 'confirmed'
-                        ? 'bg-success/20 text-success border border-success/30'
-                        : 'bg-warning/20 text-warning border border-warning/30'
-                        }`}
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${
+                        booking.status === 'confirmed'
+                          ? 'bg-success/20 text-success border-success/30'
+                          : booking.status === 'pending_payment'
+                          ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                          : 'bg-warning/20 text-warning border-warning/30'
+                      }`}
                     >
-                      {booking.status}
+                      {booking.status.replace('_', ' ')}
                     </div>
                   </div>
                 </div>

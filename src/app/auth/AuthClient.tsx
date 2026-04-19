@@ -94,13 +94,12 @@ export default function AuthClient() {
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2 }}
-                className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden"
+                className="p-3 bg-white/5 border border-white/10 rounded-2xl shadow-inner"
               >
-                <AppImage
+                <img
                   src="/assets/images/logo.png"
                   alt="StayCool Logo"
-                  fill
-                  className="object-contain rounded-full"
+                  className="w-10 h-10 sm:w-12 sm:h-12 object-contain filter drop-shadow-lg"
                 />
               </motion.div>
             </div>

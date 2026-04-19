@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
+import Link from 'next/link';
 
 const CommunityForumPage = () => {
     const [activeTab, setActiveTab] = useState('Discussions');
@@ -62,13 +63,24 @@ const CommunityForumPage = () => {
     );
 
     return (
-        <div className="bg-[#080808] text-zinc-300 min-h-screen pt-32 pb-20 px-6 md:px-20">
+        <div className="bg-[#080808] text-zinc-300 min-h-screen pt-20 pb-20 px-6 md:px-20">
             <div className="max-w-7xl mx-auto">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
                 >
+                    {/* Back Button */}
+                    <div className="mb-6">
+                        <Link 
+                            href="/admin-panel" 
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-all group active:scale-95"
+                        >
+                            <Icon name="ArrowLeftIcon" size={18} className="group-hover:-translate-x-1 transition-transform" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 group-hover:text-white transition-colors">Back to Dashboard</span>
+                        </Link>
+                    </div>
+
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
                         <div className="max-w-2xl">
                             <h1 className="font-heading text-4xl md:text-7xl font-bold text-white mb-6">
@@ -160,19 +172,19 @@ const CommunityForumPage = () => {
                                                 <h2 className="text-xl font-bold text-zinc-100 mb-4 group-hover:text-sky-400 transition-colors">
                                                     {post.title}
                                                 </h2>
-                                                <div className="flex items-center gap-6">
+                                                <div className="flex items-center gap-x-4 gap-y-3 flex-wrap mt-auto">
                                                     <div className="flex items-center gap-1.5 text-zinc-600 group-hover:text-zinc-400 transition-colors">
-                                                        <Icon name="MessageSquareIcon" size={16} />
-                                                        <span className="text-sm font-medium">{post.replies} replies</span>
+                                                        <Icon name="MessageSquareIcon" size={14} />
+                                                        <span className="text-xs font-medium">{post.replies} replies</span>
                                                     </div>
                                                     <div className="flex items-center gap-1.5 text-zinc-600 group-hover:text-zinc-400 transition-colors">
-                                                        <Icon name="HeartIcon" size={16} />
-                                                        <span className="text-sm font-medium">{post.likes} likes</span>
+                                                        <Icon name="HeartIcon" size={14} />
+                                                        <span className="text-xs font-medium">{post.likes} likes</span>
                                                     </div>
                                                     {post.trending && (
-                                                        <div className="flex items-center gap-1.5 text-orange-500/80">
-                                                            <Icon name="TrendingUpIcon" size={16} />
-                                                            <span className="text-xs font-bold uppercase tracking-tighter">Trending</span>
+                                                        <div className="flex items-center gap-1.5 text-orange-500/80 bg-orange-500/5 px-2 py-0.5 rounded-md border border-orange-500/10">
+                                                            <Icon name="TrendingUpIcon" size={14} />
+                                                            <span className="text-[10px] font-black uppercase tracking-tight">Trending</span>
                                                         </div>
                                                     )}
                                                 </div>

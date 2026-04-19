@@ -168,7 +168,10 @@ const BookingHistory = ({ bookings, guestId }: BookingHistoryProps) => {
                                     <div className="flex md:hidden items-center gap-2 mt-1">
                                          {new Date(booking.check_out) < new Date() && !reviewedIds.has(booking.id) && booking.status !== 'cancelled' && (
                                             <button 
-                                                onClick={(e) => { e.stopPropagation(); setSelectedBooking(booking); }}
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    setReviewBooking(booking); 
+                                                }}
                                                 className="px-2 py-0.5 rounded-md bg-amber-500 text-black text-[8px] font-black uppercase flex items-center gap-1 shadow-lg shadow-amber-900/20 active:scale-95 transition-transform"
                                             >
                                                 <Star size={8} className="fill-current" />
@@ -186,9 +189,16 @@ const BookingHistory = ({ bookings, guestId }: BookingHistoryProps) => {
                                     {/* Action icons for desktop view */}
                                     <div className="hidden md:flex items-center gap-2 mt-1">
                                          {new Date(booking.check_out) < new Date() && !reviewedIds.has(booking.id) && booking.status !== 'cancelled' && (
-                                            <div title="Rate Stay" className="p-1 rounded-md bg-amber-500/10 text-amber-500">
+                                            <button 
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    setReviewBooking(booking); 
+                                                }}
+                                                className="p-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-black transition-all cursor-pointer border border-amber-500/20" 
+                                                title="Rate Stay"
+                                            >
                                                 <Star size={10} className="fill-current" />
-                                            </div>
+                                            </button>
                                          )}
                                          {reviewedIds.has(booking.id) && (
                                             <div title="Reviewed" className="p-1 rounded-md bg-emerald-500/10 text-emerald-500">

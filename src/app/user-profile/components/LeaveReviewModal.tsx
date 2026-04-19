@@ -119,8 +119,16 @@ const LeaveReviewModal: React.FC<LeaveReviewModalProps> = ({ booking, onClose, o
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.9, opacity: 0, y: 30 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                        className="w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+                        className="w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col relative"
                     >
+                        {/* Close button - more prominent and top-right of whole card */}
+                        <button
+                            onClick={onClose}
+                            className="absolute top-10 right-6 z-[210] p-2 rounded-full bg-black/60 text-white hover:bg-black/90 hover:scale-110 transition-all border border-white/10 shadow-lg"
+                        >
+                            <X size={20} />
+                        </button>
+
                         {/* Property banner */}
                         <div className="relative h-28 overflow-hidden shrink-0">
                             <img
@@ -129,12 +137,7 @@ const LeaveReviewModal: React.FC<LeaveReviewModalProps> = ({ booking, onClose, o
                                 className="w-full h-full object-cover"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
-                            <button
-                                onClick={onClose}
-                                className="absolute top-3 right-3 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
-                            >
-                                <X size={16} />
-                            </button>
+                            
                             <div className="absolute bottom-3 left-4">
                                 <p className="text-[10px] text-sky-400 font-bold uppercase tracking-widest">Rate Your Stay</p>
                                 <h3 className="text-white font-bold truncate max-w-[350px]">{booking.properties.title}</h3>

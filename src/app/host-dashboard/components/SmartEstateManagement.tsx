@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { PropertyControlData, PropertyQualityScore, Property } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient';
 import Icon from '@/components/ui/AppIcon';
 import { toast } from 'sonner';
+import { createBrowserClient } from '@supabase/ssr';
 
 interface SmartEstateManagementProps {
   properties?: Property[];
@@ -14,6 +15,94 @@ interface SmartEstateManagementProps {
 
 const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ properties: propData = [], onToggleStatus }) => {
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+
+  const supabaseClient = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  const [realMetrics, setRealMetrics] = useState<Record<string, { score: number; feedback: string[] }>>({});
+  const [loadingMetrics, setLoadingMetrics] = useState(true);
+
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      if (!propData.length) {
+        setLoadingMetrics(false);
+        return;
+      }
+
+      setLoadingMetrics(true);
+      const propertyIds = propData.map(p => p.id);
+
+      try {
+        const { data: reviews, error } = await supabaseClient
+          .from('reviews')
+          .select('property_id, rating, cleanliness_rating, accuracy_rating, communication_rating, location_rating, check_in_rating, value_rating')
+          .in('property_id', propertyIds);
+
+        if (error) throw error;
+
+        const metricsMap: Record<string, { score: number; feedback: string[] }> = {};
+
+        propData.forEach(prop => {
+          const propReviews = reviews?.filter(r => r.property_id === prop.id) || [];
+          
+          let score = 8.5; // Default score
+          let feedback: string[] = [];
+
+          if (propReviews.length > 0) {
+            const avg = (key: string) => propReviews.reduce((acc, r) => acc + (r[key as keyof typeof r] || 0), 0) / propReviews.length;
+            
+            const ratings = {
+              overall: avg('rating'),
+              cleanliness: avg('cleanliness_rating'),
+              accuracy: avg('accuracy_rating'),
+              communication: avg('communication_rating'),
+              location: avg('location_rating'),
+              checkIn: avg('check_in_rating'),
+              value: avg('value_rating'),
+            };
+
+            score = Number((ratings.overall * 2).toFixed(1)); // Scale to 10
+            
+            if (ratings.cleanliness >= 4.5) feedback.push('Clean space');
+            if (ratings.accuracy >= 4.5) feedback.push('Description is accurate');
+            if (ratings.communication >= 4.5) feedback.push('Great communication');
+            if (ratings.location >= 4.5) feedback.push('Perfect location');
+            if (ratings.checkIn >= 4.5) feedback.push('Smooth check-in');
+            if (ratings.value >= 4.5) feedback.push('Excellent value');
+          }
+
+          // Attribute-based fallbacks/additions
+          if (feedback.length < 3) {
+            if (prop.amenities && prop.amenities.length > 8) feedback.push('Richly equipped');
+            if (prop.instantBook) feedback.push('Instant book ready');
+            if (prop.tier === 'Luxe' || prop.tier === 'Aura') feedback.push('Premium Choice');
+            if (prop.host?.verified) feedback.push('Verified host');
+            if (prop.host?.responseRate && prop.host.responseRate > 90) feedback.push('Fast responses');
+          }
+
+          // Final polish: keep only top 3
+          feedback = feedback.slice(0, 3);
+          
+          // Ensure at least 3 items for UI consistency if possible
+          if (feedback.length < 3 && !feedback.includes('Description is accurate')) feedback.push('Description is accurate');
+          if (feedback.length < 3 && !feedback.includes('Clean space')) feedback.push('Clean space');
+          if (feedback.length < 3 && !feedback.includes('Great response rate')) feedback.push('Great response rate');
+
+          metricsMap[prop.id] = { score, feedback: feedback.slice(0, 3) };
+        });
+
+        setRealMetrics(metricsMap);
+      } catch (err) {
+        console.error('Error fetching quality metrics:', err);
+      } finally {
+        setLoadingMetrics(false);
+      }
+    };
+
+    fetchMetrics();
+  }, [propData]);
 
   const { controls, qualityScores } = useMemo(() => {
     const data = propData || [];
@@ -26,12 +115,12 @@ const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ propertie
     const mappedScores: PropertyQualityScore[] = data.map((p) => ({
       propertyId: p.id,
       propertyName: p.name || p.title || 'Stay Cool Property',
-      score: Math.floor(Math.random() * 4) + 6, // 6 to 9 random score for demo
-      feedback: ['Description is accurate', 'Great response rate', 'Clean space'],
+      score: realMetrics[p.id]?.score || 7.5,
+      feedback: realMetrics[p.id]?.feedback || ['Description is accurate', 'Great response rate', 'Clean space'],
     }));
 
     return { controls: mappedControls, qualityScores: mappedScores };
-  }, [propData]);
+  }, [propData, realMetrics]);
 
   const handleToggleBlock = async (id: string, currentStatus: boolean, name: string) => {
     setIsProcessing(id);
@@ -179,7 +268,12 @@ const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ propertie
           </div>
 
           <div className="space-y-6 flex-1 overflow-y-auto pr-2 no-scrollbar relative z-10">
-            {qualityScores.map((quality, idx) => {
+            {loadingMetrics ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center opacity-60">
+                <Icon name="ArrowPathIcon" size={32} className="text-purple-500 animate-spin mb-4" />
+                <p className="text-sm font-bold text-zinc-300">Analyzing Quality Metrics...</p>
+              </div>
+            ) : qualityScores.map((quality, idx) => {
               const pbColor = quality.score >= 8 ? 'bg-success shadow-[0_0_10px_rgba(34,197,94,0.5)]' : quality.score >= 6 ? 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]';
               const textScoreColor = quality.score >= 8 ? 'text-success' : quality.score >= 6 ? 'text-yellow-500' : 'text-red-500';
               const bgScoreColor = quality.score >= 8 ? 'bg-success/10 border-success/20' : quality.score >= 6 ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-red-500/10 border-red-500/20';
@@ -228,7 +322,7 @@ const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ propertie
                 </motion.div>
               );
             })}
-            {qualityScores.length === 0 && (
+            {!loadingMetrics && qualityScores.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-center opacity-60">
                 <Icon name="ClipboardDocumentCheckIcon" size={32} className="text-zinc-500 mb-4" />
                 <p className="text-sm font-bold text-zinc-300">No score data</p>

@@ -57,9 +57,9 @@ const Earnings = ({ earnings }: EarningsProps) => {
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] shrink-0">
             <Icon name="BanknotesIcon" size={32} className="text-emerald-400 drop-shadow-md" />
           </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Financial Treasury</h1>
-            <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2 truncate whitespace-nowrap">
+          <div className="flex-1">
+            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Financial Treasury</h1>
+            <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
               Revenue & Payout Management
             </p>
           </div>

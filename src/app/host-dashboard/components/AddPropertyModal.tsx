@@ -401,7 +401,7 @@ const AddPropertyModal = ({
           </button>
         </div>
 
-        <div className="p-8 overflow-y-auto">
+        <div className="p-4 md:p-8 overflow-y-auto">
           <div className="mb-8">
             <div className="flex items-center justify-between">
               {steps.map((step, index) => (
@@ -850,7 +850,7 @@ const AddPropertyModal = ({
                       <p className="text-sm font-semibold text-amber-400">🏕️ Tent Property — Identity Documents Required</p>
                       <p className="text-xs text-zinc-400 mt-1">Please upload your Aadhaar Card, PAN Card, and a No Objection Certificate (NOC) for the land/site.</p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                       <FileUploadField label="Aadhaar Card" name="aadhar" onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'aadhar')} fileName={formData.aadhar[0]?.name} currentUrl={formData.aadhar_url} />
                       <FileUploadField label="PAN Card" name="pan" onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'pan')} fileName={formData.pan[0]?.name} currentUrl={formData.pan_url} />
                       <FileUploadField label="NOC (No Objection Certificate)" name="noc" onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'noc')} fileName={formData.noc[0]?.name} currentUrl={formData.noc_url} />
@@ -859,9 +859,9 @@ const AddPropertyModal = ({
                 ) : null}
 
                 {/* Property License, Tax Bill, Current Utility Bill - disabled for Tent */}
-                <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
+                <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
                   {formData.type === 'Tent' && (
-                    <div className="col-span-3 p-3 bg-zinc-800 border border-zinc-700 rounded-lg">
+                    <div className="col-span-1 sm:col-span-2 lg:col-span-3 p-3 bg-zinc-800 border border-zinc-700 rounded-lg">
                       <p className="text-xs text-amber-400">⚠️ Property License, Tax Bill, and Current Utility Bill are not required for Tent listings.</p>
                     </div>
                   )}
@@ -941,9 +941,9 @@ const FileUploadField = ({ label, name, onChange, fileName, currentUrl, disabled
     <label htmlFor={name} className="block text-sm font-medium text-zinc-400 mb-2">{label}</label>
     <div className="relative">
       <input type="file" id={name} name={name} onChange={onChange} className="hidden" disabled={disabled} />
-      <label htmlFor={disabled ? undefined : name} className={`flex items-center justify-center w-full px-4 py-3 bg-zinc-800 border-zinc-700 rounded-lg text-zinc-400 transition ${disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-zinc-700'}`}>
-        <Plus className="h-5 w-5 mr-2" />
-        {fileName || 'Upload File'}
+      <label htmlFor={disabled ? undefined : name} className={`flex items-center justify-center w-full px-4 py-3 bg-zinc-800 border-zinc-700 rounded-lg text-zinc-400 transition overflow-hidden ${disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-zinc-700'}`}>
+        <Plus className="h-5 w-5 mr-2 flex-shrink-0" />
+        <span className="truncate">{fileName || 'Upload File'}</span>
       </label>
       {currentUrl && !fileName && !disabled && (
         <p className="mt-1 text-xs text-emerald-400 flex items-center gap-1">

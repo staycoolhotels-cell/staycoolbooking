@@ -15,7 +15,7 @@ type Profile = {
  * Creates a Supabase client with service_role privileges for server-side admin actions.
  * USES @supabase/supabase-js to ensure NO cookies/user sessions are involved, strictly server-side admin.
  */
-const createAdminSupabaseClient = async () => {
+export const createAdminSupabaseClient = async () => {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -685,4 +685,30 @@ export async function sendAdminMessageToHost(disputeId: string, message: string)
   // Also log activity
   await logActivity('user_action', `Sent message to host on Dispute ${disputeId}`, undefined, 'Admin Message Sent', 'info');
   return { success: true };
+}
+
+/**
+ * Fetches single booking details using service_role to bypass RLS.
+ * Used for real-time updates in the Admin Panel Financials.
+ */
+export async function fetchBookingDetailsAsAdmin(bookingId: string) {
+  const supabase = await createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(`
+      *,
+      guest:users!guest_id ( name ),
+      property:properties!property_id ( 
+        title,
+        host:users!host_id ( name )
+      )
+    `)
+    .eq('id', bookingId)
+    .single();
+
+  if (error) {
+    console.error('fetchBookingDetailsAsAdmin error:', error);
+    return null;
+  }
+  return data;
 }

@@ -219,8 +219,8 @@ const DynamicAmenityUpsell: React.FC = () => {
             <Icon name="GiftIcon" size={32} className="text-pink-400 drop-shadow-md" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Amenity Upsell</h1>
-            <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2 truncate whitespace-nowrap">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Amenity Upsell</h1>
+            <p className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
               Revenue Boosters
             </p>
           </div>

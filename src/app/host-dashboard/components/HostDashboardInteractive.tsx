@@ -576,8 +576,8 @@ const HostDashboardInteractive = ({
               <LifeBuoy size={32} className="text-indigo-400 drop-shadow-md" />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Priority Support</h1>
-              <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2 truncate whitespace-nowrap">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Priority Support</h1>
+              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
                 Direct Admin Communication
               </p>
             </div>
@@ -762,6 +762,7 @@ const HostDashboardInteractive = ({
                   {activeTab === 'properties' && (
                     <Properties
                       properties={properties}
+                      bookings={hostData.bookings}
                       onAddProperty={() => {
                         setPropertyToEdit(null);
                         setIsModalOpen(true);
@@ -828,7 +829,7 @@ const HostDashboardInteractive = ({
                   {activeTab === 'disputes' && <DisputesList disputes={disputes} isLoading={isLoadingDisputes} />}
                   {activeTab === 'availability' && <AvailabilityCalendar properties={properties} />}
                   {activeTab === 'banking-details' && <BankingDetails />}
-                  {activeTab === 'payout-history' && <PayoutHistory />}
+                  {activeTab === 'payout-history' && <PayoutHistory hostId={hostData.id} />}
                   {activeTab === 'support-chat' && (
                     <SupportChatSection currentUser={{ id: hostData.id, name: hostData.name }} />
                   )}

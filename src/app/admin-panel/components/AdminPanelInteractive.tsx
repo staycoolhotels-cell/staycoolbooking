@@ -16,16 +16,21 @@ import RecentActivityItem from './RecentActivityItem';
 import PropertyApproval from './PropertyApproval';
 import HostApprovalCard from './HostApprovalCard';
 import VerificationDetailsModal from './VerificationDetailsModal';
+import AdminFinancialTreasury from './AdminFinancialTreasury';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
+  PointElement,
+  LineElement,
   Title,
   Tooltip,
   Legend,
+  Filler,
 } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { Chart } from 'react-chartjs-2';
+
 import {
   Property,
   User,
@@ -37,85 +42,115 @@ import {
 } from '@/lib/types';
 import { supabase } from '@/lib/supabaseClient';
 import { logActivity } from '@/lib/activity-actions';
-import {
-  updateUserStatusAndRoleAsAdmin,
-  deleteUserAsAdmin,
-  updateUserDetailsAsAdmin,
-  approveHost,
-  rejectHost,
-  approveProperty,
-  rejectProperty,
-  updateDisputeStatusAsAdmin,
-} from '@/lib/admin-actions';
+import { getUsersData, updateUserStatusAndRoleAsAdmin, deleteUserAsAdmin, updateUserDetailsAsAdmin, approveHost, rejectHostWithReason, suspendUserAsAdmin, updatePropertyStatusAsAdmin, approveProperty, rejectProperty, updateDisputeStatusAsAdmin, fetchBookingDetailsAsAdmin } from '@/lib/admin-actions';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 import { User as AuthUser } from '@supabase/supabase-js';
 
 const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], authUsers: AuthUser[], bookings: any[], properties: any[], verifications: any[], disputes: any[], transactions: any[], activities: any[] } }) => {
   const [maintenanceAlerts, setMaintenanceAlerts] = useState<any[]>([]);
   const [analyticsData, setAnalyticsData] = useState({
-    labels: [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ],
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     datasets: [
       {
-        label: 'Bookings',
+        type: 'bar' as const,
+        label: 'Booking Volume',
         data: [] as number[],
-        backgroundColor: 'rgba(56, 189, 248, 0.5)',
+        backgroundColor: 'rgba(99, 102, 241, 0.5)',
+        borderColor: 'rgba(99, 102, 241, 0.8)',
+        borderWidth: 1,
+        borderRadius: 4,
+        yAxisID: 'y',
+      },
+      {
+        type: 'line' as const,
+        label: 'Platform Revenue (₹)',
+        data: [] as number[],
+        borderColor: 'rgb(34, 197, 94)',
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        borderWidth: 2,
+        pointBackgroundColor: 'rgb(34, 197, 94)',
+        fill: true,
+        tension: 0.4,
+        yAxisID: 'y1',
       },
     ],
   });
 
   const analyticsOptions = {
     responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
+    },
     plugins: {
       legend: {
         position: 'top' as const,
+        align: 'end' as const,
         labels: {
-          color: '#e4e4e7',
-          font: {
-            family: "'Inter', sans-serif",
-          },
+          color: '#a1a1aa',
+          usePointStyle: true,
+          boxWidth: 6,
+          boxHeight: 6,
+          padding: 15,
+          font: { family: "'Inter', sans-serif", size: 10, weight: 'bold' as const },
         },
       },
-      title: {
-        display: true,
-        text: 'Monthly Bookings',
-        color: '#e4e4e7',
-        font: {
-          size: 16,
-          family: "'Inter', sans-serif",
-          weight: 'bold' as const,
-        },
-      },
+      title: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(10, 10, 15, 0.95)',
+        padding: 12,
+        cornerRadius: 12,
+        callbacks: {
+          label: function (context: any) {
+            let label = context.dataset.label || '';
+            if (label) label += ': ';
+            if (context.parsed.y !== null) {
+              if (context.datasetIndex === 1) {
+                label += '₹' + context.parsed.y.toLocaleString('en-IN');
+              } else {
+                label += context.parsed.y + ' stays';
+              }
+            }
+            return label;
+          }
+        }
+      }
     },
     scales: {
       x: {
-        ticks: {
-          color: '#a1a1aa', // zinc-400
-        },
-        grid: {
-          color: 'rgba(255, 255, 255, 0.1)',
-        },
+        grid: { display: false },
+        ticks: { color: '#71717a', font: { size: 10 } },
       },
       y: {
+        type: 'linear' as const,
+        display: true,
+        position: 'left' as const,
+        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+        ticks: { color: '#71717a', stepSize: 1 },
+      },
+      y1: {
+        type: 'linear' as const,
+        display: true,
+        position: 'right' as const,
+        grid: { drawOnChartArea: false },
         ticks: {
-          color: '#a1a1aa', // zinc-400
-        },
-        grid: {
-          color: 'rgba(255, 255, 255, 0.1)',
+          color: '#71717a',
+          callback: function (value: any) {
+            return '₹' + (value >= 1000 ? (value / 1000) + 'k' : value);
+          }
         },
       },
     },
@@ -194,10 +229,24 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
 
   useEffect(() => {
+    const totalRevenue = bookings.reduce((sum: number, b: any) => {
+      if (b.status === 'confirmed' || b.status === 'completed') {
+        return sum + (Number(b.total_price) || 0);
+      }
+      return sum;
+    }, 0);
+    
     setStats([
       {
+        title: 'Total Revenue',
+        value: `₹${totalRevenue.toLocaleString()}`,
+        icon: 'BanknotesIcon',
+        trend: { value: '+8%', isPositive: true },
+        bgColor: 'bg-emerald-500',
+      },
+      {
         title: 'Total Bookings',
-        value: adminData.bookings.length.toString(),
+        value: bookings.length.toString(),
         icon: 'CalendarDaysIcon',
         trend: { value: '+12%', isPositive: true },
         bgColor: 'bg-indigo-500',
@@ -211,14 +260,14 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       },
       {
         title: 'Active Listings',
-        value: adminData.properties.filter((p: any) => p.status === 'active').length.toString(),
+        value: properties.filter((p: any) => p.status === 'active').length.toString(),
         icon: 'HomeModernIcon',
         trend: { value: '+3%', isPositive: true },
         bgColor: 'bg-yellow-500',
       },
       {
         title: 'Pending Verifications',
-        value: adminData.verifications.filter((v: any) => v.status === 'pending').length.toString(),
+        value: verificationQueue.filter((v: any) => v.status === 'pending').length.toString(),
         icon: 'DocumentCheckIcon',
         trend: { value: '-2%', isPositive: false },
         bgColor: 'bg-red-500',
@@ -226,33 +275,20 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     ]);
 
     const monthlyBookings = new Array(12).fill(0);
-    adminData.bookings.forEach((booking: any) => {
+    const monthlyRevenue = new Array(12).fill(0);
+    bookings.forEach((booking: any) => {
       const month = new Date(booking.created_at).getMonth();
       monthlyBookings[month]++;
+      if (booking.status === 'confirmed' || booking.status === 'completed') {
+        monthlyRevenue[month] += Number(booking.total_price) || 0;
+      }
     });
 
-    setAnalyticsData({
-      labels: [
-        'January',
-        'February',
-        'March',
-        'April',
-        'May',
-        'June',
-        'July',
-        'August',
-        'September',
-        'October',
-        'November',
-        'December',
-      ],
-      datasets: [
-        {
-          label: 'Bookings',
-          data: monthlyBookings,
-          backgroundColor: 'rgba(56, 189, 248, 0.5)',
-        },
-      ],
+    setAnalyticsData((prev) => {
+      const newDatasets = [...prev.datasets];
+      newDatasets[0] = { ...newDatasets[0], data: monthlyBookings };
+      newDatasets[1] = { ...newDatasets[1], data: monthlyRevenue };
+      return { ...prev, datasets: newDatasets };
     });
 
     // Fetch maintenance alerts initially
@@ -261,7 +297,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       if (data) setMaintenanceAlerts(data);
     };
     fetchMaintenanceAlerts();
-  }, [adminData, users]);
+  }, [bookings, properties, verificationQueue, users]);
 
   useEffect(() => {
     const channel = supabase.channel('realtime-admin');
@@ -277,11 +313,24 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
           setProperties((prev) => prev.filter((p) => p.id !== payload.old.id));
         }
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          setBookings((prev) => [...prev, payload.new]);
-        } else if (payload.eventType === 'UPDATE') {
-          setBookings((prev) => prev.map((b) => (b.id === payload.new.id ? payload.new : b)));
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, async (payload) => {
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          // Fetch full details using admin client to bypass RLS and get joins
+          const booking = await fetchBookingDetailsAsAdmin(payload.new.id);
+          if (booking) {
+            setBookings((prev) => {
+              const filtered = prev.filter((b) => b.id !== booking.id);
+              return [...filtered, booking].sort((a, b) => 
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+              );
+            });
+          } else {
+            // Fallback to payload if fetch fails (though it shouldn't for admin)
+            setBookings((prev) => {
+              const filtered = prev.filter((b) => b.id !== payload.new.id);
+              return [...filtered, payload.new];
+            });
+          }
         } else if (payload.eventType === 'DELETE') {
           setBookings((prev) => prev.filter((b) => b.id !== payload.old.id));
         }
@@ -412,10 +461,15 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       return;
     }
 
-    setDisputes((prev) =>
-      prev.map((dispute) => (dispute.id === id ? { ...dispute, status: newStatus } : dispute))
-    );
-    toast.success(`Dispute status updated to ${newStatus.replace('_', ' ')}`);
+    if (newStatus === 'closed') {
+      setDisputes((prev) => prev.filter((dispute) => dispute.id !== id));
+      toast.success('Dispute closed and deleted successfully');
+    } else {
+      setDisputes((prev) =>
+        prev.map((dispute) => (dispute.id === id ? { ...dispute, status: newStatus } : dispute))
+      );
+      toast.success(`Dispute status updated to ${newStatus.replace('_', ' ')}`);
+    }
     handleCloseModal();
   };
 
@@ -556,7 +610,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-5 mb-8">
               {stats.map((stat, index) => (
                 <StatsCard key={index} {...stat} />
               ))}
@@ -602,9 +656,11 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
           <div>
             {/* Overview Tab — Premium Layout */}
             {activeTab === 'overview' && (
-              <div className="space-y-6">
+              <div className="space-y-6 md:space-y-8">
+                {/* 1. Treasury Intelligence Card (NEW) */}
+                <AdminFinancialTreasury transactions={transactions} />
 
-                {/* Analytics Panel */}
+                {/* 2. Platform Analytics */}
                 <div className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/10 p-6 group hover:border-white/20 transition-all duration-500">
                   {/* Ambient top glow */}
                   <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-64 h-32 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none" />
@@ -618,8 +674,8 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                       <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest">Live</span>
                     </div>
                   </div>
-                  <div className="relative rounded-xl overflow-hidden bg-white/[0.03] border border-white/5 p-4">
-                    <Bar options={analyticsOptions} data={analyticsData} />
+                  <div className="relative rounded-xl overflow-hidden bg-white/[0.03] border border-white/5 p-4 h-[350px] sm:h-[400px]">
+                    <Chart type="bar" options={analyticsOptions} data={analyticsData} />
                   </div>
                 </div>
 
@@ -857,7 +913,9 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
             {/* Transactions Tab */}
             {activeTab === 'transactions' && (
-              <div className="bg-[#0a0a0f] border border-white/10 rounded-xl overflow-hidden">
+              <div className="space-y-6">
+                <AdminFinancialTreasury transactions={transactions} />
+                <div className="bg-[#0a0a0f] border border-white/10 rounded-xl overflow-hidden">
                 <div className="p-4 md:p-6 border-b border-white/10">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <h2 className="text-xl font-heading font-bold text-zinc-100">
@@ -913,6 +971,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                   </table>
                 </div>
               </div>
+            </div>
             )}
 
             {/* Users Tab */}
@@ -985,12 +1044,10 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
               <AdminInboxSection />
             )}
           </div>
-
-
-          </div>
         </div>
       </div>
-      </main>
+    </div>
+    </main>
       <TransactionDetailsModal
         transaction={selectedTransaction}
         onClose={handleCloseModal}
@@ -1013,7 +1070,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         onClose={handleCloseModal}
         onUpdateStatus={handleUpdateDisputeStatus}
       />
-    </div >
+    </div>
   );
   function AdminInboxSection() {
     const [threads, setThreads] = useState<any[]>([]);

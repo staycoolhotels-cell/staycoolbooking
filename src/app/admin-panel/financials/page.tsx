@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import FinancialsList from './components/FinancialsList';
 import AdminPageHeader from '../components/AdminPageHeader';
+import { createAdminSupabaseClient } from '@/lib/admin-actions';
 
 const FinancialsPage = async () => {
   const cookieStore = await cookies();
@@ -38,11 +39,39 @@ const FinancialsPage = async () => {
     redirect('/auth');
   }
 
-  const { data: transactions, error } = await supabase.from('transactions').select('*');
+  // Use the admin client to bypass RLS for financial data
+  const supabaseAdmin = await createAdminSupabaseClient();
 
-  if (error) {
-    console.error('Error fetching transactions:', error);
+  // Fetch bookings as the primary source of truth for financials
+  const { data: bookingsWithDetails, error: bookingsError } = await supabaseAdmin
+    .from('bookings')
+    .select(`
+      *,
+      guest:users!guest_id ( name ),
+      property:properties!property_id ( 
+        title,
+        host:users!host_id ( name )
+      )
+    `)
+    .order('created_at', { ascending: false });
+
+  if (bookingsError) {
+    console.error('Error fetching bookings for financials:', bookingsError);
   }
+
+  // Map bookings to the Transaction interface
+  const mappedTransactions = (bookingsWithDetails || []).map(b => ({
+    id: b.id,
+    transactionId: `TXN-${b.id.slice(0, 8).toUpperCase()}`,
+    propertyName: b.property?.title || 'Unknown Property',
+    guestName: b.guest?.name || 'Unknown Guest',
+    hostName: b.property?.host?.name || 'Unknown Host',
+    amount: Number(b.total_price),
+    date: b.created_at,
+    status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
+            (b.status === 'cancelled' || b.status === 'refunded') ? 'refunded' : 'pending',
+    paymentMethod: 'Razorpay'
+  }));
 
   return (
     <div className="space-y-0">
@@ -50,7 +79,7 @@ const FinancialsPage = async () => {
         title="Financial Oversight"
         subtitle="Monitor transactions and platform revenue"
       />
-      <FinancialsList initialTransactions={transactions || []} />
+      <FinancialsList initialTransactions={mappedTransactions || []} />
     </div>
   );
 };

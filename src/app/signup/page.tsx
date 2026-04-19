@@ -464,27 +464,29 @@ function SignupContent() {
                             {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                           </button>
                         </div>
+                      </div>
+                    </div>
 
-                    {/* Referral Code */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1" htmlFor="referralCode">
-                        Referral Code (Optional)
-                      </label>
-                      <div className="relative group">
-                        <Gift className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
-                        <input
-                          id="referralCode"
-                          type="text"
-                          name="referralCode"
-                          placeholder="e.g. SC-XXXXXX"
-                          value={referralCode}
-                          onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                          className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all uppercase"
-                        />
+                    {/* Referral Code - Only for Hosts */}
+                    {selectedRole === 'Host' && (
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1" htmlFor="referralCode">
+                          Referral Code (Optional)
+                        </label>
+                        <div className="relative group">
+                          <Gift className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
+                          <input
+                            id="referralCode"
+                            type="text"
+                            name="referralCode"
+                            placeholder="e.g. SC-XXXXXX"
+                            value={referralCode}
+                            onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                            className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all uppercase"
+                          />
+                        </div>
                       </div>
-                    </div>
-                      </div>
-                    </div>
+                    )}
 
                     {/* Role Selection */}
                     <div className="space-y-3 pt-2">
@@ -576,24 +578,26 @@ function SignupContent() {
                           </div>
                         </div>
 
-                        {/* Referral Code (Mobile) */}
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1" htmlFor="mobileReferralCode">
-                            Referral Code (Optional)
-                          </label>
-                          <div className="relative group">
-                            <Gift className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
-                            <input
-                              id="mobileReferralCode"
-                              type="text"
-                              name="referralCode"
-                              placeholder="e.g. SC-XXXXXX"
-                              value={referralCode}
-                              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                              className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all uppercase"
-                            />
+                        {/* Referral Code (Mobile) - Only for Hosts */}
+                        {selectedRole === 'Host' && (
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1" htmlFor="mobileReferralCode">
+                              Referral Code (Optional)
+                            </label>
+                            <div className="relative group">
+                              <Gift className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
+                              <input
+                                id="mobileReferralCode"
+                                type="text"
+                                name="referralCode"
+                                placeholder="e.g. SC-XXXXXX"
+                                value={referralCode}
+                                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                                className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all uppercase"
+                              />
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         {/* Role Selection */}
                         <div className="space-y-3 pt-2">

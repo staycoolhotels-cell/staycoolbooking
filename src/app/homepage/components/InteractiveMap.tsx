@@ -150,8 +150,13 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertyS
       scrollWheelZoom: true,
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    }).addTo(map);
+
+    L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '',
+      zIndex: 1000
     }).addTo(map);
 
     mapInstanceRef.current = map;
@@ -225,11 +230,11 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertyS
   return (
     <div 
       style={{ width: '100%', position: 'relative' }} 
-      className="map-responsive-height h-full min-h-[500px] bg-zinc-950"
+      className="map-responsive-height h-full min-h-[500px] bg-zinc-950 map-glow-container rounded-[inherit]"
     >
       <div 
         ref={mapContainerRef}
-        className="w-full h-full"
+        className="w-full h-full rounded-[inherit] overflow-hidden"
         id="leaflet-container-manual"
       />
 
@@ -279,6 +284,44 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertyS
         }
         .map-responsive-height {
           height: 100%;
+        }
+        .map-glow-container {
+          position: relative;
+          z-index: 1;
+          box-shadow: 0 0 30px -10px rgba(14, 165, 233, 0.4);
+          transition: box-shadow 0.3s ease;
+        }
+        .map-glow-container:hover {
+          box-shadow: 0 0 50px -10px rgba(14, 165, 233, 0.6);
+        }
+        .map-glow-container::after {
+          content: '';
+          position: absolute;
+          inset: -1px;
+          z-index: -1;
+          background: linear-gradient(45deg, rgba(14, 165, 233, 0.3), transparent, rgba(14, 165, 233, 0.3));
+          border-radius: inherit;
+          padding: 1px;
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          pointer-events: none;
+        }
+        .map-glow-container::before {
+          content: '';
+          position: absolute;
+          inset: -15px;
+          z-index: -2;
+          background: radial-gradient(circle at center, rgba(14, 165, 233, 0.15) 0%, transparent 70%);
+          border-radius: inherit;
+          opacity: 0.6;
+          animation: map-glow-pulse 6s ease-in-out infinite;
+          pointer-events: none;
+        }
+        @keyframes map-glow-pulse {
+          0%, 100% { opacity: 0.4; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(1.05); }
         }
         .property-popup-container img {
           transition: transform 0.5s ease;

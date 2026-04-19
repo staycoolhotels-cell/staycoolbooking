@@ -9,6 +9,7 @@ import RoomManager from './RoomManager';
 
 interface PropertiesProps {
   properties: Property[];
+  bookings: any[];
   onAddProperty: () => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
@@ -17,6 +18,7 @@ interface PropertiesProps {
 
 const Properties = ({
   properties,
+  bookings = [],
   onAddProperty,
   onEdit,
   onDelete,
@@ -51,6 +53,7 @@ const Properties = ({
           >
             <PropertyCard
               property={property}
+              bookings={bookings.filter((b) => b.property_id === property.id)}
               onEdit={onEdit}
               onDelete={onDelete}
               onToggleStatus={onToggleStatus}
@@ -89,8 +92,8 @@ const Properties = ({
             <Icon name="BuildingOfficeIcon" size={32} className="text-indigo-400 drop-shadow-md" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Global Command Center</h1>
-            <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2 truncate whitespace-nowrap">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Global Command Center</h1>
+            <p className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
               Asset Intelligence & Control
             </p>
           </div>

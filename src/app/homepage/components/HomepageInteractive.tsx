@@ -607,7 +607,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
                   })()}
                 </div>
               ) : (
-                <div key="main-map-view-container" className="map-square-container w-full rounded-[2rem] md:rounded-[3rem] overflow-hidden border border-white/5 shadow-3xl relative">
+                <div key="main-map-view-container" className="map-square-container w-full rounded-[2rem] md:rounded-[3rem] overflow-visible border border-white/5 shadow-3xl relative">
                   <InteractiveMap
                     key="homepage-map-instance"
                     properties={filteredProperties.map((p) => ({

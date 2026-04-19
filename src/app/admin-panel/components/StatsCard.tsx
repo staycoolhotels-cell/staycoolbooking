@@ -29,6 +29,12 @@ const colorMap: Record<string, { glow: string; border: string; icon: string; bad
     icon: 'text-emerald-400',
     badge: 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-300',
   },
+  'bg-emerald-500': {
+    glow: 'rgba(16,185,129,0.35)',
+    border: 'rgba(16,185,129,0.25)',
+    icon: 'text-emerald-400',
+    badge: 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-300',
+  },
   'bg-yellow-500': {
     glow: 'rgba(234,179,8,0.35)',
     border: 'rgba(234,179,8,0.25)',
@@ -73,17 +79,17 @@ const StatsCard = ({ title, value, icon, trend, bgColor }: StatsCardProps) => {
 
       <div className="relative z-10 flex flex-col h-full gap-4">
         {/* Icon + Trend Row */}
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between gap-1.5 sm:gap-3 min-w-0">
           <div
-            className="p-2.5 rounded-xl border backdrop-blur-sm transition-all duration-300 group-hover:scale-110"
+            className="p-2.5 rounded-xl border backdrop-blur-sm transition-all duration-300 group-hover:scale-105 shrink-0"
             style={{ borderColor: colors.border, backgroundColor: `rgba(255,255,255,0.04)` }}
           >
             <Icon name={icon} size={20} className={`${colors.icon} transition-colors`} />
           </div>
           {trend && (
-            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gradient-to-br border ${trend.isPositive ? 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-300' : 'from-rose-500/20 to-rose-600/10 border-rose-500/30 text-rose-300'}`}>
-              <Icon name={trend.isPositive ? 'ArrowTrendingUpIcon' : 'ArrowTrendingDownIcon'} size={11} />
-              <span>{trend.value}</span>
+            <div className={`flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full text-[8px] sm:text-[9px] font-bold uppercase tracking-wider bg-gradient-to-br border shrink-0 max-w-full ${trend.isPositive ? 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-300' : 'from-rose-500/20 to-rose-600/10 border-rose-500/30 text-rose-300'}`}>
+              <Icon name={trend.isPositive ? 'ArrowTrendingUpIcon' : 'ArrowTrendingDownIcon'} size={10} className="shrink-0" />
+              <span className="truncate">{trend.value}</span>
             </div>
           )}
         </div>

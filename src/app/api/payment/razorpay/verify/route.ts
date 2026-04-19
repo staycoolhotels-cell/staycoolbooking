@@ -67,6 +67,42 @@ export async function POST(req: Request) {
             console.error('Transfer record update failed:', transferUpdateError);
         }
 
+        // ─────────────────────────────────────────────
+        // 4. Record Transaction (Secondary Ledger)
+        // ─────────────────────────────────────────────
+        try {
+            // Fetch booking details to get financial info
+            const { data: booking } = await supabase
+                .from('bookings')
+                .select('*, property:properties(*)')
+                .eq('id', bookingId)
+                .single();
+
+            if (booking) {
+                const amount = Number(booking.total_price);
+                const platformFee = amount * 0.20; // Default 20% commission
+                const hostPayout = amount - platformFee;
+
+                // Attempt to insert into transactions table
+                // We use a safe columns list based on common schema patterns
+                await supabase
+                    .from('transactions')
+                    .insert({
+                        booking_id: bookingId,
+                        guest_id: booking.guest_id,
+                        host_id: booking.property?.host_id,
+                        property_id: booking.property_id,
+                        amount: amount,
+                        platform_fee: platformFee,
+                        host_payout: hostPayout,
+                        status: 'completed'
+                    });
+            }
+        } catch (txnError) {
+            // Log but don't fail the verification response if the secondary ledger fails
+            console.error('Secondary transaction logging failed:', txnError);
+        }
+
         return NextResponse.json({
             success: true,
             message: 'Payment verified and booking confirmed.',

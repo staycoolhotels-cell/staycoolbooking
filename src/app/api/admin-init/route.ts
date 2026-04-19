@@ -68,8 +68,8 @@ async function ensureAdminUserExists() {
             user_metadata: { role: 'admin', name: 'System Admin' }
         });
         if (createError) {
-            console.error('Failed to create admin user:', createError);
-            return { success: false, message: 'Failed to create admin user: ' + createError.message };
+            console.error('Failed to create admin user:', createError.message);
+            return { success: false, message: 'Failed to create admin user.' };
         }
         if (!newUser) {
             console.error('Failed to create admin user, no user data returned.');
@@ -110,8 +110,9 @@ export async function POST(request: Request) {
             return NextResponse.json(result, { status: 500 });
         }
     } catch (error: any) {
+        console.error('Unexpected error in admin-init:', error.message);
         return NextResponse.json(
-            { success: false, message: error.message },
+            { success: false, message: 'An unexpected error occurred.' },
             { status: 500 }
         );
     }

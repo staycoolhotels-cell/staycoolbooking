@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Transaction } from '@/lib/types';
 import { supabase } from '@/lib/supabaseClient';
+import { fetchBookingDetailsAsAdmin } from '@/lib/admin-actions';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
@@ -23,7 +24,9 @@ const processData = (transactions: Transaction[]) => {
     .filter((t) => t.status === 'completed')
     .reduce((acc, t) => acc + (t.amount || 0), 0);
 
-  const totalRefunds = 0;
+  const totalRefunds = transactions
+    .filter((t) => t.status === 'refunded')
+    .reduce((acc, t) => acc + (t.amount || 0), 0);
   const netRevenue = totalRevenue - totalRefunds;
   const pendingCount = transactions.filter((t) => t.status === 'pending').length;
 
@@ -172,25 +175,46 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
   // Realtime subscription
   useEffect(() => {
     const channel = supabase
-      .channel('realtime-transactions')
+      .channel('realtime-bookings-financials')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'transactions' },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setTransactions((prev) => [...prev, payload.new as Transaction]);
-          } else if (payload.eventType === 'UPDATE') {
-            setTransactions((prev) =>
-              prev.map((t) => (t.id === payload.new.id ? (payload.new as Transaction) : t))
-            );
+        { event: '*', schema: 'public', table: 'bookings' },
+        async (payload) => {
+          // For financials, we need joined data (guest, property, host)
+          // Given this is an admin panel, a targeted refetch of the new/updated record is better.
+
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const booking = await fetchBookingDetailsAsAdmin(payload.new.id);
+
+            if (booking) {
+              const mapped: Transaction = {
+                id: booking.id,
+                transactionId: `TXN-${booking.id.slice(0, 8).toUpperCase()}`,
+                propertyName: booking.property?.title || 'Unknown Property',
+                guestName: booking.guest?.name || 'Unknown Guest',
+                hostName: booking.property?.host?.name || 'Unknown Host',
+                amount: Number(booking.total_price),
+                date: booking.created_at,
+                status: (booking.status === 'confirmed' || booking.status === 'completed') ? 'completed' : 
+                        (booking.status === 'cancelled' ? 'refunded' : 'pending'),
+                paymentMethod: 'Razorpay'
+              };
+
+              setTransactions((prev) => {
+                const filtered = prev.filter((t) => t.id !== mapped.id);
+                return [...filtered, mapped].sort((a, b) => 
+                  new Date(b.date).getTime() - new Date(a.date).getTime()
+                );
+              });
+            }
           } else if (payload.eventType === 'DELETE') {
-            setTransactions((prev) => prev.filter((t) => t.id !== (payload.old as Transaction).id));
+            setTransactions((prev) => prev.filter((t) => t.id !== (payload.old as any).id));
           }
         }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [supabase]);
 
   // Filtered transactions
   const filtered = transactions.filter((t) => {

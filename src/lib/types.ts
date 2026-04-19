@@ -53,7 +53,7 @@ export interface Transaction {
   hostName: string;
   propertyName: string;
   amount: number;
-  status: 'pending' | 'completed' | 'failed';
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
   paymentMethod: string;
   type?: 'payment' | 'refund';
   breakdown?: {

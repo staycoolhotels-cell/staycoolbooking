@@ -43,6 +43,7 @@ const UnifiedInbox: React.FC<UnifiedInboxProps> = ({ inboxContext }) => {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
   const [isGuestDetailsOpen, setIsGuestDetailsOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'chat'>('list');
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -143,6 +144,7 @@ const UnifiedInbox: React.FC<UnifiedInboxProps> = ({ inboxContext }) => {
 
   const handleMessageClick = async (message: Message) => {
     setSelectedMessage(message);
+    setViewMode('chat');
 
     if (!message.is_read) {
       setMessages(messages.map((msg) => (msg.id === message.id ? { ...msg, is_read: true } : msg)));
@@ -182,9 +184,12 @@ const UnifiedInbox: React.FC<UnifiedInboxProps> = ({ inboxContext }) => {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 flex-1 lg:overflow-hidden">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 flex-1 lg:overflow-hidden min-h-0">
         {/* 2. Thread List Sidebar */}
-        <div className="w-full lg:w-[400px] xl:w-[450px] bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-2xl flex flex-col relative overflow-hidden flex-none h-[400px] lg:h-full">
+        <div className={`
+          ${viewMode === 'chat' ? 'hidden' : 'flex'} lg:flex
+          w-full lg:w-[400px] xl:w-[450px] bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-2xl flex-col relative overflow-hidden flex-none h-[600px] lg:h-full transition-all duration-300
+        `}>
           <div className="p-6 border-b border-white/10 flex justify-between items-center relative z-10 bg-black/20">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20 shadow-inner">
@@ -273,7 +278,10 @@ const UnifiedInbox: React.FC<UnifiedInboxProps> = ({ inboxContext }) => {
         </div>
 
         {/* 3. Realtime Chat Component / Empty State */}
-        <div className="flex-1 bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden relative group h-[600px] lg:h-full flex flex-col">
+        <div className={`
+          ${viewMode === 'list' ? 'hidden' : 'flex'} lg:flex
+          flex-1 bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden relative group h-[600px] lg:h-full flex-col transition-all duration-300
+        `}>
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none mix-blend-overlay"></div>
 
           {selectedMessage && currentUser ? (
@@ -281,6 +289,12 @@ const UnifiedInbox: React.FC<UnifiedInboxProps> = ({ inboxContext }) => {
               {/* Context Header for the Chat */}
               <div className="p-4 md:p-5 border-b border-white/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#0a0a0f]/80 backdrop-blur-md">
                 <div className="flex items-center gap-3 md:gap-4 w-full">
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className="lg:hidden p-2 -ml-2 rounded-xl hover:bg-white/5 text-zinc-400 hover:text-white transition-colors"
+                  >
+                    <Icon name="ChevronLeftIcon" size={20} />
+                  </button>
                   <div className="w-10 h-10 md:w-12 md:h-12 flex-shrink-0 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center overflow-hidden shadow-inner">
                     {selectedMessage.sender_avatar ? (
                       <img src={selectedMessage.sender_avatar} alt="" className="w-full h-full object-cover" />
@@ -310,7 +324,7 @@ const UnifiedInbox: React.FC<UnifiedInboxProps> = ({ inboxContext }) => {
               </div>
 
               {/* Embed the standard chat component but styled naturally by its own bounds */}
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 min-h-0 overflow-hidden relative">
                 <RealTimeChat
                   currentUser={{ id: currentUser.id }}
                   otherUser={{ id: selectedMessage.sender_id, name: selectedMessage.sender_name || 'Guest' }}
@@ -327,9 +341,15 @@ const UnifiedInbox: React.FC<UnifiedInboxProps> = ({ inboxContext }) => {
                   <Icon name="ChatBubbleLeftEllipsisIcon" size={40} className="text-indigo-400 opacity-80" />
                 </div>
                 <h3 className="text-xl font-heading font-bold text-white mb-2">Select a Conversation</h3>
-                <p className="text-sm text-zinc-500 font-medium">
+                <p className="text-sm text-zinc-500 font-medium mb-4">
                   Choose a thread from the left to view message history, property context, and reply in real-time.
                 </p>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className="lg:hidden px-6 py-2 bg-indigo-500 rounded-xl text-white font-bold text-sm"
+                >
+                  Back to Threads
+                </button>
               </div>
             </div>
           )}

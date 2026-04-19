@@ -4,7 +4,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
 import { Transaction } from '@/lib/types';
-import SpendingChart from './SpendingChart';
+import SpendingChart from '@/components/common/SpendingChart';
+import { generateInvoicePDF } from '@/lib/pdf-utils';
 
 type FinancialTreasuryProps = {
   transactions: Transaction[];
@@ -19,12 +20,8 @@ const FinancialTreasury = ({ transactions = [] }: FinancialTreasuryProps) => {
 
   const pendingRefunds = transactions.filter((t) => t.type === 'refund' && t.status === 'pending');
 
-  const downloadInvoice = (invoiceId: string) => {
-    console.log(`Downloading invoice ${invoiceId}...`);
-    // Simulate download delay
-    setTimeout(() => {
-      alert(`Invoice ${invoiceId} has been downloaded successfully.`);
-    }, 1000);
+  const downloadInvoice = async (t: Transaction) => {
+    await generateInvoicePDF(t);
   };
 
   return (
@@ -83,7 +80,7 @@ const FinancialTreasury = ({ transactions = [] }: FinancialTreasuryProps) => {
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      onClick={() => downloadInvoice(t.invoice_id || (t.id ? t.id.split('-')[0].toUpperCase() : 'N/A'))}
+                      onClick={() => downloadInvoice(t)}
                       className="p-2 bg-primary/20 rounded-full hover:bg-primary/40 transition"
                     >
                       <Icon name="ArrowDownTrayIcon" size={16} className="text-primary" />

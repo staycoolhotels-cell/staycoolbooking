@@ -26,7 +26,11 @@ const statusConfig = {
     reversed: { label: 'Reversed', color: 'text-zinc-400', bg: 'bg-zinc-500/10 border border-zinc-500/20', icon: XCircle },
 };
 
-export default function PayoutHistory() {
+interface PayoutHistoryProps {
+    hostId: string;
+}
+
+export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
     const [transfers, setTransfers] = useState<PaymentTransfer[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -36,14 +40,50 @@ export default function PayoutHistory() {
 
     async function fetchTransfers() {
         setLoading(true);
-        const { data, error } = await supabase
+        // 1. Try to fetch actual transfers filtered by host properties
+        const { data: transfersData, error: transfersError } = await supabase
             .from('payment_transfers')
-            .select('*')
+            .select('*, bookings!inner(properties!inner(host_id))')
+            .eq('bookings.properties.host_id', hostId)
             .order('created_at', { ascending: false })
             .limit(50);
 
-        if (!error && data) {
-            setTransfers(data as PaymentTransfer[]);
+        if (!transfersError && transfersData && transfersData.length > 0) {
+            setTransfers(transfersData as any);
+            setLoading(false);
+            return;
+        }
+
+        // 2. Fallback: Derive from bookings if transfers are not being recorded yet
+        const { data: bookingsData, error: bookingsError } = await supabase
+            .from('bookings')
+            .select('*, properties!inner(*)')
+            .eq('properties.host_id', hostId)
+            .in('status', ['confirmed', 'completed'])
+            .order('created_at', { ascending: false })
+            .limit(50);
+        
+        if (!bookingsError && bookingsData) {
+            const mappedTransfers: PaymentTransfer[] = bookingsData.map(b => {
+                const total = Number(b.total_price);
+                const commission = total * 0.1; // 10% platform fee
+                const hostShare = total - commission;
+                
+                return {
+                    id: b.id,
+                    booking_id: b.id,
+                    razorpay_payment_id: 'LEGACY-REF',
+                    razorpay_transfer_id: null,
+                    total_amount: total,
+                    platform_commission: commission,
+                    host_amount: hostShare,
+                    commission_type: 'percentage',
+                    commission_value: 10,
+                    transfer_status: b.status === 'completed' ? 'settled' : 'pending',
+                    created_at: b.created_at
+                };
+            });
+            setTransfers(mappedTransfers);
         }
         setLoading(false);
     }
@@ -74,9 +114,9 @@ export default function PayoutHistory() {
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500/30 to-sky-500/10 border border-sky-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(14,165,233,0.3)] shrink-0">
                         <Wallet size={32} className="text-sky-400 drop-shadow-md" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Payout History</h1>
-                        <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2 truncate whitespace-nowrap">
+                    <div className="flex-1">
+                        <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Payout History</h1>
+                        <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
                             Transfer Ledger &amp; Settlement Tracker
                         </p>
                     </div>

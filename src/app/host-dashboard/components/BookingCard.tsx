@@ -20,54 +20,54 @@ const getStatusStyles = (status: Booking['status']) => {
   switch (status) {
     case 'confirmed':
       return {
-        bg: 'bg-emerald-500/10',
-        text: 'text-emerald-400',
-        border: 'border-emerald-500/20',
-        shadow: 'shadow-[0_0_15px_rgba(52,211,153,0.1)]',
+        bg: 'bg-emerald-500/20',
+        text: 'text-emerald-300',
+        border: 'border-emerald-500/30',
+        shadow: 'shadow-[0_0_15px_rgba(52,211,153,0.15)]',
         indicator: 'bg-emerald-400 animate-pulse',
         glow: 'from-emerald-500/0 via-emerald-500/20 to-emerald-500/0'
       };
     case 'pending':
       return {
-        bg: 'bg-amber-500/10',
-        text: 'text-amber-400',
-        border: 'border-amber-500/20',
-        shadow: 'shadow-[0_0_15px_rgba(251,191,36,0.1)]',
+        bg: 'bg-amber-500/20',
+        text: 'text-amber-300',
+        border: 'border-amber-500/30',
+        shadow: 'shadow-[0_0_15px_rgba(251,191,36,0.15)]',
         indicator: 'bg-amber-400 animate-pulse',
         glow: 'from-amber-500/0 via-amber-500/20 to-amber-500/0'
       };
     case 'cancelled':
       return {
-        bg: 'bg-red-500/10',
-        text: 'text-red-400',
-        border: 'border-red-500/20',
-        shadow: 'shadow-[0_0_15px_rgba(248,113,113,0.1)]',
+        bg: 'bg-red-500/20',
+        text: 'text-red-300',
+        border: 'border-red-500/30',
+        shadow: 'shadow-[0_0_15px_rgba(248,113,113,0.15)]',
         indicator: 'bg-red-400',
         glow: 'from-red-500/0 via-red-500/20 to-red-500/0'
       };
     case 'completed':
       return {
-        bg: 'bg-blue-500/10',
-        text: 'text-blue-400',
-        border: 'border-blue-500/20',
-        shadow: 'shadow-[0_0_15px_rgba(59,130,246,0.1)]',
+        bg: 'bg-blue-500/20',
+        text: 'text-blue-300',
+        border: 'border-blue-500/30',
+        shadow: 'shadow-[0_0_15px_rgba(59,130,246,0.15)]',
         indicator: 'bg-blue-400',
         glow: 'from-blue-500/0 via-blue-500/20 to-blue-500/0'
       };
     case 'pending_payment':
       return {
-        bg: 'bg-orange-500/10',
-        text: 'text-orange-400',
-        border: 'border-orange-500/20',
-        shadow: 'shadow-[0_0_15px_rgba(249,115,22,0.1)]',
+        bg: 'bg-orange-500/20',
+        text: 'text-orange-300',
+        border: 'border-orange-500/30',
+        shadow: 'shadow-[0_0_15px_rgba(249,115,22,0.15)]',
         indicator: 'bg-orange-400 animate-pulse',
         glow: 'from-orange-500/0 via-orange-500/20 to-orange-500/0'
       };
     default:
       return {
-        bg: 'bg-zinc-500/10',
-        text: 'text-zinc-400',
-        border: 'border-zinc-500/20',
+        bg: 'bg-zinc-500/20',
+        text: 'text-zinc-300',
+        border: 'border-zinc-500/30',
         shadow: '',
         indicator: 'bg-zinc-400',
         glow: 'from-transparent via-zinc-500/20 to-transparent'
@@ -119,8 +119,8 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-2 sm:gap-4">
-              <h3 className="text-base md:text-lg font-bold text-white md:truncate leading-tight">
+            <div className="flex flex-wrap items-center justify-between mb-1 gap-2">
+              <h3 className="text-base md:text-lg font-bold text-white truncate leading-tight max-w-[150px] sm:max-w-none">
                 {booking.guest?.name?.trim() ? booking.guest.name : 'Verified Guest'}
               </h3>
               <span className={`px-2.5 py-1 text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-md border backdrop-blur-md shrink-0 flex items-center justify-center w-fit ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} ${statusStyles.shadow}`}>
@@ -129,15 +129,18 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
             </div>
             
             <div className="space-y-2">
-              <p className="text-xs md:text-sm text-zinc-400 font-bold md:truncate flex items-center gap-2">
-                <Icon name="HomeIcon" size={14} className="text-zinc-500" /> {booking.properties?.title || booking.properties?.name || 'Property'}
+              <p className="text-xs md:text-sm text-zinc-300 font-bold truncate flex items-center gap-2">
+                <Icon name="HomeIcon" size={14} className="text-indigo-400 shrink-0" /> <span className="truncate">{booking.properties?.title || booking.properties?.name || 'Property'}</span>
               </p>
               
-              <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 py-1.5 px-3 rounded-lg w-fit">
-                <Icon name="CalendarDaysIcon" size={14} className="text-indigo-400" />
-                <p suppressHydrationWarning className="text-[11px] md:text-[12px] text-white/70 font-bold uppercase tracking-widest leading-none">
-                  {new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} <span className="text-zinc-600 font-normal mx-1">→</span> {new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </p>
+              <div className="flex items-start gap-2 bg-white/[0.05] border border-white/10 py-2 px-3.5 rounded-xl w-fit max-w-full shadow-inner">
+                <Icon name="CalendarDaysIcon" size={14} className="text-indigo-400 shrink-0 mt-0.5" />
+                <div suppressHydrationWarning className="text-[11px] md:text-[13px] text-white font-bold uppercase tracking-widest leading-tight flex flex-wrap items-center gap-x-1.5">
+                  <span className="text-white">{new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  <span className="text-zinc-500 font-normal">→</span>
+                  <span className="text-white">{new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  <span className="text-indigo-300 font-black ml-0.5">{new Date(booking.check_out).getFullYear()}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -161,14 +164,14 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                         setIsApproving(false);
                     }
                 }}
-                className="w-full sm:w-auto px-6 py-3 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-400 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-colors shadow-[0_0_20px_rgba(52,211,153,0.15)] group/approve disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-4 md:px-6 py-3 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-400 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-colors shadow-[0_0_20px_rgba(52,211,153,0.15)] group/approve disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isApproving ? (
                   <Icon name="ArrowPathIcon" size={18} className="animate-spin" /> 
                 ) : (
                   <Icon name="CheckCircleIcon" size={18} className="group-hover/approve:scale-110 transition-transform" /> 
                 )}
-                {isApproving ? 'Authorizing...' : 'Auth Release'}
+                <span>{isApproving ? 'Authorizing...' : 'Auth Release'}</span>
               </button>
 
               <button
@@ -186,19 +189,19 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                       }
                     }
                 }}
-                className="w-full sm:w-auto px-6 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-500 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-colors shadow-[0_0_20px_rgba(239,68,68,0.15)] group/reject disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-4 md:px-6 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-500 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-colors shadow-[0_0_20px_rgba(239,68,68,0.15)] group/reject disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isRejecting ? (
                   <Icon name="ArrowPathIcon" size={18} className="animate-spin" /> 
                 ) : (
                   <Icon name="NoSymbolIcon" size={18} className="group-hover/reject:scale-110 transition-transform" /> 
                 )}
-                {isRejecting ? 'Rejecting...' : 'Reject'}
+                <span>{isRejecting ? 'Rejecting...' : 'Reject'}</span>
               </button>
             </div>
           )}
 
-          <div className="flex items-center justify-between sm:justify-start gap-3 h-full">
+          <div className="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-3 h-full">
             <button
               onClick={() => onAction('unified-inbox', {
                 guest_id: booking.guest_id,
@@ -207,16 +210,16 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                 property_id: booking.property_id,
                 property_name: booking.properties?.title || booking.properties?.name || 'Property'
               })}
-              className="flex-1 sm:flex-none h-[48px] px-6 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 text-indigo-400 hover:text-indigo-300 transition-all font-bold text-[11px] md:text-[12px] uppercase tracking-widest flex items-center justify-center gap-2"
+              className="flex-1 sm:flex-none h-[48px] px-2 sm:px-6 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 text-indigo-400 hover:text-indigo-300 transition-all font-bold text-[9px] sm:text-[11px] md:text-[12px] uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2"
             >
-              <Icon name="ChatBubbleLeftRightIcon" size={18} /> <span>Message</span>
+              <Icon name="ChatBubbleLeftRightIcon" size={16} className="shrink-0 sm:w-[18px] sm:h-[18px]" /> <span>Message</span>
             </button>
 
             <button
               onClick={() => setIsDisputeModalOpen(true)}
-              className="flex-1 sm:flex-none h-[48px] px-6 bg-red-500/5 hover:bg-red-500/10 rounded-xl border border-red-500/10 text-red-500/60 hover:text-red-400 transition-all font-bold text-[11px] md:text-[12px] uppercase tracking-widest flex items-center justify-center gap-2"
+              className="flex-1 sm:flex-none h-[48px] px-2 sm:px-6 bg-red-500/5 hover:bg-red-500/10 rounded-xl border border-red-500/10 text-red-500/60 hover:text-red-400 transition-all font-bold text-[9px] sm:text-[11px] md:text-[12px] uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2"
             >
-              <Icon name="ScaleIcon" size={18} /> <span>Dispute</span>
+              <Icon name="ScaleIcon" size={16} className="shrink-0 sm:w-[18px] sm:h-[18px]" /> <span>Dispute</span>
             </button>
           </div>
         </div>

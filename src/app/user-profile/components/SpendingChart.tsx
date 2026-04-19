@@ -6,8 +6,8 @@ import { Transaction } from '@/lib/types';
 
 const COLORS = {
   accommodation: '#0ea5e9', // sky-500
-  service_fee: '#38bdf8', // sky-400
-  taxes: '#ef4444', // red-500
+  service_fee: '#8b5cf6', // violet-500
+  taxes: '#f43f5e', // rose-500
 };
 
 type SpendingChartProps = {

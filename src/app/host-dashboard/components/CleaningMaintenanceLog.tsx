@@ -384,12 +384,11 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
             <Icon name="WrenchScrewdriverIcon" size={32} className="text-amber-400 drop-shadow-md" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Facility Ops</h1>
-            <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2 truncate whitespace-nowrap">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Facility Ops</h1>
+            <p className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
               Cleaning & Maintenance Core
             </p>
-          </div>
-        </div>
+          </div>        </div>
 
         <div className="relative z-10 flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
           <div className="flex gap-4 flex-1">
@@ -448,15 +447,15 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
 
                     <div className="flex justify-between items-start gap-4 mb-3 relative z-10">
                       <div className="flex-1 min-w-0 pr-4">
-                        <div className="flex items-center gap-3 mb-1">
-                          <h3 className="font-bold text-white text-base truncate">{alert.issue}</h3>
+                        <div className="flex items-center gap-3 mb-1 flex-wrap">
+                          <h3 className="font-bold text-white text-base leading-snug">{alert.issue}</h3>
                           {!isResolved && (
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border ${priorityStyle.bg} ${priorityStyle.text} ${priorityStyle.border}`}>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border ${priorityStyle.bg} ${priorityStyle.text} ${priorityStyle.border} shrink-0`}>
                               {alert.priority}
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest truncate">
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                           {alert.property_name}
                         </p>
                       </div>
@@ -542,12 +541,12 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
                       <div className="flex justify-between items-start gap-4 mb-3">
                         <div className="min-w-0 pr-4">
                           <div className="flex items-center gap-3 mb-1">
-                            <h3 className="font-bold text-white text-base truncate">{checklist.property_name}</h3>
-                            {isCompleted && <span className="text-[10px] font-bold text-success uppercase tracking-widest"><Icon name="CheckBadgeIcon" size={14} className="inline mr-1 -mt-0.5" />Done</span>}
+                            <h3 className="font-bold text-white text-base leading-snug">{checklist.property_name}</h3>
+                            {isCompleted && <span className="text-[10px] font-bold text-success uppercase tracking-widest shrink-0"><Icon name="CheckBadgeIcon" size={14} className="inline mr-1 -mt-0.5" />Done</span>}
                           </div>
-                          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2 flex-wrap">
                             <span>Team: <span className="text-cyan-500 group-hover/list:text-cyan-400">{checklist.assigned_to}</span></span>
-                            <span className="w-1 h-1 rounded-full bg-zinc-700" />
+                            <span className="w-1 h-1 rounded-full bg-zinc-700 hidden sm:block" />
                             <span>{new Date(checklist.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
                           </p>
                         </div>

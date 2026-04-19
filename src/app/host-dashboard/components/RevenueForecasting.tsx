@@ -19,50 +19,80 @@ interface RevenueForecastingProps {
 }
 
 const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }) => {
-  const { revenueData, priceSuggestions, totalProjected } = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+  const [dynamicSuggestions, setDynamicSuggestions] = React.useState<PriceSuggestion[]>([]);
+  const [loadingAI, setLoadingAI] = React.useState(false);
 
-    const confirmedBookings = bookings
-      .filter((b) => b.status === 'confirmed' && b.check_in >= today)
+  const { revenueData, totalProjected, historicalTotal } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+
+    const relevantBookings = bookings
+      .filter((b) => (b.status === 'confirmed' || b.status === 'completed'))
       .sort((a, b) => a.check_in.localeCompare(b.check_in));
 
     const forecastMap: { [key: string]: number } = {};
-    const suggestions: PriceSuggestion[] = [];
-    let total = 0;
+    const historicalMap: { [key: string]: number } = {};
+    let projectedTotal = 0;
+    let histTotal = 0;
 
-    confirmedBookings.forEach((b) => {
-      const date = new Date(b.check_in).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
+    relevantBookings.forEach((b) => {
+      const checkInDate = new Date(b.check_in);
+      const dateStr = checkInDate.toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric',
       });
       const amount = Number(b.total_price) || 0;
-      forecastMap[date] = (forecastMap[date] || 0) + amount;
-      total += amount;
 
-      if (forecastMap[date] > 1000) {
-        suggestions.push({
-          propertyId: b.properties?.id || b.property_id,
-          propertyName: b.properties?.name || b.properties?.title || 'Property',
-          suggestion: 'Increase price by 12%',
-          impact: 'High seasonal demand detected',
-        });
+      if (checkInDate >= today) {
+        forecastMap[dateStr] = (forecastMap[dateStr] || 0) + amount;
+        projectedTotal += amount;
+      } else if (checkInDate >= thirtyDaysAgo) {
+        historicalMap[dateStr] = (historicalMap[dateStr] || 0) + amount;
+        histTotal += amount;
       }
     });
 
-    const chartData = Object.keys(forecastMap).map((date) => ({
-      date,
-      expectedEarnings: forecastMap[date],
-    }));
+    const chartData = [];
+    for (let i = -30; i <= 14; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        
+        const earnings = forecastMap[label] || historicalMap[label] || 0;
+        
+        chartData.push({
+            date: label,
+            earnings,
+            type: i >= 0 ? 'Projected' : 'Historical'
+        });
+    }
 
     return {
-      revenueData: chartData.length > 0 ? chartData : [
-        { date: '1st', expectedEarnings: 0 },
-        { date: '15th', expectedEarnings: 0 },
-        { date: '30th', expectedEarnings: 0 }
-      ],
-      priceSuggestions: suggestions.slice(0, 3),
-      totalProjected: total
+      revenueData: chartData,
+      totalProjected: projectedTotal,
+      historicalTotal: histTotal
     };
+  }, [bookings]);
+
+  React.useEffect(() => {
+    const fetchAI = async () => {
+      const propIds = Array.from(new Set(bookings.map(b => b.property_id).filter(Boolean)));
+      if (propIds.length === 0) return;
+      
+      setLoadingAI(true);
+      try {
+        const { generatePricingAI } = await import('@/lib/pricing-actions');
+        const suggestions = await generatePricingAI(propIds);
+        setDynamicSuggestions(suggestions);
+      } catch (err) {
+        console.error('Failed to fetch Pricing AI:', err);
+      } finally {
+        setLoadingAI(false);
+      }
+    };
+
+    fetchAI();
   }, [bookings]);
 
   return (
@@ -80,16 +110,21 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
           </div>
         </div>
 
-        <div className="relative z-10 bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center gap-5 shadow-inner w-full md:w-auto">
+        <div className="relative z-10 bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-5 shadow-inner w-full md:w-auto">
           <div>
-            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-1">Projected Earnings</p>
+            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-1">Historical (30d)</p>
+            <p className="text-xl font-heading font-black text-zinc-400 px-1">₹{historicalTotal.toLocaleString('en-IN')}</p>
+          </div>
+          <div className="h-10 w-[1px] bg-white/10" />
+          <div>
+            <p className="text-[10px] font-bold text-success uppercase tracking-widest pl-1">Projected (14d)</p>
             <p className="text-2xl font-heading font-black text-white px-1">₹{totalProjected.toLocaleString('en-IN')}</p>
           </div>
           <div className="h-10 w-[1px] bg-white/10" />
           <div className="flex flex-col items-center justify-center pr-2">
             <div className="flex items-center gap-1 text-success bg-success/10 px-2 py-0.5 rounded-md border border-success/20">
               <Icon name="ArrowTrendingUpIcon" size={14} />
-              <span className="text-xs font-bold">+18%</span>
+              <span className="text-xs font-bold">+{historicalTotal > 0 ? Math.round((totalProjected / historicalTotal) * 100) : 0}%</span>
             </div>
             <p className="text-[9px] text-zinc-500 mt-1 uppercase tracking-wider font-bold">Velocity</p>
           </div>
@@ -101,17 +136,24 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
         <div className="lg:col-span-2 relative group overflow-hidden bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 md:p-8 shadow-2xl flex flex-col min-h-[450px]">
           <div className="absolute -top-32 -right-32 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-blue-500/15 transition-colors duration-1000" />
 
-          <div className="flex items-center justify-between mb-8 relative z-10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 relative z-10">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20 shadow-inner">
                 <Icon name="ChartBarIcon" size={18} className="text-blue-400" />
               </div>
               <h2 className="text-sm font-heading font-bold text-white uppercase tracking-wider">
-                Expected Earnings
+                Revenue Performance
               </h2>
             </div>
-            <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-zinc-400">
-              14 Day Forecast
+            <div className="flex gap-2">
+              <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[9px] font-bold text-zinc-500 uppercase tracking-tighter">
+                <span className="inline-block w-2 h-2 bg-zinc-600 rounded-full mr-2 opacity-50"></span>
+                Past 30d
+              </div>
+              <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg text-[9px] font-bold text-blue-400 uppercase tracking-tighter">
+                <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                Next 14d
+              </div>
             </div>
           </div>
 
@@ -119,33 +161,34 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="colorProjected" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
                     <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                   </linearGradient>
+                  <linearGradient id="colorHistorical" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#71717a" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#71717a" stopOpacity={0} />
+                  </linearGradient>
                 </defs>
-                <CartesianGrid
-                  strokeDasharray="4 4"
-                  stroke="rgba(255,255,255,0.06)"
-                  vertical={false}
-                />
                 <XAxis
                   dataKey="date"
                   stroke="#71717a"
-                  fontSize={11}
+                  fontSize={10}
                   tickLine={false}
                   axisLine={false}
                   dy={15}
                   fontWeight={600}
+                  interval="preserveStartEnd"
+                  minTickGap={30}
                 />
                 <YAxis
                   stroke="#71717a"
-                  fontSize={11}
+                  fontSize={10}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(value) => `₹${value.toLocaleString('en-IN')}`}
+                  tickFormatter={(value) => `₹${(value / 1000).toFixed(1)}k`}
                   fontWeight={600}
-                  dx={-10}
+                  dx={-15}
                 />
                 <Tooltip
                   cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '4 4' }}
@@ -163,11 +206,11 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
                 />
                 <Area
                   type="monotone"
-                  dataKey="expectedEarnings"
-                  stroke="#3b82f6"
-                  strokeWidth={4}
+                  dataKey="earnings"
+                  stroke={(props) => (props as any).payload?.type === 'Projected' ? '#3b82f6' : '#52525b'}
+                  strokeWidth={3}
                   fillOpacity={1}
-                  fill="url(#colorRev)"
+                  fill="url(#colorProjected)"
                   activeDot={{ r: 6, fill: '#60a5fa', stroke: '#fff', strokeWidth: 2 }}
                 />
               </AreaChart>
@@ -189,9 +232,14 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
               </h2>
             </div>
 
-            <div className="space-y-4 relative z-10 overflow-y-auto max-h-[250px] pr-1 no-scrollbar">
-              {priceSuggestions.length > 0 ? (
-                priceSuggestions.map((s, idx) => (
+            <div className="space-y-4 relative z-10 overflow-y-auto max-h-[280px] pr-1 no-scrollbar">
+              {loadingAI ? (
+                 <div className="flex flex-col items-center justify-center py-12 text-center h-full">
+                  <Icon name="ArrowPathIcon" size={32} className="text-purple-500 animate-spin mb-4" />
+                  <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest animate-pulse">Consulting AI Strategist...</p>
+                </div>
+              ) : dynamicSuggestions.length > 0 ? (
+                dynamicSuggestions.map((s, idx) => (
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -230,9 +278,8 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
               </p>
             </div>
             <p className="text-xs text-zinc-300 leading-relaxed font-medium relative z-10 pr-4">
-              Revenue is projected to increase by{' '}
-              <span className="text-success font-black px-1 py-0.5 bg-success/10 rounded-md border border-success/20 mx-1 shadow-sm">+18%</span>{' '}
-              over the next 14 days based on current booking velocity and seasonal search trends.
+              Revenue growth is currently optimized based on local demand markers. 
+              Pricing AI suggests periodic adjustments to maximize yield during high-velocity windows.
             </p>
           </div>
         </div>

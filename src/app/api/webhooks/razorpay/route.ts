@@ -93,6 +93,36 @@ export async function POST(req: Request) {
                         .eq('razorpay_order_id', razorpayOrderId);
 
                     console.log(`[Webhook] payment.captured: Booking ${bookingId} confirmed.`);
+
+                    // 4. Record Transaction (Secondary Ledger)
+                    try {
+                        const { data: booking } = await supabase
+                            .from('bookings')
+                            .select('*, property:properties(*)')
+                            .eq('id', bookingId)
+                            .single();
+
+                        if (booking) {
+                            const amount = Number(booking.total_price);
+                            const platformFee = amount * 0.20;
+                            const hostPayout = amount - platformFee;
+
+                            await supabase
+                                .from('transactions')
+                                .insert({
+                                    booking_id: bookingId,
+                                    guest_id: booking.guest_id,
+                                    host_id: booking.property?.host_id,
+                                    property_id: booking.property_id,
+                                    amount: amount,
+                                    platform_fee: platformFee,
+                                    host_payout: hostPayout,
+                                    status: 'completed'
+                                });
+                        }
+                    } catch (txnError) {
+                        console.error('[Webhook] Secondary transaction logging failed:', txnError);
+                    }
                 }
                 break;
             }

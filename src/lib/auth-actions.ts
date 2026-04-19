@@ -8,7 +8,7 @@ import { verifyPaymentSignature } from './payment-actions';
 
 // --- Supabase Client Helpers ---
 
-const createSupabaseServerClient = async () => {
+export const createSupabaseServerClient = async () => {
   const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,7 +27,7 @@ const createSupabaseServerClient = async () => {
   );
 };
 
-const createSupabaseAdminClient = async () => {
+export const createSupabaseAdminClient = async () => {
   const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -511,9 +511,10 @@ export async function verifyMobileOtp(prevState: string | undefined, formData: F
     return 'Invalid OTP code.';
   }
 
-  if (data.user) {
+    if (data.user) {
     const userId = data.user.id;
     const supabaseAdmin = await createSupabaseAdminClient();
+    const userRole = role === 'host' ? 'host' : 'guest';
 
     // Check if user profile exists
     // We MUST fetch the role from public.users to be secure
@@ -559,7 +560,6 @@ export async function verifyMobileOtp(prevState: string | undefined, formData: F
       // Create new profile for mobile user
       console.log('Mobile user profile not found, creating...');
 
-      const userRole = role === 'host' ? 'host' : 'guest';
       const userStatus = userRole === 'host' ? 'active' : 'active'; // Hosts are auto-approved now
       const userName = name || 'Mobile User';
       const newReferralCode = `SC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;

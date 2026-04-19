@@ -109,11 +109,11 @@ const RealTimeChat: React.FC<RealTimeChatProps> = ({
     }, {} as Record<string, Message[]>);
 
     return (
-        /* absolute positioning: messages take all space above input */
-        <div className="relative w-full" style={{ height: containerHeight || '100%' }}>
+        /* flexbox layout: messages take all space above input */
+        <div className="flex flex-col w-full relative" style={{ height: containerHeight || '100%' }}>
             {/* Messages — fills top, leaves 60px for input */}
             <div
-                className="absolute inset-0 bottom-[60px] overflow-y-auto px-4 py-3"
+                className="flex-1 min-h-0 overflow-y-auto px-4 py-3"
                 style={{ WebkitOverflowScrolling: 'touch' }}
             >
                 {isLoading ? (
@@ -167,7 +167,7 @@ const RealTimeChat: React.FC<RealTimeChatProps> = ({
             {/* Input bar — pinned to bottom */}
             <form
                 onSubmit={handleSend}
-                className="absolute bottom-0 left-0 right-0 h-[60px] flex items-center gap-2 px-3 border-t border-white/[0.07] bg-zinc-950"
+                className="flex-shrink-0 w-full h-[60px] flex items-center gap-2 px-3 border-t border-white/[0.07] bg-zinc-950"
             >
                 <input
                     type="text"

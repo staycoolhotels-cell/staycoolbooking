@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { Property } from '@/lib/types';
 import Icon from '@/components/ui/AppIcon';
 import { motion, AnimatePresence } from 'framer-motion';
+import { generatePropertyOptimization, getStoredAuraScores } from '@/lib/optimization-actions';
 
 interface GuestReview {
   id: string;
@@ -49,8 +50,10 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
   const [auraScores, setAuraScores] = useState<AuraQualityScoreData[]>([]);
   const [marketComparisons, setMarketComparisons] = useState<MarketComparisonData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
   const [guestReviews, setGuestReviews] = useState<GuestReview[]>([]);
   const [showAllReviews, setShowAllReviews] = useState(false);
+  const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
 
   const propertyMap = useMemo(() => {
     return properties.reduce((acc, prop) => {
@@ -73,7 +76,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
       try {
         const { data: reviewsData, error: reviewsError } = await supabase
           .from('reviews')
-          .select('id, rating, cleanliness_rating, accuracy_rating, check_in_rating, communication_rating, location_rating, value_rating, comment, created_at, property_id, reviewer_id, reviewer:users!reviewer_id(name, avatar_url), property:properties!property_id(title, name)')
+          .select('id, rating, cleanliness_rating, accuracy_rating, check_in_rating, communication_rating, location_rating, value_rating, comment, created_at, property_id, reviewer_id, reviewer:users!reviewer_id(name, avatar_url), property:properties!property_id(title)')
           .in('property_id', propertyIds)
           .order('created_at', { ascending: false });
 
@@ -85,7 +88,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
             created_at: r.created_at,
             reviewer_name: r.reviewer?.name || 'Guest',
             reviewer_avatar: r.reviewer?.avatar_url,
-            property_name: r.property?.title || r.property?.name || 'Property',
+            property_name: r.property?.title || 'Property',
             property_id: r.property_id,
           }));
         } else {
@@ -126,12 +129,14 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
       setGuestReviews(fetchedReviews);
 
       try {
-        const { data: auraData } = await supabase
-          .from('aura_quality_scores')
-          .select('*')
-          .in('property_id', propertyIds);
-
-        const fetchedAura = auraData || [];
+        // 1. Fetch Stored Scores
+        const storedAura = await getStoredAuraScores(propertyIds);
+        const fetchedAura = storedAura || [];
+        
+        // 2. Identify properties needing AI generation
+        const needsGeneration = properties.filter(p => !fetchedAura.find(a => a.property_id === p.id));
+        
+        // Initial set of scores (those already in DB)
         const enrichedAura = properties.map((prop) => {
           const dbData = fetchedAura.find((item: any) => item.property_id === prop.id);
           const propName = prop.name || prop.title || 'Unknown Property';
@@ -141,71 +146,19 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
               property_name: propName
             };
           }
+          return null; // Will be filled by generation
+        }).filter(Boolean) as AuraQualityScoreData[];
 
-          const charCode = propName.charCodeAt(0) || 65;
-          const currentPrice = prop.price_per_night || prop.price || 5000;
-          const numBedrooms = prop.bedrooms || 1;
-          const numImages = prop.images?.length || 0;
-
-          const availableTips: string[] = [];
-
-          if (currentPrice > 10000) {
-            availableTips.push('Consider offering a premium welcome package to justify the high price point.');
-            availableTips.push('Highlight luxury amenities prominently in your main listing photos.');
-          } else if (currentPrice < 3000) {
-            availableTips.push('Emphasize value for money and budget-friendly aspects of your location.');
-            availableTips.push('Consider small, cost-effective upgrades like better lighting to increase perceived value.');
-          } else {
-            availableTips.push('Your pricing is competitive. Focus on gathering more positive reviews.');
-            availableTips.push('Offer seasonal discounts to maintain high occupancy rates.');
-          }
-
-          if (numBedrooms >= 3) {
-            availableTips.push('Highlight family-friendly features and group accommodation capabilities.');
-          } else if (numBedrooms === 2) {
-            availableTips.push('Great for small families or friends. Mention nearby parks or attractions.');
-          } else {
-            availableTips.push('Perfect for solo travelers or couples. Highlight romantic or quiet workspaces.');
-          }
-
-          if (numImages < 5) {
-            availableTips.push('Add more high-quality photos (aim for at least 15) to increase booking conversion.');
-          } else {
-            availableTips.push('Consider uploading a video tour of the property to stand out in search results.');
-          }
-
-          const generalTips = [
-            'Update your listing description to highlight recent local events or seasonal attractions.',
-            'Consider enabling Instant Book to increase visibility in search results.',
-            'Respond to guest inquiries within 1 hour to boost your response rate metric.',
-            'Highlight fast Wi-Fi speeds to attract remote workers and digital nomads.',
-            'Promote early check-in or late check-out options for better guest satisfaction.',
-            'Provide a local guidebook with personalized restaurant recommendations.',
-            'Add self check-in options to appeal to travelers arriving late.'
-          ];
-
-          const seed = propName.length + charCode;
-          availableTips.push(generalTips[seed % generalTips.length]);
-          availableTips.push(generalTips[(seed + 3) % generalTips.length]);
-          availableTips.push(generalTips[(seed + 5) % generalTips.length]);
-
-          const uniqueTips = Array.from(new Set(availableTips));
-          const finalTips = [
-            uniqueTips[seed % uniqueTips.length],
-            uniqueTips[(seed + 1) % uniqueTips.length],
-            uniqueTips[(seed + 2) % uniqueTips.length]
-          ];
-
-          return {
-            id: `aura-mock-${prop.id}`,
-            property_id: prop.id,
-            property_name: propName,
-            overall_score: 80 + (charCode % 15),
-            optimization_tips: finalTips,
-            ranking_improvement: `Potential +${(10 + (charCode % 10))}% visibility in search.`
-          };
-        });
         setAuraScores(enrichedAura);
+
+        // 3. Trigger Generation for missing ones
+        if (needsGeneration.length > 0) {
+          // Add all missing properties to generating list IMMEDIATELY to prevent "Not enough data" flash
+          setGeneratingIds(new Set(needsGeneration.map(p => p.id)));
+          triggerOptimizationGeneration(needsGeneration);
+        }
+
+        // 4. Market Comparisons (Keep existing logic or migrate similarly)
 
         const { data: marketData } = await supabase
           .from('market_comparisons')
@@ -249,6 +202,43 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
     fetchData();
   }, [properties, supabase, propertyMap]);
 
+  const triggerOptimizationGeneration = useCallback(async (propsToGenerate: Property[]) => {
+    for (const prop of propsToGenerate) {
+      // Ensure it's in the generating set (redundant if called from fetchData but good for safety)
+      setGeneratingIds(prev => new Set(prev).add(prop.id));
+      
+      const result = await generatePropertyOptimization(prop.id);
+      
+      if (result && result.success && result.data) {
+        setAuraScores(prev => {
+          const newData: AuraQualityScoreData = {
+            id: `aura-gen-${prop.id}`,
+            property_id: prop.id,
+            property_name: prop.name || prop.title || 'Property',
+            overall_score: result.data!.overall_score,
+            optimization_tips: result.data!.optimization_tips,
+            ranking_improvement: result.data!.ranking_improvement
+          };
+          const filtered = prev.filter(p => p.property_id !== prop.id);
+          return [...filtered, newData];
+        });
+        setFailedIds(prev => {
+          const next = new Set(prev);
+          next.delete(prop.id);
+          return next;
+        });
+      } else {
+        setFailedIds(prev => new Set(prev).add(prop.id));
+      }
+      
+      setGeneratingIds(prev => {
+        const next = new Set(prev);
+        next.delete(prop.id);
+        return next;
+      });
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="w-full h-[600px] flex items-center justify-center p-8">
@@ -271,9 +261,9 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
             <Icon name="StarIcon" size={32} className="text-amber-400 drop-shadow-md" />
           </div>
           <div>
-            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Aura Quality <span className="text-amber-400/70 text-2xl md:text-3xl font-semibold">(AI suggestions)</span></h1>
+            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Property <span className="text-amber-400/70 text-2xl md:text-3xl font-semibold">Insights & Drawbacks</span></h1>
             <p className="text-sm font-medium text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
-              Sentiment & Optimization
+              Deep Property Analysis
             </p>
           </div>
         </div>
@@ -387,51 +377,93 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
                 <Icon name="SparklesIcon" size={20} className="text-purple-400" />
               </div>
               <h2 className="text-sm font-heading font-bold text-white uppercase tracking-wider">
-                Optimization AI
+                Drawbacks & Fixes
               </h2>
             </div>
           </div>
 
           <div className="relative z-10 space-y-4 flex-1 overflow-y-auto pr-2 no-scrollbar">
-            {auraScores.length > 0 ? (
-              auraScores.map((aura, idx) => (
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  key={aura.id}
-                  className="p-5 rounded-3xl bg-white/[0.02] border border-white/10 shadow-lg"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="font-bold text-base text-white">{aura.property_name}</h3>
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-xl shadow-inner">
-                      <Icon name="BoltIcon" size={14} className="text-purple-400" />
-                      <span className="text-sm font-black text-purple-400">{aura.overall_score}</span>
-                    </div>
-                  </div>
+            {auraScores.length > 0 || generatingIds.size > 0 ? (
+              <>
+                {/* 1. Show properties currently being analyzed */}
+                {properties.filter(p => generatingIds.has(p.id)).map((prop) => (
+                  <motion.div
+                    key={`gen-${prop.id}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="p-5 rounded-3xl bg-white/[0.02] border border-dashed border-purple-500/30 flex flex-col items-center justify-center py-8"
+                  >
+                    <Icon name="ArrowPathIcon" size={24} className="text-purple-400 animate-spin mb-3" />
+                    <h3 className="font-bold text-sm text-zinc-300 mb-1 line-clamp-1">{prop.name || prop.title}</h3>
+                    <p className="text-[10px] font-black text-purple-400 uppercase tracking-[0.2em] animate-pulse">AI Analysis in Progress...</p>
+                  </motion.div>
+                ))}
 
-                  <div className="space-y-2 mb-4">
-                    {aura.optimization_tips?.map((tip, index) => (
-                      <div key={index} className="flex gap-2.5 items-start">
-                        <div className="mt-0.5 p-0.5 rounded-full bg-white/5 border border-white/10 shrink-0">
-                          <Icon name="ChevronRightIcon" size={10} className="text-zinc-500" />
-                        </div>
-                        <p className="text-xs text-zinc-400 leading-snug font-medium">{tip}</p>
+                {/* 2. Show properties that failed analysis */}
+                {properties.filter(p => failedIds.has(p.id) && !generatingIds.has(p.id)).map((prop) => (
+                  <motion.div
+                    key={`fail-${prop.id}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="p-5 rounded-3xl bg-red-500/5 border border-red-500/20 flex flex-col items-center justify-center py-6"
+                  >
+                    <Icon name="ExclamationTriangleIcon" size={24} className="text-red-500 mb-2 opacity-60" />
+                    <h3 className="font-bold text-sm text-zinc-300 mb-1 line-clamp-1">{prop.name || prop.title}</h3>
+                    <p className="text-[10px] font-black text-red-500/70 uppercase tracking-[0.1em] mb-4 text-center px-4">Analysis Interrupted</p>
+                    <button 
+                      onClick={() => triggerOptimizationGeneration([prop])}
+                      className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
+                    >
+                      Retry Analysis
+                    </button>
+                  </motion.div>
+                ))}
+
+                {/* 2. Show completed scores */}
+                {auraScores.map((aura, idx) => (
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    key={aura.id}
+                    className="p-5 rounded-3xl bg-white/[0.02] border border-white/10 shadow-lg group/item relative overflow-hidden"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="font-bold text-base text-white">{aura.property_name}</h3>
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-xl shadow-inner">
+                        <Icon name="BoltIcon" size={14} className="text-purple-400" />
+                        <span className="text-sm font-black text-purple-400">{aura.overall_score}</span>
                       </div>
-                    ))}
-                  </div>
-
-                  {aura.ranking_improvement && (
-                    <div className="mt-3 p-3 rounded-2xl bg-gradient-to-r from-success/10 to-transparent border border-success/20 flex items-center gap-3">
-                      <Icon name="ArrowTrendingUpIcon" size={16} className="text-success" />
-                      <p className="text-[10px] font-bold text-success uppercase tracking-widest">{aura.ranking_improvement}</p>
                     </div>
-                  )}
-                </motion.div>
-              ))
+
+                    <div className="space-y-2 mb-4">
+                      {aura.optimization_tips?.map((tip, index) => (
+                        <div key={index} className="flex gap-2.5 items-start">
+                          <div className="mt-0.5 p-0.5 rounded-full bg-white/5 border border-white/10 shrink-0">
+                            <Icon name="ChevronRightIcon" size={10} className="text-zinc-500" />
+                          </div>
+                          <p className="text-xs text-zinc-400 leading-snug font-medium">{tip}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {aura.ranking_improvement && (
+                      <div className="mt-3 p-3 rounded-2xl bg-gradient-to-r from-success/10 to-transparent border border-success/20 flex items-center gap-3">
+                        <Icon name="ArrowTrendingUpIcon" size={16} className="text-success" />
+                        <p className="text-[10px] font-bold text-success uppercase tracking-widest">{aura.ranking_improvement}</p>
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full opacity-60">
-                <p className="text-sm font-bold text-zinc-400">Not enough data to compute optimizations.</p>
+              <div className="flex flex-col items-center justify-center h-full opacity-60 py-10">
+                <Icon name="DocumentMagnifyingGlassIcon" size={32} className="text-zinc-500 mb-3" />
+                <p className="text-sm font-bold text-zinc-400 text-center px-6">
+                  {properties.length > 0 
+                    ? "Initializing deep property analysis... Drawbacks will appear shortly." 
+                    : "No properties found. Add a property to generate performance insights."}
+                </p>
               </div>
             )}
           </div>

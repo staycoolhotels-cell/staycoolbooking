@@ -83,16 +83,26 @@ export default async function HostDashboardPage() {
     .select('*')
     .eq('receiver_id', user.id);
 
-  const { data: transactions, error: transactionsError } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('host_id', user.id);
+  const mappedTransactions = (bookings || [])
+    .filter(b => b.status === 'confirmed' || b.status === 'completed')
+    .map(b => ({
+      id: b.id,
+      transactionId: `TXN-${b.id.slice(0, 8).toUpperCase()}`,
+      propertyName: b.properties?.title || 'Unknown Property',
+      guestName: b.guest?.name || 'Unknown Guest',
+      hostName: host.name || 'Me',
+      amount: Number(b.total_price),
+      date: new Date(b.created_at).toLocaleDateString(),
+      status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 'pending',
+      paymentMethod: 'Razorpay'
+    }));
 
   // Group transactions by month for the chart
   const monthlyEarningsMap: Record<string, number> = {};
-  transactions?.forEach((t: any) => {
-    const month = new Date(t.date).toLocaleString('default', { month: 'short' });
-    monthlyEarningsMap[month] = (monthlyEarningsMap[month] || 0) + (Number(t.amount) || 0);
+  const confirmedBookingsForChart = (bookings || []).filter(b => b.status === 'confirmed' || b.status === 'completed');
+  confirmedBookingsForChart.forEach((b: any) => {
+    const month = new Date(b.created_at).toLocaleString('default', { month: 'short' });
+    monthlyEarningsMap[month] = (monthlyEarningsMap[month] || 0) + (Number(b.total_price) || 0);
   });
 
   const earnings = Object.entries(monthlyEarningsMap).map(([month, earnings]) => ({
@@ -102,10 +112,10 @@ export default async function HostDashboardPage() {
 
   const hostData = {
     ...host,
-    properties,
-    bookings,
+    properties: properties || [],
+    bookings: bookings || [],
     earnings,
-    transactions: transactions || [],
+    transactions: mappedTransactions || [],
     reviews: reviews || [],
   };
 

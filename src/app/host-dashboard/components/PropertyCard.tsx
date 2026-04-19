@@ -7,6 +7,7 @@ import { Property } from '@/lib/types';
 
 interface PropertyCardProps {
   property: Property;
+  bookings?: any[];
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onToggleStatus: (id: string, newStatus: 'active' | 'pending' | 'rejected' | 'offline') => void;
@@ -78,7 +79,16 @@ const getStatusConfig = (status: string) => {
   }
 };
 
-const PropertyCard = ({ property, onEdit, onDelete, onToggleStatus, onManageRooms }: PropertyCardProps) => {
+const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatus, onManageRooms }: PropertyCardProps) => {
+  const estimatedEarnings = React.useMemo(() => {
+    return bookings.reduce((sum, b) => {
+      if (b.status === 'confirmed' || b.status === 'completed') {
+        return sum + (Number(b.total_price) || 0);
+      }
+      return sum;
+    }, 0);
+  }, [bookings]);
+
   const statusConfig = getStatusConfig(property.status);
 
   return (
@@ -171,7 +181,7 @@ const PropertyCard = ({ property, onEdit, onDelete, onToggleStatus, onManageRoom
             </div>
             <div className="bg-white/[0.02] border border-white/5 rounded-xl p-2 md:p-2.5">
               <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Est. Earnings</p>
-              <p className="text-xs font-black text-emerald-400">₹0</p>
+              <p className="text-xs font-black text-emerald-400">₹{estimatedEarnings.toLocaleString('en-IN')}</p>
             </div>
           </div>
         </div>

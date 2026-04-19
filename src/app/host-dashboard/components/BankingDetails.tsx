@@ -151,9 +151,9 @@ export default function BankingDetails() {
                         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)] shrink-0">
                             <Banknote size={32} className="text-indigo-400 drop-shadow-md" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Banking & KYC</h1>
-                            <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest truncate whitespace-nowrap">
+                        <div className="flex-1">
+                            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Banking & KYC</h1>
+                            <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest">
                                 Razorpay Route · Payout Setup
                             </p>
                         </div>
@@ -228,9 +228,9 @@ export default function BankingDetails() {
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)] shrink-0">
                         <Banknote size={32} className="text-indigo-400 drop-shadow-md" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Banking & KYC</h1>
-                        <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest truncate whitespace-nowrap">
+                    <div className="flex-1">
+                        <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Banking & KYC</h1>
+                        <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest">
                             Razorpay Route · Payout Setup
                         </p>
                     </div>

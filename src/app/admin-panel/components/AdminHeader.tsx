@@ -12,6 +12,8 @@ import { useRouter } from 'next/navigation';
 
 const adminNavLinks = [
     { name: 'Home', path: '/' },
+    { name: 'Community', path: '/community' },
+    { name: 'About', path: '/about' },
 ];
 
 interface AdminHeaderProps {
@@ -84,7 +86,7 @@ const AdminHeader = ({ onMenuToggle, isMobileMenuOpen }: AdminHeaderProps) => {
                             <img
                                 src="/assets/Picsart_26-03-22_23-32-24-684.png"
                                 alt="StayCool"
-                                className="hidden sm:block h-7 sm:h-8 w-auto object-contain"
+                                className="h-6 sm:h-8 w-auto object-contain"
                             />
                         </motion.div>
                     </Link>
