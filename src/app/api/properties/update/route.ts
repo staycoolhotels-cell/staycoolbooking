@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { revalidateTag, revalidatePath } from 'next/cache';
+import { CACHE_TAGS } from '@/lib/data-service';
 
 // Server-side admin client — bypasses PostgREST schema cache entirely
 const supabaseAdmin = createClient(
@@ -27,6 +29,12 @@ export async function POST(request: NextRequest) {
       console.error('API: Error updating property:', error);
       return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
     }
+
+    // Invalidate caches to ensure home page and other lists reflect the update
+    revalidateTag(CACHE_TAGS.properties);
+    revalidatePath('/homepage', 'page');
+    revalidatePath('/', 'layout');
+    revalidatePath('/property-listing/[id]', 'page');
 
     return NextResponse.json({ data });
   } catch (err) {

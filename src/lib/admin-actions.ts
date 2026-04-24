@@ -2,6 +2,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logActivity } from './activity-actions';
+import { revalidateTag, revalidatePath } from 'next/cache';
+import { CACHE_TAGS } from './data-service';
 
 type Profile = {
   id: string;
@@ -307,6 +309,12 @@ export async function updatePropertyStatusAsAdmin(propertyId: string, status: 'p
   // Log activity
   await logActivity('property_review', `Property ${propertyId} status changed to ${status}`, undefined, `Property ${status === 'active' ? 'Activated' : status === 'rejected' ? 'Rejected' : 'Updated'}`, status === 'active' ? 'success' : status === 'rejected' ? 'error' : 'info');
 
+  // Invalidate caches
+  revalidateTag(CACHE_TAGS.properties);
+  revalidatePath('/homepage', 'page');
+  revalidatePath('/', 'layout');
+  revalidatePath('/property-listing/[id]', 'page');
+
   return { success: true, data };
 }
 
@@ -325,6 +333,12 @@ export const approveProperty = async (propertyId: string) => {
 
   // Log activity
   await logActivity('property_review', `Property ${propertyId} has been approved`, undefined, 'Property Approved', 'success');
+
+  // Invalidate caches
+  revalidateTag(CACHE_TAGS.properties);
+  revalidatePath('/homepage', 'page');
+  revalidatePath('/', 'layout');
+  revalidatePath('/property-listing/[id]', 'page');
 
   return data || true;
 };
@@ -345,6 +359,12 @@ export const rejectProperty = async (propertyId: string, rejectionReason: string
 
   // Log activity
   await logActivity('property_review', `Property ${propertyId} has been rejected. Reason: ${rejectionReason}`, undefined, 'Property Rejected', 'error');
+
+  // Invalidate caches
+  revalidateTag(CACHE_TAGS.properties);
+  revalidatePath('/homepage', 'page');
+  revalidatePath('/', 'layout');
+  revalidatePath('/property-listing/[id]', 'page');
 
   return data || true;
 };

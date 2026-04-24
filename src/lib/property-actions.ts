@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { logActivity, createNotification } from './activity-actions';
 import { createClient } from '@supabase/supabase-js'; // Import createClient for admin client
-import { revalidateTag } from 'next/cache';
+import { revalidateTag, revalidatePath } from 'next/cache';
 import { CACHE_TAGS, getHostProperties } from './data-service';
 import { Property } from './types';
 
@@ -177,6 +177,9 @@ export async function addProperty(prevState: any, formData: FormData) {
     // Invalidate caches
     revalidateTag(CACHE_TAGS.properties);
     revalidateTag(CACHE_TAGS.host_properties(host_id));
+    revalidatePath('/homepage', 'page');
+    revalidatePath('/', 'layout');
+    revalidatePath('/property-listing/[id]', 'page');
 
     redirect('/host-dashboard'); // Redirect to host dashboard after successful addition
   }
@@ -230,6 +233,10 @@ export const createProperty = async (propertyData: Omit<Property, 'id' | 'create
   // Invalidate caches
   revalidateTag(CACHE_TAGS.properties);
   if (user.id) revalidateTag(CACHE_TAGS.host_properties(user.id));
+  revalidatePath('/homepage', 'page');
+  revalidatePath('/', 'layout');
+  revalidatePath('/property-listing/[id]', 'page');
+
 
   return data;
 };
@@ -274,6 +281,10 @@ export const updatePropertyPrice = async (propertyId: string, suggestedPrice: nu
   // Invalidate caches
   revalidateTag(CACHE_TAGS.properties);
   if (user.id) revalidateTag(CACHE_TAGS.host_properties(user.id));
+  revalidatePath('/homepage', 'page');
+  revalidatePath('/', 'layout');
+  revalidatePath('/property-listing/[id]', 'page');
+
 
   return { success: true, data };
 };

@@ -3,7 +3,7 @@ import { getActiveProperties } from '@/lib/data-service';
 import { Suspense } from 'react';
 import HomepageInteractive from './components/HomepageInteractive';
 
-export const revalidate = 3600; // Revalidate at most every hour
+export const revalidate = 0; // Force dynamic to ensure immediate updates after cache invalidation
 
 export default async function Homepage() {
   // Fetch cached properties

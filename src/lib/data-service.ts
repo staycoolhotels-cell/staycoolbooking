@@ -33,7 +33,7 @@ export const getActiveProperties = unstable_cache(
   },
   ['active-properties'],
   {
-    revalidate: 3600, // Revalidate every hour by default
+    revalidate: 60, // Revalidate every minute by default
     tags: [CACHE_TAGS.properties],
   }
 );

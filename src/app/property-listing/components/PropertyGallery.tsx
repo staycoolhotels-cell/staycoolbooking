@@ -120,10 +120,10 @@ const PropertyGallery = ({ images, propertyName: _propertyName }: PropertyGaller
         <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-3xl flex items-center justify-center p-4">
           <button
             onClick={closeLightbox}
-            className="absolute top-8 right-8 w-14 h-14 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center hover:bg-white/10 hover:scale-110 transition-all duration-300"
+            className="fixed top-24 right-8 md:top-20 md:right-12 w-14 h-14 bg-black/50 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center hover:bg-black/70 hover:scale-110 transition-all duration-300 z-[9999] shadow-2xl group"
             aria-label="Close gallery"
           >
-            <Icon name="XMarkIcon" size={28} className="text-white" />
+            <Icon name="XMarkIcon" size={32} className="text-white group-hover:rotate-90 transition-transform duration-300" />
           </button>
 
           <div className="relative w-full max-w-7xl h-[85vh]">
