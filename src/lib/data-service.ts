@@ -1,7 +1,7 @@
 import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
 import { createServiceClient } from './supabase-server';
-import { Property, Booking } from './types';
+import { Property } from './types';
 
 /**
  * CACHE KEY CONSTANTS

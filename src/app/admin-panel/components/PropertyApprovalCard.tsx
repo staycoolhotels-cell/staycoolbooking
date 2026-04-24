@@ -10,17 +10,6 @@ interface PropertyApprovalCardProps {
 }
 
 const PropertyApprovalCard = ({ property, onReview }: PropertyApprovalCardProps) => {
-  const [showRejectModal, setShowRejectModal] = React.useState(false);
-  const [rejectionReason, setRejectionReason] = React.useState('');
-
-  const handleReject = () => {
-    // In a real app, you'd pass the reason up. For now, we just pass 'rejected' action
-    // But since the new RPC supports reason, we should probably update the interface
-    // For now, let's just trigger the callback
-    onReview(property.id, 'rejected'); // TODO: Pass reason
-    setShowRejectModal(false);
-  };
-
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden flex flex-col hover:border-zinc-700 transition-all">
       <div className="relative h-48 w-full bg-zinc-800">

@@ -7,17 +7,11 @@ import { approveProperty, rejectProperty } from '@/lib/admin-actions';
 import { Button } from '@/components/ui/button';
 import {
     ArrowLeft,
-    Check,
-    X,
     MapPin,
-    Calendar,
     User,
     Bed,
-    Bath,
-    Home,
     Star,
     Shield,
-    Info,
     Activity,
     Cpu,
     Zap,
@@ -26,18 +20,7 @@ import {
     FileText,
     Download,
     Eye,
-    ExternalLink,
     CreditCard,
-    Building2,
-    Phone,
-    Mail,
-    Hash,
-    Landmark,
-    CheckCircle2,
-    Clock,
-    AlertCircle,
-    Ban,
-    HelpCircle,
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';

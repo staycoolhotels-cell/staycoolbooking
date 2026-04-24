@@ -120,7 +120,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         titleFont: { family: "'Inter', 'Arial', sans-serif", size: 12, weight: 'bold' as const },
         bodyFont: { family: "'Inter', 'Arial', sans-serif", size: 12 },
         callbacks: {
-          label: function (context: any) {
+          label: function (context: { dataset: { label?: string }; parsed: { y: number | null }; datasetIndex: number }) {
             let label = context.dataset.label || '';
             if (label) label += ': ';
             if (context.parsed.y !== null) {
@@ -155,8 +155,9 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         ticks: {
           color: '#71717a',
           font: { family: "'Inter', 'Arial', sans-serif", size: 10 },
-          callback: function (value: any) {
-            return '₹' + (value >= 1000 ? (value / 1000) + 'k' : value);
+          callback: function (value: string | number) {
+            const numValue = typeof value === 'string' ? parseFloat(value) : value;
+            return '₹' + (numValue >= 1000 ? (numValue / 1000) + 'k' : numValue);
           }
         },
       },
@@ -170,9 +171,9 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   >('overview');
 
   useEffect(() => {
-    const tab = searchParamsFromHook.get('tab') as any;
+    const tab = searchParamsFromHook.get('tab');
     if (tab && ['overview', 'verifications', 'disputes', 'transactions', 'users', 'properties', 'inbox'].includes(tab)) {
-      setActiveTabState(tab);
+      setActiveTabState(tab as typeof activeTab);
     } else {
       setActiveTabState('overview');
     }
@@ -453,6 +454,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
         if (payload.eventType === 'INSERT') {
+          setUsers((prev) => [...prev, payload.new as any]);
         } else if (payload.eventType === 'UPDATE') {
           setUsers((prev) =>
             prev.map((u) => (u.id === payload.new.id ? { ...u, ...payload.new } : u))

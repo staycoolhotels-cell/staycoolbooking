@@ -15,7 +15,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
 } from 'recharts';
 
 // ─── Data Processing ────────────────────────────────────────────────────────
@@ -50,7 +49,7 @@ const processData = (transactions: Transaction[]) => {
 };
 
 // ─── Custom Tooltip ──────────────────────────────────────────────────────────
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-[#0d0d14]/95 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">

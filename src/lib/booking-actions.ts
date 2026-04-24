@@ -30,7 +30,7 @@ const createSupabaseServerClient = async () => {
 import { logActivity } from './activity-actions';
 import { createServiceClient } from './supabase-server';
 //...
-export async function verifyUser(prevState: any, formData: FormData) {
+export async function verifyUser(_prevState: any, formData: FormData) {
   try {
     const supabase = await createSupabaseServerClient();
     const {
@@ -90,7 +90,7 @@ export async function verifyUser(prevState: any, formData: FormData) {
     await logActivity('user_verification', `User ${user.id} submitted a document for verification.`);
 
     return { success: true, data };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return { error: 'An unexpected error occurred. Please try again.' };
   }
 }
@@ -105,7 +105,7 @@ export async function createBooking(bookingDetails: {
   roomCount?: number;
   selectedRoomIds?: string[];
   amenities?: Array<{ id: string; count: number; price: number; name: string }>;
-}, prevState: any) {
+}, _prevState: any) {
   try {
     const supabase = await createSupabaseServerClient();
     const {
@@ -200,7 +200,7 @@ export async function createBooking(bookingDetails: {
     // RPC returns booking UUID
     return { success: true, data: [{ id: data }] };
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Booking Action Error:", err);
     return { error: 'An unexpected error occurred. Please try again.' };
   }
@@ -225,7 +225,7 @@ export async function approveBooking(bookingId: string) {
     throw new Error('Booking not found');
   }
 
-  if (booking.properties?.host_id !== user.id) {
+  if ((booking as any).properties?.host_id !== user.id) {
     throw new Error('Unauthorized: You are not the host of this property');
   }
 

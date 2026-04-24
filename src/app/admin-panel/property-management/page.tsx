@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import PropertyList from './components/PropertyList';
 import { Property } from '@/lib/types';
 import AdminPageHeader from '../components/AdminPageHeader';
-import Icon from '@/components/ui/AppIcon';
 
 const PropertyManagementPage = () => {
   const router = useRouter();

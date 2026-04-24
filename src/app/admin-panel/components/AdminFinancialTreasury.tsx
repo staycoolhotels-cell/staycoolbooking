@@ -10,8 +10,6 @@ import RealTimeInvoice from '@/components/common/RealTimeInvoice';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 
 type AdminFinancialTreasuryProps = {

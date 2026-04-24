@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
-import AppImage from '@/components/ui/AppImage';
 import { supabase } from '@/lib/supabaseClient';
 import { signOutUser } from '@/lib/auth-actions';
 import { useRouter } from 'next/navigation';

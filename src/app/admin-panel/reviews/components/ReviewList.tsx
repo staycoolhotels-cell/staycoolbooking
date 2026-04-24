@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, MessageSquare, BadgeCheck, AlertTriangle, Trash2, Eye, Calendar, User, Shield, Info } from 'lucide-react';
+import { Star, MessageSquare, BadgeCheck, AlertTriangle, Trash2, Eye, Calendar, Shield, Info } from 'lucide-react';
 import Icon from '@/components/ui/AppIcon';
 import { toast } from 'sonner';
 import {

@@ -129,8 +129,9 @@ const Sidebar = ({ isMobileMenuOpen, onMobileToggle, onCloseMobileMenu }: Sideba
       } else {
         setMessage({ type: 'error', text: result.error || 'Failed to update credentials' });
       }
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'An unexpected error occurred' });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setMessage({ type: 'error', text: errorMessage });
     } finally {
       setIsSubmitting(false);
     }

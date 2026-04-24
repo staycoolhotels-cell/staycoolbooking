@@ -163,8 +163,9 @@ export async function getGuestProfileForHost(guestId: string) {
         bookingCount: bookingCount || 0
       }
     };
-  } catch (error: any) {
-    console.error(`[getGuestProfileForHost] FATAL:`, error.message);
-    return { success: false, error: 'An unexpected error occurred. Please try again.' };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
+    console.error(`[getGuestProfileForHost] FATAL:`, errorMessage);
+    return { success: false, error: errorMessage };
   }
 }

@@ -52,7 +52,7 @@ export const createSupabaseAdminClient = async () => {
  * Handles new user registration strictly for Guests and Hosts.
  * Admins cannot sign up via this flow.
  */
-export async function signUpUser(prevState: string | undefined, formData: FormData) {
+export async function signUpUser(_prevState: string | undefined, formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
   const confirmPassword = formData.get('confirmPassword') as string;
@@ -301,7 +301,7 @@ async function ensureAdminUserExists() {
  * Unified Login Function enforcing Strict Role Access.
  * Admin is identified by role='admin' in the database, NOT by email matching env var.
  */
-export async function login(prevState: string | undefined, formData: FormData) {
+export async function login(_prevState: string | undefined, formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
@@ -453,7 +453,7 @@ export async function login(prevState: string | undefined, formData: FormData) {
 
 // --- Mobile Authentication Actions ---
 
-export async function signInWithMobile(prevState: string | undefined, formData: FormData) {
+export async function signInWithMobile(_prevState: string | undefined, formData: FormData) {
   const phone = formData.get('phone') as string;
 
   if (!phone) {
@@ -473,7 +473,7 @@ export async function signInWithMobile(prevState: string | undefined, formData: 
   return { success: true, message: 'OTP sent successfully' };
 }
 
-export async function verifyMobileOtp(prevState: string | undefined, formData: FormData) {
+export async function verifyMobileOtp(_prevState: string | undefined, formData: FormData) {
   const phone = formData.get('phone') as string;
   const token = formData.get('otp') as string;
   const name = formData.get('name') as string; // Optional context for new users

@@ -137,7 +137,7 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                             </div>
                             <button
                                 onClick={async () => {
-                                    let transaction = transactions.find(t => t.id === booking.id);
+                                    const transaction = transactions.find(t => t.id === booking.id);
                                     
                                     // Construct an on-the-fly transaction object if one doesn't exist
                                     const transactionData = {

@@ -77,7 +77,7 @@ export async function POST(req: Request) {
     } catch (error: any) {
         console.error('Onboarding Error Details:', error);
 
-        let errorMessage = 'An unexpected error occurred.';
+        const errorMessage = 'An unexpected error occurred.';
 
         console.info('API returning 500 with:', { error: errorMessage, details: String(error) });
 
