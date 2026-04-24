@@ -40,7 +40,7 @@ async function run() {
     console.log('Logged in as Host.');
 
     // 3. Admin Insert (Title Only)
-    // We suspect 'name' column was renamed/dropped and 'title' is the correct one per migration
+
     const { data: prop, error: propError } = await adminClient.from('properties').insert({
         title: 'Authentic Verify Property',
         description: 'Created via auth flow',
@@ -59,8 +59,6 @@ async function run() {
 
     if (propError) {
         console.error('Authenticated Insert Error:', propError);
-
-        // Retry with RPC if direct insert fails
         console.log('Retrying with create_property RPC...');
         const { data: rpcData, error: rpcError } = await client.rpc('create_property', {
             p_title: 'Authentic Verify Property RPC',
@@ -92,7 +90,7 @@ async function run() {
     }
 
     // 4. Ensure public.users has stripe info (Admin override)
-    // We need this for the Payment API to work
+
     await adminClient.from('users').update({
         stripe_account_id: 'acct_123456789',
         stripe_onboarding_completed: true

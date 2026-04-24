@@ -28,11 +28,11 @@ const KpiCard = ({ title, value, icon: IconComponent, glow, border, iconColor, b
   <motion.div
     whileHover={{ y: -5, scale: 1.02 }}
     whileTap={{ scale: 0.97 }}
-    className="relative group overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl p-5 md:p-6 transition-all duration-500 cursor-pointer"
+    className="relative group overflow-hidden rounded-xl md:rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl p-3.5 md:p-6 transition-all duration-500 cursor-pointer"
     style={{ border: `1px solid ${border}` }}
   >
     <div
-      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-2xl"
+      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-xl md:rounded-2xl"
       style={{ boxShadow: `inset 0 0 40px ${glow}` }}
     />
     <div
@@ -44,21 +44,21 @@ const KpiCard = ({ title, value, icon: IconComponent, glow, border, iconColor, b
       style={{ background: `linear-gradient(to right, transparent, ${glow}, transparent)` }}
     />
 
-    <div className="relative z-10 flex flex-col gap-4">
+    <div className="relative z-10 flex flex-col gap-2 md:gap-4">
       <div className="flex items-start justify-between">
         <div
-          className="p-2.5 rounded-xl border backdrop-blur-sm group-hover:scale-110 transition-transform duration-300"
+          className="p-2 md:p-2.5 rounded-lg md:rounded-xl border backdrop-blur-sm group-hover:scale-110 transition-transform duration-300 flex items-center justify-center"
           style={{ borderColor: border, backgroundColor: 'rgba(255,255,255,0.04)' }}
         >
-          <IconComponent size={20} className={iconColor} />
+          <IconComponent className={`w-4 h-4 md:w-5 md:h-5 ${iconColor}`} />
         </div>
       </div>
       <div>
-        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] mb-1.5">{title}</p>
-        <h3 className="text-2xl md:text-3xl font-heading font-black text-white tracking-tight leading-none">
+        <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-wider md:tracking-[0.2em] mb-1 md:mb-1.5 truncate">{title}</p>
+        <h3 className="text-lg md:text-3xl font-heading font-black text-white tracking-tight leading-none truncate">
           {value}
         </h3>
-        {subtitle && <p className="text-[10px] text-zinc-600 mt-2 font-medium">{subtitle}</p>}
+        {subtitle && <p className="text-[9px] md:text-[10px] text-zinc-600 mt-1 md:mt-2 font-medium truncate">{subtitle}</p>}
       </div>
     </div>
   </motion.div>
@@ -260,7 +260,7 @@ const CampaignList = ({ initialCampaigns }: CampaignListProps) => {
   return (
     <div className="space-y-8">
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
+      <div className="grid grid-cols-2 xl:grid-cols-5 gap-3 md:gap-5">
         {kpiCards.map((card, i) => (
           <motion.div
             key={card.title}
@@ -299,7 +299,92 @@ const CampaignList = ({ initialCampaigns }: CampaignListProps) => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Card Layout */}
+        <div className="md:hidden space-y-3 p-4">
+          <AnimatePresence>
+            {campaigns.length === 0 ? (
+              <div className="py-12 text-center flex flex-col items-center gap-3 text-zinc-600">
+                <Megaphone size={36} />
+                <p className="text-sm font-medium">No campaigns found</p>
+                <button onClick={() => openModal()} className="mt-2 text-indigo-400 hover:text-indigo-300 transition underline text-sm">Create one now</button>
+              </div>
+            ) : (
+              campaigns.map((campaign, i) => (
+                <motion.div
+                  key={campaign.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ delay: i * 0.02, duration: 0.3 }}
+                  className="bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors rounded-xl p-4 flex flex-col gap-3 group"
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-white truncate">{campaign.name}</div>
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1 bg-white/5 w-fit px-2 py-0.5 rounded">
+                        {campaign.type}
+                      </div>
+                    </div>
+                    <Badge
+                      className={`shrink-0 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider h-fit ${
+                        campaign.status === 'active'
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'
+                      }`}
+                    >
+                      <span className={`inline-block w-1 h-1 rounded-full mr-1.5 ${campaign.status === 'active' ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-400'}`} />
+                      {campaign.status}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs text-zinc-400">
+                    <Calendar size={14} className="text-zinc-600" />
+                    <span>
+                      {campaign.start_date ? format(new Date(campaign.start_date), 'MMM d') : '-'}
+                      {' → '}
+                      {campaign.end_date ? format(new Date(campaign.end_date), 'MMM d, yy') : 'Ongoing'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 mt-1">
+                    <div>
+                       <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Budget</div>
+                       <div className="text-sm font-bold text-white">₹{campaign.budget?.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div>
+                       <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Spend</div>
+                       <div className="text-sm font-bold text-zinc-300">₹{campaign.spend?.toLocaleString('en-IN')}</div>
+                       {campaign.budget && campaign.spend ? (
+                          <div className="mt-1 w-full h-1 rounded-full bg-white/5 overflow-hidden">
+                            <div
+                              className={`h-full ${(campaign.spend / campaign.budget) > 0.9 ? 'bg-rose-500' : 'bg-indigo-500'}`}
+                              style={{ width: `${Math.min((campaign.spend / campaign.budget) * 100, 100)}%` }}
+                            />
+                          </div>
+                        ) : null}
+                    </div>
+                    <div>
+                       <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Conv.</div>
+                       <div className="text-sm font-black text-white">{campaign.conversions?.toLocaleString()}</div>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/5 mt-1 flex justify-end gap-2">
+                    <button onClick={() => openModal(campaign)} className="p-2 text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition flex items-center justify-center">
+                      <Edit2 size={14} />
+                    </button>
+                    <button onClick={() => handleDelete(campaign.id)} className="p-2 text-zinc-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 rounded-lg transition flex items-center justify-center">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Desktop Table Layout */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b border-white/5">
@@ -350,7 +435,7 @@ const CampaignList = ({ initialCampaigns }: CampaignListProps) => {
                               : 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'}
                           `}
                         >
-                          <span className={`w-1 h-1 rounded-full mr-1.5 ${campaign.status === 'active' ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-400'}`} />
+                          <span className={`inline-block w-1 h-1 rounded-full mr-1.5 ${campaign.status === 'active' ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-400'}`} />
                           {campaign.status}
                         </Badge>
                       </td>
@@ -399,10 +484,10 @@ const CampaignList = ({ initialCampaigns }: CampaignListProps) => {
                       {/* Actions */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => openModal(campaign)} className="p-2 text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition">
+                          <button onClick={() => openModal(campaign)} className="p-2 text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition flex items-center justify-center">
                             <Edit2 size={14} />
                           </button>
-                          <button onClick={() => handleDelete(campaign.id)} className="p-2 text-zinc-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 rounded-lg transition">
+                          <button onClick={() => handleDelete(campaign.id)} className="p-2 text-zinc-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 rounded-lg transition flex items-center justify-center">
                             <Trash2 size={14} />
                           </button>
                         </div>

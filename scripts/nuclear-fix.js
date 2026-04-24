@@ -1,7 +1,5 @@
 
 const { createClient } = require('@supabase/supabase-js');
-
-// Hardcoded for immediate execution
 const supabaseUrl = 'https://dlislsrlwovcxsuqdlvy.supabase.co';
 const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsaXNsc3Jsd292Y3hzdXFkbHZ5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzMyNjc1MywiZXhwIjoyMDgyOTAyNzUzfQ.UfXHBCd8FjoXMktEvJjFF37B1xEY2xA99oAGLN03E1Q';
 
@@ -27,15 +25,14 @@ async function nuclearFix() {
         console.log('Created System User:', user.id);
 
         // 2. Wait a moment for triggers to populate public.users (if any)
-        // Or manually ensure public.users entry exists to be safe
         const { error: upsertError } = await supabase.from('users').upsert({
             id: user.id,
             email: email,
             name: 'System Host',
             role: 'host',
             status: 'approved',
-            stripe_onboarding_completed: true, // Bypass onboarding check for this fix!
-            stripe_account_id: 'acct_123456789' // FAKE STRIPE US ID for testing
+            stripe_onboarding_completed: true,
+            stripe_account_id: 'acct_123456789'
         });
 
         if (upsertError) console.error('Upsert error:', upsertError);

@@ -8,7 +8,7 @@ async function run() {
         process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    // Fetch one property to see its structure and host_id
+
     const { data: properties, error: fetchError } = await supabase
         .from('properties')
         .select('*')
@@ -30,7 +30,6 @@ async function run() {
     console.log('Sample Property Host ID:', prop.host_id);
     console.log('Sample Property Status:', prop.status);
 
-    // Check if there are any other RLS policies
     const { data: policies, error: policyError } = await supabase.rpc('exec_sql', {
         sql: "SELECT polname, cmd, roles, qual, with_check FROM pg_policy WHERE polrelid = 'public.properties'::regclass;"
     }).catch(() => ({ data: null, error: 'RPC exec_sql not found' }));

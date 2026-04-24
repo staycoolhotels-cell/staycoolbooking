@@ -184,16 +184,18 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
 
   const markAlertCompleted = async (alertId: string) => {
     try {
+      // Delete directly — resolved signals are auto-removed
       const { error } = await supabase
         .from('maintenance_alerts')
-        .update({ status: 'Resolved' })
+        .delete()
         .eq('id', alertId);
 
       if (error) throw error;
-      toast.success('Issue marked as resolved!');
+      setAlerts(prev => prev.filter(a => a.id !== alertId));
+      toast.success('Signal resolved & cleared!');
     } catch (error: any) {
-      console.error('Error marking alert as completed:', error);
-      toast.error('Failed to update issue status: ' + error.message);
+      console.error('Error resolving alert:', error);
+      toast.error('An unexpected error occurred. Please try again later.');
     }
   };
 
@@ -236,7 +238,7 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
       setNewChecklist(prev => ({ ...prev, assigned_to: '', tasks: [...DEFAULT_TASKS] }));
     } catch (error: any) {
       console.error('Error creating checklist:', error);
-      toast.error('Failed to create checklist: ' + (error.message || 'Unknown error.'));
+      toast.error('An unexpected error occurred. Please try again later.');
     } finally {
       setIsSubmitting(false);
     }
@@ -268,16 +270,29 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
 
       if (itemError) throw itemError;
 
-      const currentChecklist = checklists.find(c => c.id === checklistId);
-      if (currentChecklist && currentChecklist.status !== newStatus) {
-        await supabase
+      if (allCompleted) {
+        // All tasks done → auto-delete the checklist
+        const { error: deleteError } = await supabase
           .from('cleaning_checklists')
-          .update({ status: newStatus })
+          .delete()
           .eq('id', checklistId);
+
+        if (deleteError) throw deleteError;
+
+        setChecklists(prev => prev.filter(c => c.id !== checklistId));
+        toast.success('Checklist completed & auto-removed! ✅');
+      } else {
+        const currentChecklist = checklists.find(c => c.id === checklistId);
+        if (currentChecklist && currentChecklist.status !== newStatus) {
+          await supabase
+            .from('cleaning_checklists')
+            .update({ status: newStatus })
+            .eq('id', checklistId);
+        }
       }
     } catch (error: any) {
       console.error('Error toggling task:', error);
-      toast.error('Failed to update task: ' + error.message);
+      toast.error('An unexpected error occurred. Please try again later.');
     }
   };
 
@@ -305,7 +320,7 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
       setDeleteConf(prev => ({ ...prev, isOpen: false }));
     } catch (error: any) {
       console.error('Error deleting alert:', error);
-      toast.error('Failed to delete signal: ' + error.message);
+      toast.error('An unexpected error occurred. Please try again later.');
     }
   };
 
@@ -333,7 +348,7 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
       setDeleteConf(prev => ({ ...prev, isOpen: false }));
     } catch (error: any) {
       console.error('Error deleting checklist:', error);
-      toast.error('Failed to delete checklist: ' + error.message);
+      toast.error('An unexpected error occurred. Please try again later.');
     }
   };
 
@@ -376,47 +391,48 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
   return (
     <div className="w-full space-y-6 md:space-y-8 relative">
       {/* 1. Ultra-Premium Header */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-[#0a0a0f]/80 p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 md:gap-6 bg-[#0a0a0f]/80 p-4 md:p-8 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 bottom-0 w-80 bg-gradient-to-l from-amber-500/10 to-transparent pointer-events-none" />
 
-        <div className="relative z-10 flex items-center gap-5 w-full lg:w-auto">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)] shrink-0">
-            <Icon name="WrenchScrewdriverIcon" size={32} className="text-amber-400 drop-shadow-md" />
+        <div className="relative z-10 flex items-center gap-3 md:gap-5 w-full lg:w-auto">
+          <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)] shrink-0">
+            <Icon name="WrenchScrewdriverIcon" size={20} className="text-amber-400 drop-shadow-md md:hidden" />
+            <Icon name="WrenchScrewdriverIcon" size={32} className="text-amber-400 drop-shadow-md hidden md:block" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Facility Ops</h1>
-            <p className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
+            <h1 className="text-xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Facility Ops</h1>
+            <p className="text-[10px] md:text-sm font-bold text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest flex items-center gap-2">
               Cleaning & Maintenance Core
             </p>
           </div>        </div>
 
-        <div className="relative z-10 flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-          <div className="flex gap-4 flex-1">
-            <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 flex flex-col items-center justify-center shadow-inner flex-1">
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-1"><Icon name="ExclamationTriangleIcon" size={12} className="text-amber-500" /> Action Required</p>
-              <p className="text-2xl font-heading font-black text-white">{pendingAlertsCount}</p>
+        <div className="relative z-10 flex flex-col sm:flex-row gap-3 md:gap-4 w-full lg:w-auto">
+          <div className="flex gap-3 md:gap-4 flex-1">
+            <div className="bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-3 md:px-5 py-2 md:py-3 flex flex-col items-center justify-center shadow-inner flex-1">
+              <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5 md:mb-1 flex items-center gap-1"><Icon name="ExclamationTriangleIcon" size={11} className="text-amber-500" /> Action Required</p>
+              <p className="text-xl md:text-2xl font-heading font-black text-white">{pendingAlertsCount}</p>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 flex flex-col items-center justify-center shadow-inner flex-1">
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-1"><Icon name="SparklesIcon" size={12} className="text-cyan-500" /> Ongoing Cleans</p>
-              <p className="text-2xl font-heading font-black text-white">{inProgressCleanings}</p>
+            <div className="bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-3 md:px-5 py-2 md:py-3 flex flex-col items-center justify-center shadow-inner flex-1">
+              <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5 md:mb-1 flex items-center gap-1"><Icon name="ArrowPathIcon" size={11} className="text-cyan-500" /> Ongoing Cleans</p>
+              <p className="text-xl md:text-2xl font-heading font-black text-white">{inProgressCleanings}</p>
             </div>
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-amber-600 hover:bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] border border-amber-400/50 transition-all rounded-2xl px-6 py-4 flex items-center justify-center gap-3 font-bold"
+            className="bg-amber-600 hover:bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] border border-amber-400/50 transition-all rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 flex items-center justify-center gap-2 md:gap-3 font-bold text-sm md:text-base"
           >
-            <Icon name="ClipboardDocumentListIcon" size={20} />
+            <Icon name="ClipboardDocumentListIcon" size={18} />
             Dispatch Team
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-8">
         {/* 2. Maintenance Alerts */}
-        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col min-h-[500px] group">
+        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2.5rem] border border-white/10 p-4 md:p-8 shadow-2xl relative overflow-hidden flex flex-col min-h-[380px] md:min-h-[500px] group">
           <div className="absolute -top-32 -left-32 w-80 h-80 bg-red-500/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-red-500/15 transition-colors duration-1000" />
 
-          <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/10 pb-6">
+          <div className="flex items-center justify-between mb-4 md:mb-8 relative z-10 border-b border-white/10 pb-3 md:pb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-red-500/10 rounded-xl border border-red-500/20 shadow-inner">
                 <Icon name="ExclamationCircleIcon" size={20} className="text-red-400" />
@@ -507,13 +523,13 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
         </div>
 
         {/* 3. Cleaning Checklists */}
-        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col min-h-[500px] group">
+        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2.5rem] border border-white/10 p-4 md:p-8 shadow-2xl relative overflow-hidden flex flex-col min-h-[380px] md:min-h-[500px] group">
           <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-cyan-500/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-cyan-500/15 transition-colors duration-1000" />
 
-          <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/10 pb-6">
+          <div className="flex items-center justify-between mb-4 md:mb-8 relative z-10 border-b border-white/10 pb-3 md:pb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-cyan-500/10 rounded-xl border border-cyan-500/20 shadow-inner">
-                <Icon name="SparklesIcon" size={20} className="text-cyan-400" />
+                <Icon name="ClipboardDocumentCheckIcon" size={20} className="text-cyan-400" />
               </div>
               <h2 className="text-sm font-heading font-bold text-white uppercase tracking-wider">
                 Operating Checklists

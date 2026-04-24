@@ -14,8 +14,7 @@ async function addBoardColumn() {
 
     if (error) {
         console.error("RPC failed, trying raw postgrest", error);
-        // If rpc fails, we can't easily execute DDL from js client unless we have a specific RPC setup. 
-        // We will assume it might fail if execute_sql doesn't exist.
+
     } else {
         console.log("Success adding board column via RPC");
     }

@@ -30,7 +30,7 @@ const AmenitiesSection = ({ amenities }: AmenitiesSectionProps) => {
 
       <div className="flex items-center gap-3 mb-8">
         <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30">
-          <Icon name="SparklesIcon" size={20} className="text-primary" />
+          <Icon name="Squares2X2Icon" size={20} className="text-primary" />
         </div>
         <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
           Amenities & Facilities

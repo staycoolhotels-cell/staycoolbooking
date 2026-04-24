@@ -1,7 +1,5 @@
 
 const { createClient } = require('@supabase/supabase-js');
-
-// Hardcoded for immediate execution
 const supabaseUrl = 'https://dlislsrlwovcxsuqdlvy.supabase.co';
 const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsaXNsc3Jsd292Y3hzdXFkbHZ5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzMyNjc1MywiZXhwIjoyMDgyOTAyNzUzfQ.UfXHBCd8FjoXMktEvJjFF37B1xEY2xA99oAGLN03E1Q';
 
@@ -23,12 +21,12 @@ async function createProperty() {
 
     // 2. Create Property
     const { data, error } = await supabase.from('properties').insert({
-        title: 'Test Property for Payment Verification', // Use title only, assume 'name' is gone
+        title: 'Test Property for Payment Verification',
         location: 'Test City, TS',
         tier: 'Standard',
         status: 'active',
         host_id: hostId,
-        price_per_night: 500, // Correct column name
+        price_per_night: 500,
         description: 'A test property created automatically to verify payments.',
         max_guests: 4
     }).select();

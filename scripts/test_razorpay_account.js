@@ -2,7 +2,6 @@ import Razorpay from 'razorpay';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load directly from .env file
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 

@@ -25,8 +25,6 @@ async function run() {
             const { data: insData, error: insErr } = await supabase.from('profiles').insert([{ id: user.id, full_name: user.name || "Test User", email: user.email }]);
             console.log("Insert result:", { insData, insErr });
         }
-
-        // now retry wishlist
         const { data: props } = await supabase.from('properties').select('id').limit(1);
         const { data, error } = await supabase.from('wishlist').insert([{ user_id: user.id, property_id: props[0].id }]);
         console.log("Wishlist insert result:", { data, error });

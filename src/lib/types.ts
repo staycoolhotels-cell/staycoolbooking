@@ -11,6 +11,7 @@ export interface Stat {
   icon: string;
   trend: { value: string; isPositive: boolean };
   bgColor: string;
+  onClick?: () => void;
 }
 
 export interface VerificationItem {
@@ -53,6 +54,8 @@ export interface Transaction {
   hostName: string;
   propertyName: string;
   amount: number;
+  serviceFee?: number;
+  netRevenue?: number;
   status: 'pending' | 'completed' | 'failed' | 'refunded';
   paymentMethod: string;
   type?: 'payment' | 'refund';
@@ -63,6 +66,7 @@ export interface Transaction {
   };
   invoice_id?: string;
   booking_id?: string;
+  guestAddress?: string;
 }
 
 export interface User {
@@ -165,6 +169,8 @@ export interface Property {
   beds?: number;
   total_rooms?: number;
   room_type?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface Review {
@@ -222,9 +228,10 @@ export interface Booking {
   check_in: string;
   check_out: string;
   total_price: number;
-  status: 'confirmed' | 'completed' | 'cancelled' | 'pending' | 'pending_payment';
+  status: 'confirmed' | 'completed' | 'cancelled' | 'pending' | 'pending_payment' | 'refunded';
   guests: number;
   created_at: string;
+  cancelled_at?: string;
   guest?: {
     name: string;
     avatar_url: string;

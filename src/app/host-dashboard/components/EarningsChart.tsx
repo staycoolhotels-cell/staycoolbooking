@@ -79,7 +79,7 @@ const EarningsChart = ({ data }: EarningsChartProps) => {
           color: 'rgba(255, 255, 255, 0.4)',
           font: {
             size: 11,
-            family: "'Inter', sans-serif",
+            family: "'Inter', 'Arial', sans-serif",
             weight: 'bold',
           },
           callback: function (value: any) {
@@ -99,7 +99,7 @@ const EarningsChart = ({ data }: EarningsChartProps) => {
           color: 'rgba(255, 255, 255, 0.6)',
           font: {
             size: 11,
-            family: "'Inter', sans-serif",
+            family: "'Inter', 'Arial', sans-serif",
             weight: 'bold',
           },
         },

@@ -31,8 +31,6 @@ async function checkSchema() {
 
     console.log('Success: Table user_wallets exists.');
 
-    // Create a dummy mismatch query to check if column exists in the error message if row is empty
-    // Or if we have data, validation is easy.
     if (data && data.length > 0) {
         console.log('Row sample:', data[0]);
         if ('razorpay_account_id' in data[0]) {
@@ -46,17 +44,17 @@ async function checkSchema() {
         const { error: updateError } = await supabase
             .from('user_wallets')
             .update({ razorpay_account_id: 'test_val' } as any)
-            .eq('user_id', '00000000-0000-0000-0000-000000000000'); // mismatch
+            .eq('user_id', '00000000-0000-0000-0000-000000000000');
 
         if (updateError) {
-            if (updateError.code === '42703') { // Undefined column
+            if (updateError.code === '42703') {
                 console.error('FAIL: Column razorpay_account_id does not exist.');
                 console.error(updateError);
             } else {
                 console.log('Column check result:', updateError.message);
             }
         } else {
-            // If no error, it means the column exists and the update simply affected 0 rows
+
             console.log('PASS: Column razorpay_account_id likely exists (update query prepared successfully).');
         }
     }

@@ -47,11 +47,11 @@ const ProfileHeader = ({
 
   return (
     <motion.div
-      className="relative rounded-[2rem] overflow-hidden shadow-2xl shadow-sky-950/40 border border-sky-500/10"
+      className="relative rounded-[2rem] shadow-2xl shadow-sky-950/40 border border-sky-500/10"
       layout
     >
       {/* Card gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-zinc-900/90 via-[#0e0e24]/95 to-sky-950/70 backdrop-blur-2xl" />
+      <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-zinc-900/90 via-[#0e0e24]/95 to-sky-950/70 backdrop-blur-2xl" />
 
       {/* Inner subtle glow top-left */}
       <div className="absolute top-0 left-0 w-64 h-64 bg-sky-500/8 rounded-full blur-3xl pointer-events-none" />
@@ -70,10 +70,10 @@ const ProfileHeader = ({
       />
 
       {/* ── Content ── */}
-      <div className="relative z-10 p-6 md:p-8 lg:p-10">
+      <div className="relative z-10 p-4 md:p-8 lg:p-10">
 
         {/* Top Row: Avatar + Name/Email + Action Button */}
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8">
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-8">
 
           {/* ── Avatar section ── */}
           <div className="relative flex-shrink-0" onClick={handleAvatarClick}>
@@ -84,7 +84,7 @@ const ProfileHeader = ({
                 <img
                   src={user.avatar_url || 'https://images.unsplash.com/photo-1517841905240-472988babdf9'}
                   alt={user.name}
-                  className={`w-28 h-28 md:w-36 md:h-36 rounded-full object-cover transition-all duration-300 ${isEditing ? 'cursor-pointer brightness-75' : ''}`}
+                  className={`w-16 h-16 md:w-36 md:h-36 rounded-full object-cover transition-all duration-300 ${isEditing ? 'cursor-pointer brightness-75' : ''}`}
                 />
                 {/* Camera overlay on edit */}
                 <AnimatePresence>
@@ -143,7 +143,7 @@ const ProfileHeader = ({
                   exit={{ opacity: 0, y: 8 }}
                   className="flex items-center justify-center md:justify-start gap-4"
                 >
-                  <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-br from-white to-zinc-300 bg-clip-text text-transparent leading-tight">
+                  <h2 className="text-xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-br from-white to-zinc-300 bg-clip-text text-transparent leading-tight">
                     {user.name}
                   </h2>
                   <button
@@ -157,7 +157,7 @@ const ProfileHeader = ({
               )}
             </AnimatePresence>
 
-            <p className="text-sm md:text-base text-sky-300/70 font-medium mt-1 tracking-wide truncate">
+            <p className="text-xs md:text-base text-sky-300/70 font-medium mt-1 tracking-wide truncate">
               {user.email}
             </p>
 

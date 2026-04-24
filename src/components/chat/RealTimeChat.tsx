@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import Icon from '@/components/ui/AppIcon';
 import { Send } from 'lucide-react';
+import { createNotification } from '@/lib/activity-actions';
 
 interface Message {
     id: string;
@@ -96,7 +97,27 @@ const RealTimeChat: React.FC<RealTimeChatProps> = ({
             sentiment: 'Neutral',
             is_read: false,
         }).select().single();
-        if (!error && data) setMessages(prev => [...prev, data as Message]);
+        if (!error && data) {
+            setMessages(prev => [...prev, data as Message]);
+            
+            // Check if receiver is admin to log notification
+            // For now, we fetch the role of otherUser to decide
+            const { data: userData } = await supabase
+                .from('users')
+                .select('role')
+                .eq('id', otherUser.id)
+                .single();
+                
+            if (userData?.role === 'admin') {
+                await createNotification(
+                    'message',
+                    'New Support Message',
+                    `New message from ${currentUser.name || 'User'}: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
+                    'message' as any, // 'message' isn't in the union but we can use 'info' or cast
+                    otherUser.id
+                );
+            }
+        }
     };
 
     const formatTime = (ts: string) =>

@@ -96,7 +96,7 @@ export async function GET() {
 
   if (error) {
     console.error('Trigger fix failed:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'An unexpected error occurred.' }, { status: 500 });
   }
 
   return NextResponse.json({ success: true, message: 'Trigger fix applied successfully!' });

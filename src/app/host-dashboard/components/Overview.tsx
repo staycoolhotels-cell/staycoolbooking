@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import StatsCard from './StatsCard';
 import EarningsChart from './EarningsChart';
 import Icon from '@/components/ui/AppIcon';
 import { Property, Earning, Booking, Review } from '@/lib/types';
+import { supabase } from '@/lib/supabaseClient';
 
 interface OverviewProps {
   properties: Property[];
@@ -17,9 +18,101 @@ interface OverviewProps {
 }
 
 const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [], disputes = [], onAction }: OverviewProps) => {
+  const [showAllActivities, setShowAllActivities] = useState(false);
   const averageRating = reviews && reviews.length > 0
     ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(2)
     : 'New';
+
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  useEffect(() => {
+    let channel: any;
+
+    const setupNotifications = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const fetchNotifications = async () => {
+        const { data } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
+          
+        if (data) {
+          setNotifications(data);
+          setUnreadCount(data.filter(n => !n.is_read).length);
+        }
+      };
+
+      await fetchNotifications();
+      
+      channel = supabase.channel(`host-notifications-${user.id}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
+          setNotifications(prev => [payload.new, ...prev].slice(0, 10));
+          setUnreadCount(prev => prev + 1);
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
+          setNotifications(prev => prev.map(n => n.id === payload.new.id ? payload.new : n));
+          setUnreadCount(prev => {
+            const wasRead = payload.old.is_read;
+            const isRead = payload.new.is_read;
+            if (!wasRead && isRead) return Math.max(0, prev - 1);
+            if (wasRead && !isRead) return prev + 1;
+            return prev;
+          });
+        })
+        .subscribe();
+    };
+
+    setupNotifications();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleMarkAllAsRead = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', user.id)
+      .eq('is_read', false);
+      
+    if (!error) {
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    }
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'new_review': return 'ChatBubbleBottomCenterTextIcon';
+      case 'new_property': return 'HomeModernIcon';
+      case 'payout':
+      case 'withdrawal': return 'BanknotesIcon';
+      case 'message': return 'EnvelopeIcon';
+      case 'booking': return 'CalendarDaysIcon';
+      default: return 'BellIcon';
+    }
+  };
+
+  const formatNotificationTime = (date: string) => {
+    const now = new Date();
+    const diff = now.getTime() - new Date(date).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return new Date(date).toLocaleDateString();
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -42,7 +135,7 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
       className="space-y-6 md:space-y-8"
     >
       {/* 1. HERO GREETING */}
-      <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 p-2">
+      <motion.div variants={itemVariants} className="relative z-50 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 p-2">
         <div>
           <h2 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight">
             Focus & Growth
@@ -51,14 +144,96 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
             Your platform performance at a glance.
           </p>
         </div>
-        <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-full backdrop-blur-md shadow-xl">
-          <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-          <span className="text-xs font-bold uppercase tracking-widest text-zinc-300">All Systems Operational</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-full backdrop-blur-md shadow-xl">
+            <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+            <span className="hidden sm:inline text-xs font-bold uppercase tracking-widest text-zinc-300">All Systems Operational</span>
+            <span className="inline sm:hidden text-xs font-bold uppercase tracking-widest text-zinc-300">Operational</span>
+          </div>
+
+          <div className="relative">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className={`relative group p-3 backdrop-blur-sm border rounded-xl transition-all duration-300 ${
+                showNotifications 
+                  ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' 
+                  : 'bg-white/5 text-zinc-400 border-white/10 hover:text-white hover:border-white/25 hover:bg-white/10'
+              }`}
+            >
+              <Icon name="BellIcon" size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#050505] animate-pulse" />
+              )}
+            </button>
+
+            <AnimatePresence>
+              {showNotifications && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="fixed sm:absolute inset-x-4 sm:inset-auto sm:right-0 top-32 sm:top-auto sm:mt-3 w-auto sm:w-80 bg-[#0a0a0f] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[100]"
+                >
+                  <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400">{unreadCount} New</span>
+                      )}
+                    </div>
+                    <button 
+                      onClick={() => setShowNotifications(false)}
+                      className="p-1 hover:bg-white/10 rounded-lg text-zinc-500 hover:text-white transition-colors"
+                    >
+                      <Icon name="XMarkIcon" size={16} />
+                    </button>
+                  </div>
+                  <div className="max-h-[320px] overflow-y-auto custom-scrollbar">
+                    {notifications.length === 0 ? (
+                      <div className="p-8 text-center bg-white/[0.01]">
+                        <Icon name="BellSlashIcon" size={24} className="text-zinc-700 mx-auto mb-2" />
+                        <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">No notifications</p>
+                      </div>
+                    ) : (
+                      notifications.map((note) => (
+                        <div key={note.id} className={`p-4 border-b border-white/5 hover:bg-white/[0.03] transition-colors cursor-pointer group ${!note.is_read ? 'bg-indigo-500/[0.02]' : ''}`}>
+                          <div className="flex gap-3">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
+                              !note.is_read ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-white/5 border border-white/10'
+                            }`}>
+                              <Icon name={getNotificationIcon(note.type) as any} size={14} className={!note.is_read ? 'text-indigo-400' : 'text-zinc-500'} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className={`text-sm font-semibold truncate transition-colors ${!note.is_read ? 'text-white' : 'text-zinc-400'}`}>
+                                  {note.title}
+                                </p>
+                                {!note.is_read && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)] shrink-0" />}
+                              </div>
+                              <p className="text-[10px] text-zinc-500 mt-0.5 line-clamp-1">{note.message}</p>
+                              <p className="text-[10px] text-zinc-600 mt-1">{formatNotificationTime(note.created_at)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <button 
+                    className="w-full py-3 bg-white/[0.02] hover:bg-white/[0.05] text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 hover:text-white transition-all border-t border-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                    onClick={handleMarkAllAsRead}
+                    disabled={unreadCount === 0}
+                  >
+                    Mark all as read
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </motion.div>
 
       {/* 2. TOP METRICS (4 Columns) */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <StatsCard title="Active Listings" value={properties?.length || 0} icon="HomeIcon" onClick={() => onAction?.('properties')} />
         <StatsCard title="Pending Bookings" value={bookings?.filter(b => b.status === 'pending').length || 0} icon="CalendarDaysIcon" onClick={() => onAction?.('bookings')} />
         <StatsCard
@@ -120,54 +295,65 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
 
           <div className="space-y-3 flex-1 overflow-y-auto no-scrollbar relative z-10 pr-2 pb-2">
             {(bookings || []).length > 0 ? (
-              (bookings || []).slice(0, 5).map((booking) => (
-                <div
-                  key={booking.id}
-                  onClick={() => onAction?.('bookings')}
-                  className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/40 hover:bg-white/10 transition-all cursor-pointer group/item shadow-sm"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <img 
-                        src={booking.guest?.avatar_url || 'https://via.placeholder.com/32'} 
-                        className="w-10 h-10 rounded-full border border-white/20 object-cover group-hover/item:border-primary/50 transition-colors shadow-inner shrink-0" 
-                        alt={booking.guest?.name || 'Guest'} 
-                      />
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-white group-hover/item:text-primary transition-colors truncate">
-                          {booking.guest?.name?.trim() ? booking.guest.name : 'Verified Guest'}
+              <>
+                {(bookings || []).slice(0, showAllActivities ? undefined : 2).map((booking) => (
+                  <div
+                    key={booking.id}
+                    onClick={() => onAction?.('bookings')}
+                    className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/40 hover:bg-white/10 transition-all cursor-pointer group/item shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img 
+                          src={booking.guest?.avatar_url || 'https://via.placeholder.com/32'} 
+                          className="w-10 h-10 rounded-full border border-white/20 object-cover group-hover/item:border-primary/50 transition-colors shadow-inner shrink-0" 
+                          alt={booking.guest?.name || 'Guest'} 
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-white group-hover/item:text-primary transition-colors truncate">
+                            {booking.guest?.name?.trim() ? booking.guest.name : 'Verified Guest'}
+                          </p>
+                          <p className="text-[10px] text-zinc-400 font-medium tracking-wide">New booking</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p suppressHydrationWarning className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                          {new Date(booking.check_in).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                         </p>
-                        <p className="text-[10px] text-zinc-400 font-medium tracking-wide">New booking</p>
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p suppressHydrationWarning className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-                        {new Date(booking.check_in).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                      </p>
+                    
+                    <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
+                      <div className="flex items-center gap-2">
+                         <Icon name="HomeIcon" size={10} className="text-zinc-500" />
+                         <p className="text-[9px] text-zinc-500 font-bold truncate max-w-[120px] sm:max-w-none">
+                           {booking.properties?.title || 'Property'}
+                         </p>
+                      </div>
+                      <div
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${
+                          booking.status === 'confirmed'
+                            ? 'bg-success/20 text-success border-success/30'
+                            : booking.status === 'pending_payment'
+                            ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                            : 'bg-warning/20 text-warning border-warning/30'
+                        }`}
+                      >
+                        {booking.status.replace('_', ' ')}
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
-                    <div className="flex items-center gap-2">
-                       <Icon name="HomeIcon" size={10} className="text-zinc-500" />
-                       <p className="text-[9px] text-zinc-500 font-bold truncate max-w-[120px] sm:max-w-none">
-                         {booking.properties?.title || 'Property'}
-                       </p>
-                    </div>
-                    <div
-                      className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${
-                        booking.status === 'confirmed'
-                          ? 'bg-success/20 text-success border-success/30'
-                          : booking.status === 'pending_payment'
-                          ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
-                          : 'bg-warning/20 text-warning border-warning/30'
-                      }`}
-                    >
-                      {booking.status.replace('_', ' ')}
-                    </div>
-                  </div>
-                </div>
-              ))
+                ))}
+                
+                {bookings.length > 2 && (
+                  <button
+                    onClick={() => setShowAllActivities(!showAllActivities)}
+                    className="w-full py-3 mt-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-xl transition-all duration-300"
+                  >
+                    {showAllActivities ? 'Show Less' : `Show ${bookings.length - 2} More Activities`}
+                  </button>
+                )}
+              </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 shadow-inner">

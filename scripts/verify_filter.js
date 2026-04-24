@@ -9,10 +9,7 @@ const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 async function verifyFilter() {
     try {
         console.log('--- STARTING VERIFICATION ---');
-
-        // 1. Create a dummy PENDING property
         console.log('Creating a dummy PENDING property...');
-        // Providing more fields to satisfy potentially hidden constraints or triggers
         const { data: pendingProp, error: createError } = await adminClient
             .from('properties')
             .insert({
@@ -21,7 +18,7 @@ async function verifyFilter() {
                 description: 'This property should NOT be visible',
                 status: 'pending',
                 price_per_night: 999,
-                weekend_price_per_night: 1200, // Added based on recent migrations
+                weekend_price_per_night: 1200,
                 location: 'Test Location',
                 tier: 'Standard',
                 image_url: 'https://example.com/image.jpg'
@@ -34,8 +31,6 @@ async function verifyFilter() {
             return;
         }
         console.log(`Created property: ${pendingProp.id} with status: ${pendingProp.status}`);
-
-        // 2. Simulate User Query (Active Only)
         console.log('Simulating Guest Homepage Query (Status = Active)...');
         const { data: visibleProps, error: queryError } = await adminClient
             .from('properties')
@@ -45,7 +40,6 @@ async function verifyFilter() {
         if (queryError) {
             console.error('Query failed:', queryError.message);
         } else {
-            // 3. Assert Exclusion
             const isVisible = visibleProps.find(p => p.id === pendingProp.id);
             if (isVisible) {
                 console.error('FAIL: Pending property IS visible in active list!');
@@ -54,8 +48,6 @@ async function verifyFilter() {
                 console.log(`Visible Active Properties Count: ${visibleProps.length}`);
             }
         }
-
-        // 4. Cleanup
         console.log('Cleaning up test property...');
         await adminClient.from('properties').delete().eq('id', pendingProp.id);
         console.log('Cleanup complete.');

@@ -120,7 +120,7 @@ const SmartDocumentVault: React.FC<SmartDocumentVaultProps> = ({ properties = []
       setNewDocFile(null);
     } catch (error: any) {
       console.error("Error uploading document:", error);
-      alert(error.message || "Failed to upload document");
+      alert('An unexpected error occurred. Please try again later.');
     } finally {
       setIsUploading(false);
     }

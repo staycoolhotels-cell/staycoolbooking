@@ -14,6 +14,7 @@ const createBucket = async (bucketName: string) => {
   }
 };
 
-createBucket('images');
-createBucket('documents');
-createBucket('avatars');
+// Removed top-level bucket creation to prevent 400 errors in browser with anon key.
+// createBucket('images');
+// createBucket('documents');
+// createBucket('avatars');

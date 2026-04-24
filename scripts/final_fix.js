@@ -37,7 +37,7 @@ async function run() {
     const { data, error } = await supabase.from('properties').insert({
         title: 'Final Test Property',
         location: 'Final City',
-        tier: 'Standard', // Included this time!
+        tier: 'Standard',
         status: 'active',
         host_id: user.id,
         price_per_night: 500,

@@ -31,6 +31,34 @@ export const logActivity = async (
   return data;
 };
 
+export const createNotification = async (
+  type: string,
+  title: string,
+  message: string,
+  status: 'info' | 'success' | 'error' | 'warning' = 'info',
+  userId?: string
+) => {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('notifications')
+    .insert([{
+      type,
+      title,
+      message,
+      status,
+      user_id: userId,
+      is_read: false
+    }])
+    .select();
+
+  if (error) {
+    console.error('Error creating notification:', error);
+  }
+
+  return data;
+};
+
 // Helper function to generate default titles based on activity type
 function generateDefaultTitle(type: string): string {
   const titleMap: Record<string, string> = {

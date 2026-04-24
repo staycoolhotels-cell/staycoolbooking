@@ -9,8 +9,6 @@ const supabase = createClient(
 
 async function testInsert() {
     const caseNumber = `DPT-${Math.floor(1000 + Math.random() * 9000)}-${new Date().getFullYear()}`;
-
-    // Try dynamic keys to see what exists
     console.log('Attempting insert into disputes...');
 
     const { data, error } = await supabase

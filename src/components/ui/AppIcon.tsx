@@ -3,6 +3,7 @@
 import React from 'react';
 import * as HeroIcons from '@heroicons/react/24/outline';
 import * as HeroIconsSolid from '@heroicons/react/24/solid';
+import * as LucideIcons from 'lucide-react';
 import { QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 import { TentIcon, ResortIcon, VillaIcon } from './CustomIcons';
 
@@ -40,10 +41,18 @@ function Icon({
     return <VillaIcon className={`${disabled ? 'opacity-50 cursor-not-allowed' : onClick ? 'cursor-pointer hover:opacity-80' : ''} ${className}`} size={size} />;
   }
 
+  // Check HeroIcons
   const iconSet = variant === 'solid' ? HeroIconsSolid : HeroIcons;
-  const IconComponent = iconSet[name as keyof typeof iconSet] as React.ComponentType<
+  let IconComponent = iconSet[name as keyof typeof iconSet] as React.ComponentType<
     React.SVGProps<SVGSVGElement>
   >;
+
+  // Fallback to LucideIcons if not found in HeroIcons
+  if (!IconComponent) {
+    IconComponent = LucideIcons[name as keyof typeof LucideIcons] as React.ComponentType<
+      React.SVGProps<SVGSVGElement>
+    >;
+  }
 
   if (!IconComponent) {
     return (

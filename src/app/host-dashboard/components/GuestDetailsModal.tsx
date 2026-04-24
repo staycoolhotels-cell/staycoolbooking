@@ -42,7 +42,7 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
       }
     } catch (error: any) {
       console.error('Error fetching guest details:', error);
-      setError(error.message || 'Failed to fetch guest details');
+      setError('An unexpected error occurred.');
     } finally {
       setLoading(false);
     }

@@ -11,7 +11,7 @@ export async function GET() {
 
   if (error) {
     console.error('Error fetching properties:', error);
-    return NextResponse.json({ error: 'Error fetching properties', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Error fetching properties', details: 'An unexpected error occurred.' }, { status: 500 });
   }
 
   console.log('Properties fetched successfully.');

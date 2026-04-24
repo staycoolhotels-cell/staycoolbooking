@@ -14,9 +14,10 @@ import { useRouter } from 'next/navigation';
 type BookingHistoryProps = {
     bookings: (Booking & { properties: Partial<Property> })[];
     guestId?: string;
+    transactions?: any[];
 };
 
-const BookingHistory = ({ bookings, guestId }: BookingHistoryProps) => {
+const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistoryProps) => {
     const router = useRouter();
     const [showAll, setShowAll] = useState(false);
     const [selectedBooking, setSelectedBooking] = useState<(Booking & { properties: Partial<Property> }) | null>(null);
@@ -232,6 +233,7 @@ const BookingHistory = ({ bookings, guestId }: BookingHistoryProps) => {
 
             <BookingDetailsModal
                 booking={selectedBooking}
+                transactions={transactions}
                 onClose={() => setSelectedBooking(null)}
                 onStatusChange={() => {
                     router.refresh();

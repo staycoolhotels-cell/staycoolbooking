@@ -21,7 +21,7 @@ export async function createCampaign(campaign: Omit<Campaign, 'id' | 'created_at
   const { data, error } = await supabase.from('campaigns').insert([campaign]).select().single();
   if (error) {
     console.error('Error creating campaign:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'An unexpected error occurred. Please try again.' };
   }
   return { success: true, data };
 }
@@ -31,7 +31,7 @@ export async function updateCampaign(id: string, updates: Partial<Campaign>) {
   const { data, error } = await supabase.from('campaigns').update(updates).eq('id', id).select().single();
   if (error) {
     console.error('Error updating campaign:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'An unexpected error occurred. Please try again.' };
   }
   return { success: true, data };
 }
@@ -41,7 +41,7 @@ export async function deleteCampaign(id: string) {
   const { error } = await supabase.from('campaigns').delete().eq('id', id);
   if (error) {
     console.error('Error deleting campaign:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'An unexpected error occurred. Please try again.' };
   }
   return { success: true };
 }

@@ -64,40 +64,40 @@ const KycList = ({ initialRecords }: KycListProps) => {
   }, [initialRecords]);
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3">
         {['pending', 'under_review', 'activated', 'needs_clarification', 'suspended'].map(s => {
           const cfg = statusConfig[s];
           return (
             <button
               key={s}
               onClick={() => setFilter(s)}
-              className={`rounded-xl p-4 border text-left transition-all duration-200 ${filter === s ? cfg.cls + ' scale-[1.02]' : 'bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10'}`}
+              className={`rounded-xl p-3 md:p-4 border text-left transition-all duration-200 ${filter === s ? cfg.cls + ' scale-[1.02]' : 'bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10'}`}
             >
-              <p className="text-2xl font-bold font-heading">{counts[s] || 0}</p>
-              <p className="text-xs mt-1 uppercase tracking-widest font-semibold">{cfg.label}</p>
+              <p className="text-xl md:text-2xl font-bold font-heading">{counts[s] || 0}</p>
+              <p className="text-[10px] md:text-xs mt-1 uppercase tracking-wider md:tracking-widest font-semibold">{cfg.label}</p>
             </button>
           );
         })}
       </div>
 
       {/* Search + Filter Bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
         <div className="relative flex-1">
-          <Icon name="MagnifyingGlassIcon" size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+          <Icon name="MagnifyingGlassIcon" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 md:w-[18px] md:h-[18px]" />
           <input
             type="text"
             placeholder="Search by host name, email, business name, Razorpay ID..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-brand-default/50 text-sm"
+            className="w-full pl-9 md:pl-10 pr-3 md:pr-4 py-2 md:py-2.5 bg-white/5 border border-white/10 rounded-xl text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-brand-default/50 text-xs md:text-sm"
           />
         </div>
         <select
           value={filter}
           onChange={e => setFilter(e.target.value)}
-          className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-zinc-300 focus:outline-none focus:border-brand-default/50 text-sm"
+          className="px-3 md:px-4 py-2 md:py-2.5 bg-white/5 border border-white/10 rounded-xl text-zinc-300 focus:outline-none focus:border-brand-default/50 text-xs md:text-sm"
         >
           {FILTERS.map(f => (
             <option key={f} value={f} className="bg-[#0a0a0f]">
@@ -115,66 +115,109 @@ const KycList = ({ initialRecords }: KycListProps) => {
           <p className="text-sm mt-1">No hosts have submitted banking & KYC details yet.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-white/10">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/10 bg-white/5">
-                <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-widest">Host</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-widest">Business Name</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-widest hidden md:table-cell">Bank IFSC</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-widest hidden lg:table-cell">Razorpay ID</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-widest">KYC Status</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:table-cell">Submitted</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-widest">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((record, i) => {
-                const cfg = statusConfig[record.kyc_status] || statusConfig.pending;
-                return (
-                  <motion.tr
-                    key={record.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.03 }}
-                    className="border-b border-white/5 hover:bg-white/5 transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-zinc-200 truncate max-w-[140px]">{record.host_name}</p>
-                      <p className="text-xs text-zinc-500 truncate max-w-[140px]">{record.host_email}</p>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-300 truncate max-w-[160px]">{record.legal_business_name}</td>
-                    <td className="px-4 py-3 text-zinc-400 font-mono text-xs hidden md:table-cell">{record.bank_ifsc}</td>
-                    <td className="px-4 py-3 text-zinc-400 font-mono text-xs hidden lg:table-cell">
-                      {record.razorpay_account_id ? (
-                        <span className="truncate block max-w-[120px]">{record.razorpay_account_id}</span>
-                      ) : (
-                        <span className="text-zinc-600 italic">Not created</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${cfg.cls}`}>
-                        {cfg.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-500 text-xs hidden sm:table-cell">
-                      {new Date(record.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => setSelectedRecord(record)}
-                        className="px-3 py-1.5 bg-white/5 hover:bg-brand-deep/30 border border-white/10 hover:border-brand-default/40 text-zinc-300 hover:text-white rounded-lg text-xs font-heading font-semibold transition-all duration-200 flex items-center gap-1.5"
-                      >
-                        <Icon name="EyeIcon" size={13} />
-                        View
-                      </button>
-                    </td>
-                  </motion.tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* Mobile Card Layout */}
+          <div className="md:hidden space-y-3">
+            {filtered.map((record, i) => {
+              const cfg = statusConfig[record.kyc_status] || statusConfig.pending;
+              return (
+                <motion.div
+                  key={record.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  className="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex flex-col gap-3"
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-zinc-200 truncate">{record.host_name}</p>
+                      <p className="text-xs text-zinc-500 truncate">{record.host_email}</p>
+                    </div>
+                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${cfg.cls}`}>
+                      {cfg.label}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-end gap-2 mt-1">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-0.5">Business</p>
+                      <p className="text-sm text-zinc-300 truncate">{record.legal_business_name}</p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedRecord(record)}
+                      className="px-3 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 hover:border-sky-500/40 text-sky-400 hover:text-sky-300 rounded-lg text-xs font-heading font-semibold transition-all duration-200 flex items-center gap-1.5 shrink-0"
+                    >
+                      <Icon name="EyeIcon" size={13} />
+                      View
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table Layout */}
+          <div className="hidden md:block overflow-x-auto rounded-xl border border-white/10">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 bg-white/5">
+                  <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-widest">Host</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-widest">Business Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-widest hidden md:table-cell">Bank IFSC</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-widest hidden lg:table-cell">Razorpay ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-widest">KYC Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-widest hidden sm:table-cell">Submitted</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-zinc-500 uppercase tracking-widest">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((record, i) => {
+                  const cfg = statusConfig[record.kyc_status] || statusConfig.pending;
+                  return (
+                    <motion.tr
+                      key={record.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                      className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                    >
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-zinc-200 truncate max-w-[140px]">{record.host_name}</p>
+                        <p className="text-xs text-zinc-500 truncate max-w-[140px]">{record.host_email}</p>
+                      </td>
+                      <td className="px-4 py-3 text-zinc-300 truncate max-w-[160px]">{record.legal_business_name}</td>
+                      <td className="px-4 py-3 text-zinc-400 font-mono text-xs hidden md:table-cell">{record.bank_ifsc}</td>
+                      <td className="px-4 py-3 text-zinc-400 font-mono text-xs hidden lg:table-cell">
+                        {record.razorpay_account_id ? (
+                          <span className="truncate block max-w-[120px]">{record.razorpay_account_id}</span>
+                        ) : (
+                          <span className="text-zinc-600 italic">Not created</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${cfg.cls}`}>
+                          {cfg.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-zinc-500 text-xs hidden sm:table-cell">
+                        {new Date(record.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => setSelectedRecord(record)}
+                          className="px-3 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 hover:border-sky-500/40 text-sky-400 hover:text-sky-300 rounded-lg text-xs font-heading font-semibold transition-all duration-200 flex items-center gap-1.5"
+                        >
+                          <Icon name="EyeIcon" size={13} />
+                          View
+                        </button>
+                      </td>
+                    </motion.tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {selectedRecord && (

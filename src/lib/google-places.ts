@@ -1,71 +1,116 @@
 'use server';
 
-export async function getNearbyPlaces(address: string) {
+export async function getNearbyPlaces(address: string, lat?: number | null, lng?: number | null) {
   try {
-    // 1. Geocode the address to get lat/lng using free OpenStreetMap Nominatim
-    const geocodeUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
-    const geocodeRes = await fetch(geocodeUrl, {
-      headers: { 'Accept-Language': 'en', 'User-Agent': 'StayCoolBooking/1.0' },
-    });
-    const geocodeData = await geocodeRes.json();
+    let finalLat: number | undefined = lat ?? undefined;
+    let finalLng: number | undefined = lng ?? undefined;
 
-    if (!geocodeData || geocodeData.length === 0) {
-      console.warn('Geocoding failed for address (using fallback):', address);
+    // 1. Geocode the address if coordinates not provided
+    if (finalLat === undefined || finalLng === undefined) {
+      const geocodeUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
+      const geocodeRes = await fetch(geocodeUrl, {
+        headers: { 'Accept-Language': 'en', 'User-Agent': 'StayCoolBooking/1.0' },
+      });
+      const geocodeData = await geocodeRes.json();
+      finalLat = geocodeData?.[0]?.lat ? parseFloat(geocodeData[0].lat) : undefined;
+      finalLng = geocodeData?.[0]?.lon ? parseFloat(geocodeData[0].lon) : undefined;
     }
 
-    const lat = geocodeData?.[0]?.lat ? parseFloat(geocodeData[0].lat) : null;
-    const lng = geocodeData?.[0]?.lon ? parseFloat(geocodeData[0].lon) : null;
+    if (!finalLat || !finalLng) {
+      return { coordinates: null, suggestions: [] };
+    }
 
-    // 2. Fetch nearby places (Tourist Attractions, Cafes, Parks)
-    // We'll provide high-quality mock data for the demo since Google Places requires an active billing account.
-    
-    // In a real application, you could integrate OpenStreetMap's Overpass API here.
-    const allSuggestions = [
-      {
-        name: 'Local City Center Park',
-        type: 'Spot',
-        distance: '0.8 km',
-        icon: 'SunIcon',
-        rating: 4.5,
-        address: 'Downtown area',
-      },
-      {
-        name: 'Sunset View Cafe',
-        type: 'Cafe',
-        distance: '1.2 km',
-        icon: 'BuildingStorefrontIcon',
-        rating: 4.7,
-        address: 'Main Street 4th Ave',
-      },
-      {
-        name: 'Historical Museum',
-        type: 'Famous Place',
-        distance: '2.5 km',
-        icon: 'MapPinIcon',
-        rating: 4.2,
-        address: 'Heritage Square',
-      }
+    // 2. Fetch real nearby places via Overpass API
+    // We search for tourism, leisure, and upscale amenities
+    const overpassEndpoints = [
+      'https://overpass-api.de/api/interpreter',
+      'https://lz4.overpass-api.de/api/interpreter',
+      'https://z.overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter'
     ];
 
+    const query = `
+      [out:json][timeout:25];
+      (
+        node["tourism"~"attraction|museum|viewpoint|zoo|theme_park|gallery|monument"](around:5000, ${finalLat}, ${finalLng});
+        node["amenity"~"restaurant|cafe|bar"](around:1500, ${finalLat}, ${finalLng});
+        node["leisure"~"park|garden"](around:3000, ${finalLat}, ${finalLng});
+      );
+      out body 10;
+    `;
+
+    let response = null;
+    let lastError = null;
+
+    for (const endpoint of overpassEndpoints) {
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          body: `data=${encodeURIComponent(query)}`,
+          headers: { 
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'StayCoolBooking/1.0 (https://staycoolbooking.com)',
+            'Accept': 'application/json'
+          }
+        });
+
+        if (res.ok) {
+          response = res;
+          break;
+        } else {
+          const status = res.status;
+          console.warn(`Overpass endpoint ${endpoint} failed with status ${status}`);
+          lastError = new Error(`Overpass API failed with status ${status}`);
+        }
+      } catch (err: any) {
+        console.warn(`Overpass endpoint ${endpoint} connection failed: ${err.message}`);
+        lastError = err;
+      }
+    }
+
+    if (!response) {
+      throw lastError || new Error('All Overpass API endpoints failed');
+    }
+    
+    const data = await response.json();
+    
+    // Haversine formula helper
+    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return (R * c).toFixed(1);
+    };
+
+    const suggestions = (data.elements || [])
+      .filter((el: any) => el.tags && (el.tags.name || el.tags['name:en']))
+      .map((el: any) => {
+        const dist = calculateDistance(finalLat!, finalLng!, el.lat, el.lon);
+        let type = 'Attraction';
+        if (el.tags.amenity === 'cafe' || el.tags.amenity === 'restaurant') type = 'Cafe';
+        if (el.tags.leisure === 'park' || el.tags.tourism === 'park') type = 'Spot';
+
+        return {
+          name: el.tags['name:en'] || el.tags.name,
+          type: type,
+          distance: `${dist} km`,
+          icon: type === 'Cafe' ? 'BuildingStorefrontIcon' : type === 'Spot' ? 'SunIcon' : 'MapPinIcon',
+          rating: 4.5, // Mock rating as OSM doesn't have it
+          address: el.tags['addr:street'] || 'Nearby',
+        };
+      })
+      .sort((a: any, b: any) => parseFloat(a.distance) - parseFloat(b.distance));
+
     return {
-      coordinates: lat !== null && lng !== null ? { lat, lng } : null,
-      suggestions: allSuggestions,
+      coordinates: { lat: finalLat, lng: finalLng },
+      suggestions: suggestions.slice(0, 4), // Top 4 closest
     };
   } catch (error) {
     console.error('Error fetching nearby places:', error);
-    // Even on network error, return mock data so UI doesn't break
-    return {
-      coordinates: null,
-      suggestions: [
-        {
-          name: 'Local City Center Park',
-          type: 'Spot',
-          distance: '0.8 km',
-          icon: 'SunIcon',
-          rating: 4.5,
-          address: 'Downtown area',
-        }
-      ],
-    };
+    return { coordinates: null, suggestions: [] };
   }
 }

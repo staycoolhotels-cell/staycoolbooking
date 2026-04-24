@@ -133,6 +133,6 @@ export async function POST(req: Request) {
 
     } catch (error: any) {
         console.error('Payment Intent Error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
     }
 }

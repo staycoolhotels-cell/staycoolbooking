@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import AdminPageHeader from './AdminPageHeader';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -26,6 +27,9 @@ import {
   Title,
   Tooltip,
   Filler,
+  Legend,
+  BarController,
+  LineController,
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 
@@ -50,7 +54,10 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Filler
+  Filler,
+  Legend,
+  BarController,
+  LineController
 );
 
 import { User as AuthUser } from '@supabase/supabase-js';
@@ -110,6 +117,8 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         backgroundColor: 'rgba(10, 10, 15, 0.95)',
         padding: 12,
         cornerRadius: 12,
+        titleFont: { family: "'Inter', 'Arial', sans-serif", size: 12, weight: 'bold' as const },
+        bodyFont: { family: "'Inter', 'Arial', sans-serif", size: 12 },
         callbacks: {
           label: function (context: any) {
             let label = context.dataset.label || '';
@@ -129,14 +138,14 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     scales: {
       x: {
         grid: { display: false },
-        ticks: { color: '#71717a', font: { size: 10 } },
+        ticks: { color: '#71717a', font: { family: "'Inter', 'Arial', sans-serif", size: 10 } },
       },
       y: {
         type: 'linear' as const,
         display: true,
         position: 'left' as const,
         grid: { color: 'rgba(255, 255, 255, 0.05)' },
-        ticks: { color: '#71717a', stepSize: 1 },
+        ticks: { color: '#71717a', font: { family: "'Inter', 'Arial', sans-serif", size: 10 }, stepSize: 1 },
       },
       y1: {
         type: 'linear' as const,
@@ -145,6 +154,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         grid: { drawOnChartArea: false },
         ticks: {
           color: '#71717a',
+          font: { family: "'Inter', 'Arial', sans-serif", size: 10 },
           callback: function (value: any) {
             return '₹' + (value >= 1000 ? (value / 1000) + 'k' : value);
           }
@@ -152,7 +162,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       },
     },
   };
-  const router = useRouter(); // Restored
+  const router = useRouter();
   const searchParamsFromHook = useSearchParams();
 
   const [activeTab, setActiveTabState] = useState<
@@ -177,7 +187,84 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const fetchNotifications = async () => {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (data) {
+      setNotifications(data);
+      setUnreadCount(data.filter(n => !n.is_read).length);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+
+    const channel = supabase.channel('admin-notifications')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload) => {
+        setNotifications(prev => [payload.new, ...prev].slice(0, 10));
+        setUnreadCount(prev => prev + 1);
+        toast.info(`New Notification: ${payload.new.title}`);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications' }, (payload) => {
+        setNotifications(prev => prev.map(n => n.id === payload.new.id ? payload.new : n));
+        setUnreadCount(prev => {
+          const wasRead = payload.old.is_read;
+          const isRead = payload.new.is_read;
+          if (!wasRead && isRead) return Math.max(0, prev - 1);
+          if (wasRead && !isRead) return prev + 1;
+          return prev;
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleMarkAllAsRead = async () => {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('is_read', false);
+
+    if (!error) {
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+      toast.success('All notifications marked as read');
+    }
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'new_review': return 'ChatBubbleBottomCenterTextIcon';
+      case 'new_property': return 'HomeModernIcon';
+      case 'payout':
+      case 'withdrawal': return 'BanknotesIcon';
+      case 'message': return 'EnvelopeIcon';
+      case 'booking': return 'CalendarDaysIcon';
+      default: return 'BellIcon';
+    }
+  };
+
+  const formatNotificationTime = (date: string) => {
+    const now = new Date();
+    const diff = now.getTime() - new Date(date).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return new Date(date).toLocaleDateString();
+  };
 
   const [stats, setStats] = useState<Stat[]>([]);
   const [verificationQueue, setVerificationQueue] = useState<VerificationItem[]>(
@@ -194,14 +281,14 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [selectedVerification, setSelectedVerification] = useState<VerificationItem | null>(null); // New state
+  const [selectedVerification, setSelectedVerification] = useState<VerificationItem | null>(null);
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
   const [sortByPriority, setSortByPriority] = useState(false);
 
   const handleCloseModal = () => {
     setSelectedTransaction(null);
     setSelectedUser(null);
-    setSelectedVerification(null); // Close new modal
+    setSelectedVerification(null);
     setSelectedDispute(null);
   };
 
@@ -232,7 +319,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       }
       return sum;
     }, 0);
-    
+
     setStats([
       {
         title: 'Total Revenue',
@@ -240,6 +327,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         icon: 'BanknotesIcon',
         trend: { value: '+8%', isPositive: true },
         bgColor: 'bg-emerald-500',
+        onClick: () => setActiveTab('transactions'),
       },
       {
         title: 'Total Bookings',
@@ -247,6 +335,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         icon: 'CalendarDaysIcon',
         trend: { value: '+12%', isPositive: true },
         bgColor: 'bg-indigo-500',
+        onClick: () => setActiveTab('overview'),
       },
       {
         title: 'Total Users',
@@ -254,6 +343,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         icon: 'UsersIcon',
         trend: { value: `+${users.filter(u => new Date(u.created_at).getMonth() === new Date().getMonth() && new Date(u.created_at).getFullYear() === new Date().getFullYear()).length} mo`, isPositive: true },
         bgColor: 'bg-green-500',
+        onClick: () => setActiveTab('users'),
       },
       {
         title: 'Active Listings',
@@ -261,6 +351,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         icon: 'HomeModernIcon',
         trend: { value: '+3%', isPositive: true },
         bgColor: 'bg-yellow-500',
+        onClick: () => setActiveTab('properties'),
       },
       {
         title: 'Pending Verifications',
@@ -268,6 +359,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         icon: 'DocumentCheckIcon',
         trend: { value: '-2%', isPositive: false },
         bgColor: 'bg-red-500',
+        onClick: () => setActiveTab('verifications'),
       },
     ]);
 
@@ -312,17 +404,43 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, async (payload) => {
         if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-          // Fetch full details using admin client to bypass RLS and get joins
           const booking = await fetchBookingDetailsAsAdmin(payload.new.id);
           if (booking) {
             setBookings((prev) => {
               const filtered = prev.filter((b) => b.id !== booking.id);
-              return [...filtered, booking].sort((a, b) => 
+              return [...filtered, booking].sort((a, b) =>
                 new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
               );
             });
+            // Also update transactions with properly mapped data
+            const amount = Number(booking.total_price);
+            const serviceFee = booking.service_fee || (amount * 0.1);
+            const guestEmail = booking.guest?.email;
+            const guestLocation = (booking as any).guestLocation;
+            const guestAddress = [guestEmail, guestLocation].filter(Boolean).join('\n') || 'Address not provided';
+            const mappedTransaction = {
+              id: booking.id,
+              transactionId: `TXN-${booking.id.slice(0, 8).toUpperCase()}`,
+              propertyName: booking.property?.title || 'Unknown Property',
+              guestName: booking.guest?.name || 'Unknown Guest',
+              guestAddress,
+              hostName: booking.property?.host?.name || 'Unknown Host',
+              amount,
+              serviceFee,
+              netRevenue: amount - serviceFee,
+              type: (booking.status === 'confirmed' || booking.status === 'completed') ? 'payment' :
+                    (booking.status === 'cancelled' || booking.status === 'refunded') ? 'refund' : 'other',
+              breakdown: { accommodation: amount - serviceFee, service_fee: serviceFee, taxes: 0 },
+              date: new Date(booking.created_at).toLocaleDateString(),
+              status: (booking.status === 'confirmed' || booking.status === 'completed') ? 'completed' :
+                      (booking.status === 'refunded' ? 'refunded' : 'pending'),
+              paymentMethod: 'Razorpay',
+            } as Transaction;
+            setTransactions((prev) => {
+              const filtered = prev.filter((t) => t.id !== mappedTransaction.id);
+              return [mappedTransaction, ...filtered];
+            });
           } else {
-            // Fallback to payload if fetch fails (though it shouldn't for admin)
             setBookings((prev) => {
               const filtered = prev.filter((b) => b.id !== payload.new.id);
               return [...filtered, payload.new];
@@ -330,11 +448,11 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
           }
         } else if (payload.eventType === 'DELETE') {
           setBookings((prev) => prev.filter((b) => b.id !== payload.old.id));
+          setTransactions((prev) => prev.filter((t) => t.id !== payload.old.id));
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          // You might want to refetch users here to get the merged data
         } else if (payload.eventType === 'UPDATE') {
           setUsers((prev) =>
             prev.map((u) => (u.id === payload.new.id ? { ...u, ...payload.new } : u))
@@ -369,21 +487,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
           setDisputes((prev) => prev.filter((d) => d.id !== payload.old.id));
         }
       })
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'transactions' },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setTransactions((prev) => [...prev, payload.new as Transaction]);
-          } else if (payload.eventType === 'UPDATE') {
-            setTransactions((prev) =>
-              prev.map((t) => (t.id === payload.new.id ? (payload.new as Transaction) : t))
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setTransactions((prev) => prev.filter((t) => t.id !== payload.old.id));
-          }
-        }
-      )
+      // Note: transactions are derived from bookings (mapped above), not from the raw transactions table.
       .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_alerts' }, (payload) => {
         if (payload.eventType === 'INSERT') {
           setMaintenanceAlerts((prev) => [payload.new, ...prev]);
@@ -440,7 +544,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         throw new Error(`Failed to ${action === 'active' ? 'approve' : 'reject'} property`);
       }
 
-      // Update local state optimistically
       setProperties((prev) =>
         prev.map((item) => (item.id === id ? { ...item, status: action } : item))
       );
@@ -492,7 +595,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   };
 
   const handleSuspendUser = async (id: string) => {
-    // This function needs to be updated to use the new profiles table structure
     handleCloseModal();
   };
 
@@ -543,7 +645,22 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   };
 
   const handleExportReport = () => {
-    toast.success('Report export started. Your download will begin shortly.');
+    toast.info('Generating report...');
+    const csvRows = [
+      ['Date', 'Total Revenue', 'Total Bookings', 'Total Users'],
+      [new Date().toLocaleDateString(), stats[0]?.value || '0', stats[1]?.value || '0', users.length.toString()]
+    ];
+
+    const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `platform_report_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success('Report exported successfully!');
   };
 
   const filteredTransactions = transactions.filter((t) => {
@@ -578,23 +695,93 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       <main className="flex-1 relative overflow-y-auto bg-[#080808] w-full min-w-0">
         {/* Background Decorative Element */}
         <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
-        
+
         <div className="px-4 sm:px-6 md:px-16 py-6 md:py-8">
           <div className="max-w-7xl mx-auto w-full">
             {/* Header Section */}
-            <div className="pl-14 sm:pl-16 md:pl-0">
+            <div className="pl-0 md:pl-0">
               <AdminPageHeader
                 title="Control Center"
                 subtitle="Real-time platform oversight and management"
               >
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setShowNotifications(!showNotifications)}
-                    className="relative group p-3 bg-white/5 backdrop-blur-sm text-zinc-400 border border-white/10 rounded-xl hover:text-white hover:border-white/25 hover:bg-white/10 transition-all duration-300"
-                  >
-                    <Icon name="BellIcon" size={20} />
-                    <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#050505] animate-pulse" />
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowNotifications(!showNotifications)}
+                      className={`relative group p-3 backdrop-blur-sm border rounded-xl transition-all duration-300 ${showNotifications
+                          ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
+                          : 'bg-white/5 text-zinc-400 border-white/10 hover:text-white hover:border-white/25 hover:bg-white/10'
+                        }`}
+                    >
+                      <Icon name="BellIcon" size={20} />
+                      {unreadCount > 0 && (
+                        <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#050505] animate-pulse" />
+                      )}
+                    </button>
+
+                    <AnimatePresence>
+                      {showNotifications && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className="fixed sm:absolute inset-x-4 sm:inset-auto sm:right-0 top-20 sm:top-auto sm:mt-3 w-auto sm:w-80 bg-[#0a0a0f] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[100]"
+                        >
+                          <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400">System Notifications</h3>
+                              {unreadCount > 0 && (
+                                <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400">{unreadCount} New</span>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => setShowNotifications(false)}
+                              className="p-1 hover:bg-white/10 rounded-lg text-zinc-500 hover:text-white transition-colors"
+                            >
+                              <Icon name="XMarkIcon" size={16} />
+                            </button>
+                          </div>
+                          <div className="max-h-[320px] overflow-y-auto">
+                            {notifications.length === 0 ? (
+                              <div className="p-8 text-center bg-white/[0.01]">
+                                <Icon name="BellSlashIcon" size={24} className="text-zinc-700 mx-auto mb-2" />
+                                <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">No notifications</p>
+                              </div>
+                            ) : (
+                              notifications.map((note) => (
+                                <div key={note.id} className={`p-4 border-b border-white/5 hover:bg-white/[0.03] transition-colors cursor-pointer group ${!note.is_read ? 'bg-indigo-500/[0.02]' : ''}`}>
+                                  <div className="flex gap-3">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${!note.is_read ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-white/5 border border-white/10'
+                                      }`}>
+                                      <Icon name={getNotificationIcon(note.type) as any} size={14} className={!note.is_read ? 'text-indigo-400' : 'text-zinc-500'} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <p className={`text-sm font-semibold truncate transition-colors ${!note.is_read ? 'text-white' : 'text-zinc-400'}`}>
+                                          {note.title}
+                                        </p>
+                                        {!note.is_read && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />}
+                                      </div>
+                                      <p className="text-[10px] text-zinc-500 mt-0.5 line-clamp-1">{note.message}</p>
+                                      <p className="text-[10px] text-zinc-600 mt-1">{formatNotificationTime(note.created_at)}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                          <button
+                            className="w-full py-3 bg-white/[0.02] hover:bg-white/[0.05] text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 hover:text-white transition-all border-t border-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                            onClick={handleMarkAllAsRead}
+                            disabled={unreadCount === 0}
+                          >
+                            Mark all as read
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
                   <button
                     onClick={handleExportReport}
                     className="px-4 py-3 bg-white/5 backdrop-blur-sm text-zinc-300 border border-white/10 rounded-xl hover:text-white hover:border-white/25 hover:bg-white/10 transition-all duration-300 flex items-center gap-2"
@@ -631,13 +818,18 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`relative flex flex-col items-center justify-center gap-2 px-6 py-4 rounded-2xl transition-all duration-300 min-w-[110px] shrink-0 border ${isActive
+                    className={`relative flex flex-col items-center justify-center gap-1.5 md:gap-2 px-3 py-2.5 md:px-6 md:py-4 rounded-xl md:rounded-2xl transition-all duration-300 min-w-[70px] md:min-w-[110px] shrink-0 border ${isActive
                       ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.1)]'
                       : 'text-zinc-500 border-white/5 bg-white/[0.02] hover:text-zinc-200 hover:bg-white/[0.04] hover:border-white/10'
                       }`}
                   >
-                    <Icon name={tab.icon} size={24} className={isActive ? 'stroke-[2px]' : 'stroke-[1.5px]'} />
-                    <span className="font-bold text-xs tracking-tight">{tab.label}</span>
+                    <div className="md:hidden">
+                      <Icon name={tab.icon} size={20} className={isActive ? 'stroke-[2px]' : 'stroke-[1.5px]'} />
+                    </div>
+                    <div className="hidden md:block">
+                      <Icon name={tab.icon} size={24} className={isActive ? 'stroke-[2px]' : 'stroke-[1.5px]'} />
+                    </div>
+                    <span className="font-bold text-[10px] md:text-xs tracking-tight">{tab.label}</span>
                     {isActive && (
                       <div className="absolute -bottom-[1px] left-[20%] right-[20%] h-[3px] bg-indigo-500 rounded-t-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
                     )}
@@ -649,402 +841,400 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
 
             {/* Content Area */}
-        <div className="w-full">
-          <div>
-            {/* Overview Tab — Premium Layout */}
-            {activeTab === 'overview' && (
-              <div className="space-y-6 md:space-y-8">
-                {/* 1. Treasury Intelligence Card (NEW) */}
-                <AdminFinancialTreasury transactions={transactions} />
+            <div className="w-full">
+              <div>
+                {/* Overview Tab — Premium Layout */}
+                {activeTab === 'overview' && (
+                  <div className="space-y-6 md:space-y-8">
+                    <AdminFinancialTreasury transactions={transactions} />
 
-                {/* 2. Platform Analytics */}
-                <div className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/10 p-6 group hover:border-white/20 transition-all duration-500">
-                  {/* Ambient top glow */}
-                  <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-64 h-32 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none" />
-                  <div className="flex items-center justify-between mb-5">
-                    <div>
-                      <h2 className="text-lg font-heading font-bold text-white tracking-tight">Platform Analytics</h2>
-                      <p className="text-xs text-zinc-500 mt-0.5">Monthly booking volume across the year</p>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
-                      <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse" />
-                      <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest">Live</span>
-                    </div>
-                  </div>
-                  <div className="relative rounded-xl overflow-hidden bg-white/[0.03] border border-white/5 p-4 h-[350px] sm:h-[400px]">
-                    <Chart type="bar" options={analyticsOptions} data={analyticsData} />
-                  </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/10 p-6 hover:border-white/20 transition-all duration-500">
-                  <div className="flex items-center justify-between mb-5">
-                    <div>
-                      <h2 className="text-lg font-heading font-bold text-white tracking-tight">Quick Actions</h2>
-                      <p className="text-xs text-zinc-500 mt-0.5">Jump to critical platform tasks</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      {
-                        tab: 'verifications' as const,
-                        icon: 'DocumentCheckIcon',
-                        label: 'Review Verifications',
-                        badge: verificationQueue.filter((v) => v.status === 'pending').length,
-                        badgeLabel: 'pending',
-                        color: 'emerald',
-                        glow: 'rgba(16,185,129,0.12)',
-                        border: 'rgba(16,185,129,0.2)',
-                        iconColor: 'text-emerald-400',
-                        iconBg: 'bg-emerald-500/10 border-emerald-500/20',
-                      },
-                      {
-                        tab: 'disputes' as const,
-                        icon: 'ExclamationTriangleIcon',
-                        label: 'Resolve Disputes',
-                        badge: disputes.filter((d) => d.status !== 'resolved').length,
-                        badgeLabel: 'active',
-                        color: 'rose',
-                        glow: 'rgba(239,68,68,0.12)',
-                        border: 'rgba(239,68,68,0.2)',
-                        iconColor: 'text-rose-400',
-                        iconBg: 'bg-rose-500/10 border-rose-500/20',
-                      },
-                      {
-                        tab: 'transactions' as const,
-                        icon: 'BanknotesIcon',
-                        label: 'Process Payouts',
-                        badge: transactions.filter((t) => t.status === 'pending').length,
-                        badgeLabel: 'pending',
-                        color: 'sky',
-                        glow: 'rgba(14,165,233,0.12)',
-                        border: 'rgba(14,165,233,0.2)',
-                        iconColor: 'text-sky-400',
-                        iconBg: 'bg-sky-500/10 border-sky-500/20',
-                      },
-                      {
-                        tab: 'users' as const,
-                        icon: 'UsersIcon',
-                        label: 'Manage Users',
-                        badge: users.length,
-                        badgeLabel: 'total',
-                        color: 'amber',
-                        glow: 'rgba(245,158,11,0.12)',
-                        border: 'rgba(245,158,11,0.2)',
-                        iconColor: 'text-amber-400',
-                        iconBg: 'bg-amber-500/10 border-amber-500/20',
-                      },
-                    ].map((action) => (
-                      <button
-                        key={action.tab}
-                        onClick={() => setActiveTab(action.tab)}
-                        style={{ '--hover-glow': action.glow, '--hover-border': action.border } as React.CSSProperties}
-                        className="group relative p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:border-[var(--hover-border)] text-left transition-all duration-300 overflow-hidden"
-                      >
-                        {/* hover glow overlay */}
-                        <div
-                          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl"
-                          style={{ background: `radial-gradient(circle at 30% 30%, ${action.glow}, transparent 70%)` }}
-                        />
-                        <div className="relative z-10">
-                          <div className={`inline-flex p-2.5 rounded-xl border mb-3 transition-all duration-300 group-hover:scale-110 ${action.iconBg}`}>
-                            <Icon name={action.icon} size={20} className={action.iconColor} />
-                          </div>
-                          <h3 className="font-heading font-bold text-sm text-zinc-200 group-hover:text-white mb-1 transition-colors">
-                            {action.label}
-                          </h3>
-                          <p className="text-[11px] text-zinc-500 font-medium">
-                            <span className="text-zinc-300 font-bold">{action.badge}</span> {action.badgeLabel}
-                          </p>
+                    {/* 2. Platform Analytics */}
+                    <div className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/10 p-6 group hover:border-white/20 transition-all duration-500">
+                      {/* Ambient top glow */}
+                      <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-64 h-32 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none" />
+                      <div className="flex items-center justify-between mb-5">
+                        <div>
+                          <h2 className="text-lg font-heading font-bold text-white tracking-tight">Platform Analytics</h2>
+                          <p className="text-xs text-zinc-500 mt-0.5">Monthly booking volume across the year</p>
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 h-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                          style={{ background: `linear-gradient(to right, transparent, ${action.glow}, transparent)` }}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Maintenance Alerts */}
-                <div className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-rose-500/15 p-6 hover:border-rose-500/25 transition-all duration-500">
-                  <div className="absolute -top-8 -right-8 w-48 h-48 bg-rose-500/8 rounded-full blur-3xl pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-rose-500/20 to-transparent" />
-
-                  <div className="flex items-center justify-between mb-5">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
-                        <Icon name="WrenchScrewdriverIcon" size={18} className="text-rose-400" />
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+                          <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse" />
+                          <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest">Live</span>
+                        </div>
                       </div>
-                      <div>
-                        <h2 className="text-lg font-heading font-bold text-white">System Alerts</h2>
-                        <p className="text-xs text-zinc-500 mt-0.5">Active maintenance issues</p>
+                      <div className="relative rounded-xl overflow-hidden bg-white/[0.03] border border-white/5 p-4 h-[350px] sm:h-[400px]">
+                        <Chart type="bar" options={analyticsOptions} data={analyticsData} />
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-xl">
-                      {maintenanceAlerts.filter(a => a.status !== 'Resolved').length > 0 && (
-                        <div className="w-1.5 h-1.5 bg-rose-400 rounded-full animate-pulse" />
-                      )}
-                      <span className="text-xs font-bold text-rose-300">
-                        {maintenanceAlerts.filter(a => a.status !== 'Resolved').length} Active
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
-                    {maintenanceAlerts.filter(a => a.status !== 'Resolved').length > 0 ? (
-                      maintenanceAlerts.filter(a => a.status !== 'Resolved').map((alert) => (
-                        <div
-                          key={alert.id}
-                          className="group relative flex items-start justify-between gap-3 p-3.5 bg-white/[0.03] border border-white/8 rounded-xl hover:border-rose-500/20 hover:bg-rose-500/5 transition-all duration-300"
-                        >
-                          <div className="flex items-start gap-3 flex-1 min-w-0">
-                            <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-1.5 ${alert.priority === 'Urgent' ? 'bg-red-500' :
-                              alert.priority === 'High' ? 'bg-orange-500' : 'bg-yellow-500'
-                              }`} />
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-white truncate">{alert.issue}</p>
-                              <p className="text-[11px] text-zinc-500 mt-0.5">ID: {alert.property_id?.slice(0, 8)}… · {alert.reported_by}</p>
+                    {/* Quick Actions */}
+                    <div className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/10 p-6 hover:border-white/20 transition-all duration-500">
+                      <div className="flex items-center justify-between mb-5">
+                        <div>
+                          <h2 className="text-lg font-heading font-bold text-white tracking-tight">Quick Actions</h2>
+                          <p className="text-xs text-zinc-500 mt-0.5">Jump to critical platform tasks</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          {
+                            tab: 'verifications' as const,
+                            icon: 'DocumentCheckIcon',
+                            label: 'Review Verifications',
+                            badge: verificationQueue.filter((v) => v.status === 'pending').length,
+                            badgeLabel: 'pending',
+                            color: 'emerald',
+                            glow: 'rgba(16,185,129,0.12)',
+                            border: 'rgba(16,185,129,0.2)',
+                            iconColor: 'text-emerald-400',
+                            iconBg: 'bg-emerald-500/10 border-emerald-500/20',
+                          },
+                          {
+                            tab: 'disputes' as const,
+                            icon: 'ExclamationTriangleIcon',
+                            label: 'Resolve Disputes',
+                            badge: disputes.filter((d) => d.status !== 'resolved').length,
+                            badgeLabel: 'active',
+                            color: 'rose',
+                            glow: 'rgba(239,68,68,0.12)',
+                            border: 'rgba(239,68,68,0.2)',
+                            iconColor: 'text-rose-400',
+                            iconBg: 'bg-rose-500/10 border-rose-500/20',
+                          },
+                          {
+                            tab: 'transactions' as const,
+                            icon: 'BanknotesIcon',
+                            label: 'Process Payouts',
+                            badge: transactions.filter((t) => t.status === 'pending').length,
+                            badgeLabel: 'pending',
+                            color: 'sky',
+                            glow: 'rgba(14,165,233,0.12)',
+                            border: 'rgba(14,165,233,0.2)',
+                            iconColor: 'text-sky-400',
+                            iconBg: 'bg-sky-500/10 border-sky-500/20',
+                          },
+                          {
+                            tab: 'users' as const,
+                            icon: 'UsersIcon',
+                            label: 'Manage Users',
+                            badge: users.length,
+                            badgeLabel: 'total',
+                            color: 'amber',
+                            glow: 'rgba(245,158,11,0.12)',
+                            border: 'rgba(245,158,11,0.2)',
+                            iconColor: 'text-amber-400',
+                            iconBg: 'bg-amber-500/10 border-amber-500/20',
+                          },
+                        ].map((action) => (
+                          <button
+                            key={action.tab}
+                            onClick={() => setActiveTab(action.tab)}
+                            style={{ '--hover-glow': action.glow, '--hover-border': action.border } as React.CSSProperties}
+                            className="group relative p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:border-[var(--hover-border)] text-left transition-all duration-300 overflow-hidden"
+                          >
+                            {/* hover glow overlay */}
+                            <div
+                              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl"
+                              style={{ background: `radial-gradient(circle at 30% 30%, ${action.glow}, transparent 70%)` }}
+                            />
+                            <div className="relative z-10">
+                              <div className={`inline-flex p-2.5 rounded-xl border mb-3 transition-all duration-300 group-hover:scale-110 ${action.iconBg}`}>
+                                <Icon name={action.icon} size={20} className={action.iconColor} />
+                              </div>
+                              <h3 className="font-heading font-bold text-sm text-zinc-200 group-hover:text-white mb-1 transition-colors">
+                                {action.label}
+                              </h3>
+                              <p className="text-[11px] text-zinc-500 font-medium">
+                                <span className="text-zinc-300 font-bold">{action.badge}</span> {action.badgeLabel}
+                              </p>
                             </div>
-                          </div>
-                          <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                            <span className={`px-2 py-0.5 rounded-lg text-[10px] uppercase font-bold ${alert.priority === 'Urgent' ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
-                              alert.priority === 'High' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
-                                'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
-                              }`}>
-                              {alert.priority}
-                            </span>
-                            <span className="text-[10px] text-zinc-600">{new Date(alert.reported_date).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-10 text-center">
-                        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-3">
-                          <Icon name="CheckCircleIcon" size={28} className="text-emerald-400" />
-                        </div>
-                        <p className="text-sm font-semibold text-zinc-400">All Systems Operational</p>
-                        <p className="text-[11px] text-zinc-600 mt-1">No active maintenance issues found</p>
+                            <div className="absolute bottom-0 left-0 right-0 h-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                              style={{ background: `linear-gradient(to right, transparent, ${action.glow}, transparent)` }}
+                            />
+                          </button>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-            )}
-
-            {/* Verifications Tab */}
-            {activeTab === 'verifications' && (
-              <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-4 md:p-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                  <h2 className="text-xl font-heading font-bold text-zinc-100">
-                    Verification Queue
-                  </h2>
-                  <div className="flex items-center space-x-3 w-full sm:w-auto">
-                    <select
-                      value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value)}
-                      className="w-full sm:w-auto px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
-                    >
-                      <option value="all">All Status</option>
-                      <option value="pending">Pending</option>
-                      <option value="under_review">Under Review</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {verificationQueue.length > 0 ? (
-                    verificationQueue.map((item) => (
-                      <VerificationQueueCard
-                        key={item.id}
-                        item={item}
-                        onReview={(idFromCard: string, actionFromCard: 'approved' | 'rejected') =>
-                          handleReview(idFromCard, actionFromCard)
-                        }
-                        onViewDetails={() => handleViewVerification(item)}
-                      />
-                    ))
-                  ) : (
-                    <div className="col-span-full py-12 flex flex-col items-center justify-center bg-white/5 border border-dashed border-white/10 rounded-xl">
-                      <Icon name="DocumentCheckIcon" size={48} className="text-zinc-600 mb-4" />
-                      <p className="text-zinc-500 font-heading">No pending verifications found.</p>
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
 
-            {/* Disputes Tab */}
-            {activeTab === 'disputes' && (
-              <div className="bg-card border border-border rounded-xl p-4 md:p-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                  <h2 className="text-xl font-heading font-bold text-foreground">
-                    Active Disputes
-                  </h2>
-                  <button
-                    onClick={() => setSortByPriority(!sortByPriority)}
-                    className={`px-4 py-2 rounded-lg font-heading font-medium transition-colors duration-200 ${sortByPriority ? 'bg-brand-deep text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                      }`}
-                  >
-                    {sortByPriority ? 'Priority Sorted' : 'Filter by Priority'}
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  {sortedDisputes.length > 0 ? (
-                    sortedDisputes.map((dispute) => (
-                      <DisputeCard
-                        key={dispute.id}
-                        dispute={dispute}
-                        onViewDetails={handleViewDispute}
-                      />
-                    ))
-                  ) : (
-                    <div className="py-12 flex flex-col items-center justify-center bg-white/5 border border-dashed border-white/10 rounded-xl">
-                      <Icon name="ExclamationTriangleIcon" size={48} className="text-zinc-600 mb-4" />
-                      <p className="text-zinc-500 font-heading">No active disputes to display.</p>
-                      <p className="text-xs text-zinc-600 mt-2">All disputes are currently resolved or closed.</p>
+                    {/* Maintenance Alerts */}
+                    <div className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-rose-500/15 p-6 hover:border-rose-500/25 transition-all duration-500">
+                      <div className="absolute -top-8 -right-8 w-48 h-48 bg-rose-500/8 rounded-full blur-3xl pointer-events-none" />
+                      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-rose-500/20 to-transparent" />
+
+                      <div className="flex items-center justify-between mb-5">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                            <Icon name="WrenchScrewdriverIcon" size={18} className="text-rose-400" />
+                          </div>
+                          <div>
+                            <h2 className="text-lg font-heading font-bold text-white">System Alerts</h2>
+                            <p className="text-xs text-zinc-500 mt-0.5">Active maintenance issues</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                          {maintenanceAlerts.filter(a => a.status !== 'Resolved').length > 0 && (
+                            <div className="w-1.5 h-1.5 bg-rose-400 rounded-full animate-pulse" />
+                          )}
+                          <span className="text-xs font-bold text-rose-300">
+                            {maintenanceAlerts.filter(a => a.status !== 'Resolved').length} Active
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+                        {maintenanceAlerts.filter(a => a.status !== 'Resolved').length > 0 ? (
+                          maintenanceAlerts.filter(a => a.status !== 'Resolved').map((alert) => (
+                            <div
+                              key={alert.id}
+                              className="group relative flex items-start justify-between gap-3 p-3.5 bg-white/[0.03] border border-white/8 rounded-xl hover:border-rose-500/20 hover:bg-rose-500/5 transition-all duration-300"
+                            >
+                              <div className="flex items-start gap-3 flex-1 min-w-0">
+                                <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-1.5 ${alert.priority === 'Urgent' ? 'bg-red-500' :
+                                  alert.priority === 'High' ? 'bg-orange-500' : 'bg-yellow-500'
+                                  }`} />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-white truncate">{alert.issue}</p>
+                                  <p className="text-[11px] text-zinc-500 mt-0.5">ID: {alert.property_id?.slice(0, 8)}… · {alert.reported_by}</p>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                <span className={`px-2 py-0.5 rounded-lg text-[10px] uppercase font-bold ${alert.priority === 'Urgent' ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
+                                  alert.priority === 'High' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
+                                    'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                                  }`}>
+                                  {alert.priority}
+                                </span>
+                                <span className="text-[10px] text-zinc-600">{new Date(alert.reported_date).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-10 text-center">
+                            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-3">
+                              <Icon name="CheckCircleIcon" size={28} className="text-emerald-400" />
+                            </div>
+                            <p className="text-sm font-semibold text-zinc-400">All Systems Operational</p>
+                            <p className="text-[11px] text-zinc-600 mt-1">No active maintenance issues found</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
 
-            {/* Transactions Tab */}
-            {activeTab === 'transactions' && (
-              <div className="space-y-6">
-                <AdminFinancialTreasury transactions={transactions} />
-                <div className="bg-[#0a0a0f] border border-white/10 rounded-xl overflow-hidden">
-                <div className="p-4 md:p-6 border-b border-white/10">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <h2 className="text-xl font-heading font-bold text-zinc-100">
-                      Transaction History
-                    </h2>
-                    <div className="flex items-center space-x-3 w-full sm:w-auto">
-                      <input
-                        type="text"
-                        placeholder="Search transactions..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full sm:w-auto px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
-                      />
+                  </div>
+                )}
+
+                {/* Verifications Tab */}
+                {activeTab === 'verifications' && (
+                  <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-4 md:p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                      <h2 className="text-xl font-heading font-bold text-zinc-100">
+                        Verification Queue
+                      </h2>
+                      <div className="flex items-center space-x-3 w-full sm:w-auto">
+                        <select
+                          value={filterStatus}
+                          onChange={(e) => setFilterStatus(e.target.value)}
+                          className="w-full sm:w-auto px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
+                        >
+                          <option value="all">All Status</option>
+                          <option value="pending">Pending</option>
+                          <option value="under_review">Under Review</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {verificationQueue.length > 0 ? (
+                        verificationQueue.map((item) => (
+                          <VerificationQueueCard
+                            key={item.id}
+                            item={item}
+                            onReview={(idFromCard: string, actionFromCard: 'approved' | 'rejected') =>
+                              handleReview(idFromCard, actionFromCard)
+                            }
+                            onViewDetails={() => handleViewVerification(item)}
+                          />
+                        ))
+                      ) : (
+                        <div className="col-span-full py-12 flex flex-col items-center justify-center bg-white/5 border border-dashed border-white/10 rounded-xl">
+                          <Icon name="DocumentCheckIcon" size={48} className="text-zinc-600 mb-4" />
+                          <p className="text-zinc-500 font-heading">No pending verifications found.</p>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-white/5">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
-                          Transaction ID
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
-                          Guest
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
-                          Host
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
-                          Property
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
-                          Amount
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
-                          Status
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredTransactions.map((transaction) => (
-                        <TransactionRow
-                          key={transaction.id}
-                          transaction={transaction}
-                          onViewDetails={handleViewTransaction}
+                )}
+
+                {/* Disputes Tab */}
+                {activeTab === 'disputes' && (
+                  <div className="bg-card border border-border rounded-xl p-4 md:p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                      <h2 className="text-xl font-heading font-bold text-foreground">
+                        Active Disputes
+                      </h2>
+                      <button
+                        onClick={() => setSortByPriority(!sortByPriority)}
+                        className={`px-4 py-2 rounded-lg font-heading font-medium transition-colors duration-200 ${sortByPriority ? 'bg-brand-deep text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                          }`}
+                      >
+                        {sortByPriority ? 'Priority Sorted' : 'Filter by Priority'}
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      {sortedDisputes.length > 0 ? (
+                        sortedDisputes.map((dispute) => (
+                          <DisputeCard
+                            key={dispute.id}
+                            dispute={dispute}
+                            onViewDetails={handleViewDispute}
+                          />
+                        ))
+                      ) : (
+                        <div className="py-12 flex flex-col items-center justify-center bg-white/5 border border-dashed border-white/10 rounded-xl">
+                          <Icon name="ExclamationTriangleIcon" size={48} className="text-zinc-600 mb-4" />
+                          <p className="text-zinc-500 font-heading">No active disputes to display.</p>
+                          <p className="text-xs text-zinc-600 mt-2">All disputes are currently resolved or closed.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Transactions Tab */}
+                {activeTab === 'transactions' && (
+                  <div className="space-y-6">
+                    <AdminFinancialTreasury transactions={transactions} />
+                    <div className="bg-[#0a0a0f] border border-white/10 rounded-xl overflow-hidden">
+                      <div className="p-4 md:p-6 border-b border-white/10">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                          <h2 className="text-xl font-heading font-bold text-zinc-100">
+                            Transaction History
+                          </h2>
+                          <div className="flex items-center space-x-3 w-full sm:w-auto">
+                            <input
+                              type="text"
+                              placeholder="Search transactions..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="w-full sm:w-auto px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-white/5">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
+                                Transaction ID
+                              </th>
+                              <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
+                                Guest
+                              </th>
+                              <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
+                                Host
+                              </th>
+                              <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
+                                Property
+                              </th>
+                              <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
+                                Amount
+                              </th>
+                              <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
+                                Status
+                              </th>
+                              <th className="px-4 py-3 text-left text-sm font-heading font-semibold text-zinc-200">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredTransactions.map((transaction) => (
+                              <TransactionRow
+                                key={transaction.id}
+                                transaction={transaction}
+                                onViewDetails={handleViewTransaction}
+                              />
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Users Tab */}
+                {activeTab === 'users' && (
+                  <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-4 md:p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+                      <h2 className="text-xl font-heading font-bold text-zinc-100">
+                        User Management
+                      </h2>
+                      <div className="flex items-center w-full sm:w-auto">
+                        <input
+                          type="text"
+                          placeholder="Search users..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full sm:w-auto px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
                         />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </div>
+                    </div>
+                    <div className="mb-8">
+                      <h3 className="text-lg font-heading font-bold text-zinc-100 mb-4">Pending Host Approvals</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {users.filter(u => u.role === 'host' && u.status === 'pending').length === 0 ? (
+                          <div className="col-span-full py-8 flex flex-col items-center justify-center bg-white/5 border border-dashed border-white/10 rounded-xl">
+                            <Icon name="CheckCircleIcon" size={36} className="text-zinc-600 mb-2" />
+                            <p className="text-zinc-500 font-heading text-sm">No pending host approvals.</p>
+                          </div>
+                        ) : (
+                          users.filter(u => u.role === 'host' && u.status === 'pending').map((user) => (
+                            <HostApprovalCard
+                              key={user.id}
+                              user={user}
+                              onAction={(userId: string) => {
+                                setUsers(prev => prev.filter(u => u.id !== userId));
+                              }}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </div>
+                    <div className="mb-4 mt-8">
+                      <h3 className="text-lg font-heading font-bold text-zinc-100">All Users</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {filteredUsers.filter(u => u.name).length > 0 ? (
+                        filteredUsers.filter(u => u.name).map((user) => (
+                          <UserManagementCard key={user.id} user={user} onManage={handleManageUser} />
+                        ))
+                      ) : (
+                        <div className="col-span-full py-12 flex flex-col items-center justify-center bg-white/5 border border-dashed border-white/10 rounded-xl">
+                          <Icon name="UsersIcon" size={48} className="text-zinc-600 mb-4" />
+                          <p className="text-zinc-500 font-heading">No users found matching your search.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Properties Tab */}
+                {activeTab === 'properties' && (
+                  <PropertyApproval
+                    properties={properties.filter((p) => p.status === 'pending')}
+                    onReview={handlePropertyReview}
+                  />
+                )}
+
+                {/* Inbox Tab */}
+                {activeTab === 'inbox' && (
+                  <AdminInboxSection />
+                )}
               </div>
             </div>
-            )}
-
-            {/* Users Tab */}
-            {activeTab === 'users' && (
-              <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-4 md:p-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
-                  <h2 className="text-xl font-heading font-bold text-zinc-100">
-                    User Management
-                  </h2>
-                  <div className="flex items-center w-full sm:w-auto">
-                    <input
-                      type="text"
-                      placeholder="Search users..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full sm:w-auto px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
-                    />
-                  </div>
-                </div>
-                <div className="mb-8">
-                  <h3 className="text-lg font-heading font-bold text-zinc-100 mb-4">Pending Host Approvals</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {users.filter(u => u.role === 'host' && u.status === 'pending').length === 0 ? (
-                      <div className="col-span-full py-8 flex flex-col items-center justify-center bg-white/5 border border-dashed border-white/10 rounded-xl">
-                        <Icon name="CheckCircleIcon" size={36} className="text-zinc-600 mb-2" />
-                        <p className="text-zinc-500 font-heading text-sm">No pending host approvals.</p>
-                      </div>
-                    ) : (
-                      users.filter(u => u.role === 'host' && u.status === 'pending').map((user) => (
-                        <HostApprovalCard
-                          key={user.id}
-                          user={user}
-                          onAction={(userId: string) => {
-                            // Optimistically remove the card immediately
-                            setUsers(prev => prev.filter(u => u.id !== userId));
-                          }}
-                        />
-                      ))
-                    )}
-                  </div>
-                </div>
-                <div className="mb-4 mt-8">
-                  <h3 className="text-lg font-heading font-bold text-zinc-100">All Users</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredUsers.filter(u => u.name).length > 0 ? (
-                    filteredUsers.filter(u => u.name).map((user) => (
-                      <UserManagementCard key={user.id} user={user} onManage={handleManageUser} />
-                    ))
-                  ) : (
-                    <div className="col-span-full py-12 flex flex-col items-center justify-center bg-white/5 border border-dashed border-white/10 rounded-xl">
-                      <Icon name="UsersIcon" size={48} className="text-zinc-600 mb-4" />
-                      <p className="text-zinc-500 font-heading">No users found matching your search.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Properties Tab */}
-            {activeTab === 'properties' && (
-              <PropertyApproval
-                properties={properties.filter((p) => p.status === 'pending')}
-                onReview={handlePropertyReview}
-              />
-            )}
-
-            {/* Inbox Tab */}
-            {activeTab === 'inbox' && (
-              <AdminInboxSection />
-            )}
           </div>
         </div>
-      </div>
-    </div>
-    </main>
+      </main>
       <TransactionDetailsModal
         transaction={selectedTransaction}
         onClose={handleCloseModal}
@@ -1096,8 +1286,11 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
           const threadMap = new Map();
           messages.forEach((msg: any) => {
             const otherUser = msg.sender_id === user?.id ? msg.receiver : msg.sender;
-            if (!otherUser) return;
-            if (otherUser.id === user?.id) return; // Should not happen if filtered correctly
+
+            if (!otherUser || !otherUser.id) return;
+
+
+            if (otherUser.id === user?.id) return;
 
             if (!threadMap.has(otherUser.id)) {
               threadMap.set(otherUser.id, {
@@ -1131,8 +1324,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
     return (
       <div className="bg-[#0a0a0f] border border-white/10 rounded-xl overflow-hidden flex flex-col md:flex-row h-[600px] md:h-[700px]">
-
-        {/* Thread List: full width on mobile (hidden when viewing chat), fixed width on desktop */}
         <div className={`
           ${mobileView === 'chat' ? 'hidden' : 'flex'} md:flex
           flex-col w-full md:w-[260px] lg:w-[300px] flex-shrink-0
@@ -1156,9 +1347,8 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                 <button
                   key={thread.user.id}
                   onClick={() => { setSelectedThread(thread); setMobileView('chat'); }}
-                  className={`w-full p-3 text-left border-b border-white/5 hover:bg-white/5 transition-colors ${
-                    selectedThread?.user.id === thread.user.id ? 'bg-white/10 border-l-2 border-l-primary' : ''
-                  }`}
+                  className={`w-full p-3 text-left border-b border-white/5 hover:bg-white/5 transition-colors ${selectedThread?.user.id === thread.user.id ? 'bg-white/10 border-l-2 border-l-primary' : ''
+                    }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 flex-shrink-0 rounded-full bg-white/10 border border-white/10 flex items-center justify-center">
@@ -1178,8 +1368,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
             )}
           </div>
         </div>
-
-        {/* Chat Area: full width on mobile (hidden when viewing list), flex-1 on desktop */}
         <div className={`
           ${mobileView === 'list' ? 'hidden' : 'flex'} md:flex
           flex-col flex-1 min-w-0

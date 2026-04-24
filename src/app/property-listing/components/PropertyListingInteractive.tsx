@@ -79,6 +79,7 @@ interface PropertyData {
   propertyType: string;
   maxGuests: number;
   bedrooms: number;
+  beds: number;
   bathrooms: number;
   area: number;
   totalRooms: number;
@@ -228,7 +229,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
           ]);
 
         if (error) {
-          console.error("Error inserting to wishlist:", { message: error.message, details: error.details, hint: error.hint, code: error.code });
+          console.error("Error inserting to wishlist:", { message: 'An unexpected error occurred.', details: error.details, hint: error.hint, code: error.code });
           throw error;
         }
       }
@@ -292,8 +293,10 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                 propertyType={propertyData.propertyType}
                 maxGuests={propertyData.maxGuests}
                 bedrooms={propertyData.bedrooms}
+                beds={propertyData.beds}
                 bathrooms={propertyData.bathrooms}
                 area={propertyData.area}
+                totalRooms={propertyData.totalRooms}
                 highlights={propertyData.highlights}
               />
 
@@ -302,7 +305,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
               {propertyData.upsellAmenities && propertyData.upsellAmenities.length > 0 && (
                 <div className="py-8 border-t border-white/5">
                   <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                    <Icon name="SparklesIcon" size={24} className="text-amber-400" /> Exclusive Upgrades
+                    <Icon name="Gem" size={24} className="text-amber-400" /> Exclusive Upgrades
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {propertyData.upsellAmenities.map(amenity => (

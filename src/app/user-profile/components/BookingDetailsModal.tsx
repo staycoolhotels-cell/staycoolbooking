@@ -4,18 +4,24 @@ import { format, differenceInDays, startOfDay } from 'date-fns';
 import Icon from '@/components/ui/AppIcon';
 import { Booking, Property } from '@/lib/types';
 import { toast } from 'sonner';
+import { generateInvoicePDF } from '@/lib/pdf-utils';
 
 interface BookingDetailsModalProps {
     booking: (Booking & { properties: Partial<Property> }) | null;
+    transactions?: any[];
     onClose: () => void;
     onStatusChange?: () => void;
 }
 
-const BookingDetailsModal = ({ booking, onClose, onStatusChange }: BookingDetailsModalProps) => {
+const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChange }: BookingDetailsModalProps) => {
     const [isCancelling, setIsCancelling] = useState(false);
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
     if (!booking) return null;
+
+    const refundTransaction = transactions.find(t => t.id === booking.id && t.type === 'refund');
+    const refundAmount = refundTransaction?.amount || 0;
+    const refundStatus = refundTransaction?.status || 'pending';
 
     const getPropertyImage = (prop: Partial<Property>) => {
         if (prop.images && Array.isArray(prop.images) && prop.images.length > 0) {
@@ -123,6 +129,45 @@ const BookingDetailsModal = ({ booking, onClose, onStatusChange }: BookingDetail
                             </div>
                         </div>
 
+                        {/* Invoice Section - Matches requested design */}
+                        <div className="bg-zinc-900/50 p-5 rounded-2xl border border-white/5 flex items-center justify-between group hover:border-sky-500/30 transition-all">
+                            <div className="space-y-1">
+                                <h3 className="text-lg font-bold text-white">Invoice {booking.id.slice(0, 8).toUpperCase()}</h3>
+                                <p className="text-sm text-zinc-500">Booking: {booking.id.slice(0, 8).toUpperCase()}</p>
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    let transaction = transactions.find(t => t.id === booking.id);
+                                    
+                                    // Construct an on-the-fly transaction object if one doesn't exist
+                                    const transactionData = {
+                                        id: booking.id,
+                                        invoice_id: booking.id.slice(0, 8).toUpperCase(),
+                                        amount: booking.total_price,
+                                        date: format(new Date(booking.created_at), 'dd/MM/yyyy'),
+                                        status: booking.status,
+                                        type: (booking.status === 'cancelled' || booking.status === 'refunded') ? 'refund' : 'payment',
+                                        guestName: booking.guest?.name || 'Valued Guest',
+                                        guestAddress: (booking.guest as any)?.email || 'Address not provided',
+                                        propertyName: booking.properties.title || 'Property',
+                                        booking_id: booking.id,
+                                        paymentMethod: 'Razorpay', // Default fallback
+                                        breakdown: {
+                                            accommodation: booking.total_price * 0.88,
+                                            service_fee: booking.total_price * 0.10,
+                                            taxes: booking.total_price * 0.02
+                                        }
+                                    };
+
+                                    await generateInvoicePDF(transaction || (transactionData as any));
+                                }}
+                                className="p-3 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 hover:bg-sky-500/20 hover:text-white transition-all shadow-lg shadow-sky-900/10"
+                                title="Download Invoice"
+                            >
+                                <Icon name="ArrowDownTrayIcon" size={24} />
+                            </button>
+                        </div>
+
                         {/* Payment Details */}
                         <div className="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
                             <h4 className="text-sm font-medium text-zinc-400 mb-4 uppercase tracking-wider">Payment Summary</h4>
@@ -133,8 +178,26 @@ const BookingDetailsModal = ({ booking, onClose, onStatusChange }: BookingDetail
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-zinc-400">Status</span>
-                                    <span className="text-white capitalize">{booking.status}</span>
+                                    <span className={`capitalize ${booking.status === 'cancelled' ? 'text-red-400' : 'text-white'}`}>{booking.status}</span>
                                 </div>
+
+                                {booking.status === 'cancelled' && (
+                                    <div className="pt-3 mt-3 border-t border-white/5 space-y-3">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-zinc-400">Refund Amount</span>
+                                            <span className="text-emerald-400 font-bold text-lg">₹{refundAmount.toLocaleString('en-IN')}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-zinc-400">Refund Status</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-1.5 h-1.5 rounded-full ${refundStatus === 'completed' || refundStatus === 'refunded' ? 'bg-emerald-500' : 'bg-yellow-500'}`} />
+                                                <span className={`capitalize font-medium ${refundStatus === 'completed' || refundStatus === 'refunded' ? 'text-emerald-400' : 'text-yellow-400'}`}>
+                                                    {refundStatus === 'refunded' ? 'Processed' : refundStatus}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="pt-3 border-t border-white/5 text-xs text-zinc-500 flex items-center justify-between">
                                     <span>Booked on {format(new Date(booking.created_at), 'PPP')}</span>
                                 </div>
@@ -144,8 +207,8 @@ const BookingDetailsModal = ({ booking, onClose, onStatusChange }: BookingDetail
 
                     {/* Footer - Actions could go here */}
                     <div className="p-6 border-t border-white/10 bg-[#0a0a0f] flex justify-between items-center">
-                        <div>
-                            {booking.status === 'confirmed' && new Date(booking.check_in) > new Date() && (
+                        <div className="flex gap-3">
+                            {(booking.status === 'confirmed' || booking.status === 'pending' || booking.status === 'pending_payment') && new Date(booking.check_in) > new Date() && (
                                 <button
                                     onClick={() => setShowCancelConfirm(true)}
                                     className="px-6 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors font-medium border border-red-500/20"

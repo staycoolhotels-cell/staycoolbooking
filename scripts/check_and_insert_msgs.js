@@ -19,7 +19,6 @@ async function check() {
     if (real_msgs?.length > 0) {
         console.dir(real_msgs);
     } else {
-        // try to insert
         const { data: users } = await supabase.from('users').select('id').limit(2);
         const { data: props } = await supabase.from('properties').select('id').limit(1);
 

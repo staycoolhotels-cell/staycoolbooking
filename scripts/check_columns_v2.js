@@ -7,7 +7,7 @@ async function run() {
         process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    // Try to get one row to see the keys
+
     const { data, error } = await supabase.from('properties').select('*').limit(1);
 
     if (error) {
@@ -18,7 +18,6 @@ async function run() {
     if (data && data.length > 0) {
         console.log('Columns in properties table:', Object.keys(data[0]).join(', '));
     } else {
-        // If no data, try information_schema (if permissions allow)
         const { data: cols, error: colError } = await supabase.rpc('exec_sql', {
             sql: "SELECT column_name FROM information_schema.columns WHERE table_name = 'properties';"
         }).catch(() => ({ data: null, error: 'RPC failed' }));

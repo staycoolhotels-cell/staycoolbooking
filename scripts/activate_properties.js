@@ -12,7 +12,7 @@ async function activate() {
         const { data, error } = await adminClient
             .from('properties')
             .update({ status: 'active' })
-            .neq('status', 'active') // Update all that are not active
+            .neq('status', 'active')
             .select();
 
         if (error) {

@@ -19,7 +19,7 @@ async function checkPolicies() {
     }
 
     if (error) {
-        // Fallback to checking postgres directly if RPC doesn't exist
+
         const { data: qData, error: qError } = await supabase.from('wishlist').select('*').limit(1);
         console.log("Wishlist direct query works:", !qError);
         if (qError) console.error(qError);

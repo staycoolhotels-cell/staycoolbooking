@@ -14,7 +14,6 @@ async function run() {
 
     if (error) {
         console.error('RPC Error:', error);
-        // fallback if no run_sql or exec_sql
     } else {
         console.log('Policies:\n', JSON.stringify(data, null, 2));
     }

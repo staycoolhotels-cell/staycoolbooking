@@ -7,17 +7,16 @@ const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
 async function check() {
-    // Check for the specific property seen in the screenshot
+
     const { data, error } = await supabase
         .from('properties')
         .select('*')
-        .ilike('title', '%yjyjytjuy%'); // Try title (schema v2)
+        .ilike('title', '%yjyjytjuy%');
 
     const { data: data2 } = await supabase
         .from('properties')
         .select('*')
-        .ilike('name', '%yjyjytjuy%'); // Try name (schema v1)
-
+        .ilike('name', '%yjyjytjuy%');
     console.log('Matches by title:', data);
     console.log('Matches by name:', data2);
 }

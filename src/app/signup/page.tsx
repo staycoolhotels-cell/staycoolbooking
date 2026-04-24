@@ -294,12 +294,12 @@ function SignupContent() {
         <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-sky-500/10 rounded-full blur-[100px] opacity-30 mix-blend-screen animate-pulse-subtle delay-1000" />
       </div>
 
-      <div className="w-full max-w-lg px-6 relative z-10">
+      <div className="w-full max-w-lg px-4 sm:px-6 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="bg-black/40 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl shadow-black/50"
+          className="bg-black/40 backdrop-blur-xl border border-white/10 p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-2xl shadow-black/50"
         >
           {/* Header */}
           <div className="text-center mb-8">
@@ -311,10 +311,10 @@ function SignupContent() {
             >
               <UserCheck className="w-6 h-6 text-primary" />
             </motion.div>
-            <h1 className="text-3xl font-heading font-bold text-white tracking-tight mb-2">
+            <h1 className="text-2xl md:text-3xl font-heading font-bold text-white tracking-tight mb-1.5 md:mb-2">
               Create Account
             </h1>
-            <p className="text-zinc-400 text-sm">
+            <p className="text-zinc-400 text-xs md:text-sm">
               Join us to book or list unique properties
             </p>
           </div>
@@ -337,10 +337,10 @@ function SignupContent() {
           </AnimatePresence>
 
           {/* Toggle Switch */}
-          <div className="bg-zinc-900/50 p-1.5 rounded-xl flex items-center gap-1 mb-8 border border-white/5 mx-auto max-w-[300px]">
+          <div className="bg-zinc-900/50 p-1 md:p-1.5 rounded-xl flex items-center gap-1 mb-6 md:mb-8 border border-white/5 mx-auto max-w-[300px]">
             <button
               onClick={() => toggleAuthMethod('email')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-300 relative ${authMethod === 'email' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+              className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 py-2 md:py-2.5 px-3 md:px-4 rounded-lg text-xs md:text-sm font-medium transition-all duration-300 relative ${authMethod === 'email' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
                 }`}
             >
               {authMethod === 'email' && (
@@ -356,7 +356,7 @@ function SignupContent() {
             </button>
             <button
               onClick={() => toggleAuthMethod('phone')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-300 relative ${authMethod === 'phone' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+              className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 py-2 md:py-2.5 px-3 md:px-4 rounded-lg text-xs md:text-sm font-medium transition-all duration-300 relative ${authMethod === 'phone' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
                 }`}
             >
               {authMethod === 'phone' && (
@@ -741,7 +741,7 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
       type="submit"
       aria-disabled={pending}
       disabled={pending}
-      className="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white py-4 rounded-xl font-bold shadow-lg shadow-sky-500/20 hover:shadow-sky-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5 active:translate-y-0 relative overflow-hidden group mt-4"
+      className="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white py-3 md:py-4 rounded-lg md:rounded-xl font-bold text-sm md:text-base shadow-lg shadow-sky-500/20 hover:shadow-sky-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5 active:translate-y-0 relative overflow-hidden group mt-4"
     >
       <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none" />
       <span className="relative flex items-center justify-center gap-2">

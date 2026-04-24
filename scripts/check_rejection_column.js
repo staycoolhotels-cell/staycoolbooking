@@ -11,8 +11,6 @@ async function run() {
         const roleKeyMatch = envContent.match(/SUPABASE_SERVICE_ROLE_KEY=(.+)/);
         if (!roleKeyMatch) throw new Error('KEY not found');
         const serviceRoleKey = roleKeyMatch[1].trim();
-
-        // Validated AWS Pooler IP from previous turn
         const host = '3.108.251.216';
         const port = 6543;
         const user = 'postgres.dlislsrlwovcxsuqdlvy';

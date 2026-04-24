@@ -6,6 +6,8 @@ import { Property } from '@/lib/types';
 import Icon from '@/components/ui/AppIcon';
 import { motion, AnimatePresence } from 'framer-motion';
 import { generatePropertyOptimization, getStoredAuraScores } from '@/lib/optimization-actions';
+import { toast } from 'sonner';
+import { updatePropertyPrice } from '@/lib/property-actions';
 
 interface GuestReview {
   id: string;
@@ -239,6 +241,25 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
     }
   }, []);
 
+  const handleApplyPrice = async (propertyId: string, suggestedPrice: number) => {
+    try {
+      const result = await updatePropertyPrice(propertyId, suggestedPrice);
+
+      if (!result.success) throw new Error('Failed to update price');
+
+      // Update local state
+      setMarketComparisons(prev => prev.map(m => 
+        m.property_id === propertyId ? { ...m, your_price: suggestedPrice } : m
+      ));
+
+      toast.success('Optimal price applied successfully! Your property listing has been updated.');
+    } catch (error: any) {
+      console.error('Error updating price:', error);
+      const errorMessage = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+      toast.error('Failed to update price: ' + errorMessage);
+    }
+  };
+
   if (loading) {
     return (
       <div className="w-full h-[600px] flex items-center justify-center p-8">
@@ -251,36 +272,37 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
   }
 
   return (
-    <div className="w-full space-y-6 md:space-y-8">
+    <div className="w-full space-y-4 md:space-y-8">
       {/* 1. Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-[#0a0a0f]/80 p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-4 md:p-8 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 left-0 bottom-0 w-64 bg-gradient-to-r from-amber-500/10 to-transparent pointer-events-none" />
 
-        <div className="relative z-10 flex items-center gap-5">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)]">
-            <Icon name="StarIcon" size={32} className="text-amber-400 drop-shadow-md" />
+        <div className="relative z-10 flex items-center gap-3 md:gap-5">
+          <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)]">
+            <Icon name="StarIcon" size={20} className="text-amber-400 drop-shadow-md md:hidden" />
+            <Icon name="StarIcon" size={32} className="text-amber-400 drop-shadow-md hidden md:block" />
           </div>
           <div>
-            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Property <span className="text-amber-400/70 text-2xl md:text-3xl font-semibold">Insights & Drawbacks</span></h1>
-            <p className="text-sm font-medium text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
+            <h1 className="text-xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Property <span className="text-amber-400/70 text-base md:text-3xl font-semibold">Insights & Drawbacks</span></h1>
+            <p className="text-[10px] md:text-sm font-medium text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest flex items-center gap-2">
               Deep Property Analysis
             </p>
           </div>
         </div>
 
-        <div className="relative z-10 flex gap-4 w-full md:w-auto">
-          <div className="flex-1 md:flex-none bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex flex-col items-center justify-center shadow-inner relative overflow-hidden">
-            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Total Signals</p>
-            <p className="text-3xl font-heading font-black text-white drop-shadow-sm">{guestReviews.length}</p>
+        <div className="relative z-10 flex gap-3 md:gap-4 w-full md:w-auto">
+          <div className="flex-1 md:flex-none bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-2.5 md:py-4 flex flex-col items-center justify-center shadow-inner relative overflow-hidden">
+            <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5 md:mb-1">Total Signals</p>
+            <p className="text-xl md:text-3xl font-heading font-black text-white drop-shadow-sm">{guestReviews.length}</p>
           </div>
         </div>
       </div>
 
       {/* 2. Reviews Section */}
-      <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 md:p-8 shadow-2xl relative overflow-hidden group">
+      <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2.5rem] border border-white/10 p-4 md:p-8 shadow-2xl relative overflow-hidden group">
         <div className="absolute -top-32 -right-32 w-96 h-96 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none group-hover:bg-amber-500/10 transition-colors duration-1000" />
 
-        <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/10 pb-6">
+        <div className="flex items-center justify-between mb-4 md:mb-8 relative z-10 border-b border-white/10 pb-3 md:pb-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20 shadow-inner">
               <Icon name="ChatBubbleBottomCenterTextIcon" size={20} className="text-amber-400" />
@@ -296,7 +318,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
           {guestReviews.length > 0 ? (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(showAllReviews ? guestReviews : guestReviews.slice(0, 4)).map((review, idx) => (
+                {(showAllReviews ? guestReviews : guestReviews.slice(0, 2)).map((review, idx) => (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -338,7 +360,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
               ))}
             </div>
 
-            {guestReviews.length > 4 && (
+            {guestReviews.length > 2 && (
               <div className="flex justify-center mt-8 pb-2">
                 <button
                   onClick={() => setShowAllReviews(!showAllReviews)}
@@ -366,15 +388,15 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
       </div>
 
       {/* 3. Market & Optimization Bottom Row */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-8">
         {/* Optimization AI */}
-        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 md:p-8 shadow-2xl relative overflow-hidden group flex flex-col">
+        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2.5rem] border border-white/10 p-4 md:p-8 shadow-2xl relative overflow-hidden group flex flex-col">
           <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-purple-500/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-purple-500/15 transition-colors duration-1000" />
 
-          <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/10 pb-6">
+          <div className="flex items-center justify-between mb-4 md:mb-8 relative z-10 border-b border-white/10 pb-3 md:pb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-500/10 rounded-xl border border-purple-500/20 shadow-inner">
-                <Icon name="SparklesIcon" size={20} className="text-purple-400" />
+                <Icon name="WrenchScrewdriverIcon" size={20} className="text-purple-400" />
               </div>
               <h2 className="text-sm font-heading font-bold text-white uppercase tracking-wider">
                 Drawbacks & Fixes
@@ -419,37 +441,36 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
                   </motion.div>
                 ))}
 
-                {/* 2. Show completed scores */}
                 {auraScores.map((aura, idx) => (
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.1 }}
                     key={aura.id}
-                    className="p-5 rounded-3xl bg-white/[0.02] border border-white/10 shadow-lg group/item relative overflow-hidden"
+                    className="p-3 md:p-5 rounded-2xl md:rounded-3xl bg-white/[0.02] border border-white/10 shadow-lg group/item relative overflow-hidden"
                   >
-                    <div className="flex justify-between items-start mb-4">
-                      <h3 className="font-bold text-base text-white">{aura.property_name}</h3>
-                      <div className="flex items-center gap-1.5 px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-xl shadow-inner">
-                        <Icon name="BoltIcon" size={14} className="text-purple-400" />
-                        <span className="text-sm font-black text-purple-400">{aura.overall_score}</span>
+                    <div className="flex justify-between items-start mb-3 md:mb-4">
+                      <h3 className="font-bold text-sm md:text-base text-white">{aura.property_name}</h3>
+                      <div className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-xl shadow-inner">
+                        <Icon name="BoltIcon" size={12} className="text-purple-400" />
+                        <span className="text-xs md:text-sm font-black text-purple-400">{aura.overall_score}</span>
                       </div>
                     </div>
 
-                    <div className="space-y-2 mb-4">
+                    <div className="space-y-1.5 md:space-y-2 mb-3 md:mb-4">
                       {aura.optimization_tips?.map((tip, index) => (
-                        <div key={index} className="flex gap-2.5 items-start">
+                        <div key={index} className="flex gap-2 items-start">
                           <div className="mt-0.5 p-0.5 rounded-full bg-white/5 border border-white/10 shrink-0">
                             <Icon name="ChevronRightIcon" size={10} className="text-zinc-500" />
                           </div>
-                          <p className="text-xs text-zinc-400 leading-snug font-medium">{tip}</p>
+                          <p className="text-[11px] md:text-xs text-zinc-400 leading-snug font-medium">{tip}</p>
                         </div>
                       ))}
                     </div>
 
                     {aura.ranking_improvement && (
-                      <div className="mt-3 p-3 rounded-2xl bg-gradient-to-r from-success/10 to-transparent border border-success/20 flex items-center gap-3">
-                        <Icon name="ArrowTrendingUpIcon" size={16} className="text-success" />
+                      <div className="mt-2 md:mt-3 p-2 md:p-3 rounded-xl md:rounded-2xl bg-gradient-to-r from-success/10 to-transparent border border-success/20 flex items-center gap-2 md:gap-3">
+                        <Icon name="ArrowTrendingUpIcon" size={14} className="text-success" />
                         <p className="text-[10px] font-bold text-success uppercase tracking-widest">{aura.ranking_improvement}</p>
                       </div>
                     )}
@@ -470,10 +491,10 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
         </div>
 
         {/* Market Comparison */}
-        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 md:p-8 shadow-2xl relative overflow-hidden group flex flex-col">
+        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2.5rem] border border-white/10 p-4 md:p-8 shadow-2xl relative overflow-hidden group flex flex-col">
           <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-blue-500/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-blue-500/15 transition-colors duration-1000" />
 
-          <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/10 pb-6">
+          <div className="flex items-center justify-between mb-4 md:mb-8 relative z-10 border-b border-white/10 pb-3 md:pb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20 shadow-inner">
                 <Icon name="PresentationChartLineIcon" size={20} className="text-blue-400" />
@@ -492,32 +513,35 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.1 }}
                   key={comparison.id}
-                  className="p-5 rounded-3xl bg-white/[0.02] border border-white/10 shadow-lg relative overflow-hidden"
+                  className="p-3 md:p-5 rounded-2xl md:rounded-3xl bg-white/[0.02] border border-white/10 shadow-lg relative overflow-hidden"
                 >
-                  <h3 className="font-bold text-base text-white mb-5">{comparison.property_name}</h3>
+                  <h3 className="font-bold text-sm md:text-base text-white mb-3 md:mb-5">{comparison.property_name}</h3>
 
-                  <div className="grid grid-cols-2 gap-4 mb-5">
+                  <div className="grid grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-5">
                     <div>
-                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Your Price</p>
-                      <p className="text-xl font-heading font-black text-white font-mono tracking-tight">₹{comparison.your_price?.toLocaleString('en-IN')}</p>
+                      <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Your Price</p>
+                      <p className="text-base md:text-xl font-heading font-black text-white font-mono tracking-tight">₹{comparison.your_price?.toLocaleString('en-IN')}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Local Average</p>
-                      <p className="text-xl font-heading font-black text-zinc-400 font-mono tracking-tight">₹{comparison.average_local_price?.toLocaleString('en-IN')}</p>
+                      <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Local Average</p>
+                      <p className="text-base md:text-xl font-heading font-black text-zinc-400 font-mono tracking-tight">₹{comparison.average_local_price?.toLocaleString('en-IN')}</p>
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-[#0a0a0f]/50 border border-white/5 flex items-center justify-between">
+                  <div className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-[#0a0a0f]/50 border border-white/5 flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                        <Icon name="LightBulbIcon" size={12} className="text-success" />
+                      <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5 md:mb-1 flex items-center gap-1">
+                        <Icon name="LightBulbIcon" size={11} className="text-success" />
                         Suggested Optimal
                       </p>
-                      <p className="text-2xl font-heading font-black text-success font-mono tracking-tight drop-shadow-sm">
+                      <p className="text-lg md:text-2xl font-heading font-black text-success font-mono tracking-tight drop-shadow-sm">
                         ₹{comparison.suggested_price?.toLocaleString('en-IN')}
                       </p>
                     </div>
-                    <button className="px-4 py-2 bg-success/10 hover:bg-success/20 text-success border border-success/30 hover:border-success/50 transition-colors uppercase tracking-widest text-[10px] font-black rounded-xl">
+                    <button 
+                      onClick={() => handleApplyPrice(comparison.property_id, comparison.suggested_price)}
+                      className="px-3 md:px-4 py-1.5 md:py-2 bg-success/10 hover:bg-success/20 text-success border border-success/30 hover:border-success/50 transition-colors uppercase tracking-widest text-[10px] font-black rounded-lg md:rounded-xl"
+                    >
                       Apply
                     </button>
                   </div>

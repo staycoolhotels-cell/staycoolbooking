@@ -356,7 +356,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
           ]);
 
         if (error) {
-          console.error("Error inserting to wishlist:", { message: error.message, details: error.details, hint: error.hint, code: error.code });
+          console.error("Error inserting to wishlist:", { message: 'An unexpected error occurred.', details: error.details, hint: error.hint, code: error.code });
           throw error;
         }
       }
@@ -624,22 +624,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
                     onPropertySelect={(id) => router.push(`/property-listing/${id}`)}
                   />
 
-                  {/* Floating Legend or Info if needed */}
-                  <div className="absolute bottom-10 left-10 z-10 px-6 py-4 bg-zinc-900/80 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl">
-                    <div className="flex items-center gap-4">
-                      <div className="flex -space-x-3">
-                        {[1, 2, 3].map(i => (
-                          <div key={i} className="w-10 h-10 rounded-full border-2 border-zinc-900 bg-zinc-800 overflow-hidden">
-                            <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="User" />
-                          </div>
-                        ))}
-                      </div>
-                      <div>
-                        <p className="text-white text-xs font-bold">120+ users exploring</p>
-                        <p className="text-zinc-500 text-[10px] font-medium uppercase tracking-widest">Live in {userCity || 'India'}</p>
-                      </div>
-                    </div>
-                  </div>
+
                 </div>
               )}
             </div>

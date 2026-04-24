@@ -20,10 +20,8 @@ async function testVerificationInsert() {
 
         if (authError || !user) {
             console.log('⚠️  No authenticated user found. Testing with service role key...');
-
-            // Try to insert a test verification record
             const testData = {
-                user_id: '00000000-0000-0000-0000-000000000000', // Dummy UUID
+                user_id: '00000000-0000-0000-0000-000000000000',
                 doc_type: 'test',
                 file_url: 'test.pdf',
                 status: 'pending'

@@ -43,7 +43,7 @@ export async function createDispute(data: {
 
     if (error) {
         console.error('Error creating dispute:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: 'An unexpected error occurred. Please try again.' };
     }
 
     // Log activity
@@ -92,7 +92,7 @@ export async function respondToDispute(disputeId: string, response: string, newS
 
     if (error) {
         console.error('Error responding to dispute:', error);
-        return { success: false, error: error.message || 'Unknown database error' };
+        return { success: false, error: 'An unexpected error occurred. Please try again.' };
     }
 
     if (!dispute) {
@@ -125,7 +125,7 @@ export async function deleteDispute(disputeId: string) {
 
     if (error) {
         console.error('Error deleting dispute:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: 'An unexpected error occurred. Please try again.' };
     }
 
     return { success: true };

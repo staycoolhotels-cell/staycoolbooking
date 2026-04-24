@@ -137,42 +137,44 @@ const OccupancyPulse: React.FC<OccupancyPulseProps> = ({ bookings = [] }) => {
 
   return (
     <div className="w-full">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 bg-[#0a0a0f]/80 p-6 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5 bg-[#0a0a0f]/80 p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 w-64 bg-gradient-to-l from-primary/10 to-transparent pointer-events-none" />
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/20 flex items-center justify-center shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.3)]">
-            <Icon name="HeartIcon" size={28} className="text-primary animate-pulse" />
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/20 flex items-center justify-center shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.3)]">
+            <Icon name="HeartIcon" size={20} className="text-primary animate-pulse sm:hidden" />
+            <Icon name="HeartIcon" size={28} className="text-primary animate-pulse hidden sm:block" />
           </div>
           <div>
-            <h1 className="text-3xl font-heading font-black text-white tracking-tight drop-shadow-md">Occupancy Pulse</h1>
-            <p className="text-sm font-medium text-zinc-400 mt-1">Real-time tracking of guest movements</p>
+            <h1 className="text-xl sm:text-3xl font-heading font-black text-white tracking-tight drop-shadow-md">Occupancy Pulse</h1>
+            <p className="text-xs sm:text-sm font-medium text-zinc-400 mt-0.5">Real-time tracking of guest movements</p>
           </div>
         </div>
-        <div className="px-4 py-2 bg-[#12121a] border border-white/10 rounded-xl flex items-center gap-2 shadow-inner relative z-10 w-full sm:w-auto justify-center">
-          <div className="w-2.5 h-2.5 rounded-full bg-success shadow-[0_0_10px_rgba(34,197,94,0.6)] animate-pulse"></div>
-          <span className="text-xs font-bold text-zinc-200 uppercase tracking-widest">Live Updates</span>
+        <div className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#12121a] border border-white/10 rounded-xl flex items-center gap-2 shadow-inner relative z-10 w-full sm:w-auto justify-center">
+          <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-success shadow-[0_0_10px_rgba(34,197,94,0.6)] animate-pulse"></div>
+          <span className="text-[10px] sm:text-xs font-bold text-zinc-200 uppercase tracking-widest">Live Updates</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
         {columns.map((col, idx) => (
           <div
             key={idx}
-            className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-[400px]"
+            className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl sm:rounded-[2.5rem] border border-white/10 p-3 sm:p-6 shadow-2xl relative overflow-hidden flex flex-col min-h-[180px] sm:min-h-[400px]"
           >
             {/* Column Header Glow */}
             <div className={`absolute top-0 left-0 right-0 h-32 bg-gradient-to-b ${col.highlight} to-transparent opacity-20 pointer-events-none`} />
 
-            <div className="flex justify-between items-center mb-6 relative z-10 border-b border-white/10 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/5 rounded-lg border border-white/10">
-                  <Icon name={col.icon} size={18} className="text-zinc-300" />
+            <div className="flex justify-between items-center mb-3 sm:mb-6 relative z-10 border-b border-white/10 pb-2 sm:pb-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-white/5 rounded-lg border border-white/10">
+                  <Icon name={col.icon} size={15} className="text-zinc-300 sm:hidden" />
+                  <Icon name={col.icon} size={18} className="text-zinc-300 hidden sm:block" />
                 </div>
-                <h2 className="text-sm font-heading font-bold text-white uppercase tracking-wider drop-shadow-md">
+                <h2 className="text-xs sm:text-sm font-heading font-bold text-white uppercase tracking-wider drop-shadow-md">
                   {col.title}
                 </h2>
               </div>
-              <span className="text-xs font-bold text-white bg-white/10 border border-white/20 px-3 py-1 rounded-full shadow-inner">
+              <span className="text-[10px] sm:text-xs font-bold text-white bg-white/10 border border-white/20 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-inner">
                 {col.data.length}
               </span>
             </div>
@@ -181,12 +183,13 @@ const OccupancyPulse: React.FC<OccupancyPulseProps> = ({ bookings = [] }) => {
               {col.data.length > 0 ? (
                 col.data.map((occ) => <OccupancyPulseCard key={occ.id} occupancy={occ} />)
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-60">
-                  <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 shadow-inner">
-                    <Icon name="ArchiveBoxXMarkIcon" size={24} className="text-zinc-500" />
+                <div className="flex flex-col items-center justify-center h-full text-center py-5 sm:py-10 opacity-60">
+                  <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-2 sm:mb-4 shadow-inner">
+                    <Icon name="ArchiveBoxXMarkIcon" size={16} className="text-zinc-500 sm:hidden" />
+                    <Icon name="ArchiveBoxXMarkIcon" size={24} className="text-zinc-500 hidden sm:block" />
                   </div>
-                  <p className="text-sm font-bold text-zinc-300 mb-1 tracking-wide">{col.emptyTitle}</p>
-                  <p className="text-xs font-medium text-zinc-500">{col.emptySubtitle}</p>
+                  <p className="text-xs sm:text-sm font-bold text-zinc-300 mb-0.5 sm:mb-1 tracking-wide">{col.emptyTitle}</p>
+                  <p className="text-[10px] sm:text-xs font-medium text-zinc-500">{col.emptySubtitle}</p>
                 </div>
               )}
             </div>

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { razorpay } from '@/lib/razorpay';
 import { differenceInDays, startOfDay } from 'date-fns';
+import { getRefundPercentage } from '@/lib/refund-policy';
 
 export async function POST(req: Request) {
     try {
@@ -50,25 +51,21 @@ export async function POST(req: Request) {
         const daysUntilCheckIn = differenceInDays(checkInDate, today);
 
         const totalPrice = Number(booking.total_price);
-        let guestRefundPercent = 0;
+        const guestRefundPercent = getRefundPercentage(booking.check_in, today);
         let adminChargePercent = 0;
         let hostChargePercent = 0;
 
-        if (daysUntilCheckIn >= 7) {
-            guestRefundPercent = 100;
+        if (guestRefundPercent === 100) {
             adminChargePercent = 0;
             hostChargePercent = 0;
-        } else if (daysUntilCheckIn >= 5) {
-            guestRefundPercent = 70;
+        } else if (guestRefundPercent === 70) {
             adminChargePercent = 30;
             hostChargePercent = 0;
-        } else if (daysUntilCheckIn >= 2) {
-            guestRefundPercent = 30;
+        } else if (guestRefundPercent === 30) {
             adminChargePercent = 70;
             hostChargePercent = 0;
         } else {
-            // Check-in day or 1 day before
-            guestRefundPercent = 0;
+            // 0% refund
             adminChargePercent = 35;
             hostChargePercent = 65;
         }
@@ -127,16 +124,28 @@ export async function POST(req: Request) {
         }
 
         // 4. Update Database records
+        // IMPORTANT: Use serviceRoleClient to ensure status update succeeds bypassing RLS 
+        // after we have already verified ownership above.
+        const adminSupabase = await createServiceClient();
+
         // Update booking status
-        await supabase
+        const { error: updateError } = await adminSupabase
             .from('bookings')
-            .update({ status: 'cancelled' })
+            .update({ 
+                status: 'cancelled',
+                cancelled_at: new Date().toISOString() 
+            })
             .eq('id', bookingId);
+            
+        if (updateError) {
+            console.error('Booking status update error:', updateError);
+            throw new Error('Failed to update booking status in database');
+        }
             
         // Update payment_transfers if it exists
         if (booking.payment_transfer && booking.payment_transfer.length > 0) {
             const transferRecord = booking.payment_transfer[0];
-            await supabase
+            const { error: transferError } = await adminSupabase
                 .from('payment_transfers')
                 .update({
                     platform_commission: newAdminAmount,
@@ -144,6 +153,11 @@ export async function POST(req: Request) {
                     transfer_status: guestRefundPercent === 100 ? 'reversed' : 'partial_reversal'
                 })
                 .eq('id', transferRecord.id);
+            
+            if (transferError) {
+                console.error('Transfer record update error:', transferError);
+                // Non-critical: the booking itself is cancelled, but transfer record remains stale.
+            }
         }
 
         return NextResponse.json({
@@ -155,6 +169,6 @@ export async function POST(req: Request) {
 
     } catch (error: any) {
         console.error('Cancellation API error:', error);
-        return NextResponse.json({ error: error.message || 'Error processing cancellation' }, { status: 500 });
+        return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
     }
 }

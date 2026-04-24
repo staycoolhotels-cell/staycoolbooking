@@ -7,8 +7,10 @@ interface PropertyDescriptionProps {
   propertyType: string;
   maxGuests: number;
   bedrooms: number;
+  beds: number;
   bathrooms: number;
   area: number;
+  totalRooms: number;
   highlights: string[];
 }
 
@@ -17,8 +19,10 @@ const PropertyDescription = ({
   propertyType,
   maxGuests,
   bedrooms,
+  beds,
   bathrooms,
   area,
+  totalRooms,
   highlights,
 }: PropertyDescriptionProps) => {
   const containerVariants: Variants = {
@@ -41,10 +45,12 @@ const PropertyDescription = ({
   };
 
   const features = [
-    { icon: 'UserGroupIcon', label: 'Guests', value: maxGuests },
+    { icon: 'BuildingOfficeIcon', label: 'Total Units', value: totalRooms },
     { icon: 'HomeIcon', label: 'Bedrooms', value: bedrooms },
-    { icon: 'SparklesIcon', label: 'Bathrooms', value: bathrooms },
+    { icon: 'Bed', label: 'Beds', value: beds },
+    { icon: 'Bath', label: 'Bathrooms', value: bathrooms },
     { icon: 'Square3Stack3DIcon', label: 'Area', value: `${area} sq ft` },
+    { icon: 'UserGroupIcon', label: 'Guests', value: maxGuests },
   ];
 
   return (
@@ -63,22 +69,22 @@ const PropertyDescription = ({
           <Icon name="InformationCircleIcon" size={20} className="text-primary" />
         </div>
         <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-          About This {propertyType}
+          About This {propertyType === 'Hostel' ? 'Dormitory' : propertyType}
         </h2>
       </motion.div>
 
-      <motion.div variants={itemVariants} className="grid grid-cols-4 gap-2 md:gap-4 mb-10">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-4 mb-10">
         {features.map((feature, idx) => (
           <div
             key={idx}
-            className="group flex flex-col items-center justify-center p-2 sm:p-4 bg-white/[0.02] border border-white/5 rounded-2xl md:rounded-3xl hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/20 transition-all duration-300"
+            className="group flex flex-col items-center justify-center p-1 sm:p-2 md:p-3 bg-white/[0.02] border border-white/5 rounded-2xl md:rounded-3xl hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/20 transition-all duration-300 min-h-[90px] sm:min-h-[130px]"
           >
             <div className="w-8 h-8 sm:w-12 sm:h-12 mb-1 sm:mb-2 rounded-full bg-white/[0.03] flex items-center justify-center group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300 border border-white/5 group-hover:border-primary/30">
-              <Icon name={feature.icon as string} size={24} className="text-white/60 group-hover:text-primary transition-colors w-4 h-4 sm:w-6 sm:h-6" />
+              <Icon name={feature.icon as string} size={24} className="text-white/60 group-hover:text-primary transition-colors w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="text-center w-full">
-              <p className="text-[9px] sm:text-sm font-medium text-white/40 tracking-wider sm:tracking-wide uppercase truncate leading-tight">{feature.label}</p>
-              <p className="text-[11px] sm:text-lg font-bold text-white mt-0.5 sm:mt-1 truncate">{feature.value}</p>
+              <p className="text-[7px] sm:text-[9px] md:text-[11px] font-medium text-white/40 tracking-tighter uppercase leading-tight px-0.5 whitespace-nowrap">{feature.label}</p>
+              <p className="text-[10px] sm:text-base md:text-lg font-bold text-white mt-0.5 sm:mt-1 px-0.5 whitespace-nowrap leading-tight">{feature.value}</p>
             </div>
           </div>
         ))}
@@ -115,7 +121,7 @@ const PropertyDescription = ({
                     className="text-success w-3 h-3 sm:w-4 sm:h-4"
                   />
                 </div>
-                <span className="text-[11px] sm:text-sm font-medium text-white/80 leading-tight truncate">{highlight}</span>
+                <span className="text-[11px] sm:text-sm font-medium text-white/80 leading-tight">{highlight}</span>
               </div>
             ))}
           </div>

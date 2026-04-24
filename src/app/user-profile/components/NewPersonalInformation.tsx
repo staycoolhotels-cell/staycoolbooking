@@ -29,6 +29,20 @@ interface PersonalInformationProps {
   isEditing: boolean;
 }
 
+/* ───── tile wrapper ───── */
+const FieldTile = ({
+  icon, label, children,
+}: { icon: string; label: string; children: React.ReactNode }) => (
+  <div className="group relative p-3 md:p-5 rounded-2xl bg-zinc-900/40 border border-sky-500/10 hover:border-sky-500/25 backdrop-blur-sm transition-all duration-300 hover:bg-zinc-900/60 flex flex-col justify-center">
+    {/* Icon + label header */}
+    <div className="flex items-center gap-1.5 md:gap-2 mb-1.5 md:mb-3">
+      <span className="text-sm md:text-base leading-none">{icon}</span>
+      <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.28em] text-sky-400/80">{label}</span>
+    </div>
+    {children}
+  </div>
+);
+
 const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInformationProps) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -67,21 +81,7 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
 
   /* ── shared input class ── */
   const inputClass =
-    'w-full p-3 bg-sky-950/30 border border-sky-500/20 rounded-xl mt-1 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 outline-none transition-all duration-200 text-zinc-100 placeholder:text-zinc-600 text-sm';
-
-  /* ── tile wrapper ── */
-  const FieldTile = ({
-    icon, label, children,
-  }: { icon: string; label: string; children: React.ReactNode }) => (
-    <div className="group relative p-5 rounded-2xl bg-zinc-900/40 border border-sky-500/10 hover:border-sky-500/25 backdrop-blur-sm transition-all duration-300 hover:bg-zinc-900/60">
-      {/* Icon + label header */}
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-base leading-none">{icon}</span>
-        <span className="text-[9px] font-black uppercase tracking-[0.28em] text-sky-400/80">{label}</span>
-      </div>
-      {children}
-    </div>
-  );
+    'w-full p-2.5 md:p-3 bg-sky-950/30 border border-sky-500/20 rounded-xl mt-1 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 outline-none transition-all duration-200 text-zinc-100 placeholder:text-zinc-600 text-xs md:text-sm';
 
   return (
     <motion.div
@@ -89,8 +89,8 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 120, damping: 20, delay: 0.2 }}
     >
-      <div className="flex items-center gap-3 mb-5">
-        <h2 className="text-[10px] font-black uppercase tracking-[0.28em] text-zinc-500">Personal Information</h2>
+      <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-5">
+        <h2 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.28em] text-zinc-500">Personal Information</h2>
         <div className="h-px flex-grow bg-gradient-to-r from-sky-500/20 to-transparent" />
         {isEditing && (
           <span className="text-[9px] font-bold uppercase tracking-widest text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2.5 py-1 rounded-full">
@@ -119,9 +119,9 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
           marginTop: (isExpanded || isEditing ? '0px' : '-20px')
         }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="overflow-hidden"
+        className={isExpanded || isEditing ? "overflow-visible" : "overflow-hidden"}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 md:gap-4">
 
         {/* ── Bio ── */}
         <div className="sm:col-span-2 xl:col-span-3">
@@ -141,7 +141,7 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
               ) : (
                 <motion.p
                   key="bio-view"
-                  className={`text-sm leading-relaxed ${userInfo.bio ? 'text-zinc-300' : 'text-zinc-600 italic'}`}
+                  className={`text-xs md:text-sm leading-relaxed ${userInfo.bio ? 'text-zinc-300' : 'text-zinc-600 italic'}`}
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 >
                   {userInfo.bio || 'Not set'}
@@ -165,7 +165,7 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
                 initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }}
               />
             ) : (
-              <motion.p key="location-view" className={`text-sm ${userInfo.location ? 'text-zinc-300' : 'text-zinc-600 italic'}`}
+              <motion.p key="location-view" className={`text-xs md:text-sm ${userInfo.location ? 'text-zinc-300' : 'text-zinc-600 italic'}`}
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 {userInfo.location || 'Not set'}
               </motion.p>
@@ -187,7 +187,7 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
                 initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }}
               />
             ) : (
-              <motion.p key="occupation-view" className={`text-sm ${userInfo.occupation ? 'text-zinc-300' : 'text-zinc-600 italic'}`}
+              <motion.p key="occupation-view" className={`text-xs md:text-sm ${userInfo.occupation ? 'text-zinc-300' : 'text-zinc-600 italic'}`}
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 {userInfo.occupation || 'Not set'}
               </motion.p>
@@ -216,7 +216,7 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
                 <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-sky-400 text-xs mt-0.5">▾</span>
               </motion.div>
             ) : (
-              <motion.p key="gender-view" className={`text-sm ${userInfo.gender ? 'text-zinc-300' : 'text-zinc-600 italic'}`}
+              <motion.p key="gender-view" className={`text-xs md:text-sm ${userInfo.gender ? 'text-zinc-300' : 'text-zinc-600 italic'}`}
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 {userInfo.gender || 'Not set'}
               </motion.p>
@@ -296,12 +296,12 @@ const PersonalInformation = ({ userInfo, setUserInfo, isEditing }: PersonalInfor
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   {selectedLangs.length > 0 ? (
                     selectedLangs.map((lang) => (
-                      <span key={lang} className="bg-sky-500/15 text-sky-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-sky-500/20 uppercase tracking-wider">
+                      <span key={lang} className="bg-sky-500/15 text-sky-300 text-[9px] md:text-[10px] font-bold px-2 py-0.5 md:px-2.5 md:py-1 rounded-full border border-sky-500/20 uppercase tracking-wider">
                         {lang}
                       </span>
                     ))
                   ) : (
-                    <span className="text-zinc-600 italic text-sm">Not set</span>
+                    <span className="text-zinc-600 italic text-xs md:text-sm">Not set</span>
                   )}
                 </motion.div>
               )}

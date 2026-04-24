@@ -37,7 +37,6 @@ export async function POST(req: Request) {
 
         let accountId = '';
         try {
-            // @ts-expect-error - Razorpay SDK types might be outdated for Route accounts
             const account = await razorpay.accounts.create({
                 type: 'route',
                 name: name,
@@ -78,16 +77,10 @@ export async function POST(req: Request) {
     } catch (error: any) {
         console.error('Onboarding Error Details:', error);
 
-        let errorMessage = 'Unknown error occurred';
-        if (error && typeof error === 'object') {
-            errorMessage = error.error?.description || error.description || error.message || 'Unknown Razorpay error';
-        } else if (typeof error === 'string') {
-            errorMessage = error;
-        }
+        let errorMessage = 'An unexpected error occurred.';
 
-        const safeDetails = error instanceof Error ? error.message : String(error);
-        console.info('API returning 500 with:', { error: errorMessage, details: safeDetails });
+        console.info('API returning 500 with:', { error: errorMessage, details: String(error) });
 
-        return NextResponse.json({ error: errorMessage, details: safeDetails }, { status: 500 });
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

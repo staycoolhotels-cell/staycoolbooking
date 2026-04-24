@@ -3,7 +3,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { logActivity } from './activity-actions';
+import { logActivity, createNotification } from './activity-actions';
 import { createClient } from '@supabase/supabase-js'; // Import createClient for admin client
 import { revalidateTag } from 'next/cache';
 import { CACHE_TAGS, getHostProperties } from './data-service';
@@ -83,7 +83,7 @@ export async function addProperty(prevState: any, formData: FormData) {
         });
 
       if (error) {
-        imageUploadErrors.push(`Failed to upload image ${imageFile.name}: ${error.message}`);
+        imageUploadErrors.push(`Failed to upload image ${imageFile.name}: An unexpected error occurred.`);
       } else {
         const { data: publicUrlData } = supabaseAdmin.storage.from('images').getPublicUrl(filePath);
         imageUrls.push({ url: publicUrlData.publicUrl, alt: name });
@@ -113,7 +113,7 @@ export async function addProperty(prevState: any, formData: FormData) {
         });
 
       if (error) {
-        documentUploadErrors.push(`Failed to upload ${folder} document: ${error.message}`);
+        documentUploadErrors.push(`Failed to upload ${folder} document: An unexpected error occurred.`);
         return '';
       } else {
         const { data: publicUrlData } = supabaseAdmin.storage.from('documents').getPublicUrl(filePath);
@@ -162,11 +162,17 @@ export async function addProperty(prevState: any, formData: FormData) {
 
   if (error) {
     console.error('Error adding property:', error);
-    return { error: error.message };
+    return { error: 'An unexpected error occurred. Please try again.' };
   }
 
   if (data && data.length > 0) {
     await logActivity('new_property', `New property added: ${name}`, host_id);
+    await createNotification(
+      'new_property',
+      'Property Approval Request',
+      `A new property "${name}" was submitted and is pending approval.`,
+      'warning'
+    );
 
     // Invalidate caches
     revalidateTag(CACHE_TAGS.properties);
@@ -214,9 +220,60 @@ export const createProperty = async (propertyData: Omit<Property, 'id' | 'create
     return null;
   }
 
+  await createNotification(
+    'new_property',
+    'Property Approval Request',
+    `A new property was created and is pending approval.`,
+    'warning'
+  );
+
   // Invalidate caches
   revalidateTag(CACHE_TAGS.properties);
   if (user.id) revalidateTag(CACHE_TAGS.host_properties(user.id));
 
   return data;
+};
+
+export const updatePropertyPrice = async (propertyId: string, suggestedPrice: number) => {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  // 1. Manually verify ownership since RLS/RPC is having issues with current schema
+  const { data: propData, error: propError } = await supabaseAdmin
+    .from('properties')
+    .select('host_id')
+    .eq('id', propertyId)
+    .single();
+
+  if (propError || !propData) {
+    console.error('Error verifying property ownership:', propError);
+    throw new Error('Property not found or unauthorized access');
+  }
+
+  if (propData.host_id !== user.id) {
+    console.error('Unauthorized price update attempt:', { userId: user.id, hostId: propData.host_id });
+    throw new Error('Unauthorized: You do not own this property');
+  }
+
+  // 2. Perform the update using admin client to bypass restrictive/buggy RLS
+  const { data, error } = await supabaseAdmin
+    .from('properties')
+    .update({ price_per_night: suggestedPrice })
+    .eq('id', propertyId)
+    .select();
+
+  if (error) {
+    console.error('Error updating property price via admin:', error);
+    throw new Error('An unexpected error occurred. Please try again.');
+  }
+
+  // Invalidate caches
+  revalidateTag(CACHE_TAGS.properties);
+  if (user.id) revalidateTag(CACHE_TAGS.host_properties(user.id));
+
+  return { success: true, data };
 };

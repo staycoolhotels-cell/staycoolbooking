@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getUsersData, syncAndFetchUsers } from '@/lib/admin-actions';
 import { createAdminSupabaseClient } from '@/lib/admin-actions';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
   title: 'Admin Panel - StayCool',
@@ -54,7 +55,7 @@ export default async function AdminPanelPage() {
     .from('bookings')
     .select(`
       *,
-      guest:users!guest_id ( name ),
+      guest:users!guest_id ( name, email ),
       property:properties!property_id ( 
         title,
         host:users!host_id ( name )
@@ -62,17 +63,31 @@ export default async function AdminPanelPage() {
     `)
     .order('created_at', { ascending: false });
 
+  // Fetch guest location info separately
+  const guestIds = [...new Set((bookingsWithDetails || []).map((b: any) => b.guest_id).filter(Boolean))];
+  const { data: guestPersonalInfo } = guestIds.length > 0
+    ? await supabaseAdmin.from('user_personal_info').select('user_id, location').in('user_id', guestIds)
+    : { data: [] };
+  const locationMap: Record<string, string> = {};
+  (guestPersonalInfo || []).forEach((info: any) => {
+    if (info.location) locationMap[info.user_id] = info.location;
+  });
+
   // Map confirmed bookings to the Transaction interface
   const mappedTransactions = (bookingsWithDetails || []).map(b => {
     const amount = Number(b.total_price);
     const serviceFee = b.service_fee || (amount * 0.1); // Fallback to 10%
     const netRevenue = amount - serviceFee;
+    const guestLocation = locationMap[b.guest_id];
+    const guestEmail = b.guest?.email;
+    const guestAddress = [guestEmail, guestLocation].filter(Boolean).join('\n') || 'Address not provided';
     
     return {
       id: b.id,
       transactionId: `TXN-${b.id.slice(0, 8).toUpperCase()}`,
       propertyName: b.property?.title || 'Unknown Property',
       guestName: b.guest?.name || 'Unknown Guest',
+      guestAddress,
       hostName: b.property?.host?.name || 'Unknown Host',
       amount: amount,
       serviceFee: serviceFee,
@@ -87,7 +102,7 @@ export default async function AdminPanelPage() {
       date: new Date(b.created_at).toLocaleDateString(),
       rawDate: b.created_at,
       status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
-              (b.status === 'cancelled' || b.status === 'refunded') ? 'refunded' : 'pending',
+              (b.status === 'refunded' ? 'refunded' : 'pending'),
       paymentMethod: 'Razorpay'
     };
   });
@@ -132,5 +147,9 @@ export default async function AdminPanelPage() {
     activities: transformedActivities || [],
   };
 
-  return <AdminPanelMotionWrapper adminData={adminData} />;
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-zinc-500">Loading Admin Panel...</div>}>
+      <AdminPanelMotionWrapper adminData={adminData} />
+    </Suspense>
+  );
 }

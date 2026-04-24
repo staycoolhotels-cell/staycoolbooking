@@ -101,7 +101,7 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
       />
 
       {/* 2. IMAGE SECTION WITH VIGNETTE */}
-      <div className="relative h-40 md:h-52 w-full overflow-hidden shrink-0">
+      <div className="relative h-28 md:h-52 w-full overflow-hidden shrink-0">
         {property.images && property.images.length > 0 ? (
           <img
             src={property.images[0].url}
@@ -125,7 +125,7 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/20 to-transparent" />
 
         {/* Status Badge (Interactive) */}
-        <div className="absolute top-4 right-4 z-30">
+        <div className="absolute top-2.5 md:top-4 right-2.5 md:right-4 z-30">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -135,22 +135,22 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
             }}
             disabled={!statusConfig.allowToggle}
             title={statusConfig.actionLabel}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-md border transition-all 
+            className={`flex items-center gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-full backdrop-blur-md border transition-all 
                ${statusConfig.bg} ${statusConfig.border} ${statusConfig.shadow}
                ${statusConfig.allowToggle ? 'cursor-pointer hover:bg-white/10 hover:border-white/30' : 'cursor-not-allowed opacity-90'}
             `}
           >
-            <div className={`w-2 h-2 rounded-full ${statusConfig.indicator}`} />
-            <span className={`text-[10px] font-black uppercase tracking-widest ${statusConfig.color}`}>
+            <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${statusConfig.indicator}`} />
+            <span className={`text-[9px] font-black uppercase tracking-widest ${statusConfig.color}`}>
               {statusConfig.label}
             </span>
           </button>
         </div>
 
         {/* Property Type Badge */}
-        <div className="absolute top-4 left-4 z-30">
-          <div className="px-3 py-1.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg shadow-xl">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white">
+        <div className="absolute top-2.5 md:top-4 left-2.5 md:left-4 z-30">
+          <div className="px-2 md:px-3 py-1 md:py-1.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg shadow-xl">
+            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white">
               {property.type || 'Property'}
             </span>
           </div>
@@ -158,9 +158,9 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
       </div>
 
       {/* 3. CONTENT AREA */}
-      <div className="p-3 md:p-5 relative z-10 flex flex-col flex-1 -mt-5">
+      <div className="p-2.5 md:p-5 relative z-10 flex flex-col flex-1 -mt-4">
         <div className="flex-1">
-          <h3 className="text-lg md:text-xl font-heading font-black text-white group-hover:text-indigo-400 transition-colors drop-shadow-md line-clamp-2 leading-tight">
+          <h3 className="text-base md:text-xl font-heading font-black text-white group-hover:text-indigo-400 transition-colors drop-shadow-md line-clamp-2 leading-tight">
             {property.title || property.name}
           </h3>
 
@@ -174,35 +174,35 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
           </div>
 
           {/* Metrics Mini-Grid */}
-          <div className="grid grid-cols-2 gap-2 mt-3">
-            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-2 md:p-2.5">
-              <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Base Price</p>
-              <p className="text-xs font-black text-white">₹{property.price || 0}</p>
+          <div className="grid grid-cols-2 gap-1.5 md:gap-2 mt-2 md:mt-3">
+            <div className="bg-white/[0.02] border border-white/5 rounded-lg md:rounded-xl p-1.5 md:p-2.5">
+              <p className="text-[7px] md:text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Base Price</p>
+              <p className="text-[10px] md:text-xs font-black text-white">₹{property.price || 0}</p>
             </div>
-            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-2 md:p-2.5">
-              <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Est. Earnings</p>
-              <p className="text-xs font-black text-emerald-400">₹{estimatedEarnings.toLocaleString('en-IN')}</p>
+            <div className="bg-white/[0.02] border border-white/5 rounded-lg md:rounded-xl p-1.5 md:p-2.5">
+              <p className="text-[7px] md:text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Est. Earnings</p>
+              <p className="text-[10px] md:text-xs font-black text-emerald-400">₹{estimatedEarnings.toLocaleString('en-IN')}</p>
             </div>
           </div>
         </div>
 
         {/* 4. ACTIONS AREA */}
-        <div className="pt-2 mt-3 border-t border-white/5 flex items-center justify-between gap-1.5 md:gap-2">
+        <div className="pt-1.5 md:pt-2 mt-2 md:mt-3 border-t border-white/5 flex items-center justify-between gap-1.5 md:gap-2">
 
           <button
             onClick={() => onManageRooms(property)}
-            className="flex-1 px-2 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 transition-all text-indigo-400 hover:text-indigo-300 text-[9px] md:text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 md:gap-2 group/btn"
+            className="flex-1 px-2 py-1.5 md:py-2 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg md:rounded-xl border border-indigo-500/20 transition-all text-indigo-400 hover:text-indigo-300 text-[8px] md:text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1 md:gap-2 group/btn"
           >
-            <Icon name="Squares2X2Icon" size={12} className="group-hover/btn:scale-110 transition-transform" /> Sub-Units
+            <Icon name="Squares2X2Icon" size={11} className="group-hover/btn:scale-110 transition-transform" /> Sub-Units
           </button>
 
           <div className="flex gap-1 shrink-0">
             <button
               onClick={() => onEdit(property.id)}
-              className="w-8 h-8 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all text-zinc-400 hover:text-white flex items-center justify-center group/edit"
+              className="w-7 h-7 md:w-8 md:h-8 bg-white/5 hover:bg-white/10 rounded-lg md:rounded-xl border border-white/10 transition-all text-zinc-400 hover:text-white flex items-center justify-center group/edit"
               title="Configure Asset"
             >
-              <Icon name="AdjustmentsHorizontalIcon" size={12} className="group-hover/edit:rotate-90 transition-transform" />
+              <Icon name="AdjustmentsHorizontalIcon" size={11} className="group-hover/edit:rotate-90 transition-transform" />
             </button>
             <button
               onClick={() => {
@@ -210,10 +210,10 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
                   onDelete(property.id);
                 }
               }}
-              className="w-8 h-8 bg-red-500/10 hover:bg-red-500/20 rounded-xl border border-red-500/20 transition-all text-red-500/70 hover:text-red-400 flex items-center justify-center group/del"
+              className="w-7 h-7 md:w-8 md:h-8 bg-red-500/10 hover:bg-red-500/20 rounded-lg md:rounded-xl border border-red-500/20 transition-all text-red-500/70 hover:text-red-400 flex items-center justify-center group/del"
               title="Terminate Asset"
             >
-              <Icon name="TrashIcon" size={12} className="group-hover/del:scale-110 transition-transform" />
+              <Icon name="TrashIcon" size={11} className="group-hover/del:scale-110 transition-transform" />
             </button>
           </div>
         </div>

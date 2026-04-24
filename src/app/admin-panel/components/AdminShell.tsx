@@ -9,13 +9,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
     return (
         <div className="flex flex-col h-screen bg-[#050505]">
-            {/* Admin-only header — replaces the global site header */}
             <AdminHeader
                 onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 isMobileMenuOpen={isMobileMenuOpen}
             />
-
-            {/* Body: sidebar + main content */}
             <div className="flex flex-1 overflow-hidden">
                 <Sidebar
                     isMobileMenuOpen={isMobileMenuOpen}

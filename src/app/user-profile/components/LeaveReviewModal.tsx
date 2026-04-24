@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Star, Send, Loader2 } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
 import { toast } from 'sonner';
+import { createNotification } from '@/lib/activity-actions';
 
 interface LeaveReviewModalProps {
     booking: {
@@ -84,10 +85,17 @@ const LeaveReviewModal: React.FC<LeaveReviewModalProps> = ({ booking, onClose, o
             if (error.code === '23505') {
                 toast.error('You have already reviewed this stay.');
             } else {
-                toast.error(`Failed to submit review: ${error.message}`);
+                toast.error('An unexpected error occurred. Please try again later.');
             }
         } else {
             toast.success('Review submitted! Thank you 🌟');
+            // Log notification for admin
+            await createNotification(
+                'new_review',
+                'New Review Submitted',
+                `A new review was submitted for property: ${booking.properties?.title || 'Unknown Property'}`,
+                'info'
+            );
             onSuccess?.();
             onClose();
         }

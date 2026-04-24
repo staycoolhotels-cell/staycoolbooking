@@ -99,55 +99,56 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between p-5 md:p-6 gap-5 relative z-10">
         {/* Guest & Property Info */}
-        <div className="flex items-start sm:items-center gap-4">
-          <div className="relative shrink-0">
-            <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/10 group-hover:border-white/30 transition-colors bg-zinc-900 flex items-center justify-center">
-              {booking.guest?.avatar_url ? (
-                <img
-                  src={booking.guest.avatar_url}
-                  alt={booking.guest?.name || 'Guest'}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <Icon name="UserIcon" size={20} className="text-zinc-600" />
-              )}
+        <div className="flex flex-col gap-3 sm:gap-4 flex-1 min-w-0">
+          <div className="flex items-start sm:items-center gap-4">
+            <div className="relative shrink-0">
+              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/10 group-hover:border-white/30 transition-colors bg-zinc-900 flex items-center justify-center">
+                {booking.guest?.avatar_url ? (
+                  <img
+                    src={booking.guest.avatar_url}
+                    alt={booking.guest?.name || 'Guest'}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Icon name="UserIcon" size={20} className="text-zinc-600" />
+                )}
+              </div>
+              {/* Status Dot Ring */}
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#0a0a0f] rounded-full flex items-center justify-center border border-white/10">
+                <div className={`w-2 h-2 rounded-full ${statusStyles.indicator}`} />
+              </div>
             </div>
-            {/* Status Dot Ring */}
-            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#0a0a0f] rounded-full flex items-center justify-center border border-white/10">
-              <div className={`w-2 h-2 rounded-full ${statusStyles.indicator}`} />
+
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center justify-between mb-1 gap-2">
+                <h3 className="text-base md:text-lg font-bold text-white truncate leading-tight max-w-[150px] sm:max-w-none">
+                  {booking.guest?.name?.trim() ? booking.guest.name : 'Verified Guest'}
+                </h3>
+                <span className={`px-2.5 py-1 text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-md border backdrop-blur-md shrink-0 flex items-center justify-center w-fit ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} ${statusStyles.shadow}`}>
+                  {booking.status.replace('_', ' ')}
+                </span>
+              </div>
+              
+              <p className="text-xs md:text-sm text-zinc-300 font-bold truncate flex items-center gap-2 mt-1 md:mt-1.5">
+                <Icon name="HomeIcon" size={14} className="text-indigo-400 shrink-0" /> <span className="truncate">{booking.properties?.title || booking.properties?.name || 'Property'}</span>
+              </p>
             </div>
           </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center justify-between mb-1 gap-2">
-              <h3 className="text-base md:text-lg font-bold text-white truncate leading-tight max-w-[150px] sm:max-w-none">
-                {booking.guest?.name?.trim() ? booking.guest.name : 'Verified Guest'}
-              </h3>
-              <span className={`px-2.5 py-1 text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-md border backdrop-blur-md shrink-0 flex items-center justify-center w-fit ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} ${statusStyles.shadow}`}>
-                {booking.status.replace('_', ' ')}
-              </span>
-            </div>
-            
-            <div className="space-y-2">
-              <p className="text-xs md:text-sm text-zinc-300 font-bold truncate flex items-center gap-2">
-                <Icon name="HomeIcon" size={14} className="text-indigo-400 shrink-0" /> <span className="truncate">{booking.properties?.title || booking.properties?.name || 'Property'}</span>
-              </p>
-              
-              <div className="flex items-start gap-2 bg-white/[0.05] border border-white/10 py-2 px-3.5 rounded-xl w-fit max-w-full shadow-inner">
-                <Icon name="CalendarDaysIcon" size={14} className="text-indigo-400 shrink-0 mt-0.5" />
-                <div suppressHydrationWarning className="text-[11px] md:text-[13px] text-white font-bold uppercase tracking-widest leading-tight flex flex-wrap items-center gap-x-1.5">
-                  <span className="text-white">{new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                  <span className="text-zinc-500 font-normal">→</span>
-                  <span className="text-white">{new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                  <span className="text-indigo-300 font-black ml-0.5">{new Date(booking.check_out).getFullYear()}</span>
-                </div>
-              </div>
+          {/* Date Container (Full Width) */}
+          <div className="flex items-center gap-2.5 bg-white/[0.05] border border-white/10 py-2.5 px-3 md:px-4 rounded-xl w-full shadow-inner shrink-0">
+            <Icon name="CalendarDaysIcon" size={16} className="text-indigo-400 shrink-0" />
+            <div suppressHydrationWarning className="text-[11px] md:text-[13px] text-white font-bold uppercase tracking-widest leading-tight flex flex-wrap items-center gap-x-2 flex-1 min-w-0">
+              <span className="text-white whitespace-nowrap">{new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+              <span className="text-zinc-500 font-normal">→</span>
+              <span className="text-white whitespace-nowrap">{new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+              <span className="text-indigo-300 font-black ml-0.5 whitespace-nowrap">{new Date(booking.check_out).getFullYear()}</span>
             </div>
           </div>
         </div>
 
         {/* Actions & Approvals */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:pl-6 md:border-l border-white/5 shrink-0">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 md:gap-3 md:pl-6 md:border-l border-white/5 shrink-0 mt-4 md:mt-0 w-full md:w-auto">
 
           {booking.status === 'pending' && (
             <div className="flex flex-col sm:flex-row gap-2">
@@ -164,12 +165,12 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                         setIsApproving(false);
                     }
                 }}
-                className="w-full sm:w-auto px-4 md:px-6 py-3 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-400 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-colors shadow-[0_0_20px_rgba(52,211,153,0.15)] group/approve disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-4 md:px-6 py-2.5 md:py-3 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-400 rounded-xl font-bold uppercase tracking-widest text-[10px] md:text-xs flex items-center justify-center gap-2 transition-colors shadow-[0_0_20px_rgba(52,211,153,0.15)] group/approve disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isApproving ? (
-                  <Icon name="ArrowPathIcon" size={18} className="animate-spin" /> 
+                  <Icon name="ArrowPathIcon" size={16} className="animate-spin md:w-[18px] md:h-[18px]" /> 
                 ) : (
-                  <Icon name="CheckCircleIcon" size={18} className="group-hover/approve:scale-110 transition-transform" /> 
+                  <Icon name="CheckCircleIcon" size={16} className="group-hover/approve:scale-110 transition-transform md:w-[18px] md:h-[18px]" /> 
                 )}
                 <span>{isApproving ? 'Authorizing...' : 'Auth Release'}</span>
               </button>
@@ -189,19 +190,19 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                       }
                     }
                 }}
-                className="w-full sm:w-auto px-4 md:px-6 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-500 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-colors shadow-[0_0_20px_rgba(239,68,68,0.15)] group/reject disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-4 md:px-6 py-2.5 md:py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-500 rounded-xl font-bold uppercase tracking-widest text-[10px] md:text-xs flex items-center justify-center gap-2 transition-colors shadow-[0_0_20px_rgba(239,68,68,0.15)] group/reject disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isRejecting ? (
-                  <Icon name="ArrowPathIcon" size={18} className="animate-spin" /> 
+                  <Icon name="ArrowPathIcon" size={16} className="animate-spin md:w-[18px] md:h-[18px]" /> 
                 ) : (
-                  <Icon name="NoSymbolIcon" size={18} className="group-hover/reject:scale-110 transition-transform" /> 
+                  <Icon name="NoSymbolIcon" size={16} className="group-hover/reject:scale-110 transition-transform md:w-[18px] md:h-[18px]" /> 
                 )}
                 <span>{isRejecting ? 'Rejecting...' : 'Reject'}</span>
               </button>
             </div>
           )}
 
-          <div className="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-3 h-full">
+          <div className="flex flex-wrap sm:flex-nowrap items-center justify-center sm:justify-start gap-1.5 md:gap-3 w-full sm:w-auto">
             <button
               onClick={() => onAction('unified-inbox', {
                 guest_id: booking.guest_id,
@@ -210,16 +211,39 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                 property_id: booking.property_id,
                 property_name: booking.properties?.title || booking.properties?.name || 'Property'
               })}
-              className="flex-1 sm:flex-none h-[48px] px-2 sm:px-6 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 text-indigo-400 hover:text-indigo-300 transition-all font-bold text-[9px] sm:text-[11px] md:text-[12px] uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2"
+              className="flex-1 sm:flex-none h-[36px] md:h-[48px] px-2 md:px-6 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg md:rounded-xl border border-indigo-500/20 text-indigo-400 hover:text-indigo-300 transition-all font-bold text-[8px] md:text-[12px] uppercase tracking-widest flex items-center justify-center gap-1.5 md:gap-2"
             >
-              <Icon name="ChatBubbleLeftRightIcon" size={16} className="shrink-0 sm:w-[18px] sm:h-[18px]" /> <span>Message</span>
+              <Icon name="ChatBubbleLeftRightIcon" size={14} className="shrink-0 md:w-[18px] md:h-[18px]" /> <span>Message</span>
             </button>
+
+            {booking.status === 'confirmed' && (
+              <button
+                disabled={isRejecting}
+                onClick={async () => {
+                  if (confirm('Are you sure you want to cancel this confirmed booking? This will count towards your cancellation record and may incur penalties.')) {
+                    setIsRejecting(true);
+                    try {
+                      await rejectBooking(booking.id);
+                      toast.success('Booking cancelled successfully.');
+                    } catch (err: any) {
+                      toast.error('Failed to cancel booking.');
+                    } finally {
+                      setIsRejecting(false);
+                    }
+                  }
+                }}
+                className="flex-1 sm:flex-none h-[36px] md:h-[48px] px-2 md:px-6 bg-red-500/10 hover:bg-red-500/20 rounded-lg md:rounded-xl border border-red-500/20 text-red-500 hover:text-red-400 transition-all font-bold text-[8px] md:text-[12px] uppercase tracking-widest flex items-center justify-center gap-1.5 md:gap-2 shadow-[0_0_15px_rgba(239,68,68,0.1)]"
+              >
+                <Icon name="NoSymbolIcon" size={14} className="shrink-0 md:w-[18px] md:h-[18px]" />
+                <span>{isRejecting ? 'Wait' : 'Cancel'}</span>
+              </button>
+            )}
 
             <button
               onClick={() => setIsDisputeModalOpen(true)}
-              className="flex-1 sm:flex-none h-[48px] px-2 sm:px-6 bg-red-500/5 hover:bg-red-500/10 rounded-xl border border-red-500/10 text-red-500/60 hover:text-red-400 transition-all font-bold text-[9px] sm:text-[11px] md:text-[12px] uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2"
+              className="flex-1 sm:flex-none h-[36px] md:h-[48px] px-2 md:px-6 bg-red-500/5 hover:bg-red-500/10 rounded-lg md:rounded-xl border border-red-500/10 text-red-500/60 hover:text-red-400 transition-all font-bold text-[8px] md:text-[12px] uppercase tracking-widest flex items-center justify-center gap-1.5 md:gap-2"
             >
-              <Icon name="ScaleIcon" size={16} className="shrink-0 sm:w-[18px] sm:h-[18px]" /> <span>Dispute</span>
+              <Icon name="ScaleIcon" size={14} className="shrink-0 md:w-[18px] md:h-[18px]" /> <span>Dispute</span>
             </button>
           </div>
         </div>

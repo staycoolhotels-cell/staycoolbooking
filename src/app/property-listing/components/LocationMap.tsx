@@ -24,8 +24,10 @@ const LocationMap = ({
 }: LocationMapProps) => {
   
   // Construct the embed URL. 
-  // We use the public search embed which is free and doesn't require an active/billed API key.
-  const embedUrl = `https://www.google.com/maps?q=${encodeURIComponent(address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+  // We use the coordinates if available for better accuracy, fall back to address string.
+  const embedUrl = latitude && longitude 
+    ? `https://www.google.com/maps?q=${latitude},${longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+    : `https://www.google.com/maps?q=${encodeURIComponent(address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 
   // Construct the directions URL
   const directionsUrl = latitude && longitude 
@@ -91,7 +93,7 @@ const LocationMap = ({
       {nearbyAttractions.length > 0 && (
         <div>
           <h3 className="text-xs font-semibold tracking-widest text-white/40 uppercase mb-3 md:mb-5 flex items-center gap-2">
-            <Icon name="SparklesIcon" size={14} />
+            <Icon name="MapPinIcon" size={14} />
             <span>Nearby Attractions</span>
             <div className="h-px bg-gradient-to-r from-white/10 to-transparent flex-1 ml-2" />
           </h3>

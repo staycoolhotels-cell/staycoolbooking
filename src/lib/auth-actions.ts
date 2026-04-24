@@ -106,7 +106,7 @@ export async function signUpUser(prevState: string | undefined, formData: FormDa
 
   if (error) {
     console.error('Signup Error:', error.message);
-    return error.message;
+    return 'An unexpected error occurred. Please try again.';
   }
 
   if (data.user) {
@@ -467,7 +467,7 @@ export async function signInWithMobile(prevState: string | undefined, formData: 
 
   if (error) {
     console.error('Mobile Sign In Error:', error.message);
-    return error.message;
+    return 'An unexpected error occurred. Please try again.';
   }
 
   return { success: true, message: 'OTP sent successfully' };

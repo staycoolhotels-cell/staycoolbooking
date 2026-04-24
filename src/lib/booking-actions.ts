@@ -28,6 +28,7 @@ const createSupabaseServerClient = async () => {
 };
 
 import { logActivity } from './activity-actions';
+import { createServiceClient } from './supabase-server';
 //...
 export async function verifyUser(prevState: any, formData: FormData) {
   try {
@@ -80,7 +81,7 @@ export async function verifyUser(prevState: any, formData: FormData) {
     }
 
     if (error) {
-      return { error: error.message };
+      return { error: 'An unexpected error occurred. Please try again.' };
     }
 
     // Return success with simplified data (since we didn't select * in update/insert consistently)
@@ -90,7 +91,7 @@ export async function verifyUser(prevState: any, formData: FormData) {
 
     return { success: true, data };
   } catch (err: any) {
-    return { error: err.message || 'An unexpected error occurred.' };
+    return { error: 'An unexpected error occurred. Please try again.' };
   }
 }
 
@@ -156,7 +157,7 @@ export async function createBooking(bookingDetails: {
 
     if (error) {
       console.error("Booking RPC Error:", error);
-      return { error: error.message };
+      return { error: 'An unexpected error occurred. Please try again.' };
     }
 
     // Process amenities for tracking
@@ -201,18 +202,42 @@ export async function createBooking(bookingDetails: {
 
   } catch (err: any) {
     console.error("Booking Action Error:", err);
-    return { error: err.message || 'An unexpected error occurred.' };
+    return { error: 'An unexpected error occurred. Please try again.' };
   }
 }
 
 export async function approveBooking(bookingId: string) {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  // 1. Fetch booking and property to check ownership
+  const { data: booking, error: fetchError } = await supabase
+    .from('bookings')
+    .select('property_id, properties!property_id(host_id)')
+    .eq('id', bookingId)
+    .single();
+
+  if (fetchError || !booking) {
+    throw new Error('Booking not found');
+  }
+
+  if (booking.properties?.host_id !== user.id) {
+    throw new Error('Unauthorized: You are not the host of this property');
+  }
+
+  // 2. Perform the update with service client to bypass RLS hurdles
+  const adminSupabase = await createServiceClient();
+  const { data, error } = await adminSupabase
     .from('bookings')
     .update({ status: 'confirmed' })
     .eq('id', bookingId);
 
   if (error) {
+    console.error('Approve booking error:', error);
     throw error;
   }
   revalidateTag(CACHE_TAGS.bookings);
@@ -234,8 +259,15 @@ export async function rejectBooking(bookingId: string) {
     throw new Error('Booking not found');
   }
 
-  // 2. Update booking status
-  const { error: updateError } = await supabase
+  // Ensure user is authenticated and IS the host
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || (booking as any).properties?.host_id !== user.id) {
+    throw new Error('Unauthorized: You are not the host of this property');
+  }
+
+  // 2. Update booking status using service client
+  const adminSupabase = await createServiceClient();
+  const { error: updateError } = await adminSupabase
     .from('bookings')
     .update({ status: 'cancelled' })
     .eq('id', bookingId);

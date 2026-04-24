@@ -168,15 +168,15 @@ const SmartWishlist = ({ wishlist: initialWishlist, userId, onRemove, onBoardCha
   };
 
   return (
-    <div className="bg-zinc-900/80 border border-zinc-800 rounded-[2rem] shadow-xl p-6 shadow-sky-900/5">
+    <div className="bg-zinc-900/80 border border-zinc-800 rounded-[1.5rem] md:rounded-[2rem] shadow-xl p-4 md:p-6 shadow-sky-900/5">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-white">Smart Wishlist</h2>
+        <h2 className="text-lg md:text-xl font-bold text-white">Smart Wishlist</h2>
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 bg-sky-500/20 text-sky-400 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-sky-500/30 transition border border-sky-500/20"
+          className="flex items-center gap-1.5 md:gap-2 bg-sky-500/20 text-sky-400 px-2.5 md:px-3 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-semibold hover:bg-sky-500/30 transition border border-sky-500/20"
         >
-          <Icon name="PlusCircleIcon" size={16} />
+          <Icon name="PlusCircleIcon" size={16} className="w-3.5 h-3.5 md:w-4 md:h-4" />
           Create Board
         </button>
       </div>
@@ -185,7 +185,7 @@ const SmartWishlist = ({ wishlist: initialWishlist, userId, onRemove, onBoardCha
       <div className="flex gap-2 mb-4 border-b border-zinc-800 pb-4 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveBoard('All')}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${activeBoard === 'All'
+          className={`px-3 md:px-4 py-1 md:py-1.5 rounded-full text-xs md:text-sm font-medium transition-all whitespace-nowrap ${activeBoard === 'All'
             ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30'
             : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'
             }`}
@@ -198,7 +198,7 @@ const SmartWishlist = ({ wishlist: initialWishlist, userId, onRemove, onBoardCha
             <div key={board} className="relative group/tab flex-shrink-0">
               <button
                 onClick={() => setActiveBoard(board)}
-                className={`pr-7 pl-3 py-1.5 rounded-full text-sm transition-all whitespace-nowrap ${activeBoard === board
+                className={`pr-6 md:pr-7 pl-2.5 md:pl-3 py-1 md:py-1.5 rounded-full text-xs md:text-sm transition-all whitespace-nowrap ${activeBoard === board
                   ? 'bg-sky-600 text-white shadow-lg shadow-sky-500/30'
                   : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
                   }`}
@@ -241,25 +241,25 @@ const SmartWishlist = ({ wishlist: initialWishlist, userId, onRemove, onBoardCha
                   exit={{ opacity: 0, scale: 0.95, height: 0, marginBottom: 0 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => router.push(`/property-listing/${prop?.id}`)}
-                  className="bg-zinc-950/50 border border-white/5 rounded-2xl relative flex hover:bg-white/5 transition-colors group cursor-pointer"
+                  className="bg-zinc-950/50 border border-white/5 rounded-xl md:rounded-2xl relative flex hover:bg-white/5 transition-colors group cursor-pointer"
                 >
                   {/* Thumbnail */}
                   <img
                     src={imgSrc}
                     alt={prop?.title || prop?.name || 'Property'}
-                    className="w-28 h-28 object-cover flex-shrink-0 rounded-l-2xl"
+                    className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 object-cover flex-shrink-0 rounded-l-xl md:rounded-l-2xl"
                     onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.jpg'; }}
                   />
 
                   {/* Info */}
-                  <div className="p-4 flex flex-col justify-center flex-grow min-w-0">
-                    <h3 className="font-bold text-white group-hover:text-sky-400 transition-colors truncate">
+                  <div className="p-3 md:p-4 flex flex-col justify-center flex-grow min-w-0">
+                    <h3 className="font-bold text-sm md:text-base text-white group-hover:text-sky-400 transition-colors truncate">
                       {prop?.title ?? prop?.name ?? 'Property'}
                     </h3>
-                    <p className="text-sm text-zinc-400 mt-0.5 truncate">{prop?.location ?? ''}</p>
-                    <p className="text-sm font-bold text-emerald-400 mt-1.5">
+                    <p className="text-[11px] md:text-sm text-zinc-400 mt-0.5 truncate">{prop?.location ?? ''}</p>
+                    <p className="text-xs md:text-sm font-bold text-emerald-400 mt-1 md:mt-1.5">
                       ₹{prop?.price_per_night ?? prop?.price ?? '—'}{' '}
-                      <span className="text-zinc-500 font-normal text-xs">/ night</span>
+                      <span className="text-zinc-500 font-normal text-[10px] md:text-xs">/ night</span>
                     </p>
                     {assignedBoard && (
                       <span className="mt-1.5 inline-flex items-center w-fit gap-1 bg-sky-500/10 text-sky-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-sky-500/20">
@@ -281,9 +281,9 @@ const SmartWishlist = ({ wishlist: initialWishlist, userId, onRemove, onBoardCha
                         }}
                         title="Move to board"
                         disabled={isRemoving || isMoving}
-                        className="p-2 rounded-lg text-zinc-500 hover:text-sky-400 hover:bg-zinc-800 transition disabled:opacity-40"
+                        className="p-1.5 md:p-2 rounded-lg text-zinc-500 hover:text-sky-400 hover:bg-zinc-800 transition disabled:opacity-40"
                       >
-                        {isMoving ? <Icon name="ArrowPathIcon" size={16} className="animate-spin" /> : <Icon name="FolderPlusIcon" size={16} />}
+                        {isMoving ? <Icon name="ArrowPathIcon" size={16} className="animate-spin w-3.5 h-3.5 md:w-4 md:h-4" /> : <Icon name="FolderPlusIcon" size={16} className="w-3.5 h-3.5 md:w-4 md:h-4" />}
                       </button>
 
                       <AnimatePresence>
@@ -344,11 +344,11 @@ const SmartWishlist = ({ wishlist: initialWishlist, userId, onRemove, onBoardCha
                       }}
                       title="Remove from wishlist"
                       disabled={isRemoving || isMoving}
-                      className="p-2 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition disabled:opacity-40"
+                      className="p-1.5 md:p-2 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition disabled:opacity-40"
                     >
                       {isRemoving
-                        ? <Icon name="ArrowPathIcon" size={16} className="animate-spin" />
-                        : <Icon name="HeartIcon" size={16} variant="solid" className="text-red-400" />
+                        ? <Icon name="ArrowPathIcon" size={16} className="animate-spin w-3.5 h-3.5 md:w-4 md:h-4" />
+                        : <Icon name="HeartIcon" size={16} variant="solid" className="text-red-400 w-3.5 h-3.5 md:w-4 md:h-4" />
                       }
                     </button>
                   </div>

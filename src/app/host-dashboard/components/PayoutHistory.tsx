@@ -105,18 +105,19 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
     }
 
     return (
-        <div className="w-full space-y-6 md:space-y-8 relative">
+        <div className="w-full space-y-4 md:space-y-8 relative">
 
             {/* Header */}
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-[#0a0a0f]/80 p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-4 md:p-8 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 bottom-0 w-80 bg-gradient-to-l from-sky-500/10 to-transparent pointer-events-none" />
-                <div className="relative z-10 flex items-center gap-5 w-full lg:w-auto">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500/30 to-sky-500/10 border border-sky-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(14,165,233,0.3)] shrink-0">
-                        <Wallet size={32} className="text-sky-400 drop-shadow-md" />
+                <div className="relative z-10 flex items-center gap-3 md:gap-5 w-full lg:w-auto">
+                    <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-sky-500/30 to-sky-500/10 border border-sky-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(14,165,233,0.3)] shrink-0">
+                        <Wallet size={20} className="text-sky-400 drop-shadow-md md:hidden" />
+                        <Wallet size={32} className="text-sky-400 drop-shadow-md hidden md:block" />
                     </div>
                     <div className="flex-1">
-                        <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Payout History</h1>
-                        <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
+                        <h1 className="text-xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Payout History</h1>
+                        <p className="text-[10px] md:text-sm font-bold text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest flex items-center gap-2">
                             Transfer Ledger &amp; Settlement Tracker
                         </p>
                     </div>
@@ -130,50 +131,50 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
             </div>
 
             {/* Summary cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
-                <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl p-6 relative overflow-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
+                <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl p-4 md:p-6 relative overflow-hidden">
                     <div className="absolute -top-12 -right-12 w-40 h-40 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none" />
                     <div className="relative z-10">
-                        <div className="flex items-center gap-2 text-zinc-400 text-xs font-bold uppercase tracking-widest mb-3">
-                            <TrendingUp className="w-4 h-4 text-emerald-400" />
+                        <div className="flex items-center gap-2 text-zinc-400 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-2 md:mb-3">
+                            <TrendingUp className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-400" />
                             Total Payouts Settled
                         </div>
-                        <div className="flex items-center gap-1 text-2xl font-black text-white">
-                            <IndianRupee className="w-5 h-5 text-emerald-400" />
+                        <div className="flex items-center gap-1 text-xl md:text-2xl font-black text-white">
+                            <IndianRupee className="w-4 h-4 md:w-5 md:h-5 text-emerald-400" />
                             {totalSettled.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl p-6 relative overflow-hidden">
+                <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl p-4 md:p-6 relative overflow-hidden">
                     <div className="absolute -top-12 -right-12 w-40 h-40 bg-amber-500/10 rounded-full blur-[40px] pointer-events-none" />
                     <div className="relative z-10">
-                        <div className="flex items-center gap-2 text-zinc-400 text-xs font-bold uppercase tracking-widest mb-3">
-                            <Clock className="w-4 h-4 text-amber-400" />
+                        <div className="flex items-center gap-2 text-zinc-400 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-2 md:mb-3">
+                            <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-400" />
                             Pending Payouts
                         </div>
-                        <div className="flex items-center gap-1 text-2xl font-black text-amber-400">
-                            <IndianRupee className="w-5 h-5" />
+                        <div className="flex items-center gap-1 text-xl md:text-2xl font-black text-amber-400">
+                            <IndianRupee className="w-4 h-4 md:w-5 md:h-5" />
                             {totalPending.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl p-6 relative overflow-hidden">
+                <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl p-4 md:p-6 relative overflow-hidden">
                     <div className="absolute -top-12 -right-12 w-40 h-40 bg-sky-500/10 rounded-full blur-[40px] pointer-events-none" />
                     <div className="relative z-10">
-                        <div className="flex items-center gap-2 text-zinc-400 text-xs font-bold uppercase tracking-widest mb-3">
-                            <CheckCircle2 className="w-4 h-4 text-sky-400" />
+                        <div className="flex items-center gap-2 text-zinc-400 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-2 md:mb-3">
+                            <CheckCircle2 className="w-3.5 h-3.5 md:w-4 md:h-4 text-sky-400" />
                             Total Transactions
                         </div>
-                        <div className="text-2xl font-black text-white">{transfers.length}</div>
+                        <div className="text-xl md:text-2xl font-black text-white">{transfers.length}</div>
                     </div>
                 </div>
             </div>
 
             {/* Payout table */}
-            <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden">
-                <div className="flex items-center justify-between px-6 md:px-8 py-5 border-b border-white/5">
+            <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden">
+                <div className="flex items-center justify-between px-4 md:px-8 py-3.5 md:py-5 border-b border-white/5">
                     <h3 className="font-black text-white tracking-tight">Payout History</h3>
                     <button
                         onClick={fetchTransfers}

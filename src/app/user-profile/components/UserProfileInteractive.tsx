@@ -103,7 +103,7 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
       setUser({ ...user, avatar_url: publicUrl });
       showToast('Avatar updated! Click "Save Changes" to persist.');
     } catch (error: any) {
-      showToast(`Error uploading avatar: ${error.message}`, 'error');
+      showToast('An unexpected error occurred. Please try again later.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -140,8 +140,7 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
       setIsEditing(false);
       showToast('Profile Securely Updated ✓');
     } catch (error: any) {
-      const errorMessage = error.message || JSON.stringify(error) || 'Unknown error occurred';
-      showToast(`Error saving profile: ${errorMessage}`, 'error');
+      showToast('An unexpected error occurred. Please try again later.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -188,7 +187,7 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
       </div>
 
       {/* ── Cinematic Hero Banner ── */}
-      <div className="relative w-full h-24 md:h-32 overflow-hidden">
+      <div className="relative w-full h-20 md:h-32 overflow-hidden">
         {/* Layered gradient banner */}
         <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-[#0d0e2a] to-sky-950" />
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-sky-600/10 to-transparent" />
@@ -204,41 +203,41 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
           style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(99,102,241,0.08) 3px, rgba(99,102,241,0.08) 4px)' }} />
 
         {/* Bottom fade to page bg */}
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#070711] to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-20 md:h-24 bg-gradient-to-t from-[#070711] to-transparent" />
 
         {/* Greeting + breadcrumb — top-left of hero */}
-        <div className="absolute top-4 md:top-6 left-6 md:left-10">
+        <div className="absolute top-4 md:top-6 left-4 md:left-10">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
-            <p className="text-sky-400 text-[9px] md:text-[10px] font-black tracking-[0.4em] uppercase mb-1.5 translate-y-1">
+            <p className="text-sky-400 text-[8px] md:text-[10px] font-black tracking-[0.4em] uppercase mb-1.5 translate-y-1">
               {greeting}
             </p>
-            <h1 className="text-2xl md:text-4xl font-light tracking-tight text-white drop-shadow-xl">
+            <h1 className="text-xl md:text-4xl font-light tracking-tight text-white drop-shadow-xl">
               <span className="font-bold bg-gradient-to-r from-white to-sky-200 bg-clip-text text-transparent">
                 {user?.name?.split(' ')[0]}
               </span>
               <span className="text-sky-200/60">'s</span>
-              <span className="text-zinc-400 font-light ml-2 text-xl md:text-3xl">Profile</span>
+              <span className="text-zinc-400 font-light ml-2 text-lg md:text-3xl">Profile</span>
             </h1>
           </motion.div>
         </div>
  
         {/* Secure session indicator — top-right of hero */}
-        <div className="absolute top-4 right-6 md:right-10">
+        <div className="absolute top-4 right-4 md:right-10">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="flex items-center gap-2 bg-zinc-950/70 border border-sky-500/20 px-4 py-2 rounded-full backdrop-blur-xl shadow-lg shadow-sky-900/10"
+            className="flex items-center gap-2 bg-zinc-950/70 border border-sky-500/20 px-2.5 py-1 md:px-4 md:py-2 rounded-full backdrop-blur-xl shadow-lg shadow-sky-900/10"
           >
             <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
-            <span className="text-[9px] font-bold tracking-[0.25em] uppercase text-zinc-400">Secure Session</span>
+            <span className="text-[7px] md:text-[9px] font-bold tracking-[0.25em] uppercase text-zinc-400">Secure Session</span>
           </motion.div>
         </div>
 
       </div>
 
       {/* ── Page Content ── */}
-      <div className="relative z-10 w-full max-w-[98%] mx-auto px-4 md:px-8 -mt-2 pb-16 space-y-8">
+      <div className="relative z-10 w-full max-w-[98%] mx-auto px-4 md:px-8 -mt-2 pb-16 space-y-5 md:space-y-8">
 
         {/* Profile Header Card */}
         {user && (
@@ -300,13 +299,13 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
             ) : (
               <motion.div
                 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }}
-                className="h-56 flex flex-col items-center justify-center border border-dashed border-indigo-900/50 rounded-[2rem] bg-indigo-950/10 backdrop-blur-sm"
+                className="h-40 md:h-56 flex flex-col items-center justify-center border border-dashed border-indigo-900/50 rounded-[1.5rem] md:rounded-[2rem] bg-indigo-950/10 backdrop-blur-sm"
               >
-                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-3">
-                  <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-2 md:mb-3">
+                  <svg className="w-4 h-4 md:w-5 md:h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 </div>
-                <p className="text-zinc-500 font-light italic text-sm">No expeditions planned yet.</p>
-                <button className="mt-3 text-[10px] font-bold text-indigo-400 uppercase tracking-[0.2em] hover:text-indigo-300 transition-colors">
+                <p className="text-zinc-500 font-light italic text-xs md:text-sm">No expeditions planned yet.</p>
+                <button className="mt-2 md:mt-3 text-[9px] md:text-[10px] font-bold text-indigo-400 uppercase tracking-[0.2em] hover:text-indigo-300 transition-colors">
                   Begin Discovery →
                 </button>
               </motion.div>
@@ -320,7 +319,7 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
               </motion.section>,
 
               <motion.div key="bookings" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.45 }}>
-                <BookingHistory bookings={bookings} guestId={user?.id} />
+                <BookingHistory bookings={bookings} guestId={user?.id} transactions={transactions} />
               </motion.div>,
 
               user && (

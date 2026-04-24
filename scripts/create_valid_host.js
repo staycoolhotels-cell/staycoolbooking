@@ -25,14 +25,13 @@ async function fix() {
     console.log('Created Auth User:', user.id);
 
     // 2. Ensure User in Public Schema (Upsert)
-    // The trigger might handle this, but explicit upsert is safer for tests
     const { error: upsertError } = await supabase.from('users').upsert({
         id: user.id,
         email: email,
         name: 'Verified Host',
         role: 'host',
         status: 'approved',
-        stripe_account_id: 'acct_123456789', // Dummy Stripe ID for test checks
+        stripe_account_id: 'acct_123456789',
         stripe_onboarding_completed: true
     });
 

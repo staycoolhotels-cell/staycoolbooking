@@ -11,7 +11,6 @@ async function listTables() {
     const { data, error } = await supabase.from('information_schema.tables').select('table_name').eq('table_schema', 'public');
 
     if (error) {
-        // try another way
         const { data: data2, error: error2 } = await supabase.rpc('get_tables');
         if (error2) {
             console.error('Error listing tables:', error2);

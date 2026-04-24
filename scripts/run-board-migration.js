@@ -1,5 +1,4 @@
-// Run: node scripts/run-board-migration.js
-// Adds `board` TEXT column to the wishlist table so board assignments persist in DB
+
 
 const { createClient } = require('@supabase/supabase-js');
 
@@ -16,7 +15,6 @@ async function runMigration() {
     });
 
     if (error) {
-        // exec_sql RPC may not exist – try direct approach
         console.log('exec_sql RPC not found, trying raw query via pg...');
         console.error('Error:', error.message);
         console.log('\n=== MANUAL STEP REQUIRED ===');

@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
-// Load environment variables from .env file
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -28,7 +27,6 @@ async function fixOrphanedProperties() {
 
     if (userError || !adminUsers || adminUsers.length === 0) {
         console.error('Admin user not found:', userError);
-        // Fallback: Find ANY host
         console.log('Admin not found, looking for any host...');
         const { data: hosts } = await supabase
             .from('users')
@@ -49,7 +47,6 @@ async function fixOrphanedProperties() {
     console.log('Found Admin User:', adminUser.id);
 
     // 2. Ensure Admin is a Host and Verified (if not, update it)
-    // We want to ensure the target user CAN receive payments
     if (adminUser.role !== 'host') {
         console.log('Promoting Admin to Host...');
         await supabase.from('users').update({ role: 'host' }).eq('id', adminUser.id);
@@ -60,10 +57,8 @@ async function fixOrphanedProperties() {
 }
 
 async function reassignProperties(newHostId: string) {
-    // The specific bad ID from the user error
-    const badHostId = '38ac5294-564b-45ba-ab18-035f59c30e19';
 
-    // Update properties with the bad host ID
+    const badHostId = '38ac5294-564b-45ba-ab18-035f59c30e19';
     const { data, error } = await supabase
         .from('properties')
         .update({ host_id: newHostId })

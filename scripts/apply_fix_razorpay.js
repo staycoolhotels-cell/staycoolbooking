@@ -2,7 +2,7 @@ const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
 
-// Try different connection methods
+
 const configs = [
     {
         name: 'Direct Connection (Port 5432)',

@@ -18,75 +18,71 @@ const FinancialTreasury = ({ transactions = [] }: FinancialTreasuryProps) => {
     .filter(isPayment)
     .reduce((acc, t) => acc + t.amount, 0);
 
-  const pendingRefunds = transactions.filter((t) => t.type === 'refund' && t.status === 'pending');
+  const refunds = transactions.filter((t) => t.type === 'refund');
 
   const downloadInvoice = async (t: Transaction) => {
     await generateInvoicePDF(t);
   };
 
   return (
-    <div className="bg-zinc-900/30 border border-zinc-800 rounded-[2rem] shadow-xl p-8 shadow-sky-900/5">
-      <h2 className="text-xl font-bold text-white mb-4">Financial Treasury</h2>
+    <div className="bg-zinc-900/30 border border-zinc-800 rounded-[1.5rem] md:rounded-[2rem] shadow-xl p-4 md:p-8 shadow-sky-900/5">
+      <h2 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4">Financial Treasury</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         {/* Spending Breakdown */}
-        <div className="bg-zinc-800/40 rounded-xl p-4">
-          <h3 className="font-semibold text-zinc-300 text-center mb-3">Spending Breakdown</h3>
+        <div className="bg-zinc-800/40 rounded-xl p-3 md:p-4">
+          <h3 className="font-semibold text-sm md:text-base text-zinc-300 text-center mb-2 md:mb-3">Spending Breakdown</h3>
           <SpendingChart transactions={transactions} />
-          <p className="text-center text-2xl font-bold text-white mt-4">
+          <p className="text-center text-xl md:text-2xl font-bold text-white mt-3 md:mt-4">
             ₹{totalSpending.toLocaleString('en-IN')}
           </p>
-          <p className="text-center text-xs text-zinc-400 uppercase">Total Paid</p>
+          <p className="text-center text-[10px] md:text-xs text-zinc-400 uppercase">Total Paid</p>
         </div>
 
-        {/* Refund & Invoice Section */}
-        <div className="space-y-4">
-          {/* Refund Tracker */}
+        {/* Refund Tracker Section */}
+        <div className="space-y-3 md:space-y-4">
           <div>
-            <h3 className="font-semibold text-gray-300 mb-2">Refund Tracker</h3>
-            {pendingRefunds.length > 0 ? (
-              pendingRefunds.map((refund) => (
-                <div
-                  key={refund.id}
-                  className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-3 flex justify-between items-center"
-                >
-                  <div>
-                    <p className="font-semibold text-yellow-200">Refund Pending</p>
-                    <p className="text-sm text-gray-400">Booking: {refund.booking_id}</p>
-                  </div>
-                  <p className="text-lg font-bold text-white">₹{Math.abs(refund.amount)}</p>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-gray-500">No pending refunds.</p>
-            )}
-          </div>
-
-          {/* Invoice Vault */}
-          <div>
-            <h3 className="font-semibold text-zinc-300 mb-2">Invoice Vault</h3>
-            <div className="max-h-32 overflow-y-auto space-y-2 pr-2">
-              {transactions
-                .filter(isPayment)
-                .map((t) => (
+            <h3 className="font-semibold text-sm md:text-base text-gray-300 mb-2 font-sans">Refund Tracker</h3>
+            <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+              {refunds.length > 0 ? (
+                refunds.map((refund) => (
                   <div
-                    key={t.id}
-                    className="bg-zinc-800/60 rounded-lg p-2.5 flex justify-between items-center"
+                    key={refund.id}
+                    className={`border rounded-xl p-3 md:p-4 flex justify-between items-center transition-all hover:scale-[1.01] ${
+                      refund.status === 'pending' 
+                        ? 'bg-yellow-900/10 border-yellow-500/20' 
+                        : 'bg-emerald-900/10 border-emerald-500/20'
+                    }`}
                   >
                     <div>
-                      <p className="font-medium text-white">Invoice {t.invoice_id || (t.id ? t.id.split('-')[0].toUpperCase() : 'N/A')}</p>
-                      <p className="text-xs text-zinc-400">Booking: {t.booking_id}</p>
+                      <p className={`font-bold text-xs md:text-sm ${
+                        refund.status === 'pending' ? 'text-yellow-400' : 'text-emerald-400'
+                      }`}>
+                        {refund.status === 'pending' ? 'Refund Pending' : 'Refund Processed'}
+                      </p>
+                      <p className="text-[9px] md:text-[11px] text-zinc-500 mt-0.5">ID: {refund.booking_id}</p>
                     </div>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => downloadInvoice(t)}
-                      className="p-2 bg-primary/20 rounded-full hover:bg-primary/40 transition"
-                    >
-                      <Icon name="ArrowDownTrayIcon" size={16} className="text-primary" />
-                    </motion.button>
+                    <div className="flex items-center gap-3 md:gap-4">
+                      <div className="text-right">
+                        <p className="text-sm md:text-base font-bold text-white font-sans">₹{Math.abs(refund.amount).toLocaleString('en-IN')}</p>
+                        <p className="text-[9px] md:text-[10px] text-zinc-500">{refund.date}</p>
+                      </div>
+                      <button
+                        onClick={() => downloadInvoice(refund)}
+                        className="p-2 md:p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-all text-zinc-400 hover:text-white group"
+                        title="Download Refund Receipt"
+                      >
+                        <Icon name="ArrowDownTrayIcon" size={16} className="group-hover:translate-y-0.5 transition-transform" />
+                      </button>
+                    </div>
                   </div>
-                ))}
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 md:py-12 bg-white/5 rounded-2xl border border-dashed border-zinc-800">
+                  <Icon name="DocumentTextIcon" size={24} className="text-zinc-600 mb-2 md:w-8 md:h-8" />
+                  <p className="text-xs md:text-sm text-zinc-500 italic">No refunds to track.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

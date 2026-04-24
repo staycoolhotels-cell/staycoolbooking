@@ -79,126 +79,156 @@ export async function POST(req: Request) {
         }
 
         // ─────────────────────────────────────────────
-        const reference_id = `host_${user.id.substring(0, 15)}_${Date.now()}`;
+        const reference_id = `h_${user.id.substring(0, 8)}_${Date.now()}`.substring(0, 20);
+        const cleanPhone = phone.replace(/\D/g, '').replace(/^91/, '').slice(-10);
+        
+        const authString = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString('base64');
+        const rzpHeaders = {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${authString}`
+        };
 
-        const accountPayload: any = {
+        // Step 1: Create Linked Account
+        const accountPayload = {
             email,
+            phone: cleanPhone,
+            type: 'route',
             reference_id,
+            legal_business_name,
+            business_type: 'individual',
+            contact_name: legal_business_name,
             profile: {
-                category: 'individual',
-                subcategory: 'accommodation',
+                category: 'healthcare',
+                subcategory: 'clinic',
                 addresses: {
                     registered: {
                         street1: '123 Main St',
+                        street2: 'Apt 4B',
                         city: 'Mumbai',
-                        state: 'MH',
+                        state: 'Maharashtra',
                         postal_code: '400001',
-                        country: 'IN',
-                    },
-                },
-            },
-            legal_business_name,
-            business_type: 'individual',
-            legal_info: {
-                pan: pan_number.toUpperCase(),
-            },
-            contact_name: legal_business_name,
-            contact_info: {
-                name: legal_business_name,
-                email,
-                phone: {
-                    primary: phone.replace(/\D/g, '').replace(/^91/, '').slice(-10),
-                },
-            },
+                        country: 'IN'
+                    }
+                }
+            }
         };
 
-        console.log('DEBUG - Attempting Razorpay Linked Account Creation:', {
-            user_id: user.id,
-            reference_id,
-            email,
-            business_type: 'individual'
+        console.log('DEBUG - Step 1: Attempting Razorpay Linked Account Creation');
+
+        const accountRes = await fetch('https://api.razorpay.com/v2/accounts', {
+            method: 'POST',
+            headers: rzpHeaders,
+            body: JSON.stringify(accountPayload)
         });
 
-        let razorpayAccount: any;
-        try {
-            if (!(razorpay as any).accounts) {
-                throw new Error('Razorpay client "accounts" property is missing. Check library version or initialization.');
-            }
-            razorpayAccount = await (razorpay as any).accounts.create(accountPayload);
-            console.log('DEBUG - Razorpay Account Created Successfully:', razorpayAccount.id);
-        } catch (rzpError: any) {
-            console.error('Razorpay account creation error detailed:', JSON.stringify(rzpError, null, 2));
-            
-            // Extract description from different possible locations in error object
-            const errMsg = rzpError?.error?.description || rzpError?.message || 'Failed to create Razorpay account';
-            const errCode = rzpError?.error?.code || 'ERROR';
+        const accountData = await accountRes.json();
 
-            console.error(`DEBUG - Razorpay Failure [${errCode}]: ${errMsg}`);
-            
-            // Helpful hint for Access Denied
+        if (!accountRes.ok) {
+            console.error('Razorpay Step 1 Failure:', accountData);
+            const errMsg = accountData?.error?.description || 'Failed to create Razorpay account';
             if (errMsg === 'Access Denied') {
                 return NextResponse.json({ 
                     error: 'Access Denied: Please check if your Razorpay account is in LIVE mode or if Route needs additional KYC on their dashboard.' 
                 }, { status: 502 });
             }
-
             return NextResponse.json({ error: errMsg }, { status: 502 });
         }
 
-        const razorpay_account_id = razorpayAccount.id;
+        const razorpay_account_id = accountData.id;
+        console.log('DEBUG - Razorpay Account Created Successfully:', razorpay_account_id);
 
         // ─────────────────────────────────────────────
         // Step 2: Add Stakeholder (PAN KYC)
         // ─────────────────────────────────────────────
-        try {
-            await (razorpay as any).stakeholders.create(razorpay_account_id, {
-                name: legal_business_name,
-                email,
-                phone: {
-                    primary: phone.replace(/\D/g, '').replace(/^91/, '').slice(-10),
-                },
-                kyc_details: {
-                    pan: pan_number.toUpperCase(),
-                },
-                relationship: {
-                    director: true,
-                    executive: true,
-                },
-            });
-        } catch (stakeholderErr: any) {
-            console.warn('Stakeholder creation warning (non-fatal):', stakeholderErr?.message);
+        console.log('DEBUG - Step 2: Adding Stakeholder (PAN)');
+        const stakeholderPayload = {
+            name: legal_business_name,
+            email,
+            phone: {
+                primary: cleanPhone
+            },
+            relationship: {
+                director: false,
+                executive: true
+            },
+            kyc: {
+                pan: pan_number.trim().toUpperCase()
+            }
+        };
+
+        const stakeholderRes = await fetch(`https://api.razorpay.com/v2/accounts/${razorpay_account_id}/stakeholders`, {
+            method: 'POST',
+            headers: rzpHeaders,
+            body: JSON.stringify(stakeholderPayload)
+        });
+
+        const stakeholderData = await stakeholderRes.json();
+        if (!stakeholderRes.ok) {
+            console.error('Razorpay Step 2 Failure (Stakeholder):', stakeholderData);
+            return NextResponse.json({ 
+                error: stakeholderData?.error?.description || 'Failed to add stakeholder details' 
+            }, { status: 502 });
         }
+        console.log('DEBUG - Stakeholder Added Successfully');
 
         // ─────────────────────────────────────────────
-        // Step 3: Request Route product for account
+        // Step 3: Configure Route Product (Add Bank Account)
         // ─────────────────────────────────────────────
-        let productId: string | undefined;
-        try {
-            const product = await (razorpay as any).products.requestProductConfiguration(
-                razorpay_account_id,
-                {
-                    product_name: 'route',
-                    tnc_accepted: true,
-                }
-            );
-            productId = product?.id;
-        } catch (productErr: any) {
-            console.warn('Product request warning (non-fatal):', productErr?.message);
+        console.log('DEBUG - Step 3: Adding Bank Account via Product Config');
+        
+        // 3a. Request Product Configuration
+        const postPayload = {
+            product_name: 'route',
+            tnc_accepted: true
+        };
+
+        const prodRes = await fetch(`https://api.razorpay.com/v2/accounts/${razorpay_account_id}/products`, {
+            method: 'POST',
+            headers: rzpHeaders,
+            body: JSON.stringify(postPayload)
+        });
+
+        const prodData = await prodRes.json();
+
+        if (!prodRes.ok) {
+            console.error('Razorpay Step 3 Failure (Product Request):', prodData);
+            const errorDesc = prodData?.error?.description || prodData?.message;
+            return NextResponse.json({ 
+                error: errorDesc ? `Product Error: ${errorDesc}` : `Raw Product Error: ${JSON.stringify(prodData).substring(0, 150)}`
+            }, { status: 502 });
         }
 
-        // ─────────────────────────────────────────────
-        // Step 4: Add Bank Account
-        // ─────────────────────────────────────────────
-        try {
-            await (razorpay as any).accounts.addBankAccount(razorpay_account_id, {
-                ifsc_code: bank_ifsc.toUpperCase(),
+        const productId = prodData.id;
+        console.log('DEBUG - Product Requested Successfully, ID:', productId);
+
+        // 3b. Update Product Configuration with Bank Details
+        const patchPayload = {
+            tnc_accepted: true,
+            settlements: {
                 beneficiary_name: bank_beneficiary_name,
                 account_number: bank_account_number,
-            });
-        } catch (bankErr: any) {
-            console.warn('Bank account addition warning (non-fatal):', bankErr?.message);
-        }
+                ifsc_code: bank_ifsc.toUpperCase()
+            }
+        };
 
+        const bankRes = await fetch(`https://api.razorpay.com/v2/accounts/${razorpay_account_id}/products/${productId}`, {
+            method: 'PATCH',
+            headers: rzpHeaders,
+            body: JSON.stringify(patchPayload)
+        });
+
+        const bankData = await bankRes.json();
+
+        if (!bankRes.ok) {
+            console.error('Razorpay Step 3 Failure (Bank Patch):', bankData);
+            const errorDesc = bankData?.error?.description || bankData?.message;
+            return NextResponse.json({ 
+                error: errorDesc ? `Bank Error: ${errorDesc}` : `Raw Bank Error: ${JSON.stringify(bankData).substring(0, 150)}`
+            }, { status: 502 });
+        }
+        console.log('DEBUG - Bank Account Configured Successfully');
+        
+        
         // ─────────────────────────────────────────────
         // Step 5: Save to Supabase (upsert)
         // ─────────────────────────────────────────────
@@ -234,6 +264,6 @@ export async function POST(req: Request) {
 
     } catch (error: any) {
         console.error('Linked account creation error:', error);
-        return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+        return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
     }
 }

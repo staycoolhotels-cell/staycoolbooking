@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createServiceClient } from '@/lib/supabase-server';
+import { createNotification } from '@/lib/activity-actions';
 
 /**
  * POST /api/webhooks/razorpay
@@ -119,6 +120,14 @@ export async function POST(req: Request) {
                                     host_payout: hostPayout,
                                     status: 'completed'
                                 });
+                            
+                            // Log Notification for Admin
+                            await createNotification(
+                                'booking',
+                                'New Booking Payment',
+                                `Payment captured for booking ${bookingId}. Amount: ₹${amount}`,
+                                'success'
+                            );
                         }
                     } catch (txnError) {
                         console.error('[Webhook] Secondary transaction logging failed:', txnError);
@@ -174,6 +183,14 @@ export async function POST(req: Request) {
                     .eq('razorpay_payment_id', razorpaySourceId);
 
                 console.log(`[Webhook] transfer.settled: Transfer ${razorpayTransferId} settled.`);
+                
+                // Log Notification for Admin
+                await createNotification(
+                    'payout',
+                    'Withdrawal Processed',
+                    `Payout transfer ${razorpayTransferId} has been settled successfully.`,
+                    'success'
+                );
                 break;
             }
 

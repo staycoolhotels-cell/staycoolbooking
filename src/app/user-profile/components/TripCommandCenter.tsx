@@ -98,7 +98,7 @@ const TripCommandCenter = ({ activeBooking }: TripCommandCenterProps) => {
 
       if (error) {
         console.error("DB Insert Error for maintenance_alerts:", error);
-        throw new Error(error.message);
+        throw new Error('An unexpected error occurred. Please try again later.');
       }
 
       toast.success("Issue reported successfully. The host and admin have been notified.");
@@ -108,7 +108,7 @@ const TripCommandCenter = ({ activeBooking }: TripCommandCenterProps) => {
       fetchReportedIssues();
     } catch (error: any) {
       console.error("Failed to report issue:", error);
-      toast.error("Failed to report issue: " + error.message);
+      toast.error('An unexpected error occurred. Please try again later.');
     } finally {
       setIsSubmitting(false);
     }

@@ -62,16 +62,16 @@ const Bookings = ({ bookings, searchTerm, setSearchTerm, onAction }: BookingsPro
   return (
     <div className="w-full space-y-6 md:space-y-8 relative">
       {/* 1. Premium Header Module */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-[#0a0a0f]/80 p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-4 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 bottom-0 w-96 bg-gradient-to-l from-emerald-500/10 to-transparent pointer-events-none" />
 
-        <div className="relative z-10 flex items-center gap-5 w-full lg:w-auto">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] shrink-0">
-            <Icon name="CalendarDaysIcon" size={32} className="text-emerald-400 drop-shadow-md" />
+        <div className="relative z-10 flex items-center gap-3 md:gap-5 w-full lg:w-auto">
+          <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] shrink-0">
+            <Icon name="CalendarDaysIcon" size={24} className="text-emerald-400 drop-shadow-md lg:w-8 lg:h-8" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg md:truncate">Reservation Control</h1>
-            <p className="text-[10px] md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2 md:truncate">
+            <h1 className="text-xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg md:truncate leading-tight">Reservation Control</h1>
+            <p className="text-[9px] md:text-sm font-bold text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest flex items-center gap-2 md:truncate">
               Guest Itinerary Management
             </p>
           </div>
@@ -79,15 +79,15 @@ const Bookings = ({ bookings, searchTerm, setSearchTerm, onAction }: BookingsPro
 
         {/* Search Input */}
         <div className="relative z-10 w-full lg:w-80 shrink-0">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Icon name="MagnifyingGlassIcon" size={18} className="text-zinc-500" />
+          <div className="absolute inset-y-0 left-0 pl-3 md:pl-4 flex items-center pointer-events-none">
+            <Icon name="MagnifyingGlassIcon" size={16} className="text-zinc-500 lg:w-[18px] lg:h-[18px]" />
           </div>
           <input
             type="text"
             placeholder="Search by guest or property..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-black/40 border border-white/10 hover:border-emerald-500/30 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all font-medium placeholder:text-zinc-600 shadow-inner"
+            className="w-full bg-black/40 border border-white/10 hover:border-emerald-500/30 rounded-lg md:rounded-xl pl-9 md:pl-11 pr-3 md:pr-4 py-2.5 md:py-3.5 text-xs md:text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all font-medium placeholder:text-zinc-600 shadow-inner"
           />
         </div>
       </div>
@@ -101,19 +101,19 @@ const Bookings = ({ bookings, searchTerm, setSearchTerm, onAction }: BookingsPro
               <button
                 key={filter.id}
                 onClick={() => setActiveFilter(filter.id as typeof activeFilter)}
-                className={`relative px-4 py-3 rounded-xl flex items-center gap-3 transition-all duration-300
+                className={`relative px-3 md:px-4 py-2 md:py-3 rounded-lg md:rounded-xl flex items-center gap-2 md:gap-3 transition-all duration-300
                         ${isActive
                     ? 'bg-zinc-800/80 shadow-md transform scale-[1.02]'
                     : 'hover:bg-white/5 text-zinc-500 hover:text-zinc-300'}
                      `}
               >
-                <div className={`p-1.5 rounded-lg ${isActive ? filter.bg : 'bg-transparent'}`}>
-                  <Icon name={filter.icon} size={16} className={isActive ? filter.color : 'text-current'} />
+                <div className={`p-1 md:p-1.5 rounded-md md:rounded-lg ${isActive ? filter.bg : 'bg-transparent'}`}>
+                  <Icon name={filter.icon} size={14} className={isActive ? filter.color : 'text-current lg:w-4 lg:h-4'} />
                 </div>
-                <span className={`text-[11px] font-bold uppercase tracking-widest whitespace-nowrap ${isActive ? 'text-white' : ''}`}>
+                <span className={`text-[10px] md:text-[11px] font-bold uppercase tracking-widest whitespace-nowrap ${isActive ? 'text-white' : ''}`}>
                   {filter.label}
                 </span>
-                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black ${isActive ? 'bg-black/40 text-white border border-white/10' : 'bg-transparent text-current'}`}>
+                <span className={`px-1.5 md:px-2 py-0.5 rounded text-[8px] md:text-[9px] font-black ${isActive ? 'bg-black/40 text-white border border-white/10' : 'bg-transparent text-current'}`}>
                   {filter.count}
                 </span>
               </button>

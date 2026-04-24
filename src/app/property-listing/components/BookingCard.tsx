@@ -67,6 +67,9 @@ const BookingCard = ({
   const [availableRoomsList, setAvailableRoomsList] = useState<any[]>([]);
   const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
+  const [isCheckInOpen, setIsCheckInOpen] = useState(false);
+  const [isCheckOutOpen, setIsCheckOutOpen] = useState(false);
+
 
   useEffect(() => {
     setIsHydrated(true);
@@ -104,7 +107,7 @@ const BookingCard = ({
         if (error) {
           console.error('Error checking availability:', JSON.stringify(error, null, 2));
           console.error('Error properties:', {
-            message: error.message,
+            message: 'An unexpected error occurred.',
             details: error.details,
             hint: error.hint,
             code: error.code
@@ -140,7 +143,7 @@ const BookingCard = ({
         if (error) {
           console.error('Error fetching available rooms (Raw):', error);
           console.error('Error details:', {
-             message: error.message,
+             message: 'An unexpected error occurred.',
              details: error.details,
              hint: error.hint,
              code: error.code
@@ -368,6 +371,7 @@ const BookingCard = ({
     },
   };
 
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <div className="bg-zinc-900/95 backdrop-blur-md border border-sky-500/30 shadow-xl shadow-sky-900/20 rounded-3xl p-4 md:p-5 sticky top-28 z-30">
@@ -437,12 +441,18 @@ const BookingCard = ({
               {/* Date Pickers */}
               <div className="flex gap-1">
                 {/* Check-in */}
-                <div className="flex-1 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden">
+                <div 
+                  className="flex-1 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden cursor-pointer"
+                  onClick={() => setIsCheckInOpen(true)}
+                >
                   <div className="px-1 pt-2 pb-1">
                     <p className="text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">Check-in</p>
                     <DatePicker
                       value={checkIn}
                       onChange={(newValue) => setCheckIn(newValue)}
+                      open={isCheckInOpen}
+                      onOpen={() => setIsCheckInOpen(true)}
+                      onClose={() => setIsCheckInOpen(false)}
                       disablePast
                       format="dd MM yyyy"
                       desktopModeMediaQuery="@media (min-width: 0px)"
@@ -459,12 +469,18 @@ const BookingCard = ({
                 </div>
 
                 {/* Check-out */}
-                <div className="flex-1 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden">
+                <div 
+                  className="flex-1 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden cursor-pointer"
+                  onClick={() => setIsCheckOutOpen(true)}
+                >
                   <div className="px-1 pt-2 pb-1">
                     <p className="text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">Check-out</p>
                     <DatePicker
                       value={checkOut}
                       onChange={(newValue) => setCheckOut(newValue)}
+                      open={isCheckOutOpen}
+                      onOpen={() => setIsCheckOutOpen(true)}
+                      onClose={() => setIsCheckOutOpen(false)}
                       minDate={checkIn || new Date()}
                       format="dd MM yyyy"
                       desktopModeMediaQuery="@media (min-width: 0px)"

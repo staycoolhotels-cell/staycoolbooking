@@ -105,22 +105,22 @@ export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
     };
 
     return (
-        <div className="space-y-6 relative">
-            <div className="flex justify-between items-center bg-black/40 border border-white/10 p-4 rounded-2xl shadow-inner">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-indigo-500/20 rounded-lg">
-                        <Icon name="QueueListIcon" size={20} className="text-indigo-400" />
+        <div className="space-y-4 md:space-y-6 relative">
+            <div className="flex justify-between items-center bg-black/40 border border-white/10 p-3 md:p-4 rounded-xl md:rounded-2xl shadow-inner">
+                <div className="flex items-center gap-2 md:gap-3">
+                    <div className="p-1.5 md:p-2 bg-indigo-500/20 rounded-lg">
+                        <Icon name="QueueListIcon" size={16} className="text-indigo-400" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-black text-white leading-tight">Active Sub-Units</h3>
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest leading-tight">Total Count: {rooms.length}</p>
+                        <h3 className="text-base md:text-lg font-black text-white leading-tight">Active Sub-Units</h3>
+                        <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest leading-tight">Total Count: {rooms.length}</p>
                     </div>
                 </div>
                 <button
                     onClick={() => setIsAdding(!isAdding)}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold uppercase tracking-widest text-white transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] border border-indigo-500/50"
+                    className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold uppercase tracking-widest text-white transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] border border-indigo-500/50 shrink-0"
                 >
-                    <Icon name={isAdding ? "XMarkIcon" : "PlusIcon"} size={16} /> {isAdding ? 'Cancel' : 'Deploy Unit'}
+                    <Icon name={isAdding ? "XMarkIcon" : "PlusIcon"} size={14} /> <span className="hidden sm:inline">{isAdding ? 'Cancel' : 'Deploy Unit'}</span><span className="sm:hidden">{isAdding ? 'X' : 'Deploy'}</span>
                 </button>
             </div>
 
@@ -156,10 +156,10 @@ export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
             ) : (
                 <div className="space-y-3">
                     {rooms.length === 0 && !isAdding && (
-                        <div className="flex flex-col items-center justify-center py-12 bg-white/[0.02] border border-dashed border-white/10 rounded-2xl">
-                            <Icon name="SquaresPlusIcon" size={32} className="text-zinc-600 mb-3" />
-                            <p className="text-sm font-bold text-white mb-1">No Sub-Units Deployed</p>
-                            <p className="text-xs text-zinc-500 text-center max-w-sm">This asset is currently functioning as a single integrated unit. Deploy sub-units to subdivide the property.</p>
+                        <div className="flex flex-col items-center justify-center py-8 md:py-12 bg-white/[0.02] border border-dashed border-white/10 rounded-xl md:rounded-2xl mx-1 md:mx-0">
+                            <Icon name="SquaresPlusIcon" size={24} className="text-zinc-600 mb-2 md:mb-3" />
+                            <p className="text-xs md:text-sm font-bold text-white mb-1">No Sub-Units Deployed</p>
+                            <p className="text-[10px] md:text-xs text-zinc-500 text-center max-w-[200px] md:max-w-sm px-4">This asset is currently functioning as a single integrated unit. Deploy sub-units to subdivide the property.</p>
                         </div>
                     )}
 

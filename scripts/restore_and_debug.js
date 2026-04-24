@@ -8,8 +8,6 @@ const supabase = createClient(supabaseUrl, serviceRoleKey);
 
 async function run() {
     console.log('Restoring Test Property for Bad Host...');
-
-    // Hardcoded Bad Host ID that we know WORKS for Property Creation
     const hostId = '38ac5294-564b-45ba-ab18-035f59c30e19';
 
     const { data, error } = await supabase.from('properties').insert({
@@ -27,15 +25,11 @@ async function run() {
         console.error('Create Error:', JSON.stringify(error, null, 2));
     } else {
         console.log('Success. Property ID:', data[0].id);
-
-        // NOW DEBUG THE FETCH
         console.log('Debugging API Fetch for Host:', hostId);
         const { data: host, error: hostError } = await supabase
             .from('users')
             .select('id, stripe_account_id, stripe_onboarding_completed')
             .eq('id', hostId)
-        // .single(); // Let's try select first without single to see count
-
         if (hostError) {
             console.error('Fetch Error:', hostError);
         } else {

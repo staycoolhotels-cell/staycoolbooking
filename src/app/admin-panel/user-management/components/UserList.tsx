@@ -33,18 +33,23 @@ interface KpiCardProps {
   iconColor: string;
   blobColor: string;
   subtitle?: string;
+  onClick?: () => void;
+  active?: boolean;
 }
 
-const KpiCard = ({ title, value, icon: IconComponent, glow, border, iconColor, blobColor, subtitle }: KpiCardProps) => (
+const KpiCard = ({ title, value, icon: IconComponent, glow, border, iconColor, blobColor, subtitle, onClick, active }: KpiCardProps) => (
   <motion.div
     whileHover={{ y: -5, scale: 1.02 }}
     whileTap={{ scale: 0.97 }}
-    className="relative group overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl p-5 md:p-6 transition-all duration-500 cursor-pointer"
-    style={{ border: `1px solid ${border}` }}
+    onClick={onClick}
+    className={`relative group overflow-hidden rounded-xl md:rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl p-3.5 md:p-6 transition-all duration-500 cursor-pointer border ${
+      active ? 'ring-2 ring-white/20' : ''
+    }`}
+    style={{ borderColor: active ? glow : border, boxShadow: active ? `0 0 20px ${glow}` : 'none' }}
   >
-    {/* Glow on hover */}
+    {/* Glow on hover or if active */}
     <div
-      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-2xl"
+      className={`absolute inset-0 transition-opacity duration-700 rounded-xl md:rounded-2xl ${active ? 'opacity-40' : 'opacity-0 group-hover:opacity-100'}`}
       style={{ boxShadow: `inset 0 0 40px ${glow}` }}
     />
     {/* Blob */}
@@ -54,25 +59,25 @@ const KpiCard = ({ title, value, icon: IconComponent, glow, border, iconColor, b
     />
     {/* Bottom accent */}
     <div
-      className="absolute bottom-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+      className={`absolute bottom-0 left-0 right-0 h-[2px] transition-opacity duration-500 ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
       style={{ background: `linear-gradient(to right, transparent, ${glow}, transparent)` }}
     />
 
-    <div className="relative z-10 flex flex-col gap-4">
+    <div className="relative z-10 flex flex-col gap-2 md:gap-4">
       <div className="flex items-start justify-between">
         <div
-          className="p-2.5 rounded-xl border backdrop-blur-sm group-hover:scale-110 transition-transform duration-300"
+          className="p-2 md:p-2.5 rounded-lg md:rounded-xl border backdrop-blur-sm group-hover:scale-110 transition-transform duration-300 flex items-center justify-center"
           style={{ borderColor: border, backgroundColor: 'rgba(255,255,255,0.04)' }}
         >
-          <IconComponent size={20} className={iconColor} />
+          <IconComponent className={`w-4 h-4 md:w-5 md:h-5 ${iconColor}`} />
         </div>
       </div>
       <div>
-        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] mb-1.5">{title}</p>
-        <h3 className="text-2xl md:text-3xl font-heading font-black text-white tracking-tight leading-none">
+        <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-wider md:tracking-[0.2em] mb-1 md:mb-1.5 truncate">{title}</p>
+        <h3 className="text-lg md:text-3xl font-heading font-black text-white tracking-tight leading-none truncate">
           {value}
         </h3>
-        {subtitle && <p className="text-[10px] text-zinc-600 mt-2 font-medium">{subtitle}</p>}
+        {subtitle && <p className="text-[9px] md:text-[10px] text-zinc-600 mt-1 md:mt-2 font-medium truncate">{subtitle}</p>}
       </div>
     </div>
   </motion.div>
@@ -86,6 +91,7 @@ const UserList = ({ initialUsers }: UserListProps) => {
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isPremiumSearch, setIsPremiumSearch] = useState(false);
   const [sortBy, setSortBy] = useState('created_at-desc');
@@ -178,6 +184,13 @@ const UserList = ({ initialUsers }: UserListProps) => {
     if (roleFilter !== 'all') {
       filtered = filtered.filter((user) => user.role === roleFilter);
     }
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'active') {
+        filtered = filtered.filter((user) => user.status === 'active' || user.status === 'approved_host');
+      } else {
+        filtered = filtered.filter((user) => user.status === statusFilter);
+      }
+    }
     if (searchTerm) {
       filtered = filtered.filter(
         (user) =>
@@ -205,7 +218,7 @@ const UserList = ({ initialUsers }: UserListProps) => {
       return 0;
     });
     return sorted;
-  }, [users, roleFilter, searchTerm, isPremiumSearch, dateRange, sortBy]);
+  }, [users, roleFilter, statusFilter, searchTerm, isPremiumSearch, dateRange, sortBy]);
 
   const stats = useMemo(() => {
     return {
@@ -226,6 +239,8 @@ const UserList = ({ initialUsers }: UserListProps) => {
       iconColor: 'text-indigo-400',
       blobColor: 'rgba(99,102,241,0.5)',
       subtitle: 'Platform-wide registrations',
+      active: roleFilter === 'all' && statusFilter === 'all',
+      onClick: () => { setRoleFilter('all'); setStatusFilter('all'); }
     },
     {
       title: 'Active Hosts',
@@ -236,6 +251,8 @@ const UserList = ({ initialUsers }: UserListProps) => {
       iconColor: 'text-emerald-400',
       blobColor: 'rgba(16,185,129,0.5)',
       subtitle: 'Verified property managers',
+      active: roleFilter === 'host' && statusFilter === 'active',
+      onClick: () => { setRoleFilter('host'); setStatusFilter('active'); }
     },
     {
       title: 'Pending Approvals',
@@ -246,6 +263,8 @@ const UserList = ({ initialUsers }: UserListProps) => {
       iconColor: 'text-amber-400',
       blobColor: 'rgba(234,179,8,0.5)',
       subtitle: 'Awaiting administrator action',
+      active: statusFilter === 'pending',
+      onClick: () => { setRoleFilter('all'); setStatusFilter('pending'); }
     },
     {
       title: 'Suspended',
@@ -256,6 +275,8 @@ const UserList = ({ initialUsers }: UserListProps) => {
       iconColor: 'text-rose-400',
       blobColor: 'rgba(239,68,68,0.5)',
       subtitle: 'Restricted account access',
+      active: statusFilter === 'suspended',
+      onClick: () => { setRoleFilter('all'); setStatusFilter('suspended'); }
     },
   ];
 
@@ -276,7 +297,7 @@ const UserList = ({ initialUsers }: UserListProps) => {
   return (
     <div className="space-y-8">
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-5">
         {kpiCards.map((card, i) => (
           <motion.div
             key={card.title}
@@ -317,8 +338,16 @@ const UserList = ({ initialUsers }: UserListProps) => {
               </Button>
             )}
           </div>
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            {statusFilter !== 'all' && (
+              <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 flex items-center gap-1.5 px-3 py-2 rounded-xl">
+                <span className="text-[10px] uppercase font-bold tracking-wider">{statusFilter} Filter Active</span>
+                <button onClick={() => setStatusFilter('all')} className="hover:text-white">
+                  <X size={14} />
+                </button>
+              </Badge>
+            )}
+            <Select value={roleFilter} onValueChange={(val) => { setRoleFilter(val); if (val === 'all') setStatusFilter('all'); }}>
               <SelectTrigger className="w-full md:w-[160px] bg-white/5 border-white/10 text-zinc-300">
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
@@ -379,7 +408,138 @@ const UserList = ({ initialUsers }: UserListProps) => {
         transition={{ delay: 0.5, duration: 0.5 }}
         className="relative overflow-hidden rounded-2xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/8"
       >
-        <div className="overflow-x-auto">
+        {/* Mobile Card Layout */}
+        <div className="md:hidden space-y-3 p-4">
+          <AnimatePresence>
+            {filteredAndSortedUsers.length === 0 ? (
+              <div className="py-12 text-center flex flex-col items-center gap-3 text-zinc-600">
+                <Icon name="DocumentMagnifyingGlassIcon" size={36} />
+                <p className="text-sm font-medium">No users found</p>
+              </div>
+            ) : (
+              filteredAndSortedUsers.map((user, i) => (
+                <motion.div
+                  key={user.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ delay: i * 0.02, duration: 0.3 }}
+                  className="bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors rounded-xl p-4 flex flex-col gap-3"
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-white truncate">{highlightMatch(user.name, searchTerm)}</p>
+                      <p className="text-xs text-zinc-400 truncate">{highlightMatch(user.email, searchTerm)}</p>
+                    </div>
+                    <Badge
+                      className={`shrink-0 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                        user.status === 'active' || user.status === 'approved_host'
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : user.status === 'suspended'
+                            ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                      }`}
+                    >
+                      {user.status === 'approved_host' ? 'Approved' : user.status}
+                    </Badge>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest bg-zinc-800/50 px-2 py-1 rounded">
+                      {user.role}
+                    </span>
+                    <span className="font-mono text-[9px] text-zinc-500 bg-white/5 px-1.5 py-0.5 rounded border border-white/8">
+                      {user.id.slice(0, 12)}...
+                    </span>
+                    <span className="text-[10px] text-zinc-500 ml-auto">
+                      {format(parseISO(user.created_at), 'dd MMM yyyy')}
+                    </span>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/5 mt-1">
+                    {editingUserId === user.id ? (
+                      <AnimatePresence>
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="flex flex-wrap gap-2 justify-end"
+                        >
+                          {user.role === 'host' && (
+                            <>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleApproveHost(user.id)}
+                                disabled={user.status === 'approved_host' || user.status === 'active'}
+                                className="h-7 bg-emerald-600 hover:bg-emerald-700 text-[9px] font-bold uppercase tracking-wider"
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleRejectClick(user)}
+                                disabled={user.status === 'rejected'}
+                                className="h-7 text-[9px] font-bold uppercase tracking-wider"
+                              >
+                                Reject
+                              </Button>
+                            </>
+                          )}
+                          {user.role === 'guest' && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleAutoApproveGuest(user.id)}
+                              disabled={user.status === 'active'}
+                              className="h-7 bg-emerald-600 hover:bg-emerald-700 text-[9px] font-bold uppercase tracking-wider"
+                            >
+                              Approve
+                            </Button>
+                          )}
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleSuspendUser(user.id)}
+                            disabled={user.status === 'suspended'}
+                            className="h-7 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-[9px] font-bold uppercase tracking-wider"
+                          >
+                            Suspend
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="h-7 text-[9px] font-bold uppercase tracking-wider"
+                          >
+                            Delete
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setEditingUserId(null)} className="h-7 px-2 hover:bg-white/10">
+                            <X className="h-3.5 w-3.5 text-zinc-500" />
+                          </Button>
+                        </motion.div>
+                      </AnimatePresence>
+                    ) : (
+                      <div className="flex justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditClick(user)}
+                          className="h-8 px-4 w-full border-white/10 hover:bg-white/5 text-[10px] font-bold uppercase tracking-wider"
+                        >
+                          Action
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Desktop Table Layout */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[700px]">
             <thead>
               <tr className="border-b border-white/5">

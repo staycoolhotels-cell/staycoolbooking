@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { GestureHandling } from 'leaflet-gesture-handling';
+import 'leaflet-gesture-handling/dist/leaflet-gesture-handling.css';
 
 // Fix for default marker icons in Leaflet with Next.js
 const createDefaultIcon = () => L.divIcon({
@@ -74,6 +76,16 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertyS
   // 1. Handle Mounting
   useEffect(() => {
     setIsMounted(true);
+    
+    // Register GestureHandling only once to avoid duplicate handler errors in dev mode
+    if (L.Map && typeof (L.Map as any).addInitHook === 'function') {
+      try {
+        (L.Map as any).addInitHook('addHandler', 'gestureHandling', GestureHandling);
+      } catch (e) {
+        // Ignore if already added
+      }
+    }
+    
     return () => {
       setIsMounted(false);
       if (mapInstanceRef.current) {
@@ -147,11 +159,15 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertyS
       center: mapCenter,
       zoom: mapZoom,
       zoomControl: false,
-      scrollWheelZoom: true,
-    });
+      attributionControl: false,
+      gestureHandling: true,
+      gestureHandlingOptions: {
+        theme: 'dark',
+      }
+    } as any);
 
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+      attribution: ''
     }).addTo(map);
 
     L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
@@ -246,17 +262,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertyS
             <p className="text-zinc-200 text-sm font-bold tracking-wide">Mapping your stay…</p>
           </div>
         </div>
-      ) : (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[1001] px-6 py-3 bg-zinc-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl flex flex-col items-center pointer-events-none">
-          <p className="text-white text-xs font-black tracking-widest uppercase mb-1">
-            Explore Properties
-          </p>
-          <div className="h-0.5 w-12 bg-sky-500 rounded-full mb-1" />
-          <p className="text-zinc-400 text-[10px] font-bold">
-            {geoProperties.length} active listings found
-          </p>
-        </div>
-      )}
+      ) : null}
       
       <style jsx global>{`
         .leaflet-container {

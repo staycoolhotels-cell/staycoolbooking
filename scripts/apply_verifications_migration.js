@@ -80,8 +80,7 @@ async function applyMigration() {
     }
 }
 
-// Note: Supabase doesn't have exec_sql RPC by default
-// We'll need to execute this via the SQL editor or use a different approach
+
 console.log('⚠️  Note: This script requires manual execution via Supabase SQL Editor');
 console.log('Please copy the SQL from the migration file and run it in the Supabase dashboard.\n');
 console.log('Migration file: supabase/migrations/20260205000004_fix_verifications_rls.sql\n');

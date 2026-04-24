@@ -98,27 +98,28 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
   return (
     <div className="w-full space-y-6 md:space-y-8">
       {/* 1. Header & Summary */}
-      <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 bg-[#0a0a0f]/80 p-6 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+      <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-3 md:gap-6 bg-[#0a0a0f]/80 p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 bottom-0 w-64 bg-gradient-to-l from-success/10 to-transparent pointer-events-none" />
         <div className="relative z-10 flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-success/30 to-success/10 border border-success/20 flex items-center justify-center shadow-[0_0_30px_rgba(34,197,94,0.3)]">
-            <Icon name="BanknotesIcon" size={28} className="text-success drop-shadow-md" />
+          <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-success/30 to-success/10 border border-success/20 flex items-center justify-center shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+            <Icon name="BanknotesIcon" size={20} className="text-success drop-shadow-md sm:hidden" />
+            <Icon name="BanknotesIcon" size={28} className="text-success drop-shadow-md hidden sm:block" />
           </div>
           <div>
-            <h1 className="text-3xl font-heading font-black text-white tracking-tight drop-shadow-md">Revenue Velocity</h1>
-            <p className="text-sm font-medium text-zinc-400 mt-1">Financial Forecasting & AI Insights</p>
+            <h1 className="text-xl sm:text-3xl font-heading font-black text-white tracking-tight drop-shadow-md">Revenue Velocity</h1>
+            <p className="text-xs sm:text-sm font-medium text-zinc-400 mt-0.5">Financial Forecasting & AI Insights</p>
           </div>
         </div>
 
         <div className="relative z-10 bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-5 shadow-inner w-full md:w-auto">
           <div>
             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-1">Historical (30d)</p>
-            <p className="text-xl font-heading font-black text-zinc-400 px-1">₹{historicalTotal.toLocaleString('en-IN')}</p>
+            <p className="text-base sm:text-xl font-heading font-black text-zinc-400 px-1">₹{historicalTotal.toLocaleString('en-IN')}</p>
           </div>
           <div className="h-10 w-[1px] bg-white/10" />
           <div>
             <p className="text-[10px] font-bold text-success uppercase tracking-widest pl-1">Projected (14d)</p>
-            <p className="text-2xl font-heading font-black text-white px-1">₹{totalProjected.toLocaleString('en-IN')}</p>
+            <p className="text-lg sm:text-2xl font-heading font-black text-white px-1">₹{totalProjected.toLocaleString('en-IN')}</p>
           </div>
           <div className="h-10 w-[1px] bg-white/10" />
           <div className="flex flex-col items-center justify-center pr-2">
@@ -133,10 +134,10 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* 2. Expected Earnings Chart */}
-        <div className="lg:col-span-2 relative group overflow-hidden bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 md:p-8 shadow-2xl flex flex-col min-h-[450px]">
+        <div className="lg:col-span-2 relative group overflow-hidden bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl sm:rounded-[2.5rem] border border-white/10 p-4 sm:p-6 md:p-8 shadow-2xl flex flex-col min-h-[300px] sm:min-h-[450px]">
           <div className="absolute -top-32 -right-32 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-blue-500/15 transition-colors duration-1000" />
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 relative z-10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-8 relative z-10">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20 shadow-inner">
                 <Icon name="ChartBarIcon" size={18} className="text-blue-400" />
@@ -157,7 +158,7 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
             </div>
           </div>
 
-          <div className="flex-1 w-full min-h-[300px] relative z-10 -ml-4">
+          <div className="flex-1 w-full min-h-[200px] sm:min-h-[300px] relative z-10 -ml-4">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                 <defs>
@@ -220,14 +221,15 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
 
         {/* 3. AI Suggestions & Summary */}
         <div className="space-y-6 lg:space-y-8 flex flex-col h-full">
-          <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 shadow-2xl flex-1 relative overflow-hidden group">
+          <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl sm:rounded-[2.5rem] border border-white/10 p-3 sm:p-6 shadow-2xl flex-1 relative overflow-hidden group">
             <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-purple-500/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-purple-500/20 transition-colors duration-1000" />
 
-            <div className="flex items-center gap-3 mb-8 relative z-10">
-              <div className="p-2 bg-purple-500/10 rounded-xl border border-purple-500/20 shadow-inner">
-                <Icon name="SparklesIcon" size={18} className="text-purple-400" />
+            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-8 relative z-10">
+              <div className="p-1.5 sm:p-2 bg-purple-500/10 rounded-xl border border-purple-500/20 shadow-inner">
+                <Icon name="BanknotesIcon" size={15} className="text-purple-400 sm:hidden" />
+                <Icon name="BanknotesIcon" size={18} className="text-purple-400 hidden sm:block" />
               </div>
-              <h2 className="text-sm font-heading font-bold text-white uppercase tracking-wider">
+              <h2 className="text-xs sm:text-sm font-heading font-bold text-white uppercase tracking-wider">
                 Pricing AI
               </h2>
             </div>
@@ -267,7 +269,7 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-[#12121a] to-[#050505] rounded-[2rem] border border-white/5 p-6 shadow-xl relative overflow-hidden group">
+          <div className="bg-gradient-to-br from-[#12121a] to-[#050505] rounded-xl sm:rounded-[2rem] border border-white/5 p-3 sm:p-6 shadow-xl relative overflow-hidden group">
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay"></div>
             <div className="absolute top-0 right-0 w-32 h-32 bg-success/5 rounded-full blur-[40px] pointer-events-none group-hover:bg-success/10 transition-colors duration-1000" />
 

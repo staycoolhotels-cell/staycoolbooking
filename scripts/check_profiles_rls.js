@@ -13,7 +13,7 @@ async function checkProfiles() {
     const { data: users, error: polErr } = await supabase.from('users').select('id').limit(1);
     const { data: profile } = await supabase.from('profiles').select('id').limit(1);
 
-    // Check if we can execute RPC to see policies
+
     const sql = `SELECT * FROM pg_policies WHERE tablename = 'profiles';`
     const { data: policies } = await supabase.rpc('execute_sql', { sql_string: sql });
 

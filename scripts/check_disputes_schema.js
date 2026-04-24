@@ -11,7 +11,7 @@ async function checkSchema() {
     const { data, error } = await supabase.rpc('inspect_table', { table_name: 'disputes' });
 
     if (error) {
-        // If inspect_table doesn't exist, try a direct query to get column names
+
         const { data: cols, error: colError } = await supabase
             .from('disputes')
             .select('*')

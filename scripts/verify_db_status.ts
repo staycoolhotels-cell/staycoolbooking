@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 
-// Load .env from root
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -19,8 +18,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function checkProperties() {
     let output = 'Checking all properties permissions...\n';
-
-    // 1. Get counts by status
     const { data: allProperties, error } = await supabase
         .from('properties')
         .select('id, title, status');
@@ -39,8 +36,6 @@ async function checkProperties() {
     }, {} as Record<string, number>);
 
     output += `Property counts by status: ${JSON.stringify(statusCounts)}\n`;
-
-    // 2. Check specifically for 'active' properties
     const { data: activeProperties, error: activeError } = await supabase
         .from('properties')
         .select('id, title, status')
@@ -52,7 +47,6 @@ async function checkProperties() {
         output += `Active properties found via query: ${activeProperties.length}\n`;
     }
 
-    // 3. Check for 'pending' properties
     const { data: pendingProperties, error: pendingError } = await supabase
         .from('properties')
         .select('id, title, status')

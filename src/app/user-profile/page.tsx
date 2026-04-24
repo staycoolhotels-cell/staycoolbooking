@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import UserProfileInteractive from './components/UserProfileInteractive';
+import { calculateRefundAmount } from '@/lib/refund-policy';
 
 export default async function ProfilePage() {
   const cookieStore = await cookies();
@@ -107,13 +108,21 @@ export default async function ProfilePage() {
 
   const mappedTransactions = (bookings || []).map(b => ({
     id: b.id,
+    transactionId: b.id.slice(0, 8).toUpperCase(),
     booking_id: b.id.slice(0, 8).toUpperCase(),
-    amount: Number(b.total_price),
+    guestName: userData.name || user.user_metadata?.name || 'Valued Guest',
+    guestAddress: [user.email, personalInfo?.location].filter(Boolean).join('\n') || 'Address not provided',
+    propertyName: b.properties?.title || 'Property',
+    hostName: 'StayCool Host',
+    amount: b.status === 'cancelled' || b.status === 'refunded' 
+      ? calculateRefundAmount(Number(b.total_price), b.check_in, b.cancelled_at || b.created_at)
+      : Number(b.total_price),
     date: new Date(b.created_at).toLocaleDateString(),
     type: (b.status === 'confirmed' || b.status === 'completed') ? 'payment' : 
           (b.status === 'cancelled' || b.status === 'refunded') ? 'refund' : 'other',
     status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
-            (b.status === 'cancelled' ? 'refunded' : 'pending'),
+            (b.status === 'refunded' ? 'refunded' : 'pending'),
+    paymentMethod: 'Razorpay',
     breakdown: {
       accommodation: Number(b.total_price) * 0.9,
       service_fee: Number(b.total_price) * 0.1,

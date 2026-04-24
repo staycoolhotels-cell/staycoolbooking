@@ -10,7 +10,6 @@ async function run() {
 
     console.log('Using URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
 
-    // 1. Fetch properties to find one to test with
     const { data: properties, error: propError } = await supabase
         .from('properties')
         .select('id, host_id, title, status')
@@ -25,7 +24,6 @@ async function run() {
 
     if (properties.length > 0) {
         const hostId = properties[0].host_id;
-        // 2. Check the user record for this host
         const { data: user, error: userError } = await supabase
             .from('users')
             .select('*')
@@ -38,8 +36,6 @@ async function run() {
             console.log('Host User Record:', JSON.stringify(user, null, 2));
         }
     }
-
-    // 3. Try to fetch all policies for properties table
     try {
         const { data: policies, error: polError } = await supabase.rpc('exec_sql', {
             sql: "SELECT polname, cmd, roles, qual, with_check FROM pg_policy WHERE polrelid = 'public.properties'::regclass;"

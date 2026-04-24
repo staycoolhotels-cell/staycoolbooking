@@ -17,10 +17,9 @@ async function testWishlist() {
     console.log("Columns Data:", cols);
     console.log("Columns Error:", colsErr);
 
-    // Testing Insert
     const { error: insertErr } = await supabase.from('wishlist').insert([{
-        user_id: '123e4567-e89b-12d3-a456-426614174000', // Dummy UUID
-        property_id: '5d1e8b1a-7bff-45df-8f5b-1234567890ab' // Dummy UUID
+        user_id: '123e4567-e89b-12d3-a456-426614174000',
+        property_id: '5d1e8b1a-7bff-45df-8f5b-1234567890ab'
     }]);
     console.log("Insert Error:", insertErr);
 }

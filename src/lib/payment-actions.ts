@@ -34,7 +34,7 @@ export async function createHostSignupOrder() {
             amount: 0,
             currency: "INR",
             key_id: null,
-            error: error.message
+            error: 'An unexpected error occurred. Please try again.'
         };
     }
 }

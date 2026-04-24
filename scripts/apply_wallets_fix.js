@@ -1,7 +1,7 @@
 const { Client } = require('pg');
 const fs = require('fs');
 
-// Using the same credentials from run-sql-fix-final.js which seem to be for this project
+
 const dbUrl = `postgresql://postgres:2bFZKr8g15GBpfng@db.dlislsrlwovcxsuqdlvy.supabase.co:5432/postgres`;
 const config = {
     connectionString: dbUrl,
@@ -21,7 +21,7 @@ async function applySql() {
         await client.query(sql);
         console.log('SQL executed successfully!');
 
-        // Notify PostgREST to reload schema
+
         await client.query("NOTIFY pgrst, 'reload schema'");
         console.log('Notified schema reload.');
 

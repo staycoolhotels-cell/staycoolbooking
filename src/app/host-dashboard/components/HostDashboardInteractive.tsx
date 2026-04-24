@@ -367,6 +367,7 @@ const HostDashboardInteractive = ({
         return {
           id: amenity.id,
           name: amenity.name,
+          icon: amenity.iconName,
           description: amenity.description,
           available: true,
         };
@@ -432,6 +433,8 @@ const HostDashboardInteractive = ({
           location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
           total_rooms: Number(formData.totalRooms) || 0,
           room_type: formData.roomType,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
           updated_at: new Date().toISOString(),
         };
 
@@ -452,8 +455,8 @@ const HostDashboardInteractive = ({
             console.error('Error updating property:', json.error);
             alert(`Failed to update property: ${json.error || 'Unknown error'}`);
           } else {
-            setProperties(
-              properties.map((p) => (p.id === propertyToEdit.id ? (json.data as Property) : p))
+            setProperties((prev) =>
+              prev.map((p) => (p.id === propertyToEdit.id ? (json.data as Property) : p))
             );
             fetchProperties();
           }
@@ -503,13 +506,15 @@ const HostDashboardInteractive = ({
             p_location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
             p_total_rooms: Number(formData.totalRooms) || 0,
             p_room_type: formData.roomType,
+            p_latitude: formData.latitude,
+            p_longitude: formData.longitude,
           };
 
           const { data: newPropertyId, error } = await supabase.rpc('create_property', rpcParams);
 
           if (error) {
             console.error('Error creating property via RPC:', error);
-            alert(`Failed to create property: ${error.message || 'Unknown error'} (${error.code || 'N/A'})\n\nDetails: ${error.details || 'None'}\nHint: ${error.hint || 'None'}`);
+            alert('An unexpected error occurred. Please try again later.');
             return;
           }
 
@@ -567,17 +572,18 @@ const HostDashboardInteractive = ({
     }, [supabase]);
 
     return (
-      <div className="w-full space-y-6 md:space-y-8 h-[calc(100vh-140px)] flex flex-col relative">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-[#0a0a0f]/80 p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden flex-shrink-0">
+      <div className="w-full space-y-3 md:space-y-8 h-[calc(100vh-140px)] flex flex-col relative">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 md:gap-6 bg-[#0a0a0f]/80 p-3 md:p-8 rounded-xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden flex-shrink-0">
           <div className="absolute top-0 right-0 bottom-0 w-80 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
 
-          <div className="relative z-10 flex items-center gap-5 w-full lg:w-auto">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)] shrink-0">
-              <LifeBuoy size={32} className="text-indigo-400 drop-shadow-md" />
+          <div className="relative z-10 flex items-center gap-3 md:gap-5 w-full lg:w-auto">
+            <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)] shrink-0">
+              <LifeBuoy size={20} className="text-indigo-400 drop-shadow-md md:hidden" />
+              <LifeBuoy size={32} className="text-indigo-400 drop-shadow-md hidden md:block" />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Priority Support</h1>
-              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
+              <h1 className="text-lg md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Priority Support</h1>
+              <p className="text-[9px] md:text-sm font-bold text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest flex items-center gap-2">
                 Direct Admin Communication
               </p>
             </div>
@@ -774,8 +780,8 @@ const HostDashboardInteractive = ({
                           setIsModalOpen(true);
                         }
                       }}
-                      onDelete={(id) => setProperties((p) => p.filter((x) => x.id !== id))}
-                      onToggleStatus={async (id, newStatus) => {
+                      onDelete={(id: string) => setProperties((p) => p.filter((x) => x.id !== id))}
+                      onToggleStatus={async (id: string, newStatus: 'active' | 'pending' | 'rejected' | 'offline') => {
                         try {
                           const { error } = await supabase.rpc('toggle_property_status', {
                             p_id: id,
@@ -784,13 +790,13 @@ const HostDashboardInteractive = ({
 
                           if (error) {
                             console.error('Error toggling status:', error);
-                            alert(`Failed to update status: ${error.message}`);
+                            alert('An unexpected error occurred. Please try again later.');
                             return;
                           }
 
                           // Optimistic update successful
                           setProperties((p) =>
-                            p.map((x) => (x.id === id ? { ...x, status: newStatus } : x))
+                            p.map((x) => (x.id === id ? ({ ...x, status: newStatus } as Property) : x))
                           );
                         } catch (err) {
                           console.error('Unexpected error toggling status:', err);
@@ -816,7 +822,7 @@ const HostDashboardInteractive = ({
                         if (error) throw error;
                         // Optimistic update successful
                         setProperties((p) =>
-                          p.map((x) => (x.id === id ? { ...x, status: newStatus } : x))
+                          p.map((x) => (x.id === id ? ({ ...x, status: newStatus } as Property) : x))
                         );
                       }}
                     />

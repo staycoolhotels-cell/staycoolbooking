@@ -80,12 +80,12 @@ export default function AuthClient() {
         <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] opacity-30 mix-blend-screen animate-pulse-subtle delay-1000" />
       </div>
 
-      <div className="w-full max-w-md px-6 relative z-10 mt-28 mb-8 sm:mt-0 sm:mb-0">
+      <div className="w-full max-w-md px-4 sm:px-6 relative z-10 mt-24 sm:mt-0 mb-8 sm:mb-0">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="bg-black/40 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl shadow-black/50"
+          className="bg-black/40 backdrop-blur-xl border border-white/10 p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-2xl shadow-black/50"
         >
           {/* Header */}
           <div className="text-center mb-8">
@@ -103,10 +103,10 @@ export default function AuthClient() {
                 />
               </motion.div>
             </div>
-            <h1 className="text-3xl font-heading font-bold text-white tracking-tight mb-2">
+            <h1 className="text-2xl md:text-3xl font-heading font-bold text-white tracking-tight mb-1.5 md:mb-2">
               Welcome Back
             </h1>
-            <p className="text-zinc-400 text-sm">
+            <p className="text-zinc-400 text-xs md:text-sm">
               Sign in to access your account
             </p>
           </div>
@@ -127,10 +127,10 @@ export default function AuthClient() {
           </AnimatePresence>
 
           {/* Toggle Switch */}
-          <div className="bg-zinc-900/50 p-1.5 rounded-xl flex items-center gap-1 mb-8 border border-white/5 mx-auto max-w-[300px]">
+          <div className="bg-zinc-900/50 p-1 md:p-1.5 rounded-xl flex items-center gap-1 mb-6 md:mb-8 border border-white/5 mx-auto max-w-[300px]">
             <button
               onClick={() => toggleAuthMethod('email')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-300 relative ${authMethod === 'email' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+              className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 py-2 md:py-2.5 px-3 md:px-4 rounded-lg text-xs md:text-sm font-medium transition-all duration-300 relative ${authMethod === 'email' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
                 }`}
             >
               {authMethod === 'email' && (
@@ -146,7 +146,7 @@ export default function AuthClient() {
             </button>
             <button
               onClick={() => toggleAuthMethod('phone')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-300 relative ${authMethod === 'phone' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+              className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 py-2 md:py-2.5 px-3 md:px-4 rounded-lg text-xs md:text-sm font-medium transition-all duration-300 relative ${authMethod === 'phone' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
                 }`}
             >
               {authMethod === 'phone' && (
@@ -179,14 +179,14 @@ export default function AuthClient() {
                         Email Address
                       </label>
                       <div className="relative group">
-                        <Mail className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
+                        <Mail className="absolute left-4 top-3.5 w-4 h-4 md:w-5 md:h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
                         <input
                           id="email"
                           type="email"
                           name="email"
                           placeholder="name@example.com"
                           required
-                          className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                          className="w-full pl-11 md:pl-12 pr-4 md:py-3.5 py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                         />
                       </div>
                     </div>
@@ -196,21 +196,21 @@ export default function AuthClient() {
                         Password
                       </label>
                       <div className="relative group">
-                        <Lock className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
+                        <Lock className="absolute left-4 top-3.5 w-4 h-4 md:w-5 md:h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
                         <input
                           id="password"
                           type={showPassword ? "text" : "password"}
                           name="password"
                           placeholder="••••••••"
                           required
-                          className="w-full pl-12 pr-12 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                          className="w-full pl-11 md:pl-12 pr-12 md:py-3.5 py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-3.5 text-zinc-500 hover:text-zinc-300 transition-colors"
+                          className="absolute right-4 top-3 md:top-3.5 text-zinc-500 hover:text-zinc-300 transition-colors"
                         >
-                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          {showPassword ? <EyeOff className="w-4 h-4 md:w-5 md:h-5" /> : <Eye className="w-4 h-4 md:w-5 md:h-5" />}
                         </button>
                       </div>
                     </div>
@@ -234,7 +234,7 @@ export default function AuthClient() {
                             Mobile Number
                           </label>
                           <div className="relative group">
-                            <Phone className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
+                            <Phone className="absolute left-4 top-3.5 w-4 h-4 md:w-5 md:h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
                             <input
                               id="phone"
                               type="tel"
@@ -243,7 +243,7 @@ export default function AuthClient() {
                               required
                               value={mobileNumber}
                               onChange={(e) => setMobileNumber(e.target.value)}
-                              className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                              className="w-full pl-11 md:pl-12 pr-4 md:py-3.5 py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                             />
                           </div>
                         </div>
@@ -266,14 +266,14 @@ export default function AuthClient() {
                             </button>
                           </div>
                           <div className="relative group">
-                            <Lock className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
+                            <Lock className="absolute left-4 top-3.5 w-4 h-4 md:w-5 md:h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
                             <input
                               id="otp"
                               type="text"
                               name="otp"
                               placeholder="123456"
                               required
-                              className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all tracking-widest"
+                              className="w-full pl-11 md:pl-12 pr-4 md:py-3.5 py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all tracking-widest"
                             />
                           </div>
                         </div>
@@ -310,7 +310,7 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
       type="submit"
       aria-disabled={pending}
       disabled={pending}
-      className="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white py-4 rounded-xl font-bold shadow-lg shadow-sky-500/20 hover:shadow-sky-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5 active:translate-y-0 relative overflow-hidden group"
+      className="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white py-3 md:py-4 rounded-lg md:rounded-xl font-bold text-sm md:text-base shadow-lg shadow-sky-500/20 hover:shadow-sky-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5 active:translate-y-0 relative overflow-hidden group"
     >
       <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none" />
       <span className="relative flex items-center justify-center gap-2">

@@ -70,7 +70,7 @@ export default {
           foreground: "rgb(255, 255, 255)",
         },
         brand: {
-          deep: "rgb(8, 8, 8)",
+          deep: "rgb(0, 122, 204)",
           'deep-foreground': "rgb(255, 255, 255)",
           energetic: "rgb(14, 165, 233)", // Sky 500
           'energetic-foreground': "rgb(255, 255, 255)",

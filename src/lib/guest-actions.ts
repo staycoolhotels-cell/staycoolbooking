@@ -165,6 +165,6 @@ export async function getGuestProfileForHost(guestId: string) {
     };
   } catch (error: any) {
     console.error(`[getGuestProfileForHost] FATAL:`, error.message);
-    return { success: false, error: error.message || 'Failed to fetch guest details' };
+    return { success: false, error: 'An unexpected error occurred. Please try again.' };
   }
 }

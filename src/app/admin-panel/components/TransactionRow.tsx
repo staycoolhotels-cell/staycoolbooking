@@ -60,7 +60,7 @@ const TransactionRow = ({ transaction, onViewDetails }: TransactionRowProps) => 
       <td className="px-4 py-4">
         <button
           onClick={() => onViewDetails(transaction.id)}
-          className="text-brand-deep hover:text-brand-deep/80 transition-colors duration-200"
+          className="text-sky-400 hover:text-sky-300 transition-colors duration-200 p-1 rounded-lg hover:bg-sky-400/10"
         >
           <Icon name="EyeIcon" size={20} />
         </button>

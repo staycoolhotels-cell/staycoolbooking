@@ -5,7 +5,14 @@ import { motion } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
 import { Transaction } from '@/lib/types';
 import SpendingChart from '@/components/common/SpendingChart';
-import { generateInvoicePDF, exportTransactionsToCSV } from '@/lib/pdf-utils';
+import { generateInvoicePDF, exportTransactionsToPDF } from '@/lib/pdf-utils';
+import RealTimeInvoice from '@/components/common/RealTimeInvoice';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type AdminFinancialTreasuryProps = {
   transactions: Transaction[];
@@ -24,46 +31,53 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
 
   const pendingRefunds = transactions.filter((t) => t.type === 'refund' && t.status === 'pending');
 
-  const downloadInvoicesBatch = () => {
-    exportTransactionsToCSV(transactions);
+  const [previewTransaction, setPreviewTransaction] = React.useState<Transaction | null>(null);
+
+  const downloadInvoicesBatch = async () => {
+    await exportTransactionsToPDF(transactions);
   };
 
   return (
-    <div className="bg-[#0a0a0f]/80 border border-white/10 rounded-[2rem] shadow-2xl p-6 md:p-8 backdrop-blur-xl">
-      <div className="flex items-center justify-between mb-8">
+    <div className="bg-[#0a0a0f]/80 border border-white/10 rounded-3xl md:rounded-[2rem] shadow-2xl p-4 md:p-8 backdrop-blur-xl">
+      <div className="flex items-start sm:items-center justify-between mb-6 md:mb-8 gap-3 sm:gap-0">
         <div>
-          <h2 className="text-2xl font-black text-white tracking-tight">Platform Treasury</h2>
-          <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">Cross-System Financial Intelligence</p>
+          <h2 className="text-xl md:text-2xl font-black text-white tracking-tight">Platform Treasury</h2>
+          <p className="text-[9px] md:text-xs font-bold text-zinc-500 uppercase tracking-wider md:tracking-widest mt-0.5 md:mt-1">Cross-System Financial Intelligence</p>
         </div>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={downloadInvoicesBatch}
-          className="flex items-center gap-2 px-4 py-2 bg-sky-500/10 border border-sky-500/20 rounded-xl text-sky-400 text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-all"
+          className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-sky-500/10 border border-sky-500/20 rounded-lg md:rounded-xl text-sky-400 text-[9px] md:text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-all shrink-0"
         >
-          <Icon name="ArrowDownTrayIcon" size={16} />
-          Export Ledger
+          <div className="md:hidden">
+            <Icon name="ArrowDownTrayIcon" size={12} />
+          </div>
+          <div className="hidden md:block">
+            <Icon name="ArrowDownTrayIcon" size={16} />
+          </div>
+          <span className="max-w-[50px] md:max-w-none text-left leading-tight md:leading-normal">Export<br className="md:hidden" /> Ledger</span>
         </motion.button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
         {/* Revenue Allocation breakdown */}
-        <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 relative overflow-hidden group">
+        <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 md:p-6 relative overflow-hidden group">
           <div className="absolute -right-20 -top-20 w-48 h-48 bg-sky-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-sky-500/15 transition-all" />
-          <h3 className="font-bold text-zinc-400 text-center mb-6 text-xs uppercase tracking-widest">Revenue Allocation Matrix</h3>
+          <h3 className="font-bold text-zinc-400 text-center mb-4 md:mb-6 text-[10px] md:text-xs uppercase tracking-widest">Revenue Allocation Matrix</h3>
           <SpendingChart transactions={transactions} />
-          <div className="mt-8 flex flex-col sm:grid sm:grid-cols-2 gap-3 sm:gap-4">
-            <div className="text-center p-4 border border-white/5 rounded-xl bg-black/20">
-              <p className="text-xl sm:text-xl md:text-2xl font-black text-white font-mono">
+          <div className="mt-6 md:mt-8 flex flex-col sm:grid sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="text-center p-3 md:p-4 border border-white/5 rounded-xl bg-black/20">
+              <p className="text-lg md:text-2xl font-black text-white font-mono">
                 ₹{totalRevenue.toLocaleString('en-IN')}
               </p>
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Gross Volume</p>
+              <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Gross Volume</p>
             </div>
-            <div className="text-center p-4 border border-emerald-500/20 rounded-xl bg-emerald-500/5">
-              <p className="text-xl sm:text-xl md:text-2xl font-black text-emerald-400 font-mono">
+            <div className="text-center p-3 md:p-4 border border-emerald-500/20 rounded-xl bg-emerald-500/5">
+              <p className="text-lg md:text-2xl font-black text-emerald-400 font-mono">
                 ₹{platformEarnings.toLocaleString('en-IN')}
               </p>
-              <p className="text-[10px] font-bold text-emerald-500/70 uppercase tracking-widest mt-1">Platform Revenue</p>
+              <p className="text-[9px] md:text-[10px] font-bold text-emerald-500/70 uppercase tracking-widest mt-1">Platform Revenue</p>
             </div>
           </div>
         </div>
@@ -120,11 +134,19 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
                             <span className="text-[10px] text-zinc-600 font-medium">{t.date}</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                           <p className="text-sm font-black text-white font-mono">₹{t.amount?.toLocaleString()}</p>
+                         <div className="flex items-center gap-2">
+                           <p className="text-sm font-black text-white font-mono mr-2">INR {t.amount?.toLocaleString('en-IN')}</p>
+                           <button 
+                             onClick={() => setPreviewTransaction(t)}
+                             className="p-2 text-zinc-500 hover:text-white transition-colors bg-white/5 rounded-lg border border-white/5"
+                             title="Live Preview"
+                           >
+                              <Icon name="EyeIcon" size={16} />
+                           </button>
                            <button 
                              onClick={async () => await generateInvoicePDF(t)}
-                             className="p-2 text-zinc-500 hover:text-sky-400 transition-colors"
+                             className="p-2 text-zinc-500 hover:text-sky-400 transition-colors bg-white/5 rounded-lg border border-white/5"
+                             title="Download PDF"
                            >
                               <Icon name="DocumentArrowDownIcon" size={16} />
                            </button>
@@ -136,6 +158,19 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
           </div>
         </div>
       </div>
+
+      <Dialog open={!!previewTransaction} onOpenChange={(open) => !open && setPreviewTransaction(null)}>
+        <DialogContent className="max-w-4xl bg-transparent border-none p-0 overflow-visible">
+          <div className="max-h-[90vh] overflow-y-auto rounded-2xl custom-scrollbar">
+            {previewTransaction && (
+              <RealTimeInvoice 
+                transaction={previewTransaction} 
+                onClose={() => setPreviewTransaction(null)} 
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

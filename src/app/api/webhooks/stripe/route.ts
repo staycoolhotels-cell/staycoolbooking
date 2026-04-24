@@ -34,7 +34,7 @@ export async function POST(req: Request) {
         );
     } catch (error: any) {
         console.error('Webhook signature verification failed.', error.message);
-        return NextResponse.json({ error: `Webhook Error: ${error.message}` }, { status: 400 });
+        return NextResponse.json({ error: 'Webhook Error: An unexpected error occurred.' }, { status: 400 });
     }
 
     const supabase = await createServiceRoleClient();

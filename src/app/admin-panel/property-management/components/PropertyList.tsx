@@ -321,7 +321,7 @@ const PropertyList = ({ initialProperties }: PropertyListProps) => {
                       )}
                       {property.status === 'active' && (
                         <button
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white/5 border border-white/10 text-zinc-400 text-xs font-bold hover:bg-white/10 hover:text-white hover:border-white/20 transition-all duration-300"
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-bold hover:bg-sky-500/20 hover:text-sky-300 hover:border-sky-500/40 transition-all duration-300"
                         >
                           <Eye size={13} />
                           View Details

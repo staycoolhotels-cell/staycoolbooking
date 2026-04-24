@@ -44,7 +44,7 @@ async function backfill() {
       .maybeSingle();
 
     let amount = Number(booking.total_price);
-    let platformFee = amount * 0.20; // Default 20%
+    let platformFee = amount * 0.20;
     let hostPayout = amount - platformFee;
 
     if (transfer) {
@@ -66,7 +66,7 @@ async function backfill() {
         platform_fee: platformFee,
         host_payout: hostPayout,
         status: 'completed',
-        created_at: booking.created_at // Use booking time for chart continuity
+        created_at: booking.created_at
       });
 
     if (insertError) {

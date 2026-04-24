@@ -7,7 +7,7 @@ import Icon from '@/components/ui/AppIcon';
 
 const BecomeHostCTA = () => {
     return (
-        <section className="py-32 relative overflow-hidden bg-[#050505]">
+        <section className="py-8 md:py-20 relative overflow-hidden bg-[#050505]">
             {/* Ambient Background Glows */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.06)_0%,transparent_70%)] pointer-events-none" />
 
@@ -41,7 +41,7 @@ const BecomeHostCTA = () => {
                     <div className="absolute inset-0 bg-gradient-to-br from-sky-500/20 via-zinc-800/20 to-indigo-500/20 opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
 
                     {/* Main Inner Card */}
-                    <div className="relative bg-[#0a0a0a]/90 backdrop-blur-3xl rounded-[calc(2.5rem-1px)] p-8 sm:p-12 md:p-20 text-center flex flex-col items-center justify-center border border-white/[0.05] shadow-2xl aspect-square sm:aspect-auto">
+                    <div className="relative bg-[#0a0a0a]/90 backdrop-blur-3xl rounded-[calc(2.5rem-1px)] p-5 sm:p-8 md:p-12 text-center flex flex-col items-center justify-center border border-white/[0.05] shadow-2xl">
 
                         {/* Premium Grid Overlay */}
                         <div
@@ -61,14 +61,14 @@ const BecomeHostCTA = () => {
                             whileInView={{ scale: 1, opacity: 1 }}
                             viewport={{ once: true }}
                             transition={{ delay: 0.2, type: "spring", stiffness: 150, damping: 20 }}
-                            className="mb-8 p-5 rounded-3xl bg-gradient-to-br from-sky-500/5 to-transparent border border-sky-500/10 shadow-[0_0_40px_rgba(14,165,233,0.1)] backdrop-blur-xl relative"
+                            className="mb-3 md:mb-6 p-2 md:p-4 rounded-xl md:rounded-3xl bg-gradient-to-br from-sky-500/5 to-transparent border border-sky-500/10 shadow-[0_0_40px_rgba(14,165,233,0.1)] backdrop-blur-xl relative"
                         >
-                            <div className="absolute inset-0 rounded-3xl bg-sky-500/20 blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-700" />
-                            <Icon name="HomeModernIcon" size={40} className="text-sky-400 relative z-10" />
+                            <div className="absolute inset-0 rounded-xl md:rounded-3xl bg-sky-500/20 blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-700" />
+                            <Icon name="HomeModernIcon" size={40} className="text-sky-400 relative z-10 w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10" />
                         </motion.div>
 
                         {/* Title */}
-                        <h2 className="font-heading text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-8">
+                        <h2 className="font-heading text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-2 md:mb-6">
                             <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70">
                                 Unlock the Potential
                             </span>
@@ -79,13 +79,13 @@ const BecomeHostCTA = () => {
                         </h2>
 
                         {/* Description */}
-                        <p className="font-sans text-xl md:text-2xl text-zinc-400/90 max-w-3xl mx-auto mb-14 leading-relaxed font-light">
+                        <p className="font-sans text-sm sm:text-lg md:text-xl lg:text-2xl text-zinc-400/90 max-w-3xl mx-auto mb-5 md:mb-10 leading-relaxed font-light">
                             Join thousands of hosts earning extra income by listing their properties.
                             It's simple, secure, and we're here to help you every step of the way.
                         </p>
 
                         {/* Action Buttons */}
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 w-full sm:w-auto relative z-20">
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6 w-full sm:w-auto relative z-20">
                             <Link href="/signup?role=host" className="w-full sm:w-auto">
                                 <motion.div
                                     whileHover={{ scale: 1.05 }}
@@ -95,9 +95,9 @@ const BecomeHostCTA = () => {
                                     {/* Button Glow */}
                                     <div className="absolute -inset-1 bg-gradient-to-r from-sky-500 to-indigo-500 rounded-full blur opacity-40 group-hover/btn:opacity-80 transition duration-500" />
 
-                                    <button className="relative w-full sm:w-auto px-10 py-5 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-full font-semibold text-lg md:text-xl shadow-[0_0_40px_rgba(14,165,233,0.3)] transition-all flex items-center justify-center gap-3 border border-sky-400/30">
+                                    <button className="relative w-full sm:w-auto px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-full font-semibold text-sm sm:text-lg md:text-xl shadow-[0_0_40px_rgba(14,165,233,0.3)] transition-all flex items-center justify-center gap-2 sm:gap-3 border border-sky-400/30">
                                         <span>List Your Property</span>
-                                        <Icon name="ArrowRightIcon" size={24} className="group-hover/btn:translate-x-1 transition-transform" />
+                                        <Icon name="ArrowRightIcon" size={24} className="group-hover/btn:translate-x-1 transition-transform w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                                     </button>
                                 </motion.div>
                             </Link>
@@ -106,7 +106,7 @@ const BecomeHostCTA = () => {
                                 <motion.button
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    className="w-full sm:w-auto px-10 py-5 bg-zinc-900/50 text-zinc-300 border border-zinc-700/50 hover:bg-zinc-800 hover:border-zinc-500 hover:text-white rounded-full font-semibold text-lg md:text-xl transition-all flex items-center justify-center backdrop-blur-sm"
+                                    className="w-full sm:w-auto px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 bg-zinc-900/50 text-zinc-300 border border-zinc-700/50 hover:bg-zinc-800 hover:border-zinc-500 hover:text-white rounded-full font-semibold text-sm sm:text-lg md:text-xl transition-all flex items-center justify-center backdrop-blur-sm"
                                 >
                                     Learn How it Works
                                 </motion.button>

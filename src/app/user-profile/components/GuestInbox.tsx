@@ -157,7 +157,7 @@ const GuestInbox: React.FC<{ guestId: string }> = ({ guestId }) => {
                 <div className="h-[1px] flex-grow bg-gradient-to-r from-zinc-800 to-transparent" />
             </div>
 
-            <div className="bg-zinc-900/30 border border-zinc-900 rounded-[2rem] overflow-hidden">
+            <div className="bg-zinc-900/30 border border-zinc-900 rounded-[1.5rem] md:rounded-[2rem] overflow-hidden">
                 <AnimatePresence mode="wait">
                     {!selectedThread ? (
                         /* Thread List */
@@ -170,10 +170,10 @@ const GuestInbox: React.FC<{ guestId: string }> = ({ guestId }) => {
                             {loading ? (
                                 <div className="p-8 text-center text-zinc-600 text-sm">Loading messages...</div>
                             ) : threads.length === 0 ? (
-                                <div className="p-10 flex flex-col items-center justify-center gap-3 text-center">
-                                    <MessageCircle size={36} className="text-zinc-700" />
-                                    <p className="text-zinc-600 text-sm">No messages yet.</p>
-                                    <p className="text-zinc-700 text-xs">When a host replies, you'll see it here.</p>
+                                <div className="p-6 md:p-10 flex flex-col items-center justify-center gap-2 md:gap-3 text-center">
+                                    <MessageCircle className="w-8 h-8 md:w-9 md:h-9 text-zinc-700" />
+                                    <p className="text-zinc-600 text-xs md:text-sm">No messages yet.</p>
+                                    <p className="text-zinc-700 text-[10px] md:text-xs">When a host replies, you'll see it here.</p>
                                 </div>
                             ) : (
                                 <div className="divide-y divide-zinc-900">

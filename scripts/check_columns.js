@@ -15,7 +15,7 @@ async function run() {
     if (data) {
         console.log('Columns:', data.map(c => `${c.column_name} (${c.data_type})`).join(', '));
     } else {
-        // Try catching via a simple select
+
         const { data: sample, error: sampleError } = await supabase.from('properties').select('*').limit(1);
         if (sampleError) {
             console.error('Sample Error:', sampleError);

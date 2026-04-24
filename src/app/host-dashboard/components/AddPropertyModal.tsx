@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { Property } from '@/lib/types';
 import { AMENITIES, CATEGORIZED_AMENITIES, AmenityItem } from '@/lib/amenities';
-import { Plus, X, ChevronRight, ChevronLeft, Home, Sparkles, Layers, Users, Bed, Building2, CheckCircle } from 'lucide-react';
+import { Plus, X, ChevronRight, ChevronLeft, Home, Sparkles, Layers, Users, Bed, Building2, CheckCircle, Bath } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient'; // Import supabase client
 import { NumberInput } from '@/components/ui/number-input';
+import MapPicker from '@/components/common/MapPicker';
 
 const BUCKETS = {
   propertyPhotos: 'images', // Use the 'images' bucket for photos
@@ -57,6 +58,8 @@ export interface FormData {
   totalRooms: number; // New field for bulk booking
   roomType: string; // New field for detailed room classification
   customAmenities: string[]; // New field for manually added amenities
+  latitude?: number;
+  longitude?: number;
 }
 
 interface AddPropertyModalProps {
@@ -116,6 +119,8 @@ const AddPropertyModal = ({
     totalRooms: 1, // Default to 1 room
     roomType: '', // Initialize new field
     customAmenities: [], // Initialize new field
+    latitude: undefined,
+    longitude: undefined,
   });
   const [newCustomAmenity, setNewCustomAmenity] = useState('');
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
@@ -197,6 +202,8 @@ const AddPropertyModal = ({
         customAmenities: propertyToEdit.amenities
           ?.filter((a: any) => !AMENITIES.some(std => std.id === a.id))
           ?.map((a: any) => a.name) || [],
+        latitude: propertyToEdit.latitude,
+        longitude: propertyToEdit.longitude,
       });
       setPhotoPreviews(initialPhotoUrls);
     } else {
@@ -244,6 +251,8 @@ const AddPropertyModal = ({
         totalRooms: 1,
         roomType: '',
         customAmenities: [],
+        latitude: undefined,
+        longitude: undefined,
       });
       setPhotoPreviews([]);
     }
@@ -373,7 +382,7 @@ const AddPropertyModal = ({
       onSaveProperty(updatedFormData);
       onClose(); // Close modal after successful submission
     } catch (error: any) {
-      alert(`Failed to save property: ${error.message}`);
+      alert('An unexpected error occurred. Please try again later.');
       console.error("Error saving property:", error);
     }
   };
@@ -394,25 +403,25 @@ const AddPropertyModal = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
       <div className="bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-        <div className="flex justify-between items-center p-6 border-b border-zinc-800">
-          <h2 className="text-2xl font-bold text-white">{propertyToEdit ? 'Edit Property' : 'Create a new listing'}</h2>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-zinc-800 transition-colors">
-            <X className="h-6 w-6 text-zinc-400" />
+        <div className="flex justify-between items-center p-4 md:p-6 border-b border-zinc-800">
+          <h2 className="text-lg md:text-2xl font-bold text-white">{propertyToEdit ? 'Edit Property' : 'Create a new listing'}</h2>
+          <button onClick={onClose} className="p-1.5 md:p-2 rounded-full hover:bg-zinc-800 transition-colors">
+            <X className="h-5 w-5 md:h-6 md:w-6 text-zinc-400" />
           </button>
         </div>
 
-        <div className="p-4 md:p-8 overflow-y-auto">
-          <div className="mb-8">
+        <div className="p-3 md:p-8 overflow-y-auto">
+          <div className="mb-4 md:mb-8">
             <div className="flex items-center justify-between">
               {steps.map((step, index) => (
                 <React.Fragment key={index}>
                   <div className="flex items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${index <= currentStep ? 'bg-primary text-primary-foreground' : 'bg-zinc-800 text-zinc-400'}`}>
+                    <div className={`w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs md:text-sm ${index <= currentStep ? 'bg-primary text-primary-foreground' : 'bg-zinc-800 text-zinc-400'}`}>
                       {index + 1}
                     </div>
-                    <p className={`ml-4 font-semibold ${index <= currentStep ? 'text-white' : 'text-zinc-500'}`}>{step}</p>
+                    <p className={`ml-1.5 md:ml-4 text-[10px] md:text-sm font-semibold hidden sm:block ${index <= currentStep ? 'text-white' : 'text-zinc-500'}`}>{step}</p>
                   </div>
-                  {index < steps.length - 1 && <div className="flex-1 h-px bg-zinc-800 mx-4"></div>}
+                  {index < steps.length - 1 && <div className="flex-1 h-px bg-zinc-800 mx-1.5 md:mx-4"></div>}
                 </React.Fragment>
               ))}
             </div>
@@ -420,16 +429,16 @@ const AddPropertyModal = ({
 
           <form onSubmit={handleSubmit} className="space-y-8">
             {currentStep === 0 && (
-              <div className="space-y-6 animate-fade-in">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4 md:space-y-6 animate-fade-in">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                   <InputField label="Property Name" name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. Sunny Beachfront Villa" />
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">Country/region</label>
+                  <div className="space-y-1.5 md:space-y-2">
+                    <label className="text-xs md:text-sm font-medium text-zinc-400">Country/region</label>
                     <select
                       name="country"
                       value={formData.country}
                       onChange={handleInputChange}
-                      className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition"
+                      className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-2.5 md:p-3 text-sm md:text-base text-white focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition"
                     >
                       <option value="India - IN">India - IN</option>
                       {/* Add other countries if needed */}
@@ -441,33 +450,56 @@ const AddPropertyModal = ({
                   <InputField label="Nearby landmark (if applicable)" name="landmark" value={formData.landmark} onChange={handleInputChange} />
                   <InputField label="District/locality (if applicable)" name="district" value={formData.district} onChange={handleInputChange} />
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3 md:gap-4">
                     <InputField label="City/town" name="city" value={formData.city} onChange={handleInputChange} />
-                    <InputField label="State/union territory" name="state" value={formData.state} onChange={handleInputChange} />
+                    <InputField label="State" name="state" value={formData.state} onChange={handleInputChange} />
                   </div>
 
                   <InputField label="PIN code" name="postalCode" value={formData.postalCode} onChange={handleInputChange} />
 
-                  <div className="rounded-xl overflow-hidden h-48 bg-zinc-800 border border-zinc-700">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      loading="lazy"
-                      title="Map Preview"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      src={`https://www.google.com/maps?q=${encodeURIComponent(
-                        `${formData.addressLine1 || ''} ${formData.addressLine2 || ''} ${formData.city || ''} ${formData.state || ''} ${formData.country || ''}`.trim() || 'India'
-                      )}&z=14&output=embed`}
-                      className="border-0"
-                    ></iframe>
+                  <div className="rounded-xl overflow-hidden h-64 bg-zinc-800 border border-zinc-700 relative">
+                    <MapPicker
+                      key={propertyToEdit?.id || 'new-property'}
+                      lat={formData.latitude} 
+                      lng={formData.longitude} 
+                      onLocationSelect={(lat, lng) => setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }))}
+                      onAddressSelect={(addressData) => {
+                        console.log("Address Data received:", addressData);
+                        
+                        const cleanField = (val: string | undefined) => {
+                          if (!val) return '';
+                          return val
+                            .replace(/Municipal Corporation|Municipal Council|M\.Corp|MC|Corporation|Municipality|Muncipality|Mpl/gi, '')
+                            .replace(/\s+/g, ' ')
+                            .trim();
+                        };
+
+                        const cityRaw = addressData.city || addressData.town || addressData.village || addressData.municipality;
+                        const cleanedCity = cleanField(cityRaw);
+                        
+                        const landmarkRaw = addressData.amenity || addressData.tourism || addressData.historic || addressData.building || addressData.shop || addressData.leisure || addressData.office;
+                        
+                        setFormData(prev => ({
+                          ...prev,
+                          addressLine1: addressData.house_number || addressData.house_name || '', // Clear if no specific house info
+                          addressLine2: addressData.road || prev.addressLine2,
+                          landmark: cleanField(landmarkRaw) || prev.landmark,
+                          city: cleanedCity || prev.city,
+                          state: addressData.state || prev.state,
+                          postalCode: addressData.postcode || prev.postalCode,
+                          district: addressData.suburb || addressData.neighbourhood || addressData.city_district || addressData.state_district || addressData.county || prev.district,
+                        }));
+                      }}
+                      address={`${formData.addressLine1 || ''} ${formData.addressLine2 || ''} ${formData.city || ''} ${formData.state || ''} ${formData.country || ''}`.trim()}
+                    />
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-zinc-800 rounded-lg border border-zinc-700">
-                    <div>
-                      <p className="font-semibold text-white">Show your specific location</p>
-                      <p className="text-sm text-zinc-400 mt-1">Make it clear to guests where your place is located. We'll only share your address after they've made a reservation.</p>
+                  <div className="flex items-center justify-between gap-3 p-3 md:p-4 bg-zinc-800 rounded-lg border border-zinc-700">
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm md:text-base text-white leading-tight">Show your specific location</p>
+                      <p className="text-[10px] md:text-sm text-zinc-400 mt-1 md:mt-1.5 leading-snug">Make it clear to guests where your place is located. We'll only share your address after they've made a reservation.</p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
                       <input
                         type="checkbox"
                         name="showSpecificLocation"
@@ -480,26 +512,26 @@ const AddPropertyModal = ({
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-zinc-400 mb-2">Description</label>
+                  <label htmlFor="description" className="block text-xs md:text-sm font-medium text-zinc-400 mb-1.5 md:mb-2">Description</label>
                   <textarea
                     id="description"
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
-                    rows={6}
-                    className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-primary focus:border-primary transition"
+                    rows={4}
+                    className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-2.5 md:p-3 text-sm md:text-base text-white focus:ring-2 focus:ring-primary focus:border-primary transition"
                     placeholder="Describe your property in detail..."
                     required
                   />
                 </div>
                 <div>
-                  <label htmlFor="type" className="block text-sm font-medium text-zinc-400 mb-2">Property Type</label>
+                  <label htmlFor="type" className="block text-xs md:text-sm font-medium text-zinc-400 mb-1.5 md:mb-2">Property Type</label>
                   <select
                     id="type"
                     name="type"
                     value={formData.type}
                     onChange={handleInputChange}
-                    className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-primary focus:border-primary transition"
+                    className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-2.5 md:p-3 text-sm md:text-base text-white focus:ring-2 focus:ring-primary focus:border-primary transition"
                     required
                   >
                     <option value="">Select a Category</option>
@@ -512,16 +544,16 @@ const AddPropertyModal = ({
                     <option value="Cottage">Cottage</option>
                     <option value="Tent">Tent</option>
                     <option value="Guest House">Guest House</option>
-                    <option value="Hostel">Hostel</option>
+                    <option value="Dormitory">Dormitory</option>
                   </select>
                 </div>
 
                 {/* Room Classification Dropdown */}
                 <div className={`col-span-full md:col-span-1 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Building2 className="w-5 h-5 text-sky-400" />
-                    <label htmlFor="roomType" className="block text-sm font-medium text-zinc-300">Room Classification</label>
-                    {formData.type === 'Tent' && <span className="text-xs text-amber-400 ml-1">(Not applicable for Tent)</span>}
+                  <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
+                    <Building2 className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                    <label htmlFor="roomType" className="block text-xs md:text-sm font-medium text-zinc-300">Room Classification</label>
+                    {formData.type === 'Tent' && <span className="text-[10px] md:text-xs text-amber-400 ml-1">(Not applicable for Tent)</span>}
                   </div>
                   <select
                     id="roomType"
@@ -529,7 +561,7 @@ const AddPropertyModal = ({
                     value={formData.roomType}
                     onChange={handleInputChange}
                     disabled={formData.type === 'Tent'}
-                    className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-primary focus:border-primary transition disabled:cursor-not-allowed"
+                    className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-2.5 md:p-3 text-sm text-white focus:ring-2 focus:ring-primary focus:border-primary transition disabled:cursor-not-allowed"
                   >
                     <option value="">Select Room Type (Optional)</option>
 
@@ -571,13 +603,13 @@ const AddPropertyModal = ({
                 </div>
 
                 {/* NEW FIELDS: Bedrooms, Bathrooms, Area, Max Guests, Total Rooms */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
 
                   {/* Total Rooms / Units Input */}
-                  <div className="bg-zinc-800 p-4 rounded-xl border border-zinc-700/50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Building2 className="w-5 h-5 text-sky-400" />
-                      <label htmlFor="totalRooms" className="block text-sm font-medium text-zinc-300">Total Rooms/Units</label>
+                  <div className="bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50">
+                    <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
+                      <Building2 className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                      <label htmlFor="totalRooms" className="block text-xs md:text-sm font-medium text-zinc-300">Total Rooms/Units</label>
                     </div>
                     <div className="flex justify-center">
                       <NumberInput
@@ -586,13 +618,13 @@ const AddPropertyModal = ({
                         min={1}
                       />
                     </div>
-                    <p className="text-xs text-zinc-500 mt-1 text-center">For bulk bookings.</p>
+                    <p className="text-[10px] md:text-xs text-zinc-500 mt-1 text-center">For bulk bookings.</p>
                   </div>
-                  <div className={`bg-zinc-800 p-4 rounded-xl border border-zinc-700/50 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Home className="w-5 h-5 text-sky-400" />
-                      <label htmlFor="bedrooms" className="block text-sm font-medium text-zinc-300">Bedrooms</label>
-                      {formData.type === 'Tent' && <span className="text-xs text-amber-400">(N/A)</span>}
+                  <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
+                    <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
+                      <Home className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                      <label htmlFor="bedrooms" className="block text-xs md:text-sm font-medium text-zinc-300">Bedrooms</label>
+                      {formData.type === 'Tent' && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
                     </div>
                     <div className="flex justify-center">
                       <NumberInput
@@ -603,10 +635,10 @@ const AddPropertyModal = ({
                     </div>
                   </div>
 
-                  <div className="bg-zinc-800 p-4 rounded-xl border border-zinc-700/50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Bed className="w-5 h-5 text-sky-400" />
-                      <label htmlFor="beds" className="block text-sm font-medium text-zinc-300">Beds</label>
+                  <div className="bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50">
+                    <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
+                      <Bed className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                      <label htmlFor="beds" className="block text-xs md:text-sm font-medium text-zinc-300">Beds</label>
                     </div>
                     <div className="flex justify-center">
                       <NumberInput
@@ -617,11 +649,11 @@ const AddPropertyModal = ({
                     </div>
                   </div>
 
-                  <div className={`bg-zinc-800 p-4 rounded-xl border border-zinc-700/50 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Sparkles className="w-5 h-5 text-sky-400" />
-                      <label htmlFor="bathrooms" className="block text-sm font-medium text-zinc-300">Bathrooms</label>
-                      {formData.type === 'Tent' && <span className="text-xs text-amber-400">(N/A)</span>}
+                  <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
+                    <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
+                      <Bath className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                      <label htmlFor="bathrooms" className="block text-xs md:text-sm font-medium text-zinc-300">Bathrooms</label>
+                      {formData.type === 'Tent' && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
                     </div>
                     <div className="flex justify-center">
                       <NumberInput
@@ -633,11 +665,11 @@ const AddPropertyModal = ({
                     </div>
                   </div>
 
-                  <div className={`bg-zinc-800 p-4 rounded-xl border border-zinc-700/50 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Layers className="w-5 h-5 text-sky-400" />
-                      <label htmlFor="area" className="block text-sm font-medium text-zinc-300">Area (sq ft)</label>
-                      {formData.type === 'Tent' && <span className="text-xs text-amber-400">(N/A)</span>}
+                  <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
+                    <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
+                      <Layers className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                      <label htmlFor="area" className="block text-xs md:text-sm font-medium text-zinc-300">Area (sq ft)</label>
+                      {formData.type === 'Tent' && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
                     </div>
                     <div className="flex justify-center">
                       <NumberInput
@@ -650,10 +682,10 @@ const AddPropertyModal = ({
                     </div>
                   </div>
 
-                  <div className="bg-zinc-800 p-4 rounded-xl border border-zinc-700/50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Users className="w-5 h-5 text-sky-400" />
-                      <label htmlFor="maxGuests" className="block text-sm font-medium text-zinc-300">Max Guests</label>
+                  <div className="bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50">
+                    <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
+                      <Users className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                      <label htmlFor="maxGuests" className="block text-xs md:text-sm font-medium text-zinc-300">Max Guests</label>
                     </div>
                     <div className="flex justify-center">
                       <NumberInput
@@ -665,9 +697,9 @@ const AddPropertyModal = ({
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-zinc-800">
-                  <h4 className="text-lg font-semibold text-white mb-4">Co-Host Information</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="pt-4 border-t border-zinc-800">
+                  <h4 className="text-base md:text-lg font-semibold text-white mb-3">Co-Host Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <InputField label="Co-Host Name" name="coHostName" value={formData.coHostName} onChange={handleInputChange} placeholder="e.g. John Doe" />
                     <InputField label="Co-Host Email" name="coHostEmail" value={formData.coHostEmail} onChange={handleInputChange} placeholder="e.g. john@example.com" />
                   </div>
@@ -682,20 +714,20 @@ const AddPropertyModal = ({
                 {Object.entries(CATEGORIZED_AMENITIES).map(([category, items]: [string, AmenityItem[]]) => (
                   <div key={category}>
                     <h4 className="text-lg font-medium text-zinc-300 mb-4 sticky top-0 bg-zinc-900 py-2 z-10">{category}</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                       {items.map((amenity: AmenityItem) => (
                         <div
                           key={amenity.id}
                           onClick={() => handleAmenityChange(amenity.id)}
-                          className={`p-4 border rounded-lg cursor-pointer transition-all flex flex-col items-start gap-2 ${formData.amenities.includes(amenity.id)
-                            ? 'bg-primary border-primary text-white'
-                            : 'bg-zinc-800 border-zinc-700 hover:border-primary'
+                          className={`p-2.5 md:p-4 border rounded-xl md:rounded-lg cursor-pointer transition-all flex flex-col items-start gap-1.5 md:gap-2 ${formData.amenities.includes(amenity.id)
+                            ? 'bg-primary border-primary text-white shadow-[0_0_15px_rgba(14,165,233,0.3)]'
+                            : 'bg-zinc-800 border-zinc-700 hover:border-primary/50'
                             }`}
                         >
-                          <amenity.icon className="w-6 h-6" />
+                          <amenity.icon className="w-5 h-5 md:w-6 md:h-6 shrink-0" />
                           <div>
-                            <p className="font-semibold text-sm">{amenity.name}</p>
-                            <p className="text-xs text-zinc-400 mt-1 line-clamp-2">{amenity.description}</p>
+                            <p className="font-semibold text-xs md:text-sm leading-tight">{amenity.name}</p>
+                            <p className="text-[10px] md:text-xs text-zinc-400 mt-0.5 md:mt-1 line-clamp-2 md:line-clamp-none leading-snug">{amenity.description}</p>
                           </div>
                         </div>
                       ))}
@@ -704,37 +736,37 @@ const AddPropertyModal = ({
                 ))}
 
                 {/* Custom Amenities Section */}
-                <div className="pt-8 border-t border-zinc-800">
-                  <h4 className="text-xl font-semibold text-white mb-6">Other Amenities</h4>
-                  <div className="flex gap-4 mb-6">
+                <div className="pt-6 md:pt-8 border-t border-zinc-800">
+                  <h4 className="text-lg md:text-xl font-semibold text-white mb-4 md:mb-6">Other Amenities</h4>
+                  <div className="flex gap-2.5 md:gap-4 mb-4 md:mb-6">
                     <input
                       type="text"
                       value={newCustomAmenity}
                       onChange={(e) => setNewCustomAmenity(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomAmenity())}
                       placeholder="e.g. Home Theater, Infinity Pool"
-                      className="flex-1 bg-zinc-800 border-zinc-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-primary focus:border-primary transition outline-none"
+                      className="flex-1 bg-zinc-800 border-zinc-700 rounded-lg p-2.5 md:p-3 text-sm md:text-base text-white focus:ring-2 focus:ring-primary focus:border-primary transition outline-none"
                     />
                     <button
                       type="button"
                       onClick={addCustomAmenity}
-                      className="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-bold hover:bg-primary/90 transition flex items-center gap-2"
+                      className="bg-primary text-primary-foreground px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-bold hover:bg-primary/90 transition flex items-center gap-1.5 md:gap-2 text-sm md:text-base"
                     >
-                      <Plus className="w-5 h-5" />
+                      <Plus className="w-4 h-4 md:w-5 md:h-5" />
                       Add
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                     {formData.customAmenities.map((amenity, index) => (
                       <div
                         key={`custom-${index}`}
-                        className="p-4 bg-primary border-primary rounded-lg flex flex-col items-start gap-2 relative group transition-all"
+                        className="p-2.5 md:p-4 bg-primary border-primary rounded-xl md:rounded-lg flex flex-col items-start gap-1.5 md:gap-2 relative group transition-all shadow-[0_0_15px_rgba(14,165,233,0.3)]"
                       >
-                        <CheckCircle className="w-6 h-6 text-white" />
+                        <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-white shrink-0" />
                         <div>
-                          <p className="font-semibold text-sm text-white">{amenity}</p>
-                          <p className="text-xs text-white/70 mt-1">Host added amenity</p>
+                          <p className="font-semibold text-xs md:text-sm text-white leading-tight">{amenity}</p>
+                          <p className="text-[10px] md:text-xs text-white/70 mt-0.5 md:mt-1 leading-snug">Host added amenity</p>
                         </div>
                         <button
                           type="button"
@@ -752,28 +784,28 @@ const AddPropertyModal = ({
             )}
 
             {currentStep === 2 && (
-              <div className="space-y-8 animate-fade-in">
+              <div className="space-y-6 md:space-y-8 animate-fade-in">
                 <div>
-                  <h3 className="text-xl font-semibold text-white mb-4">Cancellation Policy</h3>
-                  <div className="grid grid-cols-1 gap-4">
+                  <h3 className="text-lg md:text-xl font-semibold text-white mb-3 md:mb-4">Cancellation Policy</h3>
+                  <div className="grid grid-cols-2 gap-2.5 md:gap-4">
                     {['Tiered'].map((policy) => (
                       <div
                         key={policy}
                         onClick={() => setFormData(prev => ({ ...prev, cancellationPolicy: policy }))}
-                        className={`p-4 border rounded-lg cursor-pointer transition-all ${formData.cancellationPolicy === policy
-                          ? 'bg-primary border-primary text-white'
-                          : 'bg-zinc-800 border-zinc-700 hover:border-primary'
+                        className={`p-2.5 md:p-4 border rounded-lg cursor-pointer transition-all ${formData.cancellationPolicy === policy
+                          ? 'bg-primary border-primary text-white shadow-[0_0_15px_rgba(14,165,233,0.3)]'
+                          : 'bg-zinc-800 border-zinc-700 hover:border-primary/50'
                           }`}
                       >
-                        <p className="font-semibold text-center">{policy}</p>
+                        <p className="font-semibold text-sm md:text-base text-center">{policy}</p>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-white mb-4">House Rules</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <h3 className="text-lg md:text-xl font-semibold text-white mb-3 md:mb-4">House Rules</h3>
+                  <div className="grid grid-cols-2 gap-2.5 md:gap-4">
                     {['No smoking', 'No pets', 'No parties or events', 'Quiet hours', 'Self check-in', 'Suitable for infants', 'Suitable for children', 'Pets welcome', 'Events allowed', 'Smoking allowed', 'Commercial photography allowed'].map((rule) => (
                       <div
                         key={rule}
@@ -783,21 +815,21 @@ const AddPropertyModal = ({
                             : [...prev.rules, rule];
                           return { ...prev, rules: newRules };
                         })}
-                        className={`p-4 border rounded-lg cursor-pointer transition-all flex items-center justify-between ${formData.rules.includes(rule)
-                          ? 'bg-primary border-primary text-white'
-                          : 'bg-zinc-800 border-zinc-700 hover:border-primary'
+                        className={`p-2.5 md:p-4 border rounded-lg cursor-pointer transition-all flex items-center justify-between ${formData.rules.includes(rule)
+                          ? 'bg-primary border-primary text-white shadow-[0_0_15px_rgba(14,165,233,0.3)]'
+                          : 'bg-zinc-800 border-zinc-700 hover:border-primary/50'
                           }`}
                       >
-                        <span>{rule}</span>
-                        {formData.rules.includes(rule) && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                        <span className="text-sm md:text-base font-medium">{rule}</span>
+                        {formData.rules.includes(rule) && <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-white"></div>}
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-white mb-4">Safety & Property</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <h3 className="text-lg md:text-xl font-semibold text-white mb-3 md:mb-4">Safety & Property</h3>
+                  <div className="grid grid-cols-2 gap-2.5 md:gap-4">
                     {['Smoke alarm', 'Carbon monoxide alarm', 'First aid kit', 'Fire extinguisher', 'Security cameras', 'Pool safety gate', 'Nearby lake/river', 'Climbing or play structure', 'Heights/Railings'].map((item) => (
                       <div
                         key={item}
@@ -807,13 +839,13 @@ const AddPropertyModal = ({
                             : [...prev.safetyItems, item];
                           return { ...prev, safetyItems: newItems };
                         })}
-                        className={`p-4 border rounded-lg cursor-pointer transition-all flex items-center justify-between ${formData.safetyItems.includes(item)
-                          ? 'bg-primary border-primary text-white'
-                          : 'bg-zinc-800 border-zinc-700 hover:border-primary'
+                        className={`p-2.5 md:p-4 border rounded-lg cursor-pointer transition-all flex items-center justify-between ${formData.safetyItems.includes(item)
+                          ? 'bg-primary border-primary text-white shadow-[0_0_15px_rgba(14,165,233,0.3)]'
+                          : 'bg-zinc-800 border-zinc-700 hover:border-primary/50'
                           }`}
                       >
-                        <span>{item}</span>
-                        {formData.safetyItems.includes(item) && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                        <span className="text-sm md:text-base font-medium">{item}</span>
+                        {formData.safetyItems.includes(item) && <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-white"></div>}
                       </div>
                     ))}
                   </div>
@@ -822,22 +854,22 @@ const AddPropertyModal = ({
             )}
 
             {currentStep === 3 && (
-              <div className="space-y-8 animate-fade-in">
+              <div className="space-y-6 md:space-y-8 animate-fade-in">
                 <div>
-                  <h3 className="text-xl font-semibold text-white mb-4">Property Photos</h3>
-                  <div className="p-6 border-2 border-dashed border-zinc-700 rounded-lg text-center bg-zinc-800">
+                  <h3 className="text-lg md:text-xl font-semibold text-white mb-3 md:mb-4">Property Photos</h3>
+                  <div className="p-4 md:p-6 border-2 border-dashed border-zinc-700 rounded-lg text-center bg-zinc-800">
                     <input type="file" id="photos" name="photos" multiple onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'photos')} className="hidden" />
                     <label htmlFor="photos" className="cursor-pointer">
-                      <Plus className="mx-auto h-12 w-12 text-zinc-500" />
-                      <p className="mt-2 text-sm text-zinc-400">Drag & drop photos here, or click to select files</p>
+                      <Plus className="mx-auto h-8 w-8 md:h-12 md:w-12 text-zinc-500" />
+                      <p className="mt-1.5 md:mt-2 text-xs md:text-sm text-zinc-400">Drag & drop photos here, or click to select files</p>
                     </label>
                   </div>
-                  <div className="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div className="mt-4 md:mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4">
                     {photoPreviews.map((previewUrl, index) => (
-                      <div key={index} className="relative w-full h-32 rounded-lg overflow-hidden group">
+                      <div key={index} className="relative w-full h-24 md:h-32 rounded-lg overflow-hidden group">
                         <img src={previewUrl} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
-                        <button onClick={() => removePhoto(index)} className="absolute top-2 right-2 bg-black bg-opacity-50 p-1 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                          <X className="h-4 w-4" />
+                        <button type="button" onClick={() => removePhoto(index)} className="absolute top-1 right-1 md:top-2 md:right-2 bg-black bg-opacity-50 p-1 md:p-1.5 rounded-full text-white opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                          <X className="h-3 w-3 md:h-4 md:w-4" />
                         </button>
                       </div>
                     ))}
@@ -922,14 +954,14 @@ const AddPropertyModal = ({
 
 const InputField = ({ label, name, type = "text", value, onChange, placeholder }: any) => (
   <div>
-    <label htmlFor={name} className="block text-sm font-medium text-zinc-400 mb-2">{label}</label>
+    <label htmlFor={name} className="block text-xs md:text-sm font-medium text-zinc-400 mb-1 md:mb-1.5">{label}</label>
     <input
       type={type}
       id={name}
       name={name}
       value={value}
       onChange={onChange}
-      className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-primary focus:border-primary transition"
+      className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-2.5 md:p-3 text-sm md:text-base text-white focus:ring-2 focus:ring-primary focus:border-primary transition"
       placeholder={placeholder}
       required
     />
@@ -938,15 +970,15 @@ const InputField = ({ label, name, type = "text", value, onChange, placeholder }
 
 const FileUploadField = ({ label, name, onChange, fileName, currentUrl, disabled }: any) => (
   <div>
-    <label htmlFor={name} className="block text-sm font-medium text-zinc-400 mb-2">{label}</label>
+    <label htmlFor={name} className="block text-xs md:text-sm font-medium text-zinc-400 mb-1.5 md:mb-2">{label}</label>
     <div className="relative">
       <input type="file" id={name} name={name} onChange={onChange} className="hidden" disabled={disabled} />
-      <label htmlFor={disabled ? undefined : name} className={`flex items-center justify-center w-full px-4 py-3 bg-zinc-800 border-zinc-700 rounded-lg text-zinc-400 transition overflow-hidden ${disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-zinc-700'}`}>
-        <Plus className="h-5 w-5 mr-2 flex-shrink-0" />
+      <label htmlFor={disabled ? undefined : name} className={`flex items-center justify-center w-full px-3 md:px-4 py-2.5 md:py-3 bg-zinc-800 border-zinc-700 rounded-lg text-xs md:text-sm text-zinc-400 transition overflow-hidden ${disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-zinc-700'}`}>
+        <Plus className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 flex-shrink-0" />
         <span className="truncate">{fileName || 'Upload File'}</span>
       </label>
       {currentUrl && !fileName && !disabled && (
-        <p className="mt-1 text-xs text-emerald-400 flex items-center gap-1">
+        <p className="mt-1 text-[10px] md:text-xs text-emerald-400 flex items-center gap-1">
           <span>✓</span> Already uploaded
           <a href={currentUrl} target="_blank" rel="noopener noreferrer" className="underline ml-1">View</a>
         </p>

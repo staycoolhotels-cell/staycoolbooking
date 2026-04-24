@@ -70,7 +70,11 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'staycool-app-cache', // Key in local storage
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => typeof window !== 'undefined' ? window.localStorage : {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+      } as any),
       // Only persist specific parts of the state
       partialize: (state) => ({ 
         properties: state.properties,

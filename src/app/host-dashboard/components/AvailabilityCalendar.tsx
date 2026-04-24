@@ -110,7 +110,7 @@ export default function AvailabilityCalendar({ properties }: AvailabilityCalenda
         });
 
         if (error) {
-            toast.error('Failed to block dates: ' + error.message);
+            toast.error('An unexpected error occurred. Please try again later.');
         } else {
             toast.success('Dates blocked successfully');
             setSelectingRange({ start: null, end: null });
@@ -126,7 +126,7 @@ export default function AvailabilityCalendar({ properties }: AvailabilityCalenda
         });
 
         if (error) {
-            toast.error('Failed to unblock: ' + error.message);
+            toast.error('An unexpected error occurred. Please try again later.');
         } else {
             toast.success('Dates unblocked');
             fetchAvailability();

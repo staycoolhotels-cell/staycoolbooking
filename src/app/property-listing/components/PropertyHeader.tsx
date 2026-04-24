@@ -41,28 +41,55 @@ const PropertyHeader = ({
               )}
             </div>
 
-            {onSave && (
+            <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
               <button
-                onClick={onSave}
-                className="group flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/10 hover:bg-white/[0.08] hover:border-white/20 transition-all duration-300 backdrop-blur-xl self-start md:self-auto"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.share) {
+                    navigator.share({ title: name, url: window.location.href }).catch(console.error);
+                  }
+                }}
+                className="flex-1 md:flex-none group flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/10 hover:bg-white/[0.08] hover:border-white/20 transition-all duration-300 backdrop-blur-xl"
               >
-                <Icon
-                  name="HeartIcon"
-                  size={22}
-                  variant={isSaved ? "solid" : "outline"}
-                  className={`${isSaved ? 'text-rose-500 scale-110 drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]' : 'text-zinc-400 group-hover:text-rose-400'} transition-all duration-300`}
-                />
-                <span className="text-sm text-zinc-300 font-semibold tracking-wide">
-                  {isSaved ? 'Saved' : 'Save'}
-                </span>
+                <Icon name="ShareIcon" size={20} className="text-zinc-400 group-hover:text-sky-400 transition-colors" />
+                <span className="text-sm text-zinc-300 font-semibold tracking-wide">Share</span>
               </button>
-            )}
+              
+              <button
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                    navigator.clipboard.writeText(window.location.href);
+                    // Add a small visual feedback logic if desired, or keep simple
+                  }
+                }}
+                className="flex-1 md:flex-none group flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/10 hover:bg-white/[0.08] hover:border-white/20 transition-all duration-300 backdrop-blur-xl"
+              >
+                <Icon name="LinkIcon" size={20} className="text-zinc-400 group-hover:text-emerald-400 transition-colors" />
+                <span className="text-sm text-zinc-300 font-semibold tracking-wide">Copy Link</span>
+              </button>
+
+              {onSave && (
+                <button
+                  onClick={onSave}
+                  className="w-full sm:w-auto flex-1 md:flex-none group flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/10 hover:bg-white/[0.08] hover:border-white/20 transition-all duration-300 backdrop-blur-xl"
+                >
+                  <Icon
+                    name="HeartIcon"
+                    size={22}
+                    variant={isSaved ? "solid" : "outline"}
+                    className={`${isSaved ? 'text-rose-500 scale-110 drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]' : 'text-zinc-400 group-hover:text-rose-400'} transition-all duration-300`}
+                  />
+                  <span className="text-sm text-zinc-300 font-semibold tracking-wide">
+                    {isSaved ? 'Saved' : 'Save'}
+                  </span>
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-colors">
               <Icon name="HomeModernIcon" size={16} className="text-zinc-400" />
-              <span className="text-sm font-medium text-zinc-300">{type}</span>
+              <span className="text-sm font-medium text-zinc-300">{type === 'Hostel' ? 'Dormitory' : type}</span>
             </div>
 
             <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-colors">

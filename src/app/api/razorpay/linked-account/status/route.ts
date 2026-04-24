@@ -74,6 +74,6 @@ export async function GET(req: Request) {
 
     } catch (error: any) {
         console.error('Status fetch error:', error);
-        return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+        return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
     }
 }

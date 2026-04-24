@@ -11,8 +11,7 @@ async function checkTableExistence() {
     const { data, error } = await supabase.rpc('inspect_table_exists', { t_name: 'disputes' });
 
     if (error) {
-        // RPC might not exist, try direct query on pg_class or similar if possible
-        // But easier: try a select on a table that DEFINITELY exists
+
         const { data: users, error: userError } = await supabase.from('users').select('count', { count: 'exact', head: true });
         console.log('Users table check:', { exists: !userError, error: userError?.message });
 

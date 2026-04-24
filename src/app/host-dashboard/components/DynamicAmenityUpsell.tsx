@@ -94,7 +94,7 @@ const DynamicAmenityUpsell: React.FC = () => {
       setNewAmenity({ name: '', description: '', price: '', type: 'Service', property_id: '' });
     } catch (error: any) {
       console.error("Error adding amenity:", error);
-      alert(error.message || "Failed to add amenity");
+      alert('An unexpected error occurred. Please try again later.');
     } finally {
       setIsAdding(false);
     }
@@ -209,45 +209,46 @@ const DynamicAmenityUpsell: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-6 md:space-y-8 relative">
+    <div className="w-full space-y-4 md:space-y-8 relative">
       {/* 1. Ultra-Premium Header */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-[#0a0a0f]/80 p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-4 md:p-8 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 left-0 bottom-0 w-80 bg-gradient-to-r from-pink-500/10 to-transparent pointer-events-none" />
 
-        <div className="relative z-10 flex items-center gap-5 w-full lg:w-auto">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500/30 to-pink-500/10 border border-pink-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(236,72,153,0.3)] shrink-0">
-            <Icon name="GiftIcon" size={32} className="text-pink-400 drop-shadow-md" />
+        <div className="relative z-10 flex items-center gap-3 md:gap-5 w-full lg:w-auto">
+          <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-pink-500/30 to-pink-500/10 border border-pink-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(236,72,153,0.3)] shrink-0">
+            <Icon name="GiftIcon" size={20} className="text-pink-400 drop-shadow-md md:hidden" />
+            <Icon name="GiftIcon" size={32} className="text-pink-400 drop-shadow-md hidden md:block" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Amenity Upsell</h1>
-            <p className="text-[10px] sm:text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
+            <h1 className="text-xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Amenity Upsell</h1>
+            <p className="text-[10px] md:text-sm font-bold text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest flex items-center gap-2">
               Revenue Boosters
             </p>
           </div>
         </div>
 
-        <div className="relative z-10 flex flex-col md:flex-row gap-4 w-full lg:w-auto">
-          <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex flex-col items-center justify-center shadow-inner relative overflow-hidden flex-1 md:flex-none">
+        <div className="relative z-10 flex flex-col md:flex-row gap-3 md:gap-4 w-full lg:w-auto">
+          <div className="bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-2.5 md:py-4 flex flex-col items-center justify-center shadow-inner relative overflow-hidden flex-1 md:flex-none">
             <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-l from-emerald-500 to-emerald-400" />
-            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Icon name="CurrencyRupeeIcon" size={12} className="text-emerald-500" /> Up-Sell Return</p>
-            <p className="text-2xl md:text-3xl font-heading font-black text-white drop-shadow-sm font-mono tracking-tight">₹{totalRevenue.toLocaleString('en-IN')}</p>
+            <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5 md:mb-1 flex items-center gap-1"><Icon name="CurrencyRupeeIcon" size={11} className="text-emerald-500" /> Up-Sell Return</p>
+            <p className="text-xl md:text-3xl font-heading font-black text-white drop-shadow-sm font-mono tracking-tight">₹{totalRevenue.toLocaleString('en-IN')}</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="bg-pink-600 hover:bg-pink-500 text-white shadow-[0_0_20px_rgba(236,72,153,0.4)] hover:shadow-[0_0_30px_rgba(236,72,153,0.6)] border border-pink-400/50 transition-all rounded-2xl px-6 py-4 flex items-center justify-center gap-3 font-bold flex-1 md:flex-none"
+            className="bg-pink-600 hover:bg-pink-500 text-white shadow-[0_0_20px_rgba(236,72,153,0.4)] hover:shadow-[0_0_30px_rgba(236,72,153,0.6)] border border-pink-400/50 transition-all rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 flex items-center justify-center gap-2 md:gap-3 font-bold flex-1 md:flex-none text-sm md:text-base"
           >
-            <Icon name="PlusIcon" size={20} />
+            <Icon name="PlusIcon" size={18} />
             Add Offering
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-8">
         {/* 2. Amenity Manager */}
-        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 md:p-8 shadow-2xl relative overflow-hidden group flex flex-col min-h-[500px]">
+        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2.5rem] border border-white/10 p-4 md:p-8 shadow-2xl relative overflow-hidden group flex flex-col min-h-[400px] md:min-h-[500px]">
           <div className="absolute -top-32 -left-32 w-80 h-80 bg-pink-500/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-pink-500/15 transition-colors duration-1000" />
 
-          <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/10 pb-6">
+          <div className="flex items-center justify-between mb-4 md:mb-8 relative z-10 border-b border-white/10 pb-3 md:pb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-pink-500/10 rounded-xl border border-pink-500/20 shadow-inner">
                 <Icon name="SquaresPlusIcon" size={20} className="text-pink-400" />
@@ -269,28 +270,28 @@ const DynamicAmenityUpsell: React.FC = () => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.05 }}
                   key={amenity.id}
-                  className={`p-5 rounded-3xl border transition-all duration-300 relative overflow-hidden
+                  className={`p-3 md:p-5 rounded-2xl md:rounded-3xl border transition-all duration-300 relative overflow-hidden
                          ${amenity.is_active
                       ? 'bg-white/[0.02] border-white/10 hover:border-pink-500/30'
                       : 'bg-black/40 border-white/5 opacity-60'}
                        `}
                 >
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1 min-w-0 pr-4">
-                      <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <h3 className={`font-bold text-base md:text-lg truncate ${amenity.is_active ? 'text-white' : 'text-zinc-500'}`}>
+                  <div className="flex justify-between items-start gap-3 md:gap-4">
+                    <div className="flex-1 min-w-0 pr-2 md:pr-4">
+                      <div className="flex items-center gap-2 md:gap-3 mb-1.5 md:mb-2 flex-wrap">
+                        <h3 className={`font-bold text-sm md:text-lg truncate ${amenity.is_active ? 'text-white' : 'text-zinc-500'}`}>
                           {amenity.name}
                         </h3>
                         <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
                           {amenity.type}
                         </span>
                       </div>
-                      <p className="text-xs text-zinc-400 leading-relaxed font-medium line-clamp-2 md:line-clamp-none mb-3">
+                      <p className="text-[11px] md:text-xs text-zinc-400 leading-relaxed font-medium line-clamp-2 mb-2 md:mb-3">
                         {amenity.description}
                       </p>
                       <div className="flex items-center gap-2">
-                        <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg inline-flex items-center">
-                          <span className="text-emerald-400 font-bold font-mono text-sm tracking-tight drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">
+                        <div className="px-2.5 md:px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg inline-flex items-center">
+                          <span className="text-emerald-400 font-bold font-mono text-xs md:text-sm tracking-tight drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">
                             ₹{amenity.price.toLocaleString('en-IN')}
                           </span>
                         </div>
@@ -330,10 +331,10 @@ const DynamicAmenityUpsell: React.FC = () => {
         </div>
 
         {/* 3. Service Tracking */}
-        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 md:p-8 shadow-2xl relative overflow-hidden group flex flex-col min-h-[500px]">
+        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2.5rem] border border-white/10 p-4 md:p-8 shadow-2xl relative overflow-hidden group flex flex-col min-h-[400px] md:min-h-[500px]">
           <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-emerald-500/15 transition-colors duration-1000" />
 
-          <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/10 pb-6">
+          <div className="flex items-center justify-between mb-4 md:mb-8 relative z-10 border-b border-white/10 pb-3 md:pb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20 shadow-inner">
                 <Icon name="ChartBarIcon" size={20} className="text-emerald-400" />
@@ -359,7 +360,7 @@ const DynamicAmenityUpsell: React.FC = () => {
                 >
                   <div className="min-w-0 pr-4">
                     <h3 className="font-bold text-white text-sm md:text-base truncate mb-1">
-                      {tracking.amenity_name}
+                      {amenities.find(a => a.id === tracking.amenity_id)?.name || tracking.amenity_name}
                     </h3>
                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
                       <Icon name="UsersIcon" size={12} className="text-zinc-600" />
@@ -405,7 +406,7 @@ const DynamicAmenityUpsell: React.FC = () => {
               <div className="p-6 md:p-8 flex flex-col items-center border-b border-white/5 relative">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-pink-500/10 blur-[50px] pointer-events-none" />
                 <div className="w-16 h-16 bg-pink-500/10 border border-pink-500/20 rounded-2xl flex items-center justify-center mb-4 text-pink-400 shadow-inner relative z-10">
-                  <Icon name="SparklesIcon" size={32} />
+                  <Icon name="AdjustmentsHorizontalIcon" size={32} />
                 </div>
                 <h2 className="text-2xl font-heading font-bold text-white relative z-10">Configure Asset</h2>
                 <p className="text-xs text-zinc-400 mt-2 font-medium relative z-10 text-center px-4">Monetize extra gear, services, or unique local experiences directly in the guest UI.</p>

@@ -143,17 +143,18 @@ export default function BankingDetails() {
         const StatusIcon = config.icon;
 
         return (
-            <div className="w-full space-y-6 md:space-y-8 relative">
+            <div className="w-full space-y-4 md:space-y-8 relative">
                 {/* Header */}
-                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-[#0a0a0f]/80 p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-4 md:p-8 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 bottom-0 w-80 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
-                    <div className="relative z-10 flex items-center gap-5 w-full lg:w-auto">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)] shrink-0">
-                            <Banknote size={32} className="text-indigo-400 drop-shadow-md" />
+                    <div className="relative z-10 flex items-center gap-3 md:gap-5 w-full lg:w-auto">
+                        <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)] shrink-0">
+                            <Banknote size={20} className="text-indigo-400 drop-shadow-md md:hidden" />
+                            <Banknote size={32} className="text-indigo-400 drop-shadow-md hidden md:block" />
                         </div>
                         <div className="flex-1">
-                            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Banking & KYC</h1>
-                            <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest">
+                            <h1 className="text-xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Banking & KYC</h1>
+                            <p className="text-[10px] md:text-sm font-bold text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest">
                                 Razorpay Route · Payout Setup
                             </p>
                         </div>
@@ -161,13 +162,13 @@ export default function BankingDetails() {
                 </div>
 
                 {/* Status Card */}
-                <div className={`rounded-[2rem] ${config.bg} p-6 md:p-8`}>
-                    <div className="flex items-start gap-4">
-                        <div className="p-3 bg-white/5 border border-white/10 rounded-2xl">
-                            <StatusIcon className={`w-6 h-6 ${config.color}`} />
+                <div className={`rounded-2xl md:rounded-[2rem] ${config.bg} p-4 md:p-8`}>
+                    <div className="flex items-start gap-3 md:gap-4">
+                        <div className="p-2 md:p-3 bg-white/5 border border-white/10 rounded-xl md:rounded-2xl">
+                            <StatusIcon className={`w-5 h-5 md:w-6 md:h-6 ${config.color}`} />
                         </div>
                         <div>
-                            <h3 className={`font-black text-lg ${config.color}`}>{config.label}</h3>
+                            <h3 className={`font-black text-base md:text-lg ${config.color}`}>{config.label}</h3>
                             <p className="text-zinc-400 text-sm mt-1">{config.description}</p>
                         </div>
                     </div>
@@ -175,7 +176,7 @@ export default function BankingDetails() {
 
                 {/* Account Details */}
                 {kycStatus.razorpay_account_id && (
-                    <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl p-6 md:p-8">
+                    <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl p-4 md:p-8">
                         <h3 className="font-black text-white mb-4 text-sm uppercase tracking-widest">Account Details</h3>
                         <div className="space-y-3 text-sm">
                             <div className="flex justify-between py-3 border-b border-white/5">
@@ -219,18 +220,19 @@ export default function BankingDetails() {
     const StepIcon = stepIcons[currentStep];
 
     return (
-        <div className="w-full space-y-6 md:space-y-8 relative">
+        <div className="w-full space-y-4 md:space-y-8 relative">
 
             {/* Header */}
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-[#0a0a0f]/80 p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-4 md:p-8 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 bottom-0 w-80 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
-                <div className="relative z-10 flex items-center gap-5 w-full lg:w-auto">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)] shrink-0">
-                        <Banknote size={32} className="text-indigo-400 drop-shadow-md" />
+                <div className="relative z-10 flex items-center gap-3 md:gap-5 w-full lg:w-auto">
+                    <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)] shrink-0">
+                        <Banknote size={20} className="text-indigo-400 drop-shadow-md md:hidden" />
+                        <Banknote size={32} className="text-indigo-400 drop-shadow-md hidden md:block" />
                     </div>
                     <div className="flex-1">
-                        <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Banking & KYC</h1>
-                        <p className="text-xs md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest">
+                        <h1 className="text-xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Banking & KYC</h1>
+                        <p className="text-[10px] md:text-sm font-bold text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest">
                             Razorpay Route · Payout Setup
                         </p>
                     </div>
@@ -243,9 +245,9 @@ export default function BankingDetails() {
             </div>
 
             {/* Info banner */}
-            <div className="bg-sky-500/10 border border-sky-500/20 rounded-[2rem] p-5 flex gap-4 items-start">
-                <div className="p-2 bg-sky-500/20 rounded-xl shrink-0 mt-0.5">
-                    <Building2 className="w-4 h-4 text-sky-400" />
+            <div className="bg-sky-500/10 border border-sky-500/20 rounded-2xl md:rounded-[2rem] p-3.5 md:p-5 flex gap-3 md:gap-4 items-start">
+                <div className="p-1.5 md:p-2 bg-sky-500/20 rounded-lg md:rounded-xl shrink-0 mt-0.5">
+                    <Building2 className="w-3.5 h-3.5 md:w-4 md:h-4 text-sky-400" />
                 </div>
                 <p className="text-sky-300 text-sm leading-relaxed">
                     Set up your banking details to receive automatic payouts after each guest booking.
@@ -254,7 +256,7 @@ export default function BankingDetails() {
             </div>
 
             {/* Step indicators */}
-            <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl p-5 md:p-6">
+            <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl p-3.5 md:p-6">
                 <div className="flex items-center gap-2">
                     {steps.map((step, i) => (
                         <div key={step} className="flex items-center gap-2 flex-1">
@@ -275,7 +277,7 @@ export default function BankingDetails() {
             </div>
 
             {/* Form card */}
-            <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl p-6 md:p-8">
+            <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl p-4 md:p-8">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-2.5 bg-sky-500/20 border border-sky-500/20 rounded-xl">
                         <StepIcon className="w-5 h-5 text-sky-400" />

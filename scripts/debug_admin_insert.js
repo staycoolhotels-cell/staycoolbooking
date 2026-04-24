@@ -8,7 +8,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function testHostInsert() {
 
-    // First, get any property that belongs to a user
     const { data: properties, error: propsError } = await supabase.from('properties').select('id, host_id').limit(1);
     if (propsError || !properties.length) {
         console.error('Error fetching properties', propsError);
@@ -17,9 +16,6 @@ async function testHostInsert() {
 
     const property = properties[0];
     console.log('Testing with property:', property.id, 'Host ID:', property.host_id);
-
-    // We can't log in as that exact host without their password,
-    // but we can try inserting as admin for a property we DONT own, to see if the RLS still fails
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: process.env.ADMIN_EMAIL,
         password: process.env.ADMIN_PASSWORD,
@@ -29,9 +25,6 @@ async function testHostInsert() {
         console.error('Admin login failed', authError);
         return;
     }
-
-    // The admin *is* allowed to manage all checklists due to the other policy: "Admins can manage all cleaning checklists"
-    // Let's verify THAT policy works for INSERT.
 
     const { data, error } = await supabase
         .from('cleaning_checklists')

@@ -10,7 +10,7 @@ import { createBrowserClient } from '@supabase/ssr';
 
 interface SmartEstateManagementProps {
   properties?: Property[];
-  onToggleStatus?: (id: string, newStatus: string) => Promise<void>;
+  onToggleStatus?: (id: string, newStatus: 'active' | 'pending' | 'rejected' | 'offline') => Promise<void>;
 }
 
 const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ properties: propData = [], onToggleStatus }) => {
@@ -124,7 +124,7 @@ const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ propertie
 
   const handleToggleBlock = async (id: string, currentStatus: boolean, name: string) => {
     setIsProcessing(id);
-    const newStatus = currentStatus ? 'active' : 'offline';
+    const newStatus: 'active' | 'offline' = currentStatus ? 'active' : 'offline';
 
     try {
       if (onToggleStatus) {
@@ -147,42 +147,43 @@ const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ propertie
   };
 
   return (
-    <div className="w-full space-y-6 md:space-y-8">
+    <div className="w-full space-y-4 md:space-y-8">
       {/* 1. Header & Summary */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-[#0a0a0f]/80 p-6 md:p-8 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-4 md:p-8 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 left-0 bottom-0 w-64 bg-gradient-to-r from-blue-500/10 to-transparent pointer-events-none" />
 
-        <div className="relative z-10 flex items-center gap-5">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/30 to-blue-500/10 border border-blue-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.3)]">
-            <Icon name="BuildingOffice2Icon" size={32} className="text-blue-400 drop-shadow-md" />
+        <div className="relative z-10 flex items-center gap-3 md:gap-5">
+          <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-blue-500/30 to-blue-500/10 border border-blue-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.3)]">
+            <Icon name="BuildingOffice2Icon" size={20} className="text-blue-400 drop-shadow-md md:hidden" />
+            <Icon name="BuildingOffice2Icon" size={32} className="text-blue-400 drop-shadow-md hidden md:block" />
           </div>
           <div>
-            <h1 className="text-3xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Smart Estate</h1>
-            <p className="text-sm font-medium text-zinc-400 mt-1 uppercase tracking-widest">Inventory Management System</p>
+            <h1 className="text-xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Smart Estate</h1>
+            <p className="text-[10px] md:text-sm font-medium text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest">Inventory Management System</p>
           </div>
         </div>
 
-        <div className="relative z-10 flex gap-4 w-full md:w-auto">
-          <div className="flex-1 md:flex-none bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex flex-col items-center justify-center shadow-inner">
-            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Total Units</p>
-            <p className="text-3xl font-heading font-black text-white drop-shadow-sm">{(propData || []).length}</p>
+        <div className="relative z-10 flex gap-3 md:gap-4 w-full md:w-auto">
+          <div className="flex-1 md:flex-none bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-2.5 md:py-4 flex flex-col items-center justify-center shadow-inner">
+            <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5 md:mb-1">Total Units</p>
+            <p className="text-xl md:text-3xl font-heading font-black text-white drop-shadow-sm">{(propData || []).length}</p>
           </div>
-          <div className="flex-1 md:flex-none bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex flex-col items-center justify-center shadow-inner">
-            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Active Now</p>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-success animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.6)]" />
-              <p className="text-3xl font-heading font-black text-success drop-shadow-sm">{controls.filter(c => !c.isBlocked).length}</p>
+          <div className="flex-1 md:flex-none bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-2.5 md:py-4 flex flex-col items-center justify-center shadow-inner">
+            <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5 md:mb-1">Active Now</p>
+            <div className="flex items-center gap-1.5 md:gap-2">
+              <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-success animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.6)]" />
+              <p className="text-xl md:text-3xl font-heading font-black text-success drop-shadow-sm">{controls.filter(c => !c.isBlocked).length}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-8">
         {/* 2. Master Switches */}
-        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col min-h-[500px] group">
+        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2.5rem] border border-white/10 p-4 md:p-8 shadow-2xl relative overflow-hidden flex flex-col min-h-[300px] md:min-h-[500px] group">
           <div className="absolute -top-32 -left-32 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-blue-500/15 transition-colors duration-1000" />
 
-          <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/10 pb-6">
+          <div className="flex items-center justify-between mb-4 md:mb-8 relative z-10 border-b border-white/10 pb-3 md:pb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20 shadow-inner">
                 <Icon name="AdjustmentsHorizontalIcon" size={20} className="text-blue-400" />
@@ -202,7 +203,7 @@ const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ propertie
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
                   key={control.id}
-                  className={`p-5 rounded-2xl border flex flex-col sm:flex-row justify-between sm:items-center gap-4 transition-all duration-300 group/switch
+                  className={`p-3 md:p-5 rounded-xl md:rounded-2xl border flex flex-col sm:flex-row justify-between sm:items-center gap-3 md:gap-4 transition-all duration-300 group/switch
                      ${control.isBlocked
                       ? 'bg-zinc-900/50 border-white/5 hover:border-zinc-700'
                       : 'bg-gradient-to-r from-blue-500/10 to-transparent border-blue-500/20 hover:border-blue-500/40 shadow-[inset_0_0_20px_rgba(59,130,246,0.05)]'}
@@ -252,10 +253,10 @@ const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ propertie
         </div>
 
         {/* 3. Quality Metrics */}
-        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col min-h-[500px] group">
+        <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2.5rem] border border-white/10 p-4 md:p-8 shadow-2xl relative overflow-hidden flex flex-col min-h-[300px] md:min-h-[500px] group">
           <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-purple-500/15 transition-colors duration-1000" />
 
-          <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/10 pb-6">
+          <div className="flex items-center justify-between mb-4 md:mb-8 relative z-10 border-b border-white/10 pb-3 md:pb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-500/10 rounded-xl border border-purple-500/20 shadow-inner">
                 <Icon name="StarIcon" size={20} className="text-purple-400" />
@@ -284,9 +285,9 @@ const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ propertie
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.1 }}
                   key={quality.propertyId}
-                  className="p-5 md:p-6 rounded-3xl bg-white/[0.02] border border-white/10 hover:bg-white/[0.04] transition-all duration-300 group/score shadow-lg hover:shadow-xl"
+                  className="p-3 md:p-6 rounded-2xl md:rounded-3xl bg-white/[0.02] border border-white/10 hover:bg-white/[0.04] transition-all duration-300 group/score shadow-lg hover:shadow-xl"
                 >
-                  <div className="flex justify-between items-start mb-4">
+                  <div className="flex justify-between items-start mb-3 md:mb-4">
                     <div>
                       <p className="font-bold text-white text-base leading-tight mb-1">{quality.propertyName}</p>
                       <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-medium">Aura Score computed</p>

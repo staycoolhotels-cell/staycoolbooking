@@ -1,5 +1,4 @@
-// Run: node scripts/run-board-migration-v2.js
-// Uses Supabase Management API to run raw SQL
+
 const https = require('https');
 
 const PROJECT_REF = 'dlislsrlwovcxsuqdlvy';
@@ -22,8 +21,6 @@ function request(options, body) {
 
 async function main() {
     console.log('Step 1: Attempting ALTER TABLE via Supabase REST (pg function)...\n');
-
-    // Try calling a pg function if it exists
     const pgBody = JSON.stringify({ query: SQL });
     const r1 = await request({
         hostname: `${PROJECT_REF}.supabase.co`,
@@ -37,8 +34,6 @@ async function main() {
         }
     }, pgBody);
     console.log('pg_query status:', r1.status, r1.body);
-
-    // Check current wishlist columns via REST
     console.log('\nStep 2: Checking current wishlist columns...');
     const r2 = await request({
         hostname: `${PROJECT_REF}.supabase.co`,

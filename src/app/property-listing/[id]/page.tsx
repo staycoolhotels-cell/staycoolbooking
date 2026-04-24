@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import { getNearbyPlaces } from '@/lib/google-places';
+import { AMENITIES } from '@/lib/amenities';
 import PropertyListingInteractive from '../components/PropertyListingInteractive';
 import Footer from '../../homepage/components/Footer';
 import { createClient } from '@supabase/supabase-js';
@@ -153,7 +154,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         ? `${property.address_line1 || ''} ${property.address_line2 || ''}, ${property.city || ''}, ${property.state || ''} ${property.postal_code || ''}`.trim()
         : property.location;
     
-    const nearbyPlacesData = await getNearbyPlaces(fullAddress);
+    const nearbyPlacesData = await getNearbyPlaces(fullAddress, property.latitude, property.longitude);
     const nearbyAttractions = (nearbyPlacesData?.suggestions || []).map(p => ({
         name: p.name,
         distance: p.distance,
@@ -172,6 +173,13 @@ export default async function PropertyListingPage({ params }: { params: Promise<
                     description: '',
                     available: true,
                 };
+            }
+            // Fallback for existing amenities with missing icons
+            if (item && typeof item === 'object' && !item.icon) {
+                 const standard = AMENITIES.find(a => a.id === item.id || a.name === item.name);
+                 if (standard) {
+                     return { ...item, icon: standard.iconName };
+                 }
             }
             return item;
         });
@@ -217,9 +225,10 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         propertyType: property.type || 'Apartment',
         maxGuests: property.max_guests || property.capacity || 2,
         bedrooms: property.bedrooms || 1,
+        beds: property.beds || 1,
         bathrooms: property.bathrooms || 1,
         totalRooms: property.total_rooms || 1,
-        area: 1200, // Still placeholder if no column
+        area: property.area || 500,
         highlights: property.amenities && Array.isArray(property.amenities) ? property.amenities.slice(0, 3).map((a: any) => typeof a === 'string' ? a : a.name) : ['Great location'],
         amenities: processAmenities(property.amenities),
         upsellAmenities: upsellAmenities || [],
@@ -253,8 +262,8 @@ export default async function PropertyListingPage({ params }: { params: Promise<
             id: property.host_id,
         },
         location_details: {
-            latitude: nearbyPlacesData?.coordinates?.lat,
-            longitude: nearbyPlacesData?.coordinates?.lng,
+            latitude: property.show_specific_location ? (property.latitude || nearbyPlacesData?.coordinates?.lat) : null,
+            longitude: property.show_specific_location ? (property.longitude || nearbyPlacesData?.coordinates?.lng) : null,
             locationName: property.location,
             address: fullAddress,
             nearbyAttractions: nearbyAttractions,

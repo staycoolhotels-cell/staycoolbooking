@@ -40,10 +40,10 @@ const ReviewHistory = ({ reviews, userRole }: ReviewHistoryProps) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 100, damping: 20, delay: 0.5 }}
-      className="bg-zinc-900/60 p-8 rounded-[2rem] shadow-xl border border-zinc-800 relative overflow-hidden backdrop-blur-sm hover:bg-zinc-900/80 transition-colors duration-500" // Zinc Glass
+      className="bg-zinc-900/60 p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] shadow-xl border border-zinc-800 relative overflow-hidden backdrop-blur-sm hover:bg-zinc-900/80 transition-colors duration-500" // Zinc Glass
     >
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white tracking-wide">Review History</h2>
+      <div className="flex items-center justify-between mb-4 md:mb-6">
+        <h2 className="text-xl md:text-2xl font-bold text-white tracking-wide">Review History</h2>
         {reviews.length > 4 && (
           <button
             onClick={() => setShowAll(!showAll)}
@@ -100,8 +100,8 @@ const ReviewHistory = ({ reviews, userRole }: ReviewHistoryProps) => {
             </motion.div>
           ))
         ) : (
-          <div className="border border-dashed border-zinc-800 rounded-2xl p-8 text-center bg-zinc-900/20">
-            <p className="text-zinc-500 font-light italic">No reviews yet.</p>
+          <div className="border border-dashed border-zinc-800 rounded-xl md:rounded-2xl p-6 md:p-8 text-center bg-zinc-900/20">
+            <p className="text-zinc-500 font-light italic text-xs md:text-sm">No reviews yet.</p>
           </div>
         )}
       </motion.div>

@@ -47,7 +47,7 @@ const FinancialsPage = async () => {
     .from('bookings')
     .select(`
       *,
-      guest:users!guest_id ( name ),
+      guest:users!guest_id ( name, email ),
       property:properties!property_id ( 
         title,
         host:users!host_id ( name )
@@ -59,19 +59,35 @@ const FinancialsPage = async () => {
     console.error('Error fetching bookings for financials:', bookingsError);
   }
 
+  // Fetch guest location info separately
+  const guestIds = [...new Set((bookingsWithDetails || []).map((b: any) => b.guest_id).filter(Boolean))];
+  const { data: guestPersonalInfo } = guestIds.length > 0
+    ? await supabaseAdmin.from('user_personal_info').select('user_id, location').in('user_id', guestIds)
+    : { data: [] };
+  const locationMap: Record<string, string> = {};
+  (guestPersonalInfo || []).forEach((info: any) => {
+    if (info.location) locationMap[info.user_id] = info.location;
+  });
+
   // Map bookings to the Transaction interface
-  const mappedTransactions = (bookingsWithDetails || []).map(b => ({
-    id: b.id,
-    transactionId: `TXN-${b.id.slice(0, 8).toUpperCase()}`,
-    propertyName: b.property?.title || 'Unknown Property',
-    guestName: b.guest?.name || 'Unknown Guest',
-    hostName: b.property?.host?.name || 'Unknown Host',
-    amount: Number(b.total_price),
-    date: b.created_at,
-    status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
-            (b.status === 'cancelled' || b.status === 'refunded') ? 'refunded' : 'pending',
-    paymentMethod: 'Razorpay'
-  }));
+  const mappedTransactions = (bookingsWithDetails || []).map(b => {
+    const guestLocation = locationMap[b.guest_id];
+    const guestEmail = b.guest?.email;
+    const guestAddress = [guestEmail, guestLocation].filter(Boolean).join('\n') || 'Address not provided';
+    return {
+      id: b.id,
+      transactionId: `TXN-${b.id.slice(0, 8).toUpperCase()}`,
+      propertyName: b.property?.title || 'Unknown Property',
+      guestName: b.guest?.name || 'Unknown Guest',
+      guestAddress,
+      hostName: b.property?.host?.name || 'Unknown Host',
+      amount: Number(b.total_price),
+      date: b.created_at,
+      status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
+              (b.status === 'refunded' ? 'refunded' : 'pending'),
+      paymentMethod: 'Razorpay'
+    };
+  });
 
   return (
     <div className="space-y-0">

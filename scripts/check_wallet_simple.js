@@ -2,8 +2,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
-
-// Manually parse .env because dotenv seems flaky in this environment
 const envPath = path.resolve(__dirname, '../.env');
 const envContent = fs.readFileSync(envPath, 'utf8');
 const env = {};
@@ -36,7 +34,6 @@ async function checkSchema() {
         .limit(1);
 
     if (error) {
-        // Manually format error to ensure it's visible in truncated logs
         console.error('ERROR_QUERYING:', error.code, error.message);
         return;
     }

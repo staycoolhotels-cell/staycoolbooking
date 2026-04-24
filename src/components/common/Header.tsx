@@ -222,7 +222,7 @@ const Header = () => {
               <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-[100px]" />
             </div>
 
-            <nav className="flex flex-col items-center gap-6 z-10 w-full px-8">
+            <nav className="flex flex-col items-center gap-4 sm:gap-6 z-10 w-full px-8">
               {navLinks.map((link, i) => (
                 <motion.div
                   key={link.path}
@@ -233,7 +233,7 @@ const Header = () => {
                 >
                   <Link
                     href={link.path}
-                    className="block text-3xl font-bold uppercase tracking-[0.2em] text-white hover:text-sky-400 transition-all duration-300 w-full py-3"
+                    className="block text-xl sm:text-2xl font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em] text-white hover:text-sky-400 transition-all duration-300 w-full py-2 sm:py-3"
                   >
                     {link.name}
                   </Link>
@@ -244,18 +244,18 @@ const Header = () => {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, type: "spring", stiffness: 100 }}
-                className="mt-12 w-full max-w-[280px]"
+                className="mt-8 sm:mt-12 w-full max-w-[240px] sm:max-w-[280px]"
               >
                 {!user?.id ? (
                   <Link href="/auth">
-                    <button className="w-full relative px-12 py-5 border border-sky-500/30 bg-sky-500/10 text-sky-400 font-black uppercase tracking-[0.2em] hover:bg-sky-500 hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(14,165,233,0.15)] rounded-xl">
+                    <button className="w-full relative px-8 sm:px-12 py-3.5 sm:py-5 border border-sky-500/30 bg-sky-500/10 text-sky-400 font-black text-sm sm:text-base uppercase tracking-[0.15em] sm:tracking-[0.2em] hover:bg-sky-500 hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(14,165,233,0.15)] rounded-xl">
                       Sign In
                     </button>
                   </Link>
                 ) : (
                   <button
                     onClick={handleLogout}
-                    className="w-full relative px-12 py-5 border border-sky-500/30 bg-sky-500/10 text-sky-400 font-black uppercase tracking-[0.2em] hover:bg-sky-500 hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(14,165,233,0.15)] rounded-xl"
+                    className="w-full relative px-8 sm:px-12 py-3.5 sm:py-5 border border-sky-500/30 bg-sky-500/10 text-sky-400 font-black text-sm sm:text-base uppercase tracking-[0.15em] sm:tracking-[0.2em] hover:bg-sky-500 hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(14,165,233,0.15)] rounded-xl"
                   >
                     Sign Out
                   </button>

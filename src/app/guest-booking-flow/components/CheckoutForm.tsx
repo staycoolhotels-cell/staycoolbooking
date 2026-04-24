@@ -27,7 +27,7 @@ export default function CheckoutForm({ amount, onCancel }: { amount: number, onC
         });
 
         if (error) {
-            setErrorMessage(error.message || "An unexpected error occurred.");
+            setErrorMessage('An unexpected error occurred.');
             setLoading(false);
         } else {
             // The UI will likely redirect before this runs
