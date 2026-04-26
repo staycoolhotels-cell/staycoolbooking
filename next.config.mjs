@@ -7,10 +7,11 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   transpilePackages: ['react-leaflet', 'leaflet'],
+  serverActions: {
+    bodySizeLimit: '100mb',
+  },
   experimental: {
-    serverActions: {
-      bodySizeLimit: '10mb',
-    },
+    middlewareClientMaxBodySize: '100mb',
   },
   images: {
     remotePatterns: [

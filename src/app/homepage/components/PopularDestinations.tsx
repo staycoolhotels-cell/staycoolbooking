@@ -104,6 +104,7 @@ const PopularDestinations: React.FC<PopularDestinationsProps> = ({
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
                         onClick={() => setShowAll((prev) => !prev)}
+                        aria-label={showAll ? "Show fewer properties" : `Show all ${activeProps.length} properties in ${activeDestinationName}`}
                         className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-sky-500/40 text-sky-400 hover:bg-sky-500/10 transition-colors text-sm font-semibold whitespace-nowrap self-start sm:self-center"
                     >
                         {showAll ? (
@@ -123,12 +124,15 @@ const PopularDestinations: React.FC<PopularDestinationsProps> = ({
 
             {/* ── Destination Tabs ── */}
             {topDestinations.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-2 mb-7 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
+                <div role="tablist" aria-label="Popular destinations by city" className="flex gap-2 overflow-x-auto pb-2 mb-7 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
                     {topDestinations.map(([city, props]) => {
                         const isActive = city === activeDestinationName;
                         return (
                             <button
                                 key={city}
+                                role="tab"
+                                aria-selected={isActive}
+                                aria-label={`View properties in ${city}`}
                                 onClick={() => {
                                     setSelectedDestination(city);
                                     setShowAll(false);

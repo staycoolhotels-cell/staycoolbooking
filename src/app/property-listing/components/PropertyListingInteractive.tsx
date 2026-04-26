@@ -248,10 +248,13 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
           <div className="mb-3">
             <button
               onClick={() => {
-                if (typeof window !== 'undefined' && window.history.length > 2) {
-                  router.back();
-                } else {
-                  router.push('/homepage');
+                if (typeof window !== 'undefined') {
+                  sessionStorage.setItem('last_viewed_property', propertyData.id);
+                  if (window.history.length > 2) {
+                    router.back();
+                  } else {
+                    router.push('/homepage');
+                  }
                 }
               }}
               className="group flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl hover:border-white/30 hover:bg-white/[0.05] transition-all duration-300"

@@ -68,7 +68,7 @@ const AppImage = (props: AppImageProps) => {
   };
 
   if (finalImageProps.unoptimized === undefined) {
-    finalImageProps.unoptimized = true;
+    finalImageProps.unoptimized = false;
   }
 
   if (fill) {

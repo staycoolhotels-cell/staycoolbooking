@@ -28,7 +28,10 @@ const GuestBookingInteractive = () => {
     roomCount: Number(searchParams.get('roomCount')) || 1,
     amenities: searchParams.get('amenities') || '{}',
     selectedRoomIds: searchParams.get('selectedRoomIds') || '[]',
+    hasFreeCancellation: searchParams.get('hasFreeCancellation') === 'true',
+    freeCancellationFee: Number(searchParams.get('freeCancellationFee')) || 0,
   });
+
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [loadingProperties, setLoadingProperties] = useState(true);

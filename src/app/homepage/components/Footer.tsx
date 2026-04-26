@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { Facebook, Instagram, Youtube } from 'lucide-react';
 import AppImage from '@/components/ui/AppImage';
 
 const Footer = () => {
@@ -10,8 +10,6 @@ const Footer = () => {
     company: [
       { name: 'About Us', href: '/about' },
       { name: 'Contact Us', href: '/contact' },
-      { name: 'Investor Relations', href: '/investor' },
-      { name: 'Sustainability', href: '/sustainability' },
     ],
     support: [
       { name: 'Help Center', href: '/help' },
@@ -26,27 +24,29 @@ const Footer = () => {
   };
 
   const socialLinks = [
-    { name: 'Facebook', icon: Facebook, href: '#' },
-    { name: 'Twitter', icon: Twitter, href: '#' },
-    { name: 'Instagram', icon: Instagram, href: '#' },
-    { name: 'LinkedIn', icon: Linkedin, href: '#' },
+    { name: 'Facebook', icon: Facebook, href: 'https://www.facebook.com/share/1QmJET9fPo/' },
+    { name: 'Instagram', icon: Instagram, href: 'https://www.instagram.com/staycoolbooking?igsh=MWRmejA2ZTVndTNodw==' },
+    { name: 'YouTube', icon: Youtube, href: 'https://youtube.com/@staycoolbooking?si=HT7aPekMDit1XgND' },
   ];
 
   return (
     <footer className="bg-[#080808] border-t border-zinc-900 text-zinc-400">
       <div className="w-full px-8 md:px-20 pt-8 pb-28 lg:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
-          
+
           <div className="lg:col-span-1">
-            <Link href="/" className="relative block w-[150px] h-[35px] sm:w-[220px] sm:h-[45px]">
-              <AppImage
-                src="/assets/Picsart_26-03-22_23-32-24-684.png"
-                alt="StayCool Booking"
-                fill
-                objectFit="contain"
-                style={{ objectPosition: 'left' }}
-              />
-            </Link>
+            <div className="flex items-start">
+              <Link href="/" className="relative block w-[150px] h-[35px] sm:w-[220px] sm:h-[45px]">
+                <AppImage
+                  src="/assets/Picsart_26-03-22_23-32-24-684.png"
+                  alt="StayCool Booking"
+                  fill
+                  objectFit="contain"
+                  style={{ objectPosition: 'left' }}
+                />
+              </Link>
+              <span className="text-[14px] sm:text-[18px] text-sky-400 font-bold ml-1 -mt-1.5 sm:-mt-2.5">®</span>
+            </div>
             <p className="font-sans mt-4 text-zinc-500">
               Discover unique stays and authentic travel experiences across the globe.
             </p>
@@ -57,6 +57,8 @@ const Footer = () => {
                   <a
                     key={social.name}
                     href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center hover:bg-sky-600 hover:text-white transition-colors group"
                     aria-label={social.name}
                   >

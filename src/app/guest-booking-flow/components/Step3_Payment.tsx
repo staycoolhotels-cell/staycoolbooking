@@ -147,7 +147,9 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
     return sum + ((amenity.price || 0) * count);
   }, 0);
 
-  const total = discountedSubtotal + serviceFee + amenitiesTotal;
+  const freeCancellationFee = filters.hasFreeCancellation ? 70 : 0;
+  const total = discountedSubtotal + serviceFee + amenitiesTotal + freeCancellationFee;
+
 
   const handleInitiatePayment = async () => {
     setLoading(true);
@@ -177,7 +179,10 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
         roomCount: effectiveRooms,
         amenities: selectedAmenitiesList,
         selectedRoomIds: parsedRoomIds,
+        hasFreeCancellation: filters.hasFreeCancellation,
+        freeCancellationFee: freeCancellationFee,
       };
+
 
       const bookingRes = await createBooking(bookingDetails, null);
 
@@ -420,6 +425,16 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
               <span className="text-sky-400">+₹{amenitiesTotal.toLocaleString('en-IN')}</span>
             </div>
           )}
+          {filters.hasFreeCancellation && (
+            <div className="flex justify-between text-sm text-sky-400">
+              <span className="flex items-center gap-1">
+                <Icon name="ShieldCheckIcon" size={14} />
+                Free Cancellation
+              </span>
+              <span>+₹70</span>
+            </div>
+          )}
+
           <div className="flex justify-between font-bold text-lg pt-2 mt-2 border-t border-border-secondary">
             <span>Total</span>
             <span>₹{total.toLocaleString('en-IN')}</span>

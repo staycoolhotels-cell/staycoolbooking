@@ -114,6 +114,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
     initialProperties.map(mapPropertyForCard)
   );
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  const [searchLocation, setSearchLocation] = useState<string>('');
 
 
 
@@ -159,8 +160,8 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
     { id: 'tent', name: 'Tents', icon: 'TentIcon', count: counts.tent },
     { id: 'wooden', name: 'Wooden Stays', icon: 'HomeModernIcon', count: counts.wooden },
     { id: 'dormitory', name: 'Dormitory Stays', icon: 'UserGroupIcon', count: counts.dormitory },
-    { id: 'apartment', name: 'Apartment Stays', icon: 'BuildingLibraryIcon', count: counts.apartment },
-    { id: 'resort', name: 'Resorts', icon: 'ResortIcon', count: counts.resort },
+    { id: 'apartment', name: 'Apartment Stays', icon: 'Building2', count: counts.apartment },
+    { id: 'resort', name: 'Resorts', icon: 'Palmtree', count: counts.resort },
   ];
 
   // 🌍 Geolocation: triggered by user clicking the banner
@@ -286,12 +287,38 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
     }
   }, [selectedStayType, allProperties]);
 
+  // Handle scrolling to last viewed property
+  useEffect(() => {
+    if (isHydrated && filteredProperties.length > 0) {
+      const lastPropertyId = sessionStorage.getItem('last_viewed_property');
+      if (lastPropertyId) {
+        // Small delay to allow layout to settle and animations to finish
+        const timer = setTimeout(() => {
+          const element = document.getElementById(`property-${lastPropertyId}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Highlight the card briefly
+            element.classList.add('ring-2', 'ring-sky-500', 'ring-offset-4', 'ring-offset-black');
+            setTimeout(() => {
+              element.classList.remove('ring-2', 'ring-sky-500', 'ring-offset-4', 'ring-offset-black');
+            }, 2000);
+            sessionStorage.removeItem('last_viewed_property');
+          }
+        }, 800);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isHydrated, filteredProperties]);
+
+
   const handleSearch = (filters: any) => {
     let filtered = allProperties;
 
     // Determine location and dates from filters object or direct parameters
     const locationStr = typeof filters === 'string' ? filters : (filters?.location || '');
     const dates = filters?.dates;
+
+    setSearchLocation(locationStr);
 
     if (locationStr && typeof locationStr === 'string') {
       filtered = filtered.filter((p) =>
@@ -486,9 +513,13 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
                   </div>
 
                   <h2 className="font-heading text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[0.9]">
-                    {selectedStayType === 'all'
-                      ? 'Featured Collections'
-                      : `Top Rated ${selectedStayType}s`}
+                    {searchLocation 
+                      ? `Stays in ${searchLocation}`
+                      : userCity
+                        ? `Stays near ${userCity}`
+                        : selectedStayType === 'all'
+                          ? 'Featured Collections'
+                          : `Top Rated ${selectedStayType}s`}
                   </h2>
 
                   <div className="flex items-center gap-4 flex-wrap">
@@ -515,6 +546,8 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
                   <div className="flex items-center bg-zinc-900/40 backdrop-blur-xl border border-white/5 p-1.5 rounded-2xl">
                     <button
                       onClick={() => setViewMode('grid')}
+                      aria-label="Switch to list view"
+                      aria-pressed={viewMode === 'grid'}
                       className={`flex items-center gap-3 px-5 py-2.5 rounded-xl transition-all duration-500 ${viewMode === 'grid' ? 'bg-zinc-800 text-sky-400 shadow-xl border border-white/5' : 'text-zinc-500 hover:text-zinc-300'}`}
                     >
                       <Icon name="Squares2X2Icon" size={18} />
@@ -522,6 +555,8 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
                     </button>
                     <button
                       onClick={() => setViewMode('map')}
+                      aria-label="Switch to map view"
+                      aria-pressed={viewMode === 'map'}
                       className={`flex items-center gap-3 px-5 py-2.5 rounded-xl transition-all duration-500 ${viewMode === 'map' ? 'bg-zinc-800 text-sky-400 shadow-xl border border-white/5' : 'text-zinc-500 hover:text-zinc-300'}`}
                     >
                       <Icon name="MapIcon" size={18} />

@@ -69,6 +69,8 @@ const BookingCard = ({
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
   const [isCheckOutOpen, setIsCheckOutOpen] = useState(false);
+  const [hasFreeCancellation, setHasFreeCancellation] = useState(false);
+
 
 
   useEffect(() => {
@@ -214,7 +216,9 @@ const BookingCard = ({
     return amenity ? sum + amenity.price * qty : sum;
   }, 0);
 
-  const total = discountedTotal + serviceFee + upgradesTotal;
+  const freeCancellationFee = hasFreeCancellation ? 70 : 0;
+  const total = discountedTotal + serviceFee + upgradesTotal + freeCancellationFee;
+
 
   const handleBookClick = () => {
     if (bookingType === 'bulk') {
@@ -233,7 +237,10 @@ const BookingCard = ({
       bookingType,
       roomCount: roomsToBook.toString(),
       selectedRoomIds: JSON.stringify(selectedRoomIds),
+      hasFreeCancellation: hasFreeCancellation.toString(),
+      freeCancellationFee: freeCancellationFee.toString(),
     });
+
     
     if (Object.keys(selectedAmenities).length > 0) {
       params.append('amenities', JSON.stringify(selectedAmenities));
@@ -674,6 +681,88 @@ const BookingCard = ({
 
             </div>
 
+            {/* Free Cancellation Option */}
+            <div className="mb-5 bg-sky-900/10 border border-sky-500/20 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="bg-gradient-to-r from-emerald-500/20 to-sky-500/20 px-4 py-2 border-b border-sky-500/10 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="bg-emerald-500 rounded p-1">
+                    <Icon name="CheckIcon" size={10} className="text-black" />
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Enjoy Full Refund</span>
+                </div>
+                <div className="bg-sky-500/20 px-2 py-0.5 rounded text-[10px] font-bold text-sky-400 border border-sky-500/30">
+                  FREE CANCELLATION
+                </div>
+              </div>
+              
+              <div className="p-4 space-y-4">
+                <div 
+                  onClick={() => setHasFreeCancellation(true)}
+                  className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                    hasFreeCancellation 
+                      ? 'bg-sky-500/10 border-sky-500/50 shadow-inner' 
+                      : 'bg-black/20 border-gray-800 hover:border-gray-700'
+                  }`}
+                >
+                  <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                    hasFreeCancellation ? 'border-sky-500' : 'border-gray-600'
+                  }`}>
+                    {hasFreeCancellation && <div className="w-2.5 h-2.5 bg-sky-500 rounded-full shadow-[0_0_8px_rgba(14,165,233,0.8)]" />}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center mb-1">
+                      <p className="text-sm font-bold text-white">Yes, I want Free Cancellation</p>
+                      <span className="text-xs font-bold text-sky-400">₹70</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 text-emerald-400/90">
+                        <Icon name="CheckCircleIcon" size={14} />
+                        <span className="text-[11px] font-medium">Get full refund of {currency}{total.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-400">
+                        <Icon name="NoSymbolIcon" size={14} />
+                        <span className="text-[11px] font-medium">₹0 Cancellation fee</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-400">
+                        <Icon name="BoltIcon" size={14} />
+                        <span className="text-[11px] font-medium">Instant full refund</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div 
+                  onClick={() => setHasFreeCancellation(false)}
+                  className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                    !hasFreeCancellation 
+                      ? 'bg-zinc-800/50 border-gray-600' 
+                      : 'bg-black/20 border-gray-800 hover:border-gray-700'
+                  }`}
+                >
+                  <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                    !hasFreeCancellation ? 'border-gray-400' : 'border-gray-600'
+                  }`}>
+                    {!hasFreeCancellation && <div className="w-2.5 h-2.5 bg-gray-400 rounded-full" />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-300">No, I don't want Free Cancellation</p>
+                    <p className="text-[10px] text-amber-500/70 font-semibold mt-1 flex items-center gap-1">
+                      <Icon name="ExclamationTriangleIcon" size={12} />
+                      Standard cancellation policy will apply
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 pt-2 border-t border-sky-500/10">
+                  <Icon name="InformationCircleIcon" size={14} className="text-sky-400/60 mt-0.5" />
+                  <p className="text-[10px] text-gray-500 leading-relaxed italic">
+                    Valid on cancellation upto 6 hours before scheduled check-in. T&C apply.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+
             {/* Primary CTA */}
             <button
               onClick={handleBookClick}
@@ -736,7 +825,17 @@ const BookingCard = ({
                       <span>+{currency}{upgradesTotal.toLocaleString('en-IN')}</span>
                     </div>
                   )}
+                  {hasFreeCancellation && (
+                    <div className="flex justify-between text-sky-400">
+                      <span className="flex items-center gap-1">
+                        <Icon name="ShieldCheckIcon" size={14} />
+                        Free Cancellation
+                      </span>
+                      <span>+{currency}70</span>
+                    </div>
+                  )}
                 </div>
+
                 <div className="border-t border-sky-900/40 pt-4 flex justify-between font-bold text-lg text-white">
                   <span>Total</span>
                   <span>{currency}{total.toLocaleString()}</span>

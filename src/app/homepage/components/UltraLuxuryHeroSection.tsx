@@ -89,11 +89,10 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
         className="absolute inset-0 z-0"
       >
         <AppImage
-          src="https://images.unsplash.com/photo-1763478958711-dd84b33cfe16?q=80&w=2574&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-          alt="Luxury Villa"
+          src="https://images.unsplash.com/photo-1763478958711-dd84b33cfe16?q=80&w=2574&auto=format&fit=crop"
+          alt="Luxury Villa Background"
           fill
           priority
-          unoptimized
           className="object-cover brightness-[0.4]"
           sizes="100vw"
         />
@@ -142,6 +141,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                   id="where-to-input"
                   type="text"
                   placeholder="Search destinations"
+                  aria-label="Destination location"
                   className="bg-transparent border-none outline-none text-white text-[15px] font-medium placeholder:text-zinc-300 w-full p-0 flex-1 truncate"
                   style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
                   value={searchTerm}
@@ -152,7 +152,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                     type="button"
                     onClick={() => setSearchTerm('')}
                     className="flex-shrink-0 text-zinc-300 hover:text-white transition-colors"
-                    aria-label="Clear location"
+                    aria-label="Clear destination search"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -167,9 +167,13 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
             {/* Check In & Check Out */}
             <Popover>
               <PopoverTrigger asChild>
-                <div className="w-full md:w-auto flex-grow flex flex-row items-stretch border-t border-white/20 md:border-t-0">
-                  <div className="flex-1 flex flex-col justify-center px-5 md:px-8 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group text-left border-r border-white/20 md:border-r-0">
-                    <label className="text-[11px] font-extrabold text-white uppercase tracking-wider mb-0.5 cursor-pointer" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Check in</label>
+                <button 
+                  type="button"
+                  aria-label="Select check-in and check-out dates"
+                  className="w-full md:w-auto flex-grow flex flex-row items-stretch border-t border-white/20 md:border-t-0 bg-transparent text-left p-0 focus:outline-none focus:ring-2 focus:ring-sky-500 md:focus:rounded-full"
+                >
+                  <div className="flex-1 flex flex-col justify-center px-5 md:px-8 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group border-r border-white/20 md:border-r-0">
+                    <span className="text-[11px] font-extrabold text-white uppercase tracking-wider mb-0.5" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Check in</span>
                     <span className="text-[14px] md:text-[15px] font-medium text-zinc-100 truncate transition-colors" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
                       {dateRange?.from ? <span className="text-white">{format(dateRange.from, 'MMM dd, yyyy')}</span> : 'Add dates'}
                     </span>
@@ -179,13 +183,13 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                     <div className="w-px h-10 bg-white/30 drop-shadow-md" />
                   </div>
 
-                  <div className="flex-1 flex flex-col justify-center px-5 md:px-8 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group text-left">
-                    <label className="text-[11px] font-extrabold text-white uppercase tracking-wider mb-0.5 cursor-pointer" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Check out</label>
+                  <div className="flex-1 flex flex-col justify-center px-5 md:px-8 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group">
+                    <span className="text-[11px] font-extrabold text-white uppercase tracking-wider mb-0.5" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Check out</span>
                     <span className="text-[14px] md:text-[15px] font-medium text-zinc-100 truncate transition-colors" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
                       {dateRange?.to ? <span className="text-white">{format(dateRange.to, 'MMM dd, yyyy')}</span> : 'Add dates'}
                     </span>
                   </div>
-                </div>
+                </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-3 border border-white/10 bg-black/50 backdrop-blur-2xl rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.5)] mt-4 relative z-50 overflow-visible" align="center">
                 <Calendar
@@ -219,7 +223,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                   type="button"
                   onClick={handleCancel}
                   className="flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/20 text-white font-semibold py-3.5 px-5 md:py-4 rounded-[1.5rem] md:rounded-full border border-white/20 hover:border-white/40 transition-all duration-300"
-                  aria-label="Clear search"
+                  aria-label="Clear current filters"
                 >
                   <X className="w-4 h-4 flex-shrink-0" />
                   <span className="text-[14px] tracking-wide">Cancel</span>
@@ -227,6 +231,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
               )}
               <button
                 type="submit"
+                aria-label="Submit search for properties"
                 className="flex items-center justify-center gap-2 bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-white font-bold py-3.5 px-6 md:px-8 md:py-4 rounded-[1.5rem] md:rounded-full shadow-[0_4px_20px_rgba(14,165,233,0.4)] hover:shadow-[0_8px_25px_rgba(14,165,233,0.6)] hover:scale-[1.02] transition-all duration-300 w-full md:w-auto"
               >
                 <Search className="w-5 h-5 flex-shrink-0" />

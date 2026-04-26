@@ -32,6 +32,10 @@ import { createServiceClient } from './supabase-server';
 //...
 export async function verifyUser(_prevState: any, formData: FormData) {
   try {
+    if (!formData) {
+      console.error('VerifyUser Error: No FormData received.');
+      return { error: 'No data received from the form.' };
+    }
     const supabase = await createSupabaseServerClient();
     const {
       data: { user },
@@ -48,50 +52,69 @@ export async function verifyUser(_prevState: any, formData: FormData) {
       return { error: 'Full name and document are required.' };
     }
 
-    const { data: fileData, error: fileError } = await supabase.storage
+    const adminSupabase = createServiceClient();
+
+    // Convert file to ArrayBuffer for more reliable upload
+    const arrayBuffer = await file.arrayBuffer();
+    const fileBuffer = Buffer.from(arrayBuffer);
+
+    const { data: fileData, error: fileError } = await adminSupabase.storage
       .from('documents')
-      .upload(`${user.id}/${file.name}`, file, { upsert: true });
+      .upload(`${user.id}/${file.name}`, fileBuffer, { 
+        upsert: true,
+        contentType: file.type 
+      });
 
     if (fileError) {
-      return { error: fileError.message };
+      console.error('Storage Upload Error:', fileError);
+      return { error: `Storage Error: ${fileError.message}` };
     }
 
     // Check if verification record exists
-    const { data: existingVerification } = await supabase
+    const { data: existingVerifications, error: fetchError } = await adminSupabase
       .from('verifications')
       .select('id')
       .eq('user_id', user.id)
-      .single();
+      .limit(1);
+
+    if (fetchError) {
+      console.error('Fetch Verification Error:', fetchError);
+      return { error: `Database Error: ${fetchError.message}` };
+    }
+
+    const existingVerification = existingVerifications?.[0];
 
     let error;
 
     if (existingVerification) {
       // Update existing record
-      const { error: updateError } = await supabase
+      const { error: updateError } = await adminSupabase
         .from('verifications')
         .update({ doc_type: 'id', file_url: fileData.path, status: 'pending' })
         .eq('user_id', user.id);
       error = updateError;
     } else {
       // Insert new record
-      const { error: insertError } = await supabase
+      const { error: insertError } = await adminSupabase
         .from('verifications')
         .insert([{ user_id: user.id, doc_type: 'id', file_url: fileData.path, status: 'pending' }]);
       error = insertError;
     }
 
     if (error) {
+      console.error('Database Operation Error:', error);
       return { error: 'An unexpected error occurred. Please try again.' };
     }
 
-    // Return success with simplified data (since we didn't select * in update/insert consistently)
+    // Return success with simplified data
     const data = { success: true };
 
     await logActivity('user_verification', `User ${user.id} submitted a document for verification.`);
 
     return { success: true, data };
-  } catch (err: unknown) {
-    return { error: 'An unexpected error occurred. Please try again.' };
+  } catch (err: any) {
+    console.error('VerifyUser Action Error:', err);
+    return { error: `Action Error: ${err.message || 'Unknown error'}` };
   }
 }
 
@@ -105,6 +128,8 @@ export async function createBooking(bookingDetails: {
   roomCount?: number;
   selectedRoomIds?: string[];
   amenities?: Array<{ id: string; count: number; price: number; name: string }>;
+  hasFreeCancellation?: boolean;
+  freeCancellationFee?: number;
 }, _prevState: any) {
   try {
     const supabase = await createSupabaseServerClient();
@@ -126,34 +151,48 @@ export async function createBooking(bookingDetails: {
       return { error: profileError.message };
     }
 
-    const { propertyId, checkIn, checkOut, totalPrice, guests, bookingType = 'single', roomCount = 1, amenities = [], selectedRoomIds = [] } = bookingDetails;
+    const { 
+      propertyId, 
+      checkIn, 
+      checkOut, 
+      totalPrice, 
+      guests, 
+      bookingType = 'single', 
+      roomCount = 1, 
+      amenities = [], 
+      selectedRoomIds = [],
+      hasFreeCancellation = false,
+      freeCancellationFee = 0
+    } = bookingDetails;
 
     // Use RPC to create booking and assign rooms atomically
     const rpcName = (selectedRoomIds && selectedRoomIds.length > 0) 
       ? 'create_booking_with_rooms' 
       : 'create_bulk_booking';
 
+    const baseParams = {
+      p_booking_type: bookingType,
+      p_check_in: checkIn,
+      p_check_out: checkOut,
+      p_guest_id: user.id,
+      p_property_id: propertyId,
+      p_total_price: totalPrice,
+      p_has_free_cancellation: hasFreeCancellation,
+      p_free_cancellation_fee: freeCancellationFee,
+    };
+
     const rpcParams = (selectedRoomIds && selectedRoomIds.length > 0)
       ? {
-          p_booking_type: bookingType,
-          p_check_in: checkIn,
-          p_check_out: checkOut,
-          p_guest_id: user.id,
-          p_property_id: propertyId,
+          ...baseParams,
           p_room_ids: selectedRoomIds,
-          p_total_price: totalPrice,
         }
       : {
-          p_booking_type: bookingType,
-          p_check_in: checkIn,
-          p_check_out: checkOut,
-          p_guest_id: user.id,
-          p_property_id: propertyId,
+          ...baseParams,
           p_room_count: roomCount,
-          p_total_price: totalPrice,
         };
 
     const { data, error } = await supabase.rpc(rpcName, rpcParams);
+
 
     if (error) {
       console.error("Booking RPC Error:", error);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useActionState } from 'react';
+import { useRef, useState, useActionState, startTransition } from 'react';
 import { useFormStatus } from 'react-dom';
 import { addProperty } from '@/lib/property-actions';
 import { redirect } from 'next/navigation';
@@ -87,13 +87,21 @@ export default function AddPropertyPage() {
     });
 
     // Manually trigger the server action
-    await formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   };
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">List Your Property</h1>
-      <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+      <form 
+        ref={formRef} 
+        onSubmit={handleSubmit} 
+        method="POST"
+        encType="multipart/form-data"
+        className="space-y-4"
+      >
         {state?.error && <p className="text-red-500">{state.error}</p>}
         {state?.imageUploadErrors && state.imageUploadErrors.length > 0 && (
           <div className="text-red-500">

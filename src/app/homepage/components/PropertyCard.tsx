@@ -44,6 +44,7 @@ const PropertyCard = ({
 
   return (
     <motion.div
+      id={`property-${property.id}`}
       initial={{ opacity: 0, scale: 0.95 }}
       whileInView={{ opacity: 1, scale: 1 }}
       viewport={{ once: true }}
@@ -87,36 +88,41 @@ const PropertyCard = ({
 
           {/* Custom Navigation Arrows */}
           <div
-            className={`swiper-button-next-${property.id} absolute top-1/2 right-4 -translate-y-1/2 z-10 w-10 h-10 bg-black/20 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer shadow-lg hover:bg-sky-500/80 hover:scale-110 active:scale-95`}
+            className={`swiper-button-next-${property.id} absolute top-1/2 right-2 sm:right-4 z-10 w-8 h-8 sm:w-10 sm:h-10 bg-black/20 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer shadow-lg hover:bg-sky-500/80 hover:scale-110 active:scale-95`}
             onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+            role="button"
+            aria-label="Next image"
           >
-            <Icon name="ChevronRightIcon" size={16} className="text-white" />
+            <Icon name="ChevronRightIcon" size={14} className="text-white" />
           </div>
           <div
-            className={`swiper-button-prev-${property.id} absolute top-1/2 left-4 -translate-y-1/2 z-10 w-10 h-10 bg-black/20 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer shadow-lg hover:bg-sky-500/80 hover:scale-110 active:scale-95`}
+            className={`swiper-button-prev-${property.id} absolute top-1/2 left-2 sm:left-4 -translate-y-1/2 z-10 w-8 h-8 sm:w-10 sm:h-10 bg-black/20 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer shadow-lg hover:bg-sky-500/80 hover:scale-110 active:scale-95`}
             onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+            role="button"
+            aria-label="Previous image"
           >
-            <Icon name="ChevronLeftIcon" size={16} className="text-white" />
+            <Icon name="ChevronLeftIcon" size={14} className="text-white" />
           </div>
         </Swiper>
 
         {/* Badges Overlay */}
         <div className="absolute top-2 sm:top-4 left-2 sm:left-4 right-2 sm:right-4 z-10 flex justify-between items-start pointer-events-none">
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1 sm:gap-2">
             {isGuestFavourite && (
               <motion.div
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
-                className="bg-sky-500 px-3 py-1.5 rounded-full shadow-lg border border-sky-400/50"
+                className="bg-sky-500 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-lg border border-sky-400/50"
               >
-                <span className="text-[7px] sm:text-[9px] font-black uppercase tracking-wider text-white flex items-center gap-1">
+                <span className="text-[6px] sm:text-[9px] font-black uppercase tracking-wider text-white flex items-center gap-1 whitespace-nowrap">
                   <Icon name="StarIcon" size={8} variant="solid" className="text-white/90" />
                   Guest Favourite
                 </span>
               </motion.div>
             )}
-            <div className="bg-black/40 backdrop-blur-md px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-white/10 text-[7px] sm:text-[10px] font-bold text-zinc-100 uppercase tracking-widest">
-              Premium Tier
+            <div className="bg-black/40 backdrop-blur-md px-1.5 sm:px-3 py-0.5 sm:py-1.5 rounded-full border border-white/10 text-[6px] sm:text-[10px] font-bold text-zinc-100 uppercase tracking-widest flex items-center gap-1 sm:gap-1.5 shadow-lg whitespace-nowrap">
+              <Icon name="MapPinIcon" size={8} className="text-sky-400" />
+              {property.location.split(',')[0]}
             </div>
           </div>
 
@@ -126,11 +132,13 @@ const PropertyCard = ({
               e.preventDefault();
               onSaveProperty(property.id);
             }}
-            className="pointer-events-auto p-2.5 rounded-full bg-black/20 backdrop-blur-xl border border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-110 active:scale-90 group/heart"
+            aria-label={isSaved ? "Remove from wishlist" : "Save to wishlist"}
+            aria-pressed={isSaved}
+            className="pointer-events-auto p-1.5 sm:p-2.5 rounded-full bg-black/20 backdrop-blur-xl border border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-110 active:scale-90 group/heart"
           >
             <Icon
               name="HeartIcon"
-              size={20}
+              size={18}
               variant={isSaved ? 'solid' : 'outline'}
               className={cn(
                 "transition-all duration-300",
@@ -146,11 +154,14 @@ const PropertyCard = ({
         <div className="flex justify-between items-end">
           <div className="flex flex-col gap-0.5 max-w-[70%]">
             <h3 className="font-heading text-xs sm:text-sm font-bold text-white leading-tight tracking-tight group-hover:text-sky-400 transition-colors duration-300 truncate">
-              {property.location}
+              {property.title}
             </h3>
-            <p className="text-zinc-400 text-[8px] sm:text-[9px] font-medium uppercase tracking-widest opacity-80">
-              {property.type}
-            </p>
+            <div className="flex items-center gap-1">
+              <Icon name="MapPinIcon" size={10} className="text-sky-400/80" />
+              <p className="text-zinc-400 text-[8px] sm:text-[10px] font-medium truncate">
+                {property.location}
+              </p>
+            </div>
           </div>
           <div className="flex flex-col items-end gap-1">
             <div className="flex items-center gap-0.5 sm:gap-1 bg-zinc-800/80 px-1 sm:px-1.5 py-0.5 rounded-md border border-white/5">

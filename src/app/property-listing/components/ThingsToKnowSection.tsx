@@ -48,27 +48,44 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty }:
                         </div>
                         <div className="prose prose-invert max-w-none overflow-y-auto premium-scrollbar pr-2 pb-2">
                             {cancellationPolicy.description === 'Tiered' ? (
-                                <div className="space-y-3">
-                                    <p className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Strict tiered cancellation policy applies:</p>
-                                    <div className="grid gap-1">
+                                <div className="space-y-4">
+                                    <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em]">Standard Cancellation Policy:</p>
+                                    <div className="grid gap-2">
                                         {[
-                                            { period: '7 Days Before', refund: '100% Refund', color: 'text-green-400', bg: 'bg-green-400/5', border: 'border-green-400/10' },
-                                            { period: '5-7 Days Before', refund: '70% Refund', color: 'text-yellow-400', bg: 'bg-yellow-400/5', border: 'border-yellow-400/10' },
-                                            { period: '2-4 Days Before', refund: '30% Refund', color: 'text-orange-400', bg: 'bg-orange-400/5', border: 'border-orange-400/10' },
-                                            { period: 'Check-in day', refund: 'No Refund', color: 'text-red-400', bg: 'bg-red-400/5', border: 'border-red-400/10' }
+                                            { period: '10+ Days Before', refund: '100% Refund', color: 'text-emerald-400', bg: 'bg-emerald-400/5', border: 'border-emerald-400/10' },
+                                            { period: '5-10 Days Before', refund: '70% Refund', color: 'text-sky-400', bg: 'bg-sky-400/5', border: 'border-sky-400/10' },
+                                            { period: '2-5 Days Before', refund: '50% Refund', color: 'text-amber-400', bg: 'bg-amber-400/5', border: 'border-amber-400/10' },
+                                            { period: '< 2 Days Before', refund: '30% Refund', color: 'text-rose-400', bg: 'bg-rose-400/5', border: 'border-rose-400/10' }
                                         ].map((item, i) => (
-                                            <div key={i} className={`${item.bg} ${item.border} border px-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2`}>
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`text-xs font-bold ${item.color} min-w-[75px]`}>{item.refund}</span>
-                                                    <span className="text-[9px] font-medium text-zinc-500 uppercase">
-                                                        {item.period === 'Check-in day' ? item.period : `${item.period} check-in`}
-                                                    </span>
+                                            <div key={i} className={`${item.bg} ${item.border} border px-3 py-2.5 rounded-xl flex items-center justify-between gap-3 transition-colors hover:bg-white/5`}>
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-0.5">{item.period} check-in</span>
+                                                    <span className={`text-sm font-bold ${item.color}`}>{item.refund}</span>
                                                 </div>
-                                                <Icon name={item.refund === 'No Refund' ? 'XMarkIcon' : 'CheckIcon'} size={12} className={item.color} />
+                                                <div className={`w-8 h-8 rounded-lg ${item.bg} flex items-center justify-center border ${item.border}`}>
+                                                    <Icon name="CheckIcon" size={14} className={item.color} />
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
+                                    <div className="p-4 bg-sky-500/5 border border-sky-500/10 rounded-2xl">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Icon name="SparklesIcon" size={14} className="text-sky-400" />
+                                            <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest">Special Protection</span>
+                                        </div>
+                                        <ul className="space-y-1.5">
+                                            <li className="text-[11px] text-zinc-400 flex items-start gap-2">
+                                                <div className="w-1 h-1 rounded-full bg-sky-500 mt-1.5 flex-shrink-0" />
+                                                <span><strong className="text-zinc-200">6-Hour Grace Period:</strong> 100% refund if cancelled within 6 hours of booking.</span>
+                                            </li>
+                                            <li className="text-[11px] text-zinc-400 flex items-start gap-2">
+                                                <div className="w-1 h-1 rounded-full bg-sky-500 mt-1.5 flex-shrink-0" />
+                                                <span><strong className="text-zinc-200">Same Day Booking:</strong> 100% refund if booked and cancelled on the same day.</span>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
+
                             ) : (
                                 <p className="text-text-secondary text-sm leading-relaxed whitespace-pre-wrap">
                                     {cancellationPolicy.description}

@@ -1,8 +1,9 @@
 import { Transaction } from './types';
 
 export const generateInvoicePDF = async (t: Transaction) => {
-  // Use dynamic import for client-side libraries
-  const { jsPDF } = await import('jspdf');
+  // Use UMD import for better compatibility with Next.js dynamic chunks
+  const jspdfModule = await import('jspdf/dist/jspdf.umd.min.js') as any;
+  const jsPDF = jspdfModule.jsPDF || jspdfModule.default?.jsPDF || jspdfModule.default;
   const autoTable = (await import('jspdf-autotable')).default;
 
   const doc = new jsPDF();
@@ -87,7 +88,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
 
   autoTable(doc, {
     startY: 110,
-    head: [['SL.', 'Item Description', 'Price', 'Qty.', 'Total']],
+    head: [['SL.', 'Item Description', 'Price', 'Nights', 'Total']],
     body: [
       ['1', 'Accommodation Charges', `INR ${breakdown.accommodation.toLocaleString('en-IN')}`, '1', `INR ${breakdown.accommodation.toLocaleString('en-IN')}`],
       ['2', 'Platform Service', `INR ${breakdown.service_fee.toLocaleString('en-IN')}`, '1', `INR ${breakdown.service_fee.toLocaleString('en-IN')}`],
@@ -111,7 +112,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
       0: { halign: 'center', cellWidth: 15 },
       1: { halign: 'left' },
       2: { halign: 'left', cellWidth: 35 },
-      3: { halign: 'center', cellWidth: 15 },
+      3: { halign: 'center', cellWidth: 22 },
       4: { halign: 'left', cellWidth: 35 }
     },
     theme: 'plain',
@@ -214,7 +215,9 @@ export const exportTransactionsToCSV = (transactions: Transaction[]) => {
 export const exportTransactionsToPDF = async (transactions: Transaction[]) => {
   if (transactions.length === 0) return;
 
-  const { jsPDF } = await import('jspdf');
+  // Use UMD import for better compatibility with Next.js dynamic chunks
+  const jspdfModule = await import('jspdf/dist/jspdf.umd.min.js') as any;
+  const jsPDF = jspdfModule.jsPDF || jspdfModule.default?.jsPDF || jspdfModule.default;
   const autoTable = (await import('jspdf-autotable')).default;
 
   const doc = new jsPDF();

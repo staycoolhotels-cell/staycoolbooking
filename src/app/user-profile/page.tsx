@@ -115,7 +115,7 @@ export default async function ProfilePage() {
     propertyName: b.properties?.title || 'Property',
     hostName: 'StayCool Host',
     amount: b.status === 'cancelled' || b.status === 'refunded' 
-      ? calculateRefundAmount(Number(b.total_price), b.check_in, b.cancelled_at || b.created_at)
+      ? calculateRefundAmount(Number(b.total_price), b.check_in, b.cancelled_at || b.created_at, b.created_at, b.has_free_cancellation)
       : Number(b.total_price),
     date: new Date(b.created_at).toLocaleDateString(),
     type: (b.status === 'confirmed' || b.status === 'completed') ? 'payment' : 

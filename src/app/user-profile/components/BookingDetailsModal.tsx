@@ -59,107 +59,114 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative w-full max-w-2xl bg-[#0a0a0f] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                    className="relative w-full max-w-lg bg-[#0a0a0f] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between p-6 border-b border-white/10 bg-[#0a0a0f] sticky top-0 z-10">
+                    <div className="flex items-center justify-between p-5 border-b border-white/10 bg-[#0a0a0f] sticky top-0 z-10">
                         <div>
-                            <h2 className="text-xl font-heading font-bold text-white">Booking Details</h2>
-                            <p className="text-sm text-zinc-400">Transaction ID: {booking.id.slice(0, 8)}</p>
+                            <h2 className="text-lg font-heading font-bold text-white">Booking Details</h2>
+                            <p className="text-xs text-zinc-400">ID: {booking.id.slice(0, 8)}</p>
                         </div>
                         <button
                             onClick={onClose}
                             className="p-2 hover:bg-white/5 rounded-lg transition-colors text-zinc-400 hover:text-white"
                         >
-                            <Icon name="XMarkIcon" size={24} />
+                            <Icon name="XMarkIcon" size={20} />
                         </button>
                     </div>
 
-                    <div className="p-6 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
+                    <div className="p-5 overflow-y-auto space-y-5 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
                         {/* Property Image & Title */}
-                        <div className="flex flex-col md:flex-row gap-4 items-start">
-                            <div className="w-full md:w-1/3 aspect-video rounded-xl overflow-hidden border border-white/10">
+                        <div className="flex flex-col sm:flex-row gap-4 items-start">
+                            <div className="w-full sm:w-32 aspect-square rounded-xl overflow-hidden border border-white/10 flex-shrink-0">
                                 <img
                                     src={getPropertyImage(booking.properties)}
                                     alt={booking.properties.title || 'Property'}
                                     className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6';
+                                    }}
                                 />
                             </div>
                             <div className="flex-1">
-                                <h3 className="text-lg font-bold text-white mb-2">{booking.properties.title}</h3>
-                                <div className="flex items-center gap-2 text-zinc-400 text-sm mb-4">
-                                    <Icon name="MapPinIcon" size={16} className="text-sky-400" />
+                                <h3 className="text-base font-bold text-white mb-1">{booking.properties.title}</h3>
+                                <div className="flex items-center gap-2 text-zinc-400 text-xs mb-3">
+                                    <Icon name="MapPinIcon" size={14} className="text-sky-400" />
                                     <span>{booking.properties.location}</span>
                                 </div>
-                                <div className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${getStatusColor(booking.status)}`}>
+                                <div className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(booking.status)}`}>
                                     {booking.status}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-2 gap-4">
                             {/* Dates */}
-                            <div className="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
-                                <h4 className="text-sm font-medium text-zinc-400 mb-3 uppercase tracking-wider">Dates</h4>
+                            <div className="bg-zinc-900/50 p-3 rounded-xl border border-white/5">
+                                <h4 className="text-[10px] font-medium text-zinc-400 mb-2 uppercase tracking-wider">Dates</h4>
                                 <div className="flex justify-between items-center text-white">
                                     <div>
-                                        <p className="text-xs text-zinc-500 mb-1">Check-in</p>
-                                        <p className="font-semibold">{format(new Date(booking.check_in), 'MMM dd, yyyy')}</p>
+                                        <p className="text-[10px] text-zinc-500">In</p>
+                                        <p className="text-xs font-semibold">{format(new Date(booking.check_in), 'MMM dd')}</p>
                                     </div>
-                                    <Icon name="ArrowRightIcon" size={16} className="text-zinc-600" />
+                                    <Icon name="ArrowRightIcon" size={12} className="text-zinc-600" />
                                     <div className="text-right">
-                                        <p className="text-xs text-zinc-500 mb-1">Check-out</p>
-                                        <p className="font-semibold">{format(new Date(booking.check_out), 'MMM dd, yyyy')}</p>
+                                        <p className="text-[10px] text-zinc-500">Out</p>
+                                        <p className="text-xs font-semibold">{format(new Date(booking.check_out), 'MMM dd')}</p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Guests */}
-                            <div className="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
-                                <h4 className="text-sm font-medium text-zinc-400 mb-3 uppercase tracking-wider">Guests</h4>
-                                <div className="flex items-center gap-3 text-white">
-                                    <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400">
-                                        <Icon name="UserIcon" size={20} />
+                            <div className="bg-zinc-900/50 p-3 rounded-xl border border-white/5">
+                                <h4 className="text-[10px] font-medium text-zinc-400 mb-2 uppercase tracking-wider">Guests</h4>
+                                <div className="flex items-center gap-2 text-white">
+                                    <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400">
+                                        <Icon name="UserIcon" size={16} />
                                     </div>
                                     <div>
-                                        <p className="font-semibold">{booking.guests} Guests</p>
-                                        <p className="text-xs text-zinc-500">Occupancy for this stay</p>
+                                        <p className="text-xs font-semibold">{booking.guests} Guests</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Invoice Section - Matches requested design */}
-                        <div className="bg-zinc-900/50 p-5 rounded-2xl border border-white/5 flex items-center justify-between group hover:border-sky-500/30 transition-all">
-                            <div className="space-y-1">
-                                <h3 className="text-lg font-bold text-white">Invoice {booking.id.slice(0, 8).toUpperCase()}</h3>
-                                <p className="text-sm text-zinc-500">Booking: {booking.id.slice(0, 8).toUpperCase()}</p>
+                        {/* Invoice Section */}
+                        <div className="bg-zinc-900/50 p-4 rounded-xl border border-white/5 flex items-center justify-between group hover:border-sky-500/30 transition-all">
+                            <div className="space-y-0.5">
+                                <h3 className="text-base font-bold text-white">Invoice {booking.id.slice(0, 8).toUpperCase()}</h3>
+                                <p className="text-xs text-zinc-500">Download receipt</p>
                             </div>
                             <button
                                 onClick={async () => {
-                                    const transaction = transactions.find(t => t.id === booking.id);
-                                    
-                                    // Construct an on-the-fly transaction object if one doesn't exist
-                                    const transactionData = {
-                                        id: booking.id,
-                                        invoice_id: booking.id.slice(0, 8).toUpperCase(),
-                                        amount: booking.total_price,
-                                        date: format(new Date(booking.created_at), 'dd/MM/yyyy'),
-                                        status: booking.status,
-                                        type: (booking.status === 'cancelled' || booking.status === 'refunded') ? 'refund' : 'payment',
-                                        guestName: booking.guest?.name || 'Valued Guest',
-                                        guestAddress: (booking.guest as any)?.email || 'Address not provided',
-                                        propertyName: booking.properties.title || 'Property',
-                                        booking_id: booking.id,
-                                        paymentMethod: 'Razorpay', // Default fallback
-                                        breakdown: {
-                                            accommodation: booking.total_price * 0.88,
-                                            service_fee: booking.total_price * 0.10,
-                                            taxes: booking.total_price * 0.02
-                                        }
-                                    };
+                                    try {
+                                        const transaction = transactions.find(t => t.id === booking.id);
+                                        
+                                        // Construct an on-the-fly transaction object if one doesn't exist
+                                        const transactionData = {
+                                            id: booking.id,
+                                            invoice_id: booking.id.slice(0, 8).toUpperCase(),
+                                            amount: booking.total_price,
+                                            date: format(new Date(booking.created_at), 'dd/MM/yyyy'),
+                                            status: booking.status,
+                                            type: (booking.status === 'cancelled' || booking.status === 'refunded') ? 'refund' : 'payment',
+                                            guestName: booking.guest?.name || 'Valued Guest',
+                                            guestAddress: (booking.guest as any)?.email || 'Address not provided',
+                                            propertyName: booking.properties.title || 'Property',
+                                            booking_id: booking.id,
+                                            paymentMethod: 'Razorpay', // Default fallback
+                                            breakdown: {
+                                                accommodation: booking.total_price * 0.88,
+                                                service_fee: booking.total_price * 0.10,
+                                                taxes: booking.total_price * 0.02
+                                            }
+                                        };
 
-                                    await generateInvoicePDF(transaction || (transactionData as any));
+                                        await generateInvoicePDF(transaction || (transactionData as any));
+                                    } catch (err) {
+                                        console.error('Invoice generation failed:', err);
+                                        toast.error('Failed to generate invoice. Please try again.');
+                                    }
                                 }}
                                 className="p-3 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 hover:bg-sky-500/20 hover:text-white transition-all shadow-lg shadow-sky-900/10"
                                 title="Download Invoice"
@@ -208,7 +215,8 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                     {/* Footer - Actions could go here */}
                     <div className="p-6 border-t border-white/10 bg-[#0a0a0f] flex justify-between items-center">
                         <div className="flex gap-3">
-                            {(booking.status === 'confirmed' || booking.status === 'pending' || booking.status === 'pending_payment') && new Date(booking.check_in) > new Date() && (
+                            {(['confirmed', 'pending', 'pending_payment'].includes(booking.status.toLowerCase())) && 
+                             startOfDay(new Date(booking.check_in)) >= startOfDay(new Date()) && (
                                 <button
                                     onClick={() => setShowCancelConfirm(true)}
                                     className="px-6 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors font-medium border border-red-500/20"
@@ -241,10 +249,12 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                 <div className="bg-zinc-950 p-4 rounded-xl border border-white/5 mb-6 text-xs text-zinc-400 space-y-2">
                                     <p><strong className="text-zinc-300">Policy Reminder:</strong></p>
                                     <ul className="list-disc pl-4 space-y-1">
-                                        <li>7+ Days Before: 100% Refund</li>
-                                        <li>5-7 Days Before: 70% Refund</li>
-                                        <li>2-4 Days Before: 30% Refund</li>
-                                        <li>Check-in Day: No Refund</li>
+                                        <li>Within 6 hrs of booking: 100% Refund (Excl. Platform Fee)</li>
+                                        <li>10+ Days Before Check-in: 100% Refund (Excl. Platform Fee)</li>
+                                        <li>5-10 Days Before: 70% Refund (Excl. Platform Fee)</li>
+                                        <li>2-5 Days Before: 50% Refund (Excl. Platform Fee)</li>
+                                        <li>Less than 2 Days: 30% Refund (Excl. Platform Fee)</li>
+                                        <li><span className="text-sky-400 font-semibold">Free Cancellation (₹70):</span> 100% Refund always.</li>
                                     </ul>
                                 </div>
 

@@ -75,11 +75,15 @@ export async function addProperty(prevState: any, formData: FormData) {
     if (imageFile.size > 0) {
       const filePath = `${host_id}/${name}/images/${Date.now()}-${imageFile.name}`;
       // Use supabaseAdmin for storage upload to bypass RLS
+      const arrayBuffer = await imageFile.arrayBuffer();
+      const fileBuffer = Buffer.from(arrayBuffer);
+
       const { data, error } = await supabaseAdmin.storage
         .from('images')
-        .upload(filePath, imageFile, {
+        .upload(filePath, fileBuffer, {
           cacheControl: '3600',
           upsert: false,
+          contentType: imageFile.type,
         });
 
       if (error) {
@@ -105,11 +109,15 @@ export async function addProperty(prevState: any, formData: FormData) {
     if (file && file.size > 0) {
       const filePath = `${host_id}/${name}/documents/${folder}/${Date.now()}-${file.name}`;
       // Use supabaseAdmin for storage upload to bypass RLS
+      const arrayBuffer = await file.arrayBuffer();
+      const fileBuffer = Buffer.from(arrayBuffer);
+
       const { data, error } = await supabaseAdmin.storage
         .from('documents')
-        .upload(filePath, file, {
+        .upload(filePath, fileBuffer, {
           cacheControl: '3600',
           upsert: false,
+          contentType: file.type,
         });
 
       if (error) {

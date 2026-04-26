@@ -213,6 +213,9 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertyS
           </div>
           <div class="p-3 bg-zinc-900 border-t border-white/10">
             <h4 class="text-white font-bold text-xs mb-1 truncate">${prop.title}</h4>
+            <div class="flex items-center gap-1 mb-2 opacity-80">
+              <span class="text-zinc-400 text-[9px] font-medium truncate">${prop.location}</span>
+            </div>
             <div class="flex items-center justify-between">
               <span class="text-sky-400 font-extrabold text-sm">₹${prop.price.toLocaleString('en-IN')}<span class="text-zinc-500 text-[10px] font-normal">/night</span></span>
               <span class="text-[9px] bg-sky-500 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">View</span>

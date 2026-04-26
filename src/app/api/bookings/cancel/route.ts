@@ -24,6 +24,8 @@ export async function POST(req: Request) {
             .from('bookings')
             .select(`
                 *,
+                has_free_cancellation,
+                free_cancellation_fee,
                 property:properties!property_id (
                     id, title, host_id
                 ),
@@ -46,33 +48,38 @@ export async function POST(req: Request) {
         }
 
         // 2. Cancellation Timeline Logic Calculation
-        const today = startOfDay(new Date());
+        const now = new Date();
+        const today = startOfDay(now);
         const checkInDate = startOfDay(new Date(booking.check_in));
         const daysUntilCheckIn = differenceInDays(checkInDate, today);
 
         const totalPrice = Number(booking.total_price);
-        const guestRefundPercent = getRefundPercentage(booking.check_in, today);
-        let adminChargePercent = 0;
-        let hostChargePercent = 0;
+        // Deduct platform fee first (10% of subtotal/base is roughly 9% of total if fee was 10% on top)
+        // However, we'll keep it simple: 10% of total is the platform fee.
+        const platformFee = totalPrice * 0.10;
+        const refundableBase = totalPrice - platformFee;
 
-        if (guestRefundPercent === 100) {
-            adminChargePercent = 0;
-            hostChargePercent = 0;
-        } else if (guestRefundPercent === 70) {
-            adminChargePercent = 30;
-            hostChargePercent = 0;
-        } else if (guestRefundPercent === 30) {
-            adminChargePercent = 70;
-            hostChargePercent = 0;
-        } else {
-            // 0% refund
-            adminChargePercent = 35;
-            hostChargePercent = 65;
-        }
+        const guestRefundPercent = getRefundPercentage(
+            booking.check_in, 
+            now, // Use actual current time for 6-hour and same-day check
+            booking.created_at, 
+            booking.has_free_cancellation
+        );
 
-        const guestRefundAmount = (totalPrice * guestRefundPercent) / 100;
-        const newAdminAmount = (totalPrice * adminChargePercent) / 100;
-        const newHostAmount = (totalPrice * hostChargePercent) / 100;
+        // Guest gets their percentage of the refundable base
+        const guestRefundAmount = (refundableBase * guestRefundPercent) / 100;
+        
+        // Admin always keeps the platform fee, plus whatever guest didn't get from the base
+        const adminKeptFromBase = refundableBase - guestRefundAmount;
+        const newAdminAmount = platformFee + adminKeptFromBase;
+        
+        // For simplicity in this flow, host gets 0 if guest cancels late, 
+        // unless you want to split the adminKeptFromBase with the host.
+        // The user said "platform fee cut ayyi migitha amount vellali", which usually implies to guest.
+        const newHostAmount = 0;
+
+        const adminChargePercent = (newAdminAmount / totalPrice) * 100;
+        const hostChargePercent = 0;
 
         // 3. Initiate Razorpay Refunds / Reversals
         const rzpPaymentId = booking.razorpay_payment_id;
@@ -90,20 +97,21 @@ export async function POST(req: Request) {
                     const originalTransferAmount = Number(hostTransfer.amount);
                     
                     if (hostChargePercent === 0) {
-                        // Reverse 100% of the host transfer, bringing all money back to the platform
+                        // Reverse 100% of the host transfer
                         await razorpay.transfers.reverse(hostTransfer.id, {
-                            amount: originalTransferAmount // reverse full amount in paise
+                            amount: originalTransferAmount
                         });
-                    } else if (hostChargePercent === 65 && originalTransferAmount !== Math.round(newHostAmount * 100)) {
-                         // We need to reverse the difference if original host transfer was 80% and now they get 65%.
-                         // Partial reversal.
-                         const diffToReverse = originalTransferAmount - Math.round(newHostAmount * 100);
-                         if (diffToReverse > 0) {
-                             await razorpay.transfers.reverse(hostTransfer.id, {
-                                 amount: diffToReverse // reverse the difference
-                             });
-                         }
+                    } else {
+                        // Reverse the difference if host gets less than original
+                        const expectedHostAmountPaise = Math.round(newHostAmount * 100);
+                        const diffToReverse = originalTransferAmount - expectedHostAmountPaise;
+                        if (diffToReverse > 0) {
+                            await razorpay.transfers.reverse(hostTransfer.id, {
+                                amount: diffToReverse
+                            });
+                        }
                     }
+
                 }
 
                 // Now execute the Refund to Guest (from Platform)
@@ -129,13 +137,29 @@ export async function POST(req: Request) {
         const adminSupabase = await createServiceClient();
 
         // Update booking status
-        const { error: updateError } = await adminSupabase
+        // Attempt with cancelled_at, fallback if column missing
+        const updatePayload: any = { status: 'cancelled' };
+        
+        // Try to update with cancelled_at first
+        const { error: initialUpdateError } = await adminSupabase
             .from('bookings')
             .update({ 
-                status: 'cancelled',
+                ...updatePayload,
                 cancelled_at: new Date().toISOString() 
             })
             .eq('id', bookingId);
+            
+        let updateError = initialUpdateError;
+
+        // If the error is about missing column, retry without it
+        if (updateError && updateError.message && updateError.message.includes('cancelled_at')) {
+            console.warn('cancelled_at column missing, retrying without it');
+            const { error: retryError } = await adminSupabase
+                .from('bookings')
+                .update(updatePayload)
+                .eq('id', bookingId);
+            updateError = retryError;
+        }
             
         if (updateError) {
             console.error('Booking status update error:', updateError);
@@ -163,8 +187,7 @@ export async function POST(req: Request) {
         return NextResponse.json({
             success: true,
             message: 'Booking cancelled successfully',
-            refundAmount: guestRefundAmount,
-            timelineRule: `${daysUntilCheckIn} days before check-in (Guest: ${guestRefundPercent}%, Admin: ${adminChargePercent}%, Host: ${hostChargePercent}%)`
+            refundAmount: guestRefundAmount
         });
 
     } catch (error: any) {

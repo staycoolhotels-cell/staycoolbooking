@@ -232,6 +232,8 @@ export interface Booking {
   guests: number;
   created_at: string;
   cancelled_at?: string;
+  has_free_cancellation?: boolean;
+  free_cancellation_fee?: number;
   guest?: {
     name: string;
     avatar_url: string;
