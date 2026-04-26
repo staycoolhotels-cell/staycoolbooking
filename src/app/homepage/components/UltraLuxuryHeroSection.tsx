@@ -81,23 +81,26 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
   return (
     <div className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-start text-white">
       {/* Background Image */}
-      <motion.div
-        style={{ y: y1 }}
-        initial={{ scale: 1 }}
-        animate={{ scale: 1.1 }}
-        transition={{ duration: 15, ease: 'easeInOut', repeat: Infinity, repeatType: 'reverse' }}
-        className="absolute inset-0 z-0"
-      >
-        <AppImage
-          src="https://images.unsplash.com/photo-1763478958711-dd84b33cfe16?q=80&w=2574&auto=format&fit=crop"
-          alt="Luxury Villa Background"
-          fill
-          priority
-          className="object-cover brightness-[0.4]"
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#080808] to-transparent z-10" />
-      </motion.div>
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <motion.div
+          style={{ y: y1 }}
+          initial={{ scale: 1 }}
+          animate={{ scale: 1.05 }}
+          transition={{ duration: 20, ease: 'linear', repeat: Infinity, repeatType: 'reverse' }}
+          className="w-full h-full"
+        >
+          <AppImage
+            src="https://images.unsplash.com/photo-1763478958711-dd84b33cfe16?q=80&w=2574&auto=format&fit=crop"
+            alt="Luxury Villa Background - StayCool Luxury Stays"
+            fill
+            priority
+            fetchPriority="high"
+            className="object-cover brightness-[0.4]"
+            sizes="100vw"
+          />
+        </motion.div>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#080808] via-transparent to-transparent z-10" />
+      </div>
 
       {/* Main Content */}
       <motion.div

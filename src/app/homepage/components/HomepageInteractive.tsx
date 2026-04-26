@@ -236,7 +236,11 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
 
       // If no preference set and not already granted/denied, show the banner
       if (!preference) {
-        setShowLocationBanner(true);
+        // Delay showing the banner to avoid it being the LCP element
+        const timer = setTimeout(() => {
+          setShowLocationBanner(true);
+        }, 3000);
+        return () => clearTimeout(timer);
       }
     };
 
