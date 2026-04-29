@@ -41,11 +41,10 @@ interface AnimatedSectionProps {
 const AnimatedSection = ({ children }: AnimatedSectionProps) => {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 100, rotateX: 30 }}
-      whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
-      style={{ perspective: 1000 }}
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.5 }}
       className="w-full"
     >
       {children}
@@ -239,7 +238,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
         // Delay showing the banner to avoid it being the LCP element
         const timer = setTimeout(() => {
           setShowLocationBanner(true);
-        }, 3000);
+        }, 5000);
         return () => clearTimeout(timer);
       }
     };

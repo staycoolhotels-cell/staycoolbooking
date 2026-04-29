@@ -76,6 +76,17 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertyS
   // 1. Handle Mounting
   useEffect(() => {
     setIsMounted(true);
+
+    // Dynamically inject Leaflet CSS only when needed
+    if (!document.getElementById('leaflet-css')) {
+      const link = document.createElement('link');
+      link.id = 'leaflet-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+      link.crossOrigin = '';
+      document.head.appendChild(link);
+    }
     
     // Register GestureHandling only once to avoid duplicate handler errors in dev mode
     if (L.Map && typeof (L.Map as any).addInitHook === 'function') {

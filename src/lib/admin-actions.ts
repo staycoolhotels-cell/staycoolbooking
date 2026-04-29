@@ -70,7 +70,7 @@ export async function updateUserStatusAndRoleAsAdmin(
 
   if (error) {
     console.error('Error updating user status/role as admin:', error);
-    return { success: false, error: 'An unexpected error occurred. Please try again.' };
+    return { success: false, error: `Database Error: ${error.message}` };
   }
 
   await logActivity('user_action', `User ${userId} status changed to ${status} and role to ${role}`, userId, 'User Updated', 'info');
@@ -87,7 +87,7 @@ export async function deleteUserAsAdmin(userId: string) {
 
   if (error) {
     console.error('Error deleting user as admin:', error);
-    return { success: false, error: 'An unexpected error occurred. Please try again.' };
+    return { success: false, error: `Auth Error: ${error.message}` };
   }
   await logActivity('user_action', `User ${userId} has been deleted.`, userId, 'User Deleted', 'error');
   return { success: true };
@@ -102,7 +102,7 @@ export async function updateUserDetailsAsAdmin(userId: string, updatedFields: Pa
 
   if (error) {
     console.error('Error updating user details as admin:', error);
-    return { success: false, error: 'An unexpected error occurred. Please try again.' };
+    return { success: false, error: `Database Error: ${error.message}` };
   }
   await logActivity('user_action', `User ${userId} details have been updated.`, userId, 'User Updated', 'info');
   return { success: true, data };
@@ -198,7 +198,7 @@ export async function rejectHost(userId: string) {
 
   if (error) {
     console.error('Error rejecting host as admin:', error);
-    return { success: false, error: 'An unexpected error occurred. Please try again.' };
+    return { success: false, error: `Database Error: ${error.message}` };
   }
   await logActivity('host_approval', `Host ${userId} has been rejected.`, userId, 'Host Rejected', 'error');
   return { success: true, data };
@@ -239,13 +239,13 @@ export async function rejectHostWithReason(userId: string, reason: string) {
 
       if (fallbackError) {
         console.error('Error rejecting host (fallback status-only):', fallbackError);
-        return { success: false, error: 'An unexpected error occurred. Please try again.' };
+        return { success: false, error: `Database Error (Fallback): ${fallbackError.message}` };
       }
       return { success: true, data: fallbackData };
     }
 
     console.error('Error rejecting host with reason as admin:', error);
-    return { success: false, error: 'An unexpected error occurred. Please try again.' };
+    return { success: false, error: `Database Error: ${error.message}` };
   }
 
   await logActivity('host_approval', `Host ${userId} has been rejected. Reason: ${reason}`, userId, 'Host Rejected', 'error');
@@ -265,7 +265,7 @@ export async function suspendUserAsAdmin(userId: string) {
 
   if (error) {
     console.error('Error suspending user as admin:', error);
-    return { success: false, error: 'An unexpected error occurred. Please try again.' };
+    return { success: false, error: `Database Error: ${error.message}` };
   }
   await logActivity('user_action', `User ${userId} has been suspended.`, userId, 'User Suspended', 'warning');
   return { success: true, data };
@@ -283,7 +283,7 @@ export async function autoApproveGuest(userId: string) {
 
   if (error) {
     console.error('Error approving guest as admin:', error);
-    return { success: false, error: 'An unexpected error occurred. Please try again.' };
+    return { success: false, error: `Database Error: ${error.message}` };
   }
   await logActivity('user_action', `Guest ${userId} has been approved.`, userId, 'Guest Approved', 'success');
   return { success: true, data };
@@ -303,7 +303,7 @@ export async function updatePropertyStatusAsAdmin(propertyId: string, status: 'p
 
   if (error) {
     console.error('Error updating property status as admin:', error);
-    return { success: false, error: 'An unexpected error occurred. Please try again.' };
+    return { success: false, error: `Database Error: ${error.message}` };
   }
 
   // Log activity
@@ -551,7 +551,7 @@ export async function updateDisputeStatusAsAdmin(disputeId: string, status: 'ope
 
     if (error) {
       console.error('Error updating dispute status as admin:', error);
-      return { success: false, error: 'An unexpected error occurred. Please try again.' };
+      return { success: false, error: `Database Error: ${error.message}` };
     }
 
     // Log activity
@@ -561,7 +561,7 @@ export async function updateDisputeStatusAsAdmin(disputeId: string, status: 'ope
     return { success: true };
   } catch (err: any) {
     console.error('Unexpected error in updateDisputeStatusAsAdmin:', err);
-    return { success: false, error: 'An unexpected error occurred. Please try again.' };
+    return { success: false, error: `Unexpected Error: ${err.message || 'Unknown error'}` };
   }
 }
 

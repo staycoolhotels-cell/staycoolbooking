@@ -46,7 +46,9 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md,json}\"",
     "serve": "next start",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "npx playwright test",
+    "test:ui": "npx playwright test --ui"
   },
   "dependencies": {
     "@dhiwise/component-tagger": "^1.0.14",
@@ -119,6 +121,7 @@
     "@typescript-eslint/eslint-plugin": "^8.52.0",
     "@typescript-eslint/parser": "^8.52.0",
     "autoprefixer": "10.4.2",
+    "cypress": "^15.14.1",
     "dotenv": "^17.2.4",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.1",
@@ -136,5 +139,19 @@
     "ts-node": "^10.9.2",
     "typescript": "^5",
     "typescript-eslint": "^8.54.0"
-  }
+  },
+  "description": "",
+  "main": "apply_bulk_booking_fix.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vsharesoftwaresolutions/staycoolbooking.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/vsharesoftwaresolutions/staycoolbooking/issues"
+  },
+  "homepage": "https://github.com/vsharesoftwaresolutions/staycoolbooking#readme"
 }

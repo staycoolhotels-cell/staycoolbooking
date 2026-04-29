@@ -383,7 +383,7 @@ function SignupContent() {
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <form action={handleEmailSignupSubmit} method="POST" className="space-y-5">
+                  <form action={handleEmailSignupSubmit} className="space-y-5">
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1" htmlFor="fullName">
                         Full Name
@@ -537,7 +537,7 @@ function SignupContent() {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <form action={handleMobileSignupSubmit} method="POST" className="space-y-5">
+                  <form action={handleMobileSignupSubmit} className="space-y-5">
                     {!otpSent ? (
                       <div className="space-y-4">
                         <div className="space-y-2">

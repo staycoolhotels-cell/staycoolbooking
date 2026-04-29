@@ -173,7 +173,7 @@ export default function AuthClient() {
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <form action={emailAction} method="POST" className="space-y-5">
+                  <form action={emailAction} className="space-y-5">
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1" htmlFor="email">
                         Email Address
@@ -226,7 +226,7 @@ export default function AuthClient() {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <form action={mobileDispatch} method="POST" className="space-y-5">
+                  <form action={mobileDispatch} className="space-y-5">
                     {!otpSent ? (
                       <div className="space-y-4">
                         <div className="space-y-2">

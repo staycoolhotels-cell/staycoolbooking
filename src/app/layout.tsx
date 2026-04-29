@@ -153,7 +153,6 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/assets/images/logo-round.png" type="image/png" sizes="512x512" />
         <link rel="apple-touch-icon" href="/assets/images/logo-round.png" />
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossOrigin="" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}

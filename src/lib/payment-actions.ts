@@ -34,7 +34,7 @@ export async function createHostSignupOrder() {
             amount: 0,
             currency: "INR",
             key_id: null,
-            error: 'An unexpected error occurred. Please try again.'
+            error: `Payment Error: ${error.message || 'An unexpected error occurred'}`
         };
     }
 }

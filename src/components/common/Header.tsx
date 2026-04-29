@@ -190,6 +190,7 @@ const Header = () => {
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-2 text-white hover:text-[#0ea5e9] transition-colors"
+              aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
             >
               <Icon name={isMobileMenuOpen ? "XMarkIcon" : "Bars3Icon"} size={32} />
             </button>

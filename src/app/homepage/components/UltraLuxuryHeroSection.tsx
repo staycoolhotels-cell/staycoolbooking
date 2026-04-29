@@ -90,13 +90,13 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
           className="w-full h-full"
         >
           <AppImage
-            src="https://images.unsplash.com/photo-1763478958711-dd84b33cfe16?q=80&w=2574&auto=format&fit=crop"
+            src="https://images.unsplash.com/photo-1763478958711-dd84b33cfe16?q=70&w=1200&auto=format&fit=crop"
             alt="Luxury Villa Background - StayCool Luxury Stays"
             fill
             priority
             fetchPriority="high"
             className="object-cover brightness-[0.4]"
-            sizes="100vw"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
           />
         </motion.div>
         <div className="absolute inset-0 bg-gradient-to-t from-[#080808] via-transparent to-transparent z-10" />

@@ -57,8 +57,14 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
 
   // Data States
   const [user, setUser] = useState<User | null>(userData);
-  const [verifications, setVerifications] = useState<UserVerificationStatus | null>(
-    userData.verifications
+  const [verifications, setVerifications] = useState<UserVerificationStatus>(
+    userData.verifications || {
+      user_id: userData.id || '',
+      isEmailVerified: false,
+      isPhoneVerified: false,
+      isIdVerified: false,
+      isPaymentMethodVerified: false,
+    }
   );
   const [reviews, setReviews] = useState<Review[]>(userData.reviews);
   const [bookings, setBookings] = useState<(Booking & { properties: Partial<Property> })[]>(
@@ -71,7 +77,13 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
 
   useEffect(() => {
     setUser(userData);
-    setVerifications(userData.verifications);
+    setVerifications(userData.verifications || {
+      user_id: userData.id || '',
+      isEmailVerified: false,
+      isPhoneVerified: false,
+      isIdVerified: false,
+      isPaymentMethodVerified: false,
+    });
     setReviews(userData.reviews);
     setBookings(userData.bookings);
     setPersonalInfo(userData);
@@ -352,11 +364,13 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
             <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.48 }}>
               <SmartWishlist wishlist={wishlist} userId={user?.id || ''} />
             </motion.div>
-            {verifications && (
-              <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.56 }}>
-                <VerificationAndTrust verifications={verifications} bookings={bookings} />
-              </motion.div>
-            )}
+            <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.56 }}>
+              <VerificationAndTrust 
+                verifications={verifications} 
+                bookings={bookings} 
+                onUpdate={(newVerifications) => setVerifications(newVerifications)}
+              />
+            </motion.div>
           </aside>
         </div>
       </div>

@@ -98,7 +98,7 @@ export default async function ProfilePage() {
 
   const { data: bookings, error: bookingsError } = await supabase
     .from('bookings')
-    .select('*, properties!inner(*)')
+    .select('*, properties!inner(*, host:users!host_id(name, avatar:avatar_url))')
     .eq('guest_id', user.id);
 
   const { data: achievements, error: achievementsError } = await supabase

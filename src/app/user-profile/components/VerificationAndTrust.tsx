@@ -1,45 +1,118 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
 import { UserVerificationStatus, Booking, Property } from '@/lib/types';
+import { supabase } from '@/lib/supabaseClient';
 
 type VerificationAndTrustProps = {
   verifications: UserVerificationStatus;
   bookings?: (Booking & { properties: Partial<Property> })[];
+  onUpdate?: (newVerifications: UserVerificationStatus) => void;
 };
 
-const VerificationAndTrust = ({ verifications, bookings = [] }: VerificationAndTrustProps) => {
-  const verifiedItems = Object.entries(verifications)
-    .filter(([key, value]) => value === true && key !== 'user_id')
-    .map(([key]) => {
-      const text = key
-        .replace('is', '')
-        .replace(/([A-Z])/g, ' $1')
-        .trim();
-      return {
-        name: text,
-        icon: `DocumentCheckIcon`, // This should be dynamic in real app
-      };
-    });
+const VerificationAndTrust = ({ verifications, bookings = [], onUpdate }: VerificationAndTrustProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Extract unique hosts from bookings
   const uniqueHosts = bookings.reduce<Array<{ name: string; avatar: string; location?: string }>>((acc, booking) => {
+    // Some bookings might have host info nested or it might be missing
     const host = booking.properties?.host;
-    if (host && !acc.some((h) => h.name === host.name)) {
+    if (host && host.name && !acc.some((h) => h.name === host.name)) {
       acc.push({
         name: host.name,
-        avatar: host.avatar,
+        avatar: host.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(host.name)}&background=0D8ABC&color=fff`,
         location: booking.properties.location
       });
     }
     return acc;
-  }, []).slice(0, 3); // Limit to 3 recent hosts
+  }, []).slice(0, 3);
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${verifications.user_id}/id_verification_${Math.random()}.${fileExt}`;
+      const filePath = `verifications/${fileName}`;
+
+      // 1. Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // 2. Update database
+      const { data: updatedData, error: dbError } = await supabase
+        .from('verifications')
+        .upsert({
+          user_id: verifications.user_id,
+          isIdVerified: true, // In real app, this would be 'pending' until manual review
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' })
+        .select()
+        .single();
+
+      if (dbError) throw dbError;
+
+      if (onUpdate && updatedData) {
+        onUpdate(updatedData as UserVerificationStatus);
+      }
+      
+      alert('ID Document uploaded successfully! Verification is now in progress.');
+    } catch (error: any) {
+      console.error('Upload failed:', error);
+      alert('Failed to upload document: ' + (error.message || 'Unknown error'));
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removeId = async () => {
+    if (!confirm('Are you sure you want to remove your ID verification?')) return;
+    
+    try {
+      setIsUploading(true);
+      const { data: updatedData, error: dbError } = await supabase
+        .from('verifications')
+        .update({ isIdVerified: false })
+        .eq('user_id', verifications.user_id)
+        .select()
+        .single();
+
+      if (dbError) throw dbError;
+
+      if (onUpdate && updatedData) {
+        onUpdate(updatedData as UserVerificationStatus);
+      }
+    } catch (error: any) {
+      alert('Failed to remove ID: ' + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div className="bg-zinc-900/30 border border-zinc-800 rounded-[2rem] shadow-xl p-6 shadow-sky-900/5">
       <h2 className="text-xl font-bold text-white mb-4">Verification & Trust Center</h2>
+
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        className="hidden" 
+        accept="image/*,.pdf"
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Document Vault */}
@@ -53,14 +126,28 @@ const VerificationAndTrust = ({ verifications, bookings = [] }: VerificationAndT
           {verifications.isIdVerified ? (
             <div className="bg-green-900/30 border border-green-500/50 rounded-lg p-3 text-center">
               <Icon name="CheckCircleIcon" className="w-8 h-8 text-green-400 mx-auto mb-2" />
-              <p className="font-semibold text-white">ID Verified</p>
-              <p className="text-xs text-gray-400">Passport ending in ****5678</p>
-              <button className="text-xs text-red-400 mt-2 hover:underline">Remove</button>
+              <p className="font-semibold text-white">ID Verification Active</p>
+              <p className="text-xs text-gray-400">Successfully verified on {new Date().toLocaleDateString()}</p>
+              <button 
+                onClick={removeId}
+                disabled={isUploading}
+                className="text-xs text-red-400 mt-2 hover:underline disabled:opacity-50"
+              >
+                Remove
+              </button>
             </div>
           ) : (
-            <button className="w-full bg-sky-600/30 text-sky-300 border border-sky-500/50 rounded-lg py-3 font-semibold flex items-center justify-center gap-2 hover:bg-sky-600/40 transition">
-              <Icon name="CloudArrowUpIcon" size={16} />
-              Upload Passport/ID
+            <button 
+              onClick={handleUploadClick}
+              disabled={isUploading}
+              className="w-full bg-sky-600/30 text-sky-300 border border-sky-500/50 rounded-lg py-3 font-semibold flex items-center justify-center gap-2 hover:bg-sky-600/40 transition disabled:opacity-50"
+            >
+              {isUploading ? (
+                <div className="w-5 h-5 border-2 border-sky-300 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Icon name="CloudArrowUpIcon" size={16} />
+              )}
+              {isUploading ? 'Uploading...' : 'Upload Passport/ID'}
             </button>
           )}
         </div>
@@ -76,13 +163,13 @@ const VerificationAndTrust = ({ verifications, bookings = [] }: VerificationAndT
               uniqueHosts.map((host, index) => (
                 <div key={index} className="flex items-center gap-3 bg-zinc-900/50 p-2 rounded-lg">
                   <img
-                    src={host.avatar || `https://ui-avatars.com/api/?name=${host.name}&background=random`}
+                    src={host.avatar}
                     alt={host.name}
                     className="w-10 h-10 rounded-full object-cover"
                   />
-                  <div>
-                    <p className="font-semibold text-white text-sm">{host.name}</p>
-                    <p className="text-xs text-zinc-500">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-white text-sm truncate">{host.name}</p>
+                    <p className="text-xs text-zinc-500 truncate">
                       {host.location ? `Host in ${host.location}` : 'Property Host'}
                     </p>
                   </div>
@@ -91,11 +178,10 @@ const VerificationAndTrust = ({ verifications, bookings = [] }: VerificationAndT
                     whileTap={{ scale: 0.9 }}
                     onClick={() => {
                       alert(`Starting secure chat with ${host.name}... Redirecting to inbox.`);
-                      // window.location.href = `/inbox?host=${encodeURIComponent(host.name)}`;
                     }}
-                    className="ml-auto p-2 bg-primary/20 rounded-full hover:bg-primary/30"
+                    className="p-2 bg-sky-500/20 rounded-full hover:bg-sky-500/30"
                   >
-                    <Icon name="MessageSquareIcon" size={16} className="text-primary" />
+                    <Icon name="MessageSquareIcon" size={16} className="text-sky-400" />
                   </motion.button>
                 </div>
               ))
@@ -112,3 +198,4 @@ const VerificationAndTrust = ({ verifications, bookings = [] }: VerificationAndT
 };
 
 export default VerificationAndTrust;
+

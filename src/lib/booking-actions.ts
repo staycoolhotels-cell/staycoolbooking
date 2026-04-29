@@ -103,7 +103,7 @@ export async function verifyUser(_prevState: any, formData: FormData) {
 
     if (error) {
       console.error('Database Operation Error:', error);
-      return { error: 'An unexpected error occurred. Please try again.' };
+      return { error: `Database Operation Error: ${error.message}` };
     }
 
     // Return success with simplified data
@@ -196,7 +196,7 @@ export async function createBooking(bookingDetails: {
 
     if (error) {
       console.error("Booking RPC Error:", error);
-      return { error: 'An unexpected error occurred. Please try again.' };
+      return { error: `Booking Error: ${error.message}` };
     }
 
     // Process amenities for tracking
@@ -239,9 +239,9 @@ export async function createBooking(bookingDetails: {
     // RPC returns booking UUID
     return { success: true, data: [{ id: data }] };
 
-  } catch (err: unknown) {
+  } catch (err: any) {
     console.error("Booking Action Error:", err);
-    return { error: 'An unexpected error occurred. Please try again.' };
+    return { error: `Booking Action Error: ${err.message || 'Unknown error'}` };
   }
 }
 

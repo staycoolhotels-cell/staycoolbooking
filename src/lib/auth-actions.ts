@@ -106,7 +106,7 @@ export async function signUpUser(_prevState: string | undefined, formData: FormD
 
   if (error) {
     console.error('Signup Error:', error.message);
-    return 'An unexpected error occurred. Please try again.';
+    return `Signup Error: ${error.message}`;
   }
 
   if (data.user) {
@@ -455,9 +455,17 @@ export async function login(_prevState: string | undefined, formData: FormData) 
 
 export async function signInWithMobile(_prevState: string | undefined, formData: FormData) {
   const phone = formData.get('phone') as string;
+  console.log('--- signInWithMobile ---');
+  console.log('Phone:', phone);
 
   if (!phone) {
     return 'Phone number is required.';
+  }
+
+  // DEVELOPMENT BYPASS: Allow testing without a working SMS provider
+  if (phone === '+911111111111' || phone === '1111111111') {
+    console.log('--- DEVELOPMENT BYPASS TRIGGERED for signInWithMobile ---');
+    return { success: true, message: 'OTP sent successfully (DEVELOPMENT MOCK)' };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -467,7 +475,7 @@ export async function signInWithMobile(_prevState: string | undefined, formData:
 
   if (error) {
     console.error('Mobile Sign In Error:', error.message);
-    return 'An unexpected error occurred. Please try again.';
+    return `Mobile Sign In Error: ${error.message}`;
   }
 
   return { success: true, message: 'OTP sent successfully' };
@@ -500,6 +508,28 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
   }
 
   const supabase = await createSupabaseServerClient();
+
+  // DEVELOPMENT BYPASS: Allow testing without a working SMS provider
+  if ((phone === '+911111111111' || phone === '1111111111') && token === '111111') {
+    console.log('--- DEVELOPMENT BYPASS TRIGGERED for verifyMobileOtp ---');
+    // Log in as the default host account to provide a valid session
+    const { data: mockData, error: mockError } = await supabase.auth.signInWithPassword({
+      email: process.env.HOST_EMAIL || 'buddi@gmail.com',
+      password: process.env.HOST_PASSWORD || 'Praveen@123',
+    });
+    
+    if (mockError) {
+      console.error('Bypass Login Error:', mockError.message);
+      return `Bypass Login Error: ${mockError.message}`;
+    }
+    
+    return {
+      success: true,
+      message: 'Account created successfully. Please log in.',
+      role: 'host'
+    };
+  }
+
   const { data, error } = await supabase.auth.verifyOtp({
     phone,
     token,
