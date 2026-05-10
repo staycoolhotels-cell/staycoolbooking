@@ -82,7 +82,9 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate }: Verifi
           if (idMatch) {
             setOcrData({ idNumber: idMatch[0] });
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error('Tesseract fallback failed:', e);
+        }
         setOcrLoading(false);
       });
 

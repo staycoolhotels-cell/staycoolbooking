@@ -1239,7 +1239,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       const fetchAdminAndThreads = async () => {
         // Get current admin
         const { data: { user } } = await supabase.auth.getUser();
-        let adminId = user?.id;
+        const adminId = user?.id;
         if (user) {
           const { data: profile } = await supabase.from('users').select('id, name').eq('id', user.id).single();
           setCurrentAdmin({ id: user.id, name: profile?.name || 'Admin' });

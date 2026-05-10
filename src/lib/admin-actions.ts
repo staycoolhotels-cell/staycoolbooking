@@ -407,7 +407,7 @@ export async function syncAndFetchUsers() {
 
       // Determine correct status, PRESERVING existing if metadata has it
       // HOST APPROVAL REMOVED: Default to 'active' for all new/synced users
-      let status = user.user_metadata?.status || 'active';
+      const status = user.user_metadata?.status || 'active';
 
       // Use upsert to handle race conditions
       const { error: insertError } = await supabase.from('users').upsert({
