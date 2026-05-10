@@ -10,7 +10,7 @@ interface ContactHostModalProps {
     onClose: () => void;
     hostId: string;
     hostName: string;
-    propertyId: string;
+    propertyId?: string;
 }
 
 const ContactHostModal: React.FC<ContactHostModalProps> = ({ isOpen, onClose, hostId, hostName, propertyId }) => {

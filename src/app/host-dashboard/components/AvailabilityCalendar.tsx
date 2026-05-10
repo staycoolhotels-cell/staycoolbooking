@@ -143,16 +143,22 @@ export default function AvailabilityCalendar({ properties }: AvailabilityCalenda
     const paddingDays = Array.from({ length: startDay });
 
     const getDayStatus = (date: Date) => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+
         // Check blocks
-        const block = blockedDates.find(b =>
-            new Date(b.start_date) <= date && new Date(b.end_date) >= date
-        );
+        const block = blockedDates.find(b => {
+            const startStr = b.start_date.split('T')[0];
+            const endStr = b.end_date.split('T')[0];
+            return startStr <= dateStr && endStr >= dateStr;
+        });
         if (block) return { status: 'blocked', id: block.id };
 
         // Check bookings
-        const booking = bookings.find(b =>
-            new Date(b.check_in) <= date && new Date(b.check_out) > date
-        );
+        const booking = bookings.find(b => {
+            const checkInStr = b.check_in.split('T')[0];
+            const checkOutStr = b.check_out.split('T')[0];
+            return checkInStr <= dateStr && checkOutStr > dateStr;
+        });
         if (booking) return { status: 'booked', guest: booking.guest?.name };
 
         return { status: 'available' };

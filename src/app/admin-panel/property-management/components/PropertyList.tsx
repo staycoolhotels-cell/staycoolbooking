@@ -7,7 +7,6 @@ import { approveProperty, rejectProperty } from '@/lib/admin-actions';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, MapPin, Tag, Eye, Home, Clock, Ban } from 'lucide-react';
-import { useAppStore } from '@/lib/store';
 
 interface PropertyListProps {
   initialProperties: Property[];
@@ -47,30 +46,37 @@ const STATUS_CONFIG: Record<string, {
 
 const PropertyList = ({ initialProperties }: PropertyListProps) => {
   const router = useRouter();
-  const { properties, setProperties, updateProperty } = useAppStore();
+  const [properties, setProperties] = useState<Property[]>(initialProperties);
   const [loading, setLoading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Sync with initial properties ONLY if store is empty or we have fresh data
+  // Sync with initial properties when they change
   useEffect(() => {
-    if (properties.length === 0 && initialProperties.length > 0) {
-      setProperties(initialProperties);
-    }
-  }, [initialProperties, setProperties, properties.length]);
+    setProperties(initialProperties);
+  }, [initialProperties]);
+
+  const updateProperty = (updatedProperty: Partial<Property> & { id: string }) => {
+    setProperties((prev) => prev.map((p) => 
+      p.id === updatedProperty.id ? { ...p, ...updatedProperty } : p
+    ));
+  };
 
   useEffect(() => {
     const channel = supabase
       .channel('realtime-properties')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          // Check if already in store to avoid duplicates
-          const exists = properties.some(p => p.id === payload.new.id);
-          if (!exists) setProperties([...properties, payload.new as Property]);
+          // Check if already in state to avoid duplicates
+          setProperties((prev) => {
+            const exists = prev.some(p => p.id === payload.new.id);
+            if (!exists) return [...prev, payload.new as Property];
+            return prev;
+          });
         } else if (payload.eventType === 'UPDATE') {
           updateProperty(payload.new as Property);
         } else if (payload.eventType === 'DELETE') {
-          setProperties(properties.filter((p) => p.id !== (payload.old as Property).id));
+          setProperties((prev) => prev.filter((p) => p.id !== (payload.old as Property).id));
         }
       })
       .subscribe();

@@ -31,7 +31,8 @@ import CursorSpotlight from '@/components/ui/CursorSpotlight';
 import { supabase } from '@/lib/supabaseClient';
 
 import { motion } from 'framer-motion';
-import { Property } from '@/lib/types';
+import { Property, User } from '@/lib/types';
+import { useAppStore } from '@/lib/store';
 
 // Animation wrapper for sections
 interface AnimatedSectionProps {
@@ -102,25 +103,45 @@ interface HomepageInteractiveProps {
 
 const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProperties }) => {
   const router = useRouter();
+  const { 
+    properties: cachedProperties, 
+    setProperties, 
+    currentUser: cachedUser, 
+    setCurrentUser: setStoreUser,
+    wishlistIds: cachedWishlist,
+    setWishlistIds 
+  } = useAppStore();
+
   const [isHydrated, setIsHydrated] = useState(false);
-  const [selectedStayType, setSelectedStayType] = useState('all');
-  const [savedProperties, setSavedProperties] = useState<string[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [allProperties, setAllProperties] = useState<PropertyForCard[]>(
-    initialProperties.map(mapPropertyForCard)
-  );
-  const [filteredProperties, setFilteredProperties] = useState<PropertyForCard[]>(
-    initialProperties.map(mapPropertyForCard)
-  );
+  const [selectedStayType, setSelectedStayType] = useState('hotel');
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [searchLocation, setSearchLocation] = useState<string>('');
 
-
+  // Local state for filtered results only
+  const [filteredProperties, setFilteredProperties] = useState<PropertyForCard[]>([]);
 
   // Location-based sorting
   const [userCity, setUserCity] = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'granted' | 'denied'>('idle');
   const [showLocationBanner, setShowLocationBanner] = useState(false);
+
+  // Sync initial properties to store on mount
+  useEffect(() => {
+    if (initialProperties && initialProperties.length > 0) {
+      setProperties(initialProperties);
+    }
+  }, [initialProperties, setProperties]);
+
+  const allProperties = useMemo(() => {
+    // Prefer store properties if available and not empty, otherwise use initial
+    const propsToUse = (cachedProperties && cachedProperties.length > 0) 
+      ? cachedProperties 
+      : initialProperties;
+    return propsToUse.map(mapPropertyForCard);
+  }, [cachedProperties, initialProperties]);
+
+  const savedProperties = cachedWishlist;
+  const currentUser = cachedUser;
 
   // Dynamic Counts Calculation
   const counts = useMemo(() => {
@@ -251,14 +272,35 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
 
     // Fetch user and their wishlist
     const fetchUserAndWishlist = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setCurrentUser(user);
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        // Fetch full profile from 'users' table to get name, role, status etc.
+        const { data: profileData } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', authUser.id)
+          .single();
+
+        if (profileData) {
+          setStoreUser(profileData as User);
+        } else {
+          // Fallback to construction from metadata if profile record is not yet available
+          const fallbackUser: User = {
+            id: authUser.id,
+            email: authUser.email || '',
+            name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+            role: authUser.user_metadata?.role || 'guest',
+            status: authUser.user_metadata?.status || (authUser.user_metadata?.role === 'host' ? 'pending' : 'active'),
+            created_at: authUser.created_at,
+            avatar_url: authUser.user_metadata?.avatar_url
+          };
+          setStoreUser(fallbackUser);
+        }
 
         const { data: wishlistData, error, status } = await supabase
           .from('wishlist')
           .select('property_id')
-          .eq('user_id', user.id);
+          .eq('user_id', authUser.id);
 
         if (error) {
           console.error("Wishlist Fetch Error:", error, status);
@@ -267,7 +309,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
         }
 
         if (wishlistData) {
-          setSavedProperties(wishlistData.map((w: any) => w.property_id));
+          setWishlistIds(wishlistData.map((w: any) => w.property_id));
         }
       }
     };
@@ -276,69 +318,122 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
   }, []);
 
   useEffect(() => {
-    setFilteredProperties(allProperties);
-  }, [allProperties]);
+    let filtered = allProperties;
 
-  useEffect(() => {
-    if (selectedStayType === 'all') {
-      setFilteredProperties(allProperties);
-    } else {
-      const filtered = allProperties.filter((p) =>
-        p.type.toLowerCase().includes(selectedStayType.toLowerCase())
+    // 1. Filter by Search Location
+    if (searchLocation) {
+      filtered = filtered.filter((p) =>
+        p.location.toLowerCase().includes(searchLocation.toLowerCase())
       );
-      setFilteredProperties(filtered);
     }
-  }, [selectedStayType, allProperties]);
+
+    // 2. Filter by Selected Stay Type
+    if (selectedStayType !== 'all') {
+      filtered = filtered.filter((p) => {
+        const type = p.type.toLowerCase();
+        if (selectedStayType === 'hotel') return type.includes('hotel');
+        if (selectedStayType === 'homestay') return type.includes('homestay') || type.includes('home');
+        if (selectedStayType === 'tent') return type.includes('tent') || type.includes('camp');
+        if (selectedStayType === 'wooden') return type.includes('wooden') || type.includes('cabin');
+        if (selectedStayType === 'dormitory') return type.includes('dorm') || type.includes('hostel');
+        if (selectedStayType === 'apartment') return type.includes('apartment') || type.includes('flat');
+        if (selectedStayType === 'villa') return type.includes('villa');
+        if (selectedStayType === 'resort') return type.includes('resort');
+        return type.includes(selectedStayType.toLowerCase());
+      });
+    }
+
+    setFilteredProperties(filtered);
+  }, [selectedStayType, searchLocation, allProperties]);
 
   // Handle scrolling to last viewed property
   useEffect(() => {
-    if (isHydrated && filteredProperties.length > 0) {
-      const lastPropertyId = sessionStorage.getItem('last_viewed_property');
-      if (lastPropertyId) {
-        // Small delay to allow layout to settle and animations to finish
-        const timer = setTimeout(() => {
-          const element = document.getElementById(`property-${lastPropertyId}`);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // Highlight the card briefly
-            element.classList.add('ring-2', 'ring-sky-500', 'ring-offset-4', 'ring-offset-black');
-            setTimeout(() => {
-              element.classList.remove('ring-2', 'ring-sky-500', 'ring-offset-4', 'ring-offset-black');
-            }, 2000);
-            sessionStorage.removeItem('last_viewed_property');
-          }
-        }, 800);
-        return () => clearTimeout(timer);
+    if (!isHydrated) return;
+
+    const lastPropertyId = sessionStorage.getItem('last_viewed_property');
+    if (!lastPropertyId) return;
+
+    // 1. Check if the property is in the CURRENT filtered list
+    const isVisible = filteredProperties.some(p => p.id === lastPropertyId);
+
+    if (!isVisible) {
+      // 2. If not visible, find its category from allProperties and switch to it
+      const targetProperty = allProperties.find(p => p.id === lastPropertyId);
+      if (targetProperty) {
+        const type = targetProperty.type.toLowerCase();
+        let matchedType = 'all';
+        
+        if (type.includes('hotel')) matchedType = 'hotel';
+        else if (type.includes('homestay') || type.includes('home')) matchedType = 'homestay';
+        else if (type.includes('villa')) matchedType = 'villa';
+        else if (type.includes('tent') || type.includes('camp')) matchedType = 'tent';
+        else if (type.includes('wooden') || type.includes('cabin')) matchedType = 'wooden';
+        else if (type.includes('dorm') || type.includes('hostel')) matchedType = 'dormitory';
+        else if (type.includes('apartment') || type.includes('flat')) matchedType = 'apartment';
+        else if (type.includes('resort')) matchedType = 'resort';
+
+        if (matchedType !== selectedStayType) {
+          setSelectedStayType(matchedType);
+          return; // Wait for the next effect trigger with updated filteredProperties
+        }
       }
     }
-  }, [isHydrated, filteredProperties]);
+
+    // 3. Scroll to the element once it's confirmed visible
+    let retryCount = 0;
+    const maxRetries = 10;
+    let timeoutId: NodeJS.Timeout;
+    
+    const scrollToElement = () => {
+      const element = document.getElementById(`property-${lastPropertyId}`);
+      if (element) {
+        // High-precision scroll
+        const offset = 120; // Account for sticky headers
+        const bodyRect = document.body.getBoundingClientRect().top;
+        const elementRect = element.getBoundingClientRect().top;
+        const elementPosition = elementRect - bodyRect;
+        const offsetPosition = elementPosition - offset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+
+        // Visual feedback
+        element.classList.add('ring-4', 'ring-sky-500', 'ring-offset-8', 'ring-offset-black', 'scale-[1.02]', 'z-50', 'transition-all', 'duration-700');
+        
+        timeoutId = setTimeout(() => {
+          element.classList.remove('ring-4', 'ring-sky-500', 'ring-offset-8', 'ring-offset-black', 'scale-[1.02]');
+          sessionStorage.removeItem('last_viewed_property');
+        }, 3000);
+      } else if (retryCount < maxRetries) {
+        retryCount++;
+        timeoutId = setTimeout(scrollToElement, 200);
+      }
+    };
+
+    timeoutId = setTimeout(scrollToElement, 600); // Start sooner but with retry logic
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isHydrated, filteredProperties, allProperties, selectedStayType]);
 
 
   const handleSearch = (filters: any) => {
-    let filtered = allProperties;
-
-    // Determine location and dates from filters object or direct parameters
+    // Determine location and stay type from filters object or direct parameters
     const locationStr = typeof filters === 'string' ? filters : (filters?.location || '');
+    const stayTypeStr = filters?.stayType || 'all';
     const dates = filters?.dates;
 
+    // Update state - this will trigger the centralized filtering useEffect
     setSearchLocation(locationStr);
-
-    if (locationStr && typeof locationStr === 'string') {
-      filtered = filtered.filter((p) =>
-        p.location.toLowerCase().includes(locationStr.toLowerCase())
-      );
-    }
-
-    if (filters?.stayType && filters.stayType !== 'all') {
-      filtered = filtered.filter((p) => p.type.toLowerCase().includes(filters.stayType));
-    }
+    setSelectedStayType(stayTypeStr);
 
     if (dates) {
       console.log('Searching for dates:', dates);
       // Backend filtering for dates could be added here
     }
-
-    setFilteredProperties(filtered);
 
     // Only scroll on an actual search (not on cancel which sends empty filters)
     const isActualSearch = !!(locationStr || dates);
@@ -360,11 +455,12 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
     }
 
     const isCurrentlySaved = savedProperties.includes(propertyId);
+    const newWishlist = isCurrentlySaved 
+      ? savedProperties.filter((id) => id !== propertyId) 
+      : [...savedProperties, propertyId];
 
-    // Optimistic UI update
-    setSavedProperties((prev) =>
-      isCurrentlySaved ? prev.filter((id) => id !== propertyId) : [...prev, propertyId]
-    );
+    // Optimistic store update
+    setWishlistIds(newWishlist);
 
     try {
       if (isCurrentlySaved) {
@@ -393,9 +489,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
     } catch (error) {
       console.error("Error updating wishlist:", error);
       // Revert optimistic update on error
-      setSavedProperties((prev) =>
-        isCurrentlySaved ? [...prev, propertyId] : prev.filter((id) => id !== propertyId)
-      );
+      setWishlistIds(isCurrentlySaved ? [...savedProperties, propertyId] : savedProperties.filter(id => id !== propertyId));
     }
   };
 
@@ -501,7 +595,15 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
             <StayTypeFilter
               stayTypes={stayTypes}
               selectedType={selectedStayType}
-              onTypeSelect={setSelectedStayType}
+              onTypeSelect={(typeId) => {
+                setSelectedStayType(typeId);
+                setTimeout(() => {
+                  const section = document.getElementById('featured-collections');
+                  if (section) {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }, 100);
+              }}
             />
           </AnimatedSection>
 
@@ -546,24 +648,24 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
 
 
                   {/* Grid/Map View Toggle */}
-                  <div className="flex items-center bg-zinc-900/40 backdrop-blur-xl border border-white/5 p-1.5 rounded-2xl">
+                  <div className="flex items-center bg-zinc-900/40 backdrop-blur-xl border border-white/5 p-1 rounded-2xl">
                     <button
                       onClick={() => setViewMode('grid')}
                       aria-label="Switch to list view"
                       aria-pressed={viewMode === 'grid'}
-                      className={`flex items-center gap-3 px-5 py-2.5 rounded-xl transition-all duration-500 ${viewMode === 'grid' ? 'bg-zinc-800 text-sky-400 shadow-xl border border-white/5' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-500 ${viewMode === 'grid' ? 'bg-zinc-800 text-sky-400 shadow-xl border border-white/5' : 'text-zinc-500 hover:text-zinc-300'}`}
                     >
-                      <Icon name="Squares2X2Icon" size={18} />
-                      <span className="text-xs font-black uppercase tracking-[0.1em]">List</span>
+                      <Icon name="Squares2X2Icon" size={16} />
+                      <span className="text-[10px] font-black uppercase tracking-[0.05em]">List</span>
                     </button>
                     <button
                       onClick={() => setViewMode('map')}
                       aria-label="Switch to map view"
                       aria-pressed={viewMode === 'map'}
-                      className={`flex items-center gap-3 px-5 py-2.5 rounded-xl transition-all duration-500 ${viewMode === 'map' ? 'bg-zinc-800 text-sky-400 shadow-xl border border-white/5' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-500 ${viewMode === 'map' ? 'bg-zinc-800 text-sky-400 shadow-xl border border-white/5' : 'text-zinc-500 hover:text-zinc-300'}`}
                     >
-                      <Icon name="MapIcon" size={18} />
-                      <span className="text-xs font-black uppercase tracking-[0.1em]">Map</span>
+                      <Icon name="MapIcon" size={16} />
+                      <span className="text-[10px] font-black uppercase tracking-[0.05em]">Map</span>
                     </button>
                   </div>
                 </div>

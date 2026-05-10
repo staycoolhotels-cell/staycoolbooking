@@ -43,27 +43,27 @@ export function getRefundPercentage(
   }
 
   // 3. Free Cancellation Option (Paid ₹70)
-  // If they have free cancellation, they get 100% as long as it's before check-in
   if (isFreeCancellationActive) {
     return 100;
   }
 
-  // 4. Standard Tiered Policy (Calculated based on days until check-in)
-  // Use startOfDay to compare full calendar days
+  // 4. Standard Tiered Policy
   const daysUntilCheckIn = differenceInDays(startOfDay(checkIn), startOfDay(cancellation));
 
-  if (daysUntilCheckIn >= 10) return 100;
-  if (daysUntilCheckIn >= 5) return 70;
-  if (daysUntilCheckIn >= 2) return 50;
-  
-  // 2 days before or less
-  return 30;
+  if (daysUntilCheckIn >= 10) {
+      return 100;
+  } else if (daysUntilCheckIn >= 5) {
+      return 70;
+  } else if (daysUntilCheckIn >= 2) {
+      return 50;
+  } else {
+      return 30;
+  }
 }
 
 
 /**
  * Calculates the refund amount based on total price and cancellation timing.
- * Note: Platform fee (10%) is deducted first, then refund percentage is applied.
  */
 export function calculateRefundAmount(
   totalPrice: number,
@@ -73,10 +73,39 @@ export function calculateRefundAmount(
   hasFreeCancellation: any = false
 ): number {
   const percent = getRefundPercentage(checkInDate, cancellationDate, bookingDate, hasFreeCancellation);
-
-  // Deduct 10% platform fee first
-  const platformFee = totalPrice * 0.10;
-  const refundableBase = totalPrice - platformFee;
-
-  return (refundableBase * percent) / 100;
+  return (totalPrice * percent) / 100;
 }
+
+/**
+ * Calculates the full distribution of the total price upon cancellation.
+ * Split logic: 
+ * 1. Guest gets tiered refund (100%, 70%, 50%, or 30%).
+ * 2. Remaining penalty is split EQUALLY (50/50) between Admin and Host.
+ */
+export function calculateRefundDistribution(
+  totalPrice: number,
+  checkInDate: string | Date,
+  cancellationDate: string | Date,
+  bookingDate?: string | Date,
+  hasFreeCancellation: any = false
+) {
+  const guestRefundPercent = getRefundPercentage(checkInDate, cancellationDate, bookingDate, hasFreeCancellation);
+  const guestRefundAmount = (totalPrice * guestRefundPercent) / 100;
+  
+  const totalPenalty = totalPrice - guestRefundAmount;
+  
+  // Penalty is split equally between host and admin
+  const hostShare = totalPenalty / 2;
+  const adminShare = totalPenalty / 2;
+
+  return {
+    guestRefundAmount,
+    hostShare,
+    adminShare,
+    totalRetained: totalPenalty,
+    guestRefundPercent,
+    hostSharePercent: (100 - guestRefundPercent) / 2,
+    adminSharePercent: (100 - guestRefundPercent) / 2
+  };
+}
+

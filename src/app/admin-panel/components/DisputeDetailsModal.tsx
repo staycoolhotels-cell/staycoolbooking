@@ -107,8 +107,8 @@ const DisputeDetailsModal = ({ dispute, onClose, onUpdateStatus }: DisputeDetail
                     </div>
 
                     <div className="flex justify-between text-xs text-zinc-500 border-t border-white/10 pt-4">
-                        <span>Created: {new Date(dispute.createdDate || '').toLocaleDateString()}</span>
-                        <span>Last Updated: {new Date(dispute.lastUpdate || '').toLocaleDateString()}</span>
+                        <span>Created: {dispute.createdDate ? new Date(dispute.createdDate).toLocaleDateString() : 'N/A'}</span>
+                        <span>Last Updated: {dispute.lastUpdate ? new Date(dispute.lastUpdate).toLocaleDateString() : 'N/A'}</span>
                     </div>
 
                 </div>

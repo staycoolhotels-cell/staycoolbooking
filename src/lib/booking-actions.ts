@@ -29,6 +29,76 @@ const createSupabaseServerClient = async () => {
 
 import { logActivity } from './activity-actions';
 import { createServiceClient } from './supabase-server';
+import { getGeminiModel } from './gemini';
+
+export async function processIdDocument(formData: FormData) {
+  try {
+    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+      console.error('OCR Error: GOOGLE_GENERATIVE_AI_API_KEY is not set in environment variables.');
+      return { error: 'Verification service is currently unavailable.' };
+    }
+
+    const file = formData.get('document') as File;
+    if (!file) {
+      return { error: 'No document file provided.' };
+    }
+
+    console.log('Starting OCR processing for file:', file.name, file.type, file.size);
+
+    // Convert file to base64 for Gemini
+    const arrayBuffer = await file.arrayBuffer();
+    const base64Image = Buffer.from(arrayBuffer).toString('base64');
+    const mimeType = file.type;
+
+    const model = getGeminiModel('gemini-1.5-flash'); 
+    
+    const prompt = `
+      You are an expert OCR and identity verification assistant. 
+      CRITICAL TASK: First, determine if the attached image is actually a government-issued ID card (specifically an Indian Aadhaar card).
+      
+      If the image is NOT an ID card (e.g., it is a hotel, a building, a landscape, food, a random person, or any non-document object), you MUST set "isValidId" to false.
+
+      If it IS a valid ID card, extract:
+      - "fullName": The full name of the person.
+      - "idNumber": The Aadhaar number (12 digits, often formatted as XXXX XXXX XXXX).
+      - "isBlurry": Boolean, true if the image is too blurry to read clearly.
+      - "isFakeSuspected": Boolean, true if the document looks suspicious, edited, or is not an official ID.
+      - "isValidId": Boolean, true ONLY if it is clearly a government ID card.
+      - "confidence": Number between 0 and 1.
+
+      Return the data in JSON format only.
+    `;
+
+    console.log('Sending request to Gemini...');
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64Image,
+          mimeType: mimeType
+        }
+      }
+    ]);
+
+    const response = await result.response;
+    let text = response.text();
+    console.log('Gemini raw response text length:', text.length);
+
+    // Clean up markdown
+    if (text.includes('```json')) {
+      text = text.split('```json')[1].split('```')[0].trim();
+    } else if (text.includes('```')) {
+      text = text.split('```')[1].split('```')[0].trim();
+    }
+
+    const data = JSON.parse(text);
+    console.log('OCR Data extracted successfully:', data.idNumber);
+    return { success: true, data };
+  } catch (err: any) {
+    console.error('OCR Error:', err);
+    return { error: `OCR Error: ${err.message || 'Unknown error'}` };
+  }
+}
 //...
 export async function verifyUser(_prevState: any, formData: FormData) {
   try {
@@ -47,6 +117,8 @@ export async function verifyUser(_prevState: any, formData: FormData) {
 
     const file = formData.get('document') as File;
     const fullName = formData.get('fullName') as string;
+    const ocrDataStr = formData.get('ocrData') as string;
+    const ocrMetadata = ocrDataStr ? JSON.parse(ocrDataStr) : null;
 
     if (!file || !fullName) {
       return { error: 'Full name and document are required.' };
@@ -109,7 +181,7 @@ export async function verifyUser(_prevState: any, formData: FormData) {
     // Return success with simplified data
     const data = { success: true };
 
-    await logActivity('user_verification', `User ${user.id} submitted a document for verification.`);
+    await logActivity('user_verification', `User ${user.id} submitted a document for verification.${ocrMetadata?.idNumber ? ` OCR detected Aadhaar: ${ocrMetadata.idNumber}` : ''}`);
 
     return { success: true, data };
   } catch (err: any) {

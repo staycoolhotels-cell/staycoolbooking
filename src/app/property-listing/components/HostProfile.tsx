@@ -2,6 +2,7 @@ import React from 'react';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import ContactHostModal from '@/components/ui/ContactHostModal';
+import { supabase } from '@/lib/supabaseClient';
 
 interface HostProfileProps {
   name: string;
@@ -26,13 +27,35 @@ const HostProfile = ({
   isVerified,
   responseRate,
   responseTime,
-  totalProperties,
+  totalProperties: initialTotalProperties,
   bio,
   coHostName,
   hostId,
   propertyId,
 }: HostProfileProps) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [totalProperties, setTotalProperties] = React.useState(initialTotalProperties);
+
+  React.useEffect(() => {
+    const fetchPropertyCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('properties')
+          .select('*', { count: 'exact', head: true })
+          .eq('host_id', hostId);
+        
+        if (!error && count !== null) {
+          setTotalProperties(count);
+        }
+      } catch (err) {
+        console.error('Error fetching host property count:', err);
+      }
+    };
+
+    if (hostId) {
+      fetchPropertyCount();
+    }
+  }, [hostId]);
 
   return (
     <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-3xl p-4 md:p-8 relative overflow-hidden">

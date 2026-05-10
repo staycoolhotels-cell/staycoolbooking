@@ -10,11 +10,8 @@ export const metadata: Metadata = {
 
 export default function GuestBookingFlowPage() {
   return (
-    <main className="min-h-screen bg-background">
-      
-      <div className="container mx-auto px-4 py-8">
-        <GuestBookingInteractive />
-      </div>
+    <main className="min-h-screen">
+      <GuestBookingInteractive />
     </main>
   );
 }

@@ -172,7 +172,7 @@ export default function AddPropertyPage() {
           </div>
           <div>
             <label htmlFor="bathrooms" className="block text-sm font-medium text-gray-700">Bathrooms</label>
-            <input type="number" id="bathrooms" name="bathrooms" step="0.5" required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+            <input type="number" id="bathrooms" name="bathrooms" step="1" min="0" required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
           </div>
           <div>
             <label htmlFor="max_guests" className="block text-sm font-medium text-gray-700">Max Guests</label>

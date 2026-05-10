@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Script from 'next/script';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -27,6 +28,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { resetCancellationPenalty } from '@/lib/booking-actions';
+import { createHostSignupOrder } from '@/lib/payment-actions';
+import { approveHost } from '@/lib/admin-actions';
 import Overview from './Overview';
 import Properties from './Properties';
 import Bookings from './Bookings';
@@ -35,14 +38,13 @@ import Earnings from './Earnings';
 import Profile from './Profile';
 import OccupancyPulse from './OccupancyPulse'; // Imported OccupancyPulse
 import RevenueForecasting from './RevenueForecasting'; // Imported RevenueForecasting
-import SmartEstateManagement from './SmartEstateManagement'; // Imported SmartEstateManagement
 import UnifiedInbox from './UnifiedInbox'; // Imported UnifiedInbox
 import AuraQualityScore from './AuraQualityScore'; // Imported AuraQualityScore
-import SmartDocumentVault from './SmartDocumentVault'; // Imported SmartDocumentVault
 import DynamicAmenityUpsell from './DynamicAmenityUpsell'; // Imported DynamicAmenityUpsell
 import CleaningMaintenanceLog from './CleaningMaintenanceLog';
 import DisputesList from './DisputesList';
 import BankingDetails from './BankingDetails';
+import LicenseComplianceTracker from './LicenseComplianceTracker';
 import PayoutHistory from './PayoutHistory';
 import AddPropertyModal, { FormData } from './AddPropertyModal';
 import { Property, Transaction } from '@/lib/types';
@@ -50,6 +52,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { AMENITIES } from '@/lib/amenities';
 import AnimatedLoader from '@/components/ui/AnimatedLoader';
 import AvailabilityCalendar from './AvailabilityCalendar';
+import { useAppStore } from '@/lib/store';
 
 const HostDashboardInteractive = ({
   hostData,
@@ -60,6 +63,13 @@ const HostDashboardInteractive = ({
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { 
+    properties: cachedProperties, 
+    setProperties: setStoreProperties, 
+    bookings: cachedBookings, 
+    setBookings: setStoreBookings 
+  } = useAppStore();
+
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -72,6 +82,12 @@ const HostDashboardInteractive = ({
     }
   );
 
+  // Sync initial data to store on mount
+  useEffect(() => {
+    if (hostData.properties) setStoreProperties(hostData.properties);
+    if (hostData.bookings) setStoreBookings(hostData.bookings);
+  }, [hostData.properties, hostData.bookings, setStoreProperties, setStoreBookings]);
+
   type TabType =
     | 'overview'
     | 'properties'
@@ -80,29 +96,145 @@ const HostDashboardInteractive = ({
     | 'profile'
     | 'occupancy-pulse'
     | 'revenue-velocity'
-    | 'smart-estate'
     | 'unified-inbox'
     | 'aura-quality'
-    | 'document-vault'
     | 'amenity-upsell'
     | 'cleaning-maintenance'
     | 'disputes'
     | 'availability'
     | 'support-chat'
     | 'banking-details'
-    | 'payout-history';
+    | 'payout-history'
+    | 'license-compliance';
 
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Local state for UI responsiveness, initialized from hostData
   const [properties, setProperties] = useState<Property[]>(hostData.properties);
+  
+  // Sync local state when store changes (e.g., from other components)
+  useEffect(() => {
+    if (cachedProperties && cachedProperties.length > 0) {
+      setProperties(cachedProperties);
+    }
+  }, [cachedProperties]);
+
   const [propertyToEdit, setPropertyToEdit] = useState<Property | null>(null);
   const [disputes, setDisputes] = useState<any[]>([]);
   const [isLoadingDisputes, setIsLoadingDisputes] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [inboxContext, setInboxContext] = useState<any>(null);
+  const [bookingSearchTerm, setBookingSearchTerm] = useState('');
 
   const isLocked = Number(hostData.cancellation_count || 0) >= 5;
+  const isPending = hostData.status === 'pending';
+
+  const PendingApprovalOverlay = () => {
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handlePayment = async () => {
+      setIsProcessing(true);
+      try {
+        const order = await createHostSignupOrder();
+        if (!order.success) {
+          toast.error("Failed to initiate payment: " + order.error);
+          return;
+        }
+
+        const payment: any = await new Promise((resolve, reject) => {
+          if (typeof (window as any).Razorpay === 'undefined') {
+            reject(new Error('Razorpay SDK not loaded.'));
+            return;
+          }
+
+          const options = {
+            key: order.key_id,
+            amount: order.amount,
+            currency: order.currency,
+            name: "StayCool",
+            description: "Host Account Approval Fee",
+            order_id: order.orderId,
+            handler: (response: any) => resolve(response),
+            modal: {
+              ondismiss: () => reject(new Error('Payment cancelled')),
+            },
+            prefill: {
+              email: hostData.email,
+              name: hostData.name
+            },
+            theme: { color: "#0ea5e9" }
+          };
+          const rzp = new (window as any).Razorpay(options);
+          rzp.open();
+        });
+
+        // Verification call
+        const { success } = await approveHost(hostData.id);
+        if (success) {
+          toast.success("Payment successful! Your account is now active.");
+          window.location.reload();
+        } else {
+          toast.error("Account activation failed. Please contact support.");
+        }
+      } catch (err: any) {
+        if (err.message !== 'Payment cancelled') {
+          toast.error("Payment failed: " + err.message);
+        }
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 z-[150] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="max-w-xl w-full bg-[#0a0a0f] border border-brand-default/20 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(212,175,55,0.15)] text-center relative overflow-hidden"
+        >
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-brand-default to-transparent" />
+          
+          <div className="mb-8 flex justify-center">
+            <div className="w-20 h-20 rounded-3xl bg-brand-default/10 border border-brand-default/20 flex items-center justify-center shadow-[0_0_40px_rgba(212,175,55,0.2)]">
+              <Lock size={40} className="text-brand-default" />
+            </div>
+          </div>
+
+          <h2 className="text-3xl font-black text-white mb-4 tracking-tight uppercase italic">Account Pending</h2>
+          
+          <div className="space-y-4 mb-10">
+            <p className="text-lg text-white/90 font-bold leading-relaxed px-4">
+              మీ హోస్ట్ అకౌంట్ యాక్టివేట్ అవ్వాలంటే ₹299 ఫీజు చెల్లించాలి. ఫీజు కట్టిన వెంటనే మీ అకౌంట్ ఆటోమేటిక్ గా అప్రూవ్ అవుతుంది.
+            </p>
+            <p className="text-sm text-zinc-500 font-medium uppercase tracking-[0.2em]">
+              Pay ₹299 for Instant Approval & Listing Access
+            </p>
+          </div>
+
+          <button
+            onClick={handlePayment}
+            disabled={isProcessing}
+            className="w-full py-5 bg-gradient-to-r from-brand-deep to-brand-default text-black font-black uppercase tracking-widest text-sm shadow-[0_20px_40px_-10px_rgba(212,175,55,0.3)] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 group"
+          >
+            {isProcessing ? (
+              <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+            ) : (
+              <>
+                <Banknote size={20} className="group-hover:rotate-12 transition-transform" />
+                Pay ₹299 & Activate Now
+              </>
+            )}
+          </button>
+          
+          <p className="mt-6 text-[10px] text-zinc-600 font-bold uppercase tracking-widest">
+            Instant Activation • Secure Payment
+          </p>
+        </motion.div>
+      </div>
+    );
+  };
 
   const PenaltyOverlay = () => {
     const [isProcessing, setIsProcessing] = useState(false);
@@ -172,10 +304,10 @@ const HostDashboardInteractive = ({
     const tab = searchParams.get('tab') as TabType;
     if (tab && [
       'overview', 'properties', 'bookings', 'earnings', 'profile',
-      'occupancy-pulse', 'revenue-velocity', 'smart-estate', 'financial-treasury',
-      'unified-inbox', 'aura-quality', 'document-vault', 'amenity-upsell',
+      'occupancy-pulse', 'revenue-velocity', 'financial-treasury',
+      'unified-inbox', 'aura-quality', 'amenity-upsell',
       'cleaning-maintenance', 'disputes', 'availability', 'support-chat',
-      'banking-details', 'payout-history'
+      'banking-details', 'payout-history', 'license-compliance'
     ].includes(tab)) {
       setActiveTab(tab);
     } else {
@@ -432,7 +564,8 @@ const HostDashboardInteractive = ({
           show_specific_location: formData.showSpecificLocation,
           location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
           total_rooms: Number(formData.totalRooms) || 0,
-          room_type: formData.roomType,
+          check_in_time: formData.checkInTime,
+          check_out_time: formData.checkOutTime,
           latitude: formData.latitude,
           longitude: formData.longitude,
           updated_at: new Date().toISOString(),
@@ -505,7 +638,8 @@ const HostDashboardInteractive = ({
             p_show_specific_location: formData.showSpecificLocation,
             p_location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
             p_total_rooms: Number(formData.totalRooms) || 0,
-            p_room_type: formData.roomType,
+            p_check_in_time: formData.checkInTime,
+            p_check_out_time: formData.checkOutTime,
             p_latitude: formData.latitude,
             p_longitude: formData.longitude,
           };
@@ -539,12 +673,11 @@ const HostDashboardInteractive = ({
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'occupancy-pulse', label: 'Occupancy Pulse', icon: Calendar },
     { id: 'revenue-velocity', label: 'Revenue Velocity', icon: DollarSign },
-    { id: 'smart-estate', label: 'Smart Estate', icon: Building },
     { id: 'banking-details', label: 'Banking & KYC', icon: Banknote },
     { id: 'payout-history', label: 'Payout History', icon: Wallet },
     { id: 'unified-inbox', label: 'Unified Inbox', icon: MessageSquare },
     { id: 'aura-quality', label: 'Aura Quality', subtitle: 'AI suggestions', icon: Star },
-    { id: 'document-vault', label: 'Document Vault', icon: FolderKanban },
+    { id: 'license-compliance', label: 'License & Compliance', icon: Scale },
     { id: 'amenity-upsell', label: 'Amenity Upsell', icon: Gift },
     { id: 'cleaning-maintenance', label: 'Cleaning & Maintenance', icon: ClipboardList },
     { id: 'support-chat', label: 'Support Chat', icon: LifeBuoy },
@@ -556,10 +689,11 @@ const HostDashboardInteractive = ({
     { id: 'profile', label: 'Identify', icon: UserCircle },
   ];
 
-  function SupportChatSection({ currentUser }: { currentUser: { id: string; name: string } }) {
-    const [adminUser, setAdminUser] = useState<{ id: string; name: string } | null>(null);
+    function SupportChatSection({ currentUser }: { currentUser: { id: string; name: string } }) {
+    const [adminUser, setAdminUser] = useState<{ id: string; name: string } | null>(hostData.supportAdmin);
 
     useEffect(() => {
+      if (hostData.supportAdmin) return;
       const fetchAdmin = async () => {
         const { data } = await supabase.from('users').select('id, name').eq('role', 'admin').limit(1).single();
         if (data) {
@@ -569,7 +703,7 @@ const HostDashboardInteractive = ({
         }
       };
       fetchAdmin();
-    }, [supabase]);
+    }, [supabase, hostData.supportAdmin]);
 
     return (
       <div className="w-full space-y-3 md:space-y-8 h-[calc(100vh-140px)] flex flex-col relative">
@@ -624,8 +758,10 @@ const HostDashboardInteractive = ({
 
   return (
     <div className="relative min-h-[calc(100vh-100px)] w-full bg-[#080808] flex text-zinc-100">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       {/* Penalty Overlay (Moved to top level for maximum visibility) */}
       {isLocked && <PenaltyOverlay />}
+      {isPending && <PendingApprovalOverlay />}
 
       {/* Mobile Toggle Button - Moved to a cleaner position */}
       <button
@@ -806,34 +942,18 @@ const HostDashboardInteractive = ({
                     />
                   )}
                   {activeTab === 'bookings' && (
-                    <Bookings bookings={hostData.bookings} searchTerm="" setSearchTerm={() => { }} onAction={handleAction} />
+                    <Bookings bookings={hostData.bookings} searchTerm={bookingSearchTerm} setSearchTerm={setBookingSearchTerm} onAction={handleAction} />
                   )}
                   {activeTab === 'earnings' && <Earnings earnings={hostData.transactions} />}
                   {activeTab === 'occupancy-pulse' && <OccupancyPulse bookings={hostData.bookings} />}
                   {activeTab === 'revenue-velocity' && <RevenueForecasting bookings={hostData.bookings} />}
-                  {activeTab === 'smart-estate' && (
-                    <SmartEstateManagement 
-                      properties={properties} 
-                      onToggleStatus={async (id, newStatus) => {
-                        const { error } = await supabase.rpc('toggle_property_status', {
-                          p_id: id,
-                          p_status: newStatus,
-                        });
-                        if (error) throw error;
-                        // Optimistic update successful
-                        setProperties((p) =>
-                          p.map((x) => (x.id === id ? ({ ...x, status: newStatus } as Property) : x))
-                        );
-                      }}
-                    />
-                  )}
                   {activeTab === 'unified-inbox' && <UnifiedInbox inboxContext={inboxContext} />}
                   {activeTab === 'aura-quality' && <AuraQualityScore properties={properties} />}
-                  {activeTab === 'document-vault' && <SmartDocumentVault properties={properties} />}
                   {activeTab === 'amenity-upsell' && <DynamicAmenityUpsell />}
                   {activeTab === 'cleaning-maintenance' && <CleaningMaintenanceLog properties={properties} />}
                   {activeTab === 'disputes' && <DisputesList disputes={disputes} isLoading={isLoadingDisputes} />}
                   {activeTab === 'availability' && <AvailabilityCalendar properties={properties} />}
+                  {activeTab === 'license-compliance' && <LicenseComplianceTracker properties={properties} />}
                   {activeTab === 'banking-details' && <BankingDetails />}
                   {activeTab === 'payout-history' && <PayoutHistory hostId={hostData.id} />}
                   {activeTab === 'support-chat' && (

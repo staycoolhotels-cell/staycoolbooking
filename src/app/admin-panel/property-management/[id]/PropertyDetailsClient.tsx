@@ -21,6 +21,14 @@ import {
     Download,
     Eye,
     CreditCard,
+    Clock,
+    HelpCircle,
+    CheckCircle2,
+    AlertCircle,
+    Ban,
+    Building2,
+    Landmark,
+    Hash,
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -118,6 +126,23 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                 {children}
             </div>
         );
+    };
+
+    // Safe Date Formatter
+    const formatDate = (dateString: string | undefined | null, options: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' }) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'Invalid Date';
+        return date.toLocaleDateString('en-IN', options);
+    };
+
+    const formatDateTime = (dateString: string | undefined | null) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'Invalid Date';
+        return date.toLocaleString('en-IN', {
+            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+        });
     };
 
     const displayImages = currentProperty.images && currentProperty.images.length > 0
@@ -300,7 +325,7 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                                 </div>
                                 <div className="flex justify-between text-sm py-2 border-b border-white/5">
                                     <span className="text-zinc-600">Created</span>
-                                    <span suppressHydrationWarning className="text-zinc-300 font-mono">{new Date(currentProperty.created_at || '').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                    <span suppressHydrationWarning className="text-zinc-300 font-mono">{formatDate(currentProperty.created_at)}</span>
                                 </div>
                             </div>
                         </div>
@@ -430,9 +455,7 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                                         <div>
                                             <span className="block text-[10px] text-zinc-600 uppercase tracking-widest mb-1">Submitted On</span>
                                             <p suppressHydrationWarning className="text-sm text-zinc-300">
-                                                {new Date(kycRecord.created_at).toLocaleString('en-IN', {
-                                                    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-                                                })}
+                                                {formatDateTime(kycRecord.created_at)}
                                             </p>
                                         </div>
                                     </div>
@@ -537,7 +560,9 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             {currentProperty.amenities?.map((amenity, i) => {
-                                const name = typeof amenity === 'string' ? amenity : amenity.name;
+                                if (!amenity) return null;
+                                const name = typeof amenity === 'string' ? amenity : (amenity as any).name;
+                                if (!name) return null;
                                 return (
                                     <div key={i} className="flex items-center gap-2 p-2 rounded bg-white/5 border border-white/5 text-xs text-zinc-400">
                                         <div className="w-1 h-1 bg-zinc-500 rounded-full" />
@@ -545,7 +570,7 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                                     </div>
                                 )
                             })}
-                            {(!currentProperty.amenities || currentProperty.amenities.length === 0) && (
+                            {(!currentProperty.amenities || currentProperty.amenities.filter(Boolean).length === 0) && (
                                 <span className="text-zinc-700 text-xs font-mono">NO MODULES INSTALLED</span>
                             )}
                         </div>
@@ -558,13 +583,16 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                             <h3 className="text-sm text-zinc-400 font-mono uppercase tracking-wider">Protocols (Rules)</h3>
                         </div>
                         <div className="space-y-2">
-                            {currentProperty.rules?.map((rule, i) => (
-                                <div key={i} className="flex gap-3 text-sm text-zinc-400 p-2 border-l-2 border-zinc-800 hover:border-zinc-600 transition-colors">
-                                    <span className="font-mono text-zinc-600">0{i + 1}</span>
-                                    {rule}
-                                </div>
-                            ))}
-                            {(!currentProperty.rules || currentProperty.rules.length === 0) && (
+                            {currentProperty.rules?.map((rule, i) => {
+                                if (!rule || typeof rule !== 'string') return null;
+                                return (
+                                    <div key={i} className="flex gap-3 text-sm text-zinc-400 p-2 border-l-2 border-zinc-800 hover:border-zinc-600 transition-colors">
+                                        <span className="font-mono text-zinc-600">0{i + 1}</span>
+                                        {rule}
+                                    </div>
+                                );
+                            })}
+                            {(!currentProperty.rules || currentProperty.rules.filter(Boolean).length === 0) && (
                                 <span className="text-zinc-700 text-xs font-mono">NO PROTOCOLS DEFINED</span>
                             )}
                         </div>

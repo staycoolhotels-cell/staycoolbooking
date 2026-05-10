@@ -5,6 +5,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
 import AppImage from '@/components/ui/AppImage';
+import { toast } from 'sonner';
 
 const ContactPage = () => {
   return (
@@ -43,12 +44,28 @@ const ContactPage = () => {
           transition={{ duration: 0.9, delay: 0.3, ease: 'easeOut' }}
           className="w-full max-w-4xl bg-surface/5 backdrop-blur-2xl border border-primary/20 rounded-3xl p-8 md:p-12"
         >
-          <form className="space-y-8">
+          <form 
+            className="space-y-8"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const data = Object.fromEntries(formData.entries());
+              
+              console.log('Contact inquiry:', data);
+              
+              // Simulate API call
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              toast.success('Inquiry sent successfully! Our team will contact you soon.');
+              (e.target as HTMLFormElement).reset();
+            }}
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="relative">
                 <input
                   type="text"
                   id="name"
+                  name="name"
                   className="peer w-full bg-transparent border-b-2 border-primary/20 pt-3 text-lg text-text-primary focus:border-primary focus:outline-none transition-colors"
                   placeholder=" "
                 />
@@ -63,6 +80,7 @@ const ContactPage = () => {
                 <input
                   type="email"
                   id="email"
+                  name="email"
                   className="peer w-full bg-transparent border-b-2 border-primary/20 pt-3 text-lg text-text-primary focus:border-primary focus:outline-none transition-colors"
                   placeholder=" "
                 />
@@ -79,6 +97,7 @@ const ContactPage = () => {
                 <input
                   type="tel"
                   id="phone"
+                  name="phone"
                   className="peer w-full bg-transparent border-b-2 border-primary/20 pt-3 text-lg text-text-primary focus:border-primary focus:outline-none transition-colors"
                   placeholder=" "
                 />
@@ -93,6 +112,7 @@ const ContactPage = () => {
                 <input
                   type="text"
                   id="subject"
+                  name="subject"
                   className="peer w-full bg-transparent border-b-2 border-primary/20 pt-3 text-lg text-text-primary focus:border-primary focus:outline-none transition-colors"
                   placeholder=" "
                 />
@@ -107,6 +127,7 @@ const ContactPage = () => {
             <div className="relative">
               <textarea
                 id="message"
+                name="message"
                 rows={5}
                 className="peer w-full bg-transparent border-b-2 border-primary/20 pt-3 text-lg text-text-primary focus:border-primary focus:outline-none transition-colors"
                 placeholder=" "

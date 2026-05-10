@@ -5,6 +5,9 @@ import { motion } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
 import { UserVerificationStatus, Booking, Property } from '@/lib/types';
 import { supabase } from '@/lib/supabaseClient';
+import { processIdDocument } from '@/lib/booking-actions';
+import { Loader2, ScanLine } from 'lucide-react';
+import Tesseract from 'tesseract.js';
 
 type VerificationAndTrustProps = {
   verifications: UserVerificationStatus;
@@ -15,6 +18,8 @@ type VerificationAndTrustProps = {
 const VerificationAndTrust = ({ verifications, bookings = [], onUpdate }: VerificationAndTrustProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [ocrData, setOcrData] = useState<{ idNumber?: string; fullName?: string } | null>(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
 
   // Extract unique hosts from bookings
   const uniqueHosts = bookings.reduce<Array<{ name: string; avatar: string; location?: string }>>((acc, booking) => {
@@ -44,7 +49,44 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate }: Verifi
       const fileName = `${verifications.user_id}/id_verification_${Math.random()}.${fileExt}`;
       const filePath = `verifications/${fileName}`;
 
-      // 1. Upload to storage
+      // 1. Start OCR Process in parallel
+      const ocrFormData = new FormData();
+      ocrFormData.append('document', file);
+      setOcrLoading(true);
+      
+      processIdDocument(ocrFormData).then(async (result) => {
+        if (result.success && result.data) {
+          if (result.data.isValidId === false) {
+            alert('The uploaded image is not recognized as a valid ID document. Please upload a real ID card.');
+            setOcrData(null);
+            setOcrLoading(false);
+            return;
+          }
+          setOcrData(result.data);
+        } else {
+          // Fallback to Tesseract
+          console.log('Gemini failed, trying Tesseract fallback...');
+          const { data: { text } } = await Tesseract.recognize(file, 'eng');
+          const idMatch = text.match(/\d{4}\s?\d{4}\s?\d{4}/);
+          if (idMatch) {
+            setOcrData({ idNumber: idMatch[0] });
+          }
+        }
+        setOcrLoading(false);
+      }).catch(async (err) => {
+        console.error('OCR Error:', err);
+        // Fallback to Tesseract on catch too
+        try {
+          const { data: { text } } = await Tesseract.recognize(file, 'eng');
+          const idMatch = text.match(/\d{4}\s?\d{4}\s?\d{4}/);
+          if (idMatch) {
+            setOcrData({ idNumber: idMatch[0] });
+          }
+        } catch (e) {}
+        setOcrLoading(false);
+      });
+
+      // 2. Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('documents')
         .upload(filePath, file, { upsert: true });
@@ -149,6 +191,25 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate }: Verifi
               )}
               {isUploading ? 'Uploading...' : 'Upload Passport/ID'}
             </button>
+          )}
+
+          {ocrLoading && (
+            <div className="mt-4 flex items-center gap-3 p-3 bg-sky-500/5 border border-sky-500/20 rounded-lg animate-pulse">
+              <Loader2 className="h-4 w-4 text-sky-400 animate-spin" />
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-sky-300">AI Scanning ID...</span>
+              </div>
+            </div>
+          )}
+
+          {ocrData?.idNumber && !ocrLoading && (
+            <div className="mt-4 flex items-center gap-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
+              <ScanLine className="h-4 w-4 text-green-400" />
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-green-400">OCR Detected Aadhaar</span>
+                <span className="text-[10px] text-zinc-400">ID: {ocrData.idNumber}</span>
+              </div>
+            </div>
           )}
         </div>
 

@@ -112,6 +112,11 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
   const { bookingType = 'single', roomCount = 1 } = filters;
   const property = bookingCart[0];
   const totalRooms = property?.total_rooms || 1;
+  const propertyType = property?.type || property?.tier || 'Room';
+  const safePropertyType = propertyType || 'Room';
+  const isTent = safePropertyType.toLowerCase().trim() === 'tent' || safePropertyType.toLowerCase().trim() === 'tents';
+  const unitName = isTent ? 'Tent' : 'Room';
+  const unitsName = isTent ? 'Tents' : 'Rooms';
 
   const nights = () => {
     if (!filters.checkIn || !filters.checkOut) return 0;
@@ -248,7 +253,8 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
           theme: { color: '#0ea5e9' },
           modal: {
             ondismiss: () => {
-              reject(new Error('Payment cancelled. Please try again.'));
+              // Instead of a generic error, we use a specific string we can catch
+              reject(new Error('PAYMENT_CANCELLED'));
             },
           },
         };
@@ -279,16 +285,22 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
       onNext();
 
     } catch (err: any) {
-      console.error('Booking/Payment Error:', err);
-      setError(err.message || 'An unexpected error occurred.');
+      if (err.message === 'PAYMENT_CANCELLED') {
+        console.log('User cancelled the payment modal.');
+        // Don't show a scary error toast, just stop loading
+      } else {
+        console.error('Booking/Payment Error:', err);
+        setError(err.message || 'An unexpected error occurred.');
+        toast.error(err.message || 'Payment failed. Please try again.');
+      }
       setLoading(false);
     }
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-2 p-8 rounded-xl shadow-brand-md bg-card/50 backdrop-blur-md border border-brand-energetic/20">
-        <h2 className="text-2xl font-bold text-text-primary mb-6">Confirm Booking</h2>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 p-4 sm:p-6 rounded-xl shadow-brand-md bg-card/50 backdrop-blur-md border border-brand-energetic/20">
+        <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-4">Confirm Booking</h2>
 
         <div className="space-y-4">
           <p className="text-text-secondary text-sm">
@@ -301,47 +313,90 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
             </div>
           )}
 
+          {/* New Filler Section: Property Highlights & Rules */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] transition-all group">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-sky-400 mb-3 flex items-center gap-2">
+                <Icon name="InformationCircleIcon" size={14} />
+                House Rules
+              </h3>
+              <ul className="space-y-2">
+                {[
+                  'Check-in: After 2:00 PM',
+                  'Check-out: Before 11:00 AM',
+                  'No smoking inside the property',
+                  'Pets are subject to approval'
+                ].map((rule, i) => (
+                  <li key={i} className="flex items-center gap-2 text-[11px] text-text-secondary group-hover:text-text-primary transition-colors">
+                    <div className="w-1 h-1 bg-sky-500 rounded-full" />
+                    {rule}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] transition-all group">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-purple-400 mb-3 flex items-center gap-2">
+                <Icon name="ShieldCheckIcon" size={14} />
+                Stay Safe
+              </h3>
+              <ul className="space-y-2">
+                {[
+                  'Verified Host & Property',
+                  '24/7 Support available',
+                  'Secure payment gateway',
+                  'Flexible cancellation options'
+                ].map((item, i) => (
+                  <li key={i} className="flex items-center gap-2 text-[11px] text-text-secondary group-hover:text-text-primary transition-colors">
+                    <Icon name="CheckIcon" size={12} className="text-purple-400" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
           {/* Amenities Upsell Section */}
           {!loadingAmenities && amenities.length > 0 && (
-            <div className="mt-8 border-t border-brand-energetic/20 pt-6">
-              <h3 className="text-xl font-bold text-text-primary mb-4 flex items-center gap-2">
-                <Icon name="SparklesIcon" size={24} className="text-amber-400" />
+            <div className="mt-6 border-t border-brand-energetic/20 pt-4">
+              <h3 className="text-lg font-bold text-text-primary mb-3 flex items-center gap-2">
+                <Icon name="SparklesIcon" size={20} className="text-amber-400" />
                 Enhance Your Stay
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {amenities.map(amenity => (
-                  <div key={amenity.id} className={`p-4 rounded-xl bg-card border transition-colors flex flex-col justify-between ${selectedAmenities[amenity.id] ? 'border-sky-500/50 bg-sky-500/5' : 'border-border-secondary hover:border-sky-500/30'}`}>
+                  <div key={amenity.id} className={`p-3 rounded-xl bg-card border transition-colors flex flex-col justify-between ${selectedAmenities[amenity.id] ? 'border-sky-500/50 bg-sky-500/5' : 'border-border-secondary hover:border-sky-500/30'}`}>
                     <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-text-primary pr-2">{amenity.name}</h4>
-                        <span className="text-sky-400 font-bold whitespace-nowrap">₹{(amenity.price || 0).toLocaleString('en-IN')}</span>
+                      <div className="flex justify-between items-start mb-1.5">
+                        <h4 className="text-sm font-semibold text-text-primary pr-2">{amenity.name}</h4>
+                        <span className="text-sky-400 text-sm font-bold whitespace-nowrap">₹{(amenity.price || 0).toLocaleString('en-IN')}</span>
                       </div>
-                      <p className="text-xs text-text-secondary line-clamp-2 mb-4">{amenity.description}</p>
+                      <p className="text-[11px] text-text-secondary line-clamp-2 mb-3">{amenity.description}</p>
                     </div>
                     {amenity.type === 'Physical' || amenity.type === 'Service' ? (
                       <div className="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
-                        <span className="text-[10px] text-text-secondary uppercase tracking-wider font-semibold">Quantity</span>
-                        <div className="flex items-center gap-3 bg-background rounded-lg border border-border-secondary p-1">
+                        <span className="text-[9px] text-text-secondary uppercase tracking-wider font-semibold">Quantity</span>
+                        <div className="flex items-center gap-2 bg-background rounded-lg border border-border-secondary p-0.5">
                           <button 
                             type="button"
                             onClick={() => setSelectedAmenities(prev => ({ ...prev, [amenity.id]: Math.max(0, (prev[amenity.id] || 0) - 1)}))}
-                            className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-sky-500/10 hover:text-sky-400 transition-colors"
+                            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-sky-500/10 hover:text-sky-400 transition-colors"
                           >
-                            <Icon name="MinusIcon" size={12} />
+                            <Icon name="MinusIcon" size={10} />
                           </button>
-                          <span className="w-4 text-center text-sm font-semibold">{selectedAmenities[amenity.id] || 0}</span>
+                          <span className="w-3 text-center text-xs font-semibold">{selectedAmenities[amenity.id] || 0}</span>
                           <button 
                             type="button"
                             onClick={() => setSelectedAmenities(prev => ({ ...prev, [amenity.id]: (prev[amenity.id] || 0) + 1}))}
-                            className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-sky-500/10 hover:text-sky-400 transition-colors"
+                            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-sky-500/10 hover:text-sky-400 transition-colors"
                           >
-                            <Icon name="PlusIcon" size={12} />
+                            <Icon name="PlusIcon" size={10} />
                           </button>
                         </div>
                       </div>
                     ) : (
                       <div className="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
-                         <span className="text-[10px] text-text-secondary uppercase tracking-wider font-semibold">Include</span>
+                         <span className="text-[9px] text-text-secondary uppercase tracking-wider font-semibold">Include</span>
                          <label className="relative inline-flex items-center cursor-pointer mb-0">
                           <input 
                             type="checkbox" 
@@ -349,7 +404,7 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
                             checked={!!selectedAmenities[amenity.id]}
                             onChange={(e) => setSelectedAmenities(prev => ({ ...prev, [amenity.id]: e.target.checked ? 1 : 0 }))}
                           />
-                          <div className="w-9 h-5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-500"></div>
+                          <div className="w-8 h-4.5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-sky-500"></div>
                         </label>
                       </div>
                     )}
@@ -359,28 +414,28 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
             </div>
           )}
 
-          <div className="mt-8 flex justify-between">
+          <div className="mt-6 flex justify-between gap-3">
             <button
               type="button"
               onClick={onBack}
               disabled={loading}
-              className="px-6 py-3 bg-muted/60 text-text-primary rounded-lg font-semibold disabled:opacity-50"
+              className="px-5 py-2.5 bg-muted/60 text-text-primary rounded-lg font-semibold disabled:opacity-50 text-sm"
             >
               Back
             </button>
             <button
               onClick={handleInitiatePayment}
               disabled={loading}
-              className="px-6 py-3 bg-primary text-white rounded-lg font-semibold flex items-center gap-2 disabled:opacity-50"
+              className="px-5 py-2.5 bg-primary text-white rounded-lg font-semibold flex items-center gap-2 disabled:opacity-50 text-sm"
             >
-              {loading && <Loader2 className="animate-spin h-5 w-5" />}
+              {loading && <Loader2 className="animate-spin h-4 w-4" />}
               Confirm Booking
             </button>
           </div>
         </div>
       </div>
-      <div className="p-8 rounded-xl shadow-brand-md bg-card/50 backdrop-blur-md border border-brand-energetic/20">
-        <h3 className="text-xl font-bold text-text-primary mb-4">Booking Summary</h3>
+      <div className="p-5 sm:p-6 rounded-xl shadow-brand-md bg-card/50 backdrop-blur-md border border-brand-energetic/20 h-fit">
+        <h3 className="text-lg font-bold text-text-primary mb-3">Booking Summary</h3>
         <div className="space-y-2">
           {bookingCart.map((p) => (
             <div key={p.id} className="flex justify-between text-sm text-text-primary">
@@ -405,7 +460,7 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-text-primary">
-              Subtotal ({nightCount} nights{effectiveRooms > 1 && ` x ${effectiveRooms} rooms`})
+              Subtotal ({nightCount} nights{effectiveRooms > 1 && ` x ${effectiveRooms} ${unitsName.toLowerCase()}`})
             </span>{' '}
             <span>₹{baseTotal.toLocaleString('en-IN')}</span>
           </div>

@@ -14,8 +14,8 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
   const date = transaction.date || new Date().toLocaleDateString();
 
   const breakdown = transaction.breakdown || {
-    accommodation: (transaction.amount || 0) * 0.88,
-    service_fee: (transaction.amount || 0) * 0.10,
+    accommodation: (transaction.amount || 0) * 0.78,
+    service_fee: (transaction.amount || 0) * 0.20,
     taxes: (transaction.amount || 0) * 0.02
   };
 
@@ -51,10 +51,28 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
                 <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Invoice#</p>
                 <p className="text-white font-bold">{invoiceId}</p>
              </div>
-             <div>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Date:</p>
+             <div className="mb-2">
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Invoice Date:</p>
                 <p className="text-white font-bold">{date}</p>
              </div>
+             {transaction.bookingDate && (
+               <div className="mb-2">
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Booking Date:</p>
+                  <p className="text-white font-bold">{transaction.bookingDate}</p>
+               </div>
+             )}
+             {transaction.cancellationDate && (
+               <div className="mb-2">
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Cancellation Date:</p>
+                  <p className="text-white font-bold">{transaction.cancellationDate}</p>
+               </div>
+             )}
+             {transaction.refundDate && (
+               <div className="mb-2">
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Refund Date:</p>
+                  <p className="text-white font-bold">{transaction.refundDate}</p>
+               </div>
+             )}
         </div>
       </div>
 
@@ -106,15 +124,6 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
            </div>
            
            <div>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-3">Payment Info:</p>
-              <div className="text-xs font-semibold text-zinc-600 space-y-1">
-                <p><span className="text-zinc-400 w-24 inline-block">Account #:</span> 1234 5678 9012</p>
-                <p><span className="text-zinc-400 w-24 inline-block">A/C Name:</span> STAYCOOL PVT LTD</p>
-                <p><span className="text-zinc-400 w-24 inline-block">Bank Details:</span> STAYCOOL PREMIUM BANKING</p>
-              </div>
-           </div>
-
-           <div>
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-2">Terms & Conditions</p>
               <p className="text-[9px] leading-relaxed text-zinc-400 italic max-w-[300px]">
                 1. Guest is responsible for property condition. 2. Cancellations must be made 72 hours prior for full refund. 3. StayCool is a platform provider. 4. Luxury services subject to availability.
@@ -139,26 +148,11 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
                 </div>
             </div>
 
-            <div className="text-center pt-10 border-t-2 border-dashed border-zinc-100 mt-10">
-                <div className="h-[1px] bg-zinc-200 w-2/3 mx-auto mb-2" />
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Authorised Sign</p>
-                <p className="text-[9px] font-medium text-sky-500 mt-1">Verified StayCool Security</p>
-            </div>
+
         </div>
       </div>
       
-      {onClose && (
-        <div className="absolute top-4 right-4 print:hidden">
-            <button 
-                onClick={onClose}
-                className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-      )}
+
     </div>
   );
 };

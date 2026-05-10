@@ -5,6 +5,7 @@ import EarningsChart from './EarningsChart';
 import { Transaction } from '@/lib/types';
 import PayoutsTable from './PayoutsTable';
 import Icon from '@/components/ui/AppIcon';
+import { exportTransactionsToCSV } from '@/lib/pdf-utils';
 
 interface EarningsProps {
   earnings: Transaction[];
@@ -67,7 +68,7 @@ const Earnings = ({ earnings }: EarningsProps) => {
 
         <div className="relative z-10 w-full lg:w-auto shrink-0 mt-2 md:mt-0">
           <button
-            onClick={() => { }}
+            onClick={() => exportTransactionsToCSV(earnings)}
             className="w-full lg:w-auto px-4 md:px-6 py-3 md:py-4 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 font-bold uppercase tracking-widest text-[10px] md:text-xs rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.15)] hover:shadow-[0_0_30px_rgba(16,185,129,0.25)] transition-all flex items-center justify-center gap-2 md:gap-3 border border-emerald-500/30"
           >
             <Icon name="ArrowDownTrayIcon" size={16} className="md:w-[18px] md:h-[18px]" /> Export Finance Log

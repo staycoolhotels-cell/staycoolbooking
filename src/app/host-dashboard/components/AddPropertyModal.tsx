@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Property } from '@/lib/types';
 import { AMENITIES, CATEGORIZED_AMENITIES, AmenityItem } from '@/lib/amenities';
-import { Plus, X, ChevronRight, ChevronLeft, Home, Sparkles, Layers, Users, Bed, Building2, CheckCircle, Bath } from 'lucide-react';
+import { Plus, X, ChevronRight, ChevronLeft, Home, Sparkles, Layers, Users, Bed, Building2, CheckCircle, Bath, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient'; // Import supabase client
 import { NumberInput } from '@/components/ui/number-input';
 import MapPicker from '@/components/common/MapPicker';
@@ -56,7 +56,8 @@ export interface FormData {
   country: string;
   showSpecificLocation: boolean;
   totalRooms: number; // New field for bulk booking
-  roomType: string; // New field for detailed room classification
+  checkInTime: string;
+  checkOutTime: string;
   customAmenities: string[]; // New field for manually added amenities
   latitude?: number;
   longitude?: number;
@@ -117,7 +118,8 @@ const AddPropertyModal = ({
     country: 'India - IN',
     showSpecificLocation: false,
     totalRooms: 1, // Default to 1 room
-    roomType: '', // Initialize new field
+    checkInTime: '12:00 PM',
+    checkOutTime: '11:00 AM',
     customAmenities: [], // Initialize new field
     latitude: undefined,
     longitude: undefined,
@@ -198,7 +200,8 @@ const AddPropertyModal = ({
         country: propertyToEdit.country || 'India - IN',
         showSpecificLocation: propertyToEdit.show_specific_location || false,
         totalRooms: propertyToEdit.total_rooms || 1,
-        roomType: propertyToEdit.room_type || '', // Load existing room type
+        checkInTime: propertyToEdit.check_in_time || '12:00 PM',
+        checkOutTime: propertyToEdit.check_out_time || '11:00 AM',
         customAmenities: propertyToEdit.amenities
           ?.filter((a: any) => !AMENITIES.some(std => std.id === a.id))
           ?.map((a: any) => a.name) || [],
@@ -249,7 +252,8 @@ const AddPropertyModal = ({
         country: 'India - IN',
         showSpecificLocation: false,
         totalRooms: 1,
-        roomType: '',
+        checkInTime: '12:00 PM',
+        checkOutTime: '11:00 AM',
         customAmenities: [],
         latitude: undefined,
         longitude: undefined,
@@ -490,7 +494,16 @@ const AddPropertyModal = ({
                           district: addressData.suburb || addressData.neighbourhood || addressData.city_district || addressData.state_district || addressData.county || prev.district,
                         }));
                       }}
-                      address={`${formData.addressLine1 || ''} ${formData.addressLine2 || ''} ${formData.city || ''} ${formData.state || ''} ${formData.country || ''}`.trim()}
+                      address={[
+                        formData.addressLine1,
+                        formData.addressLine2,
+                        formData.landmark,
+                        formData.district,
+                        formData.city,
+                        formData.state,
+                        formData.postalCode,
+                        formData.country ? formData.country.split(' - ')[0] : ''
+                      ].filter(Boolean).join(', ')}
                     />
                   </div>
 
@@ -548,58 +561,60 @@ const AddPropertyModal = ({
                   </select>
                 </div>
 
-                {/* Room Classification Dropdown */}
-                <div className={`col-span-full md:col-span-1 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
-                  <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
-                    <Building2 className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
-                    <label htmlFor="roomType" className="block text-xs md:text-sm font-medium text-zinc-300">Room Classification</label>
-                    {formData.type === 'Tent' && <span className="text-[10px] md:text-xs text-amber-400 ml-1">(Not applicable for Tent)</span>}
+                {/* Check-in & Check-out Timings */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 px-1">
+                    <Clock className="w-3.5 h-3.5 text-sky-400" />
+                    <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Timing Protocol</h4>
                   </div>
-                  <select
-                    id="roomType"
-                    name="roomType"
-                    value={formData.roomType}
-                    onChange={handleInputChange}
-                    disabled={formData.type === 'Tent'}
-                    className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-2.5 md:p-3 text-sm text-white focus:ring-2 focus:ring-primary focus:border-primary transition disabled:cursor-not-allowed"
-                  >
-                    <option value="">Select Room Type (Optional)</option>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* Check-in Card */}
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-br from-sky-500/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                      <div className="relative p-3 md:p-4 bg-zinc-800/30 border border-zinc-700/50 rounded-xl hover:border-sky-500/30 transition-all">
+                        <label className="block text-[9px] font-black text-sky-400 uppercase tracking-[0.2em] mb-1.5">Check-in After</label>
+                        <div className="relative">
+                          <select 
+                            name="checkInTime" 
+                            value={formData.checkInTime} 
+                            onChange={handleInputChange}
+                            className="w-full bg-transparent border-none p-0 text-sm md:text-base font-bold text-white focus:ring-0 outline-none appearance-none cursor-pointer"
+                          >
+                            {["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM", "08:00 PM"].map(time => (
+                              <option key={time} value={time} className="bg-zinc-900 text-white font-bold">{time}</option>
+                            ))}
+                          </select>
+                          <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none">
+                            <Plus className="w-3 h-3 text-sky-400 opacity-30 rotate-45" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-                    <optgroup label="Based on Occupancy">
-                      <option value="Single Room">Single Room</option>
-                      <option value="Double Room">Double Room</option>
-                      <option value="Triple Room">Triple Room</option>
-                      <option value="Quad Room">Quad Room</option>
-                    </optgroup>
-
-                    <optgroup label="Based on Bed Size & Number">
-                      <option value="Queen Room">Queen Room</option>
-                      <option value="King Room">King Room</option>
-                      <option value="Twin Room">Twin Room</option>
-                      <option value="Double-Double Room">Double-Double Room</option>
-                      <option value="Hollywood Twin Room">Hollywood Twin Room</option>
-                      <option value="Studio Room">Studio Room</option>
-                    </optgroup>
-
-                    <optgroup label="Based on Layout">
-                      <option value="Standard Room">Standard Room</option>
-                      <option value="Deluxe Room">Deluxe Room</option>
-                      <option value="Joint Room">Joint Room</option>
-                      <option value="Connecting Room">Connecting Room</option>
-                      <option value="Suit Room">Suit Room</option>
-                      <option value="Apartment-Style Room">Apartment-Style Room</option>
-                      <option value="Accessible Room">Accessible Room</option>
-                    </optgroup>
-
-                    <optgroup label="Based on Suites">
-                      <option value="Standard Suite">Standard Suite</option>
-                      <option value="Junior or Mini Suite">Junior or Mini Suite</option>
-                      <option value="Penthouse Suite">Penthouse Suite</option>
-                      <option value="Bridal Suite">Bridal Suite</option>
-                      <option value="Honeymoon Suite">Honeymoon Suite</option>
-                      <option value="Presidential Suite">Presidential Suite</option>
-                    </optgroup>
-                  </select>
+                    {/* Check-out Card */}
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                      <div className="relative p-3 md:p-4 bg-zinc-800/30 border border-zinc-700/50 rounded-xl hover:border-rose-500/30 transition-all">
+                        <label className="block text-[9px] font-black text-rose-400 uppercase tracking-[0.2em] mb-1.5">Check-out Before</label>
+                        <div className="relative">
+                          <select 
+                            name="checkOutTime" 
+                            value={formData.checkOutTime} 
+                            onChange={handleInputChange}
+                            className="w-full bg-transparent border-none p-0 text-sm md:text-base font-bold text-white focus:ring-0 outline-none appearance-none cursor-pointer"
+                          >
+                            {["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM", "08:00 PM"].map(time => (
+                              <option key={time} value={time} className="bg-zinc-900 text-white font-bold">{time}</option>
+                            ))}
+                          </select>
+                          <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none">
+                            <Plus className="w-3 h-3 text-rose-400 opacity-30 rotate-45" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* NEW FIELDS: Bedrooms, Bathrooms, Area, Max Guests, Total Rooms */}
@@ -660,7 +675,6 @@ const AddPropertyModal = ({
                         value={formData.bathrooms}
                         onChange={(val) => formData.type !== 'Tent' && setFormData(prev => ({ ...prev, bathrooms: val }))}
                         min={0}
-                        step={0.5}
                       />
                     </div>
                   </div>

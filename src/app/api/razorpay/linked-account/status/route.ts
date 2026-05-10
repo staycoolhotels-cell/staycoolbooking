@@ -39,17 +39,24 @@ export async function GET(req: Request) {
         let liveStatus = kyc.kyc_status;
         try {
             const account: any = await (razorpay as any).accounts.fetch(kyc.razorpay_account_id);
-            liveStatus = account?.profile?.kyc_details?.status || kyc.kyc_status;
+            liveStatus = account?.profile?.kyc_details?.status || account?.status || kyc.kyc_status;
 
-            // Map Razorpay statuses to our statuses
-            const statusMap: Record<string, string> = {
-                'created': 'under_review',
-                'under_review': 'under_review',
-                'activated': 'activated',
-                'needs_clarification': 'needs_clarification',
-                'suspended': 'suspended',
-            };
-            liveStatus = statusMap[liveStatus] || liveStatus;
+            // In test mode, Razorpay accounts stay in 'created' state unless manually approved in their dashboard.
+            // For a smoother testing experience, we automatically map 'created' to 'activated' when using test keys.
+            if (process.env.RAZORPAY_KEY_ID?.startsWith('rzp_test') && liveStatus === 'created') {
+                liveStatus = 'activated';
+            } else {
+                // Map Razorpay statuses to our statuses
+                const statusMap: Record<string, string> = {
+                    'created': 'under_review',
+                    'under_review': 'under_review',
+                    'activated': 'activated',
+                    'needs_clarification': 'needs_clarification',
+                    'suspended': 'suspended',
+                    'rejected': 'suspended',
+                };
+                liveStatus = statusMap[liveStatus] || liveStatus;
+            }
 
             // Sync to DB if changed
             if (liveStatus !== kyc.kyc_status) {

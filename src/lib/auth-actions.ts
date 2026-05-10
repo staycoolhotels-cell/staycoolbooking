@@ -114,8 +114,8 @@ export async function signUpUser(_prevState: string | undefined, formData: FormD
     // Enforce strict status logic manually to bypass potential trigger failures
     const userRole = role;
     const userName = name;
-    // HOST APPROVAL: Hosts start as 'pending'
-    const userStatus = userRole === 'host' ? 'pending' : 'active';
+    // HOST APPROVAL REMOVED: Hosts start as 'active' after successful payment verification
+    const userStatus = 'active';
 
     // --- Referral Logic ---
     let referrerId = null;
@@ -149,6 +149,11 @@ export async function signUpUser(_prevState: string | undefined, formData: FormD
 
     // Create public user profile immediately with correct status
     const newReferralCode = `SC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    
+    // Calculate subscription expiry (1 year from now)
+    const subscriptionExpiry = userRole === 'host' ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() : null;
+    const subscriptionStatus = userRole === 'host' ? 'active' : 'inactive';
+
     const { error: profileError } = await supabaseAdmin
       .from('users')
       .upsert({
@@ -161,6 +166,8 @@ export async function signUpUser(_prevState: string | undefined, formData: FormD
         created_at: new Date().toISOString(),
         referred_by: referrerId,
         referral_code: newReferralCode,
+        subscription_status: subscriptionStatus,
+        subscription_expiry: subscriptionExpiry,
       }, { onConflict: 'id' });
 
     if (profileError) {
@@ -427,8 +434,8 @@ export async function login(_prevState: string | undefined, formData: FormData) 
       await supabase.auth.signOut();
       return 'Host account suspended.';
     }
-    if (status === 'approved' || status === 'approved_host' || status === 'active') {
-      console.log('✅ ALLOWING: Host status is approved/active');
+    if (status === 'approved' || status === 'approved_host' || status === 'active' || status === 'pending') {
+      console.log('✅ ALLOWING: Host status is approved/active/pending');
       redirect('/host-dashboard');
     }
     console.log('❌ BLOCKING: Host status not recognized:', status);
@@ -594,6 +601,10 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
       const userName = name || 'Mobile User';
       const newReferralCode = `SC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
+      // Calculate subscription expiry (1 year from now)
+      const subscriptionExpiry = userRole === 'host' ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() : null;
+      const subscriptionStatus = userRole === 'host' ? 'active' : 'inactive';
+
       const { data: newProfile, error: createError } = await supabaseAdmin
         .from('users')
         .insert({
@@ -604,6 +615,8 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
           status: userStatus,
           referred_by: referrerId,
           referral_code: newReferralCode,
+          subscription_status: subscriptionStatus,
+          subscription_expiry: subscriptionExpiry,
         })
         .select('role, status')
         .single();

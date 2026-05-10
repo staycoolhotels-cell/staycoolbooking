@@ -10,6 +10,7 @@ import RealTimeInvoice from '@/components/common/RealTimeInvoice';
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from "@/components/ui/dialog";
 
 type AdminFinancialTreasuryProps = {
@@ -159,6 +160,7 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
 
       <Dialog open={!!previewTransaction} onOpenChange={(open) => !open && setPreviewTransaction(null)}>
         <DialogContent className="max-w-4xl bg-transparent border-none p-0 overflow-visible">
+          <DialogTitle className="sr-only">Invoice Preview</DialogTitle>
           <div className="max-h-[90vh] overflow-y-auto rounded-2xl custom-scrollbar">
             {previewTransaction && (
               <RealTimeInvoice 

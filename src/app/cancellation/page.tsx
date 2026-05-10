@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
+import Link from 'next/link';
 
 const CancellationPolicyPage = () => {
     const sections = [
@@ -14,23 +15,56 @@ const CancellationPolicyPage = () => {
         {
             title: '2. Tiered Refund Schedule',
             content: (
-                <div className="space-y-4">
-                    <p className="text-zinc-400">Our refund schedule is strictly enforced based on the time remaining before the scheduled check-in (local time of the property):</p>
-                    <div className="grid gap-4 mt-6">
-                        {[
-                            { period: '7 Days Before', refund: '100% Refund', detail: 'Full Refund', color: 'text-green-400' },
-                            { period: '5-7 Days Before', refund: '70% Refund', detail: '70% Refund', color: 'text-yellow-400' },
-                            { period: '2-4 Days Before', refund: '30% Refund', detail: '30% Refund', color: 'text-orange-400' },
-                            { period: 'Check-in day', refund: 'No Refund', detail: 'No Refund', color: 'text-red-400' }
-                        ].map((item, i) => (
-                            <div key={i} className="bg-zinc-800/50 p-4 rounded-xl border border-zinc-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div>
-                                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">{item.period} before check-in</span>
-                                    <span className={`text-xl font-bold ${item.color}`}>{item.refund}</span>
+                <div className="space-y-8">
+                    <div className="space-y-4">
+                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Standard Cancellation Policy:</p>
+                        <div className="grid gap-3">
+                            {[
+                                { period: '10+ Days Before', refund: '100% Refund', color: 'text-emerald-400', bg: 'bg-emerald-400/5', border: 'border-emerald-400/10' },
+                                { period: '5-10 Days Before', refund: '70% Refund', color: 'text-sky-400', bg: 'bg-sky-400/5', border: 'border-sky-400/10' },
+                                { period: '2-5 Days Before', refund: '50% Refund', color: 'text-amber-400', bg: 'bg-amber-400/5', border: 'border-amber-400/10' },
+                                { period: '< 2 Days Before', refund: '30% Refund', color: 'text-rose-400', bg: 'bg-rose-400/5', border: 'border-rose-400/10' }
+                            ].map((item, i) => (
+                                <div key={i} className={`${item.bg} ${item.border} border px-6 py-5 rounded-2xl flex items-center justify-between gap-4 transition-all hover:bg-white/[0.04]`}>
+                                    <div>
+                                        <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1">{item.period} check-in</span>
+                                        <span className={`text-2xl font-bold ${item.color}`}>{item.refund}</span>
+                                    </div>
+                                    <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center border ${item.border} shadow-inner`}>
+                                        <Icon name="CheckIcon" size={20} className={item.color} />
+                                    </div>
                                 </div>
-                                <p className="text-sm text-zinc-500 md:max-w-[200px]">{item.detail}</p>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Special Protection Section */}
+                    <div className="p-6 bg-sky-500/5 border border-sky-500/10 rounded-3xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 blur-[50px] -mr-16 -mt-16 group-hover:bg-sky-500/20 transition-colors" />
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center border border-sky-500/20">
+                                    <Icon name="SparklesIcon" size={16} className="text-sky-400" />
+                                </div>
+                                <span className="text-[11px] font-black text-sky-400 uppercase tracking-[0.2em]">Special Protection</span>
                             </div>
-                        ))}
+                            <ul className="space-y-4">
+                                <li className="flex items-start gap-3">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-2 flex-shrink-0" />
+                                    <p className="text-sm text-zinc-400 leading-relaxed">
+                                        <strong className="text-zinc-100 block mb-0.5">6-Hours Grace Period</strong>
+                                        100% refund if cancelled within 6 hours of booking.
+                                    </p>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-2 flex-shrink-0" />
+                                    <p className="text-sm text-zinc-400 leading-relaxed">
+                                        <strong className="text-zinc-100 block mb-0.5">Free Cancellation Protection</strong>
+                                        Pay ₹70 to get a 100% refund for same-day booking cancellations.
+                                    </p>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             ),
@@ -108,18 +142,18 @@ const CancellationPolicyPage = () => {
                                 If you need to cancel a booking or have questions about a refund status, our support team is available 24/7.
                             </p>
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                <a
+                                <Link
                                     href="/help"
                                     className="px-8 py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-all hover:scale-105 active:scale-95 border border-zinc-700 min-w-[200px]"
                                 >
                                     Help Center
-                                </a>
-                                <a
-                                    href="mailto:support@staycoolbooking.com"
+                                </Link>
+                                <Link
+                                    href="/contact"
                                     className="px-8 py-4 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition-all hover:scale-105 active:scale-95 shadow-lg shadow-sky-900/20 min-w-[200px]"
                                 >
                                     Contact Support
-                                </a>
+                                </Link>
                             </div>
                         </div>
                     </div>

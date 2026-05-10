@@ -115,7 +115,7 @@ const UserDetailsModal = ({
                 </select>
               </div>
               <p>
-                <strong>Joined:</strong> {new Date(user.created_at).toLocaleDateString()}
+                <strong>Joined:</strong> {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
               </p>
             </>
           ) : (
@@ -136,7 +136,7 @@ const UserDetailsModal = ({
                 <strong>Status:</strong> {user.status}
               </p>
               <p>
-                <strong>Joined:</strong> {new Date(user.created_at).toLocaleDateString()}
+                <strong>Joined:</strong> {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
               </p>
             </>
           )}
@@ -165,14 +165,7 @@ const UserDetailsModal = ({
               >
                 <span>Edit</span>
               </button>
-              {user.role === 'host' && user.status === 'pending' && (
-                <button
-                  onClick={() => onApprove(user.id)}
-                  className="w-full px-4 py-2 bg-success text-success-foreground rounded-lg font-heading font-semibold hover:bg-success/90 transition-all duration-300 flex items-center justify-center space-x-2"
-                >
-                  <span>Approve Host</span>
-                </button>
-              )}
+              {/* Removed manual approval */}
               <button
                 onClick={() => onSuspend(user.id)}
                 className="w-full px-4 py-2 bg-warning text-warning-foreground rounded-lg font-heading font-semibold hover:bg-warning/90 transition-all duration-300 flex items-center justify-center space-x-2"

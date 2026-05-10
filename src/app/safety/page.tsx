@@ -1,10 +1,31 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
+import ContactHostModal from '@/components/ui/ContactHostModal';
+import { supabase } from '@/lib/supabaseClient';
+import { toast } from 'sonner';
 
 const SafetyPage = () => {
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [adminUser, setAdminUser] = useState<{ id: string, name: string } | null>(null);
+
+    useEffect(() => {
+        const fetchAdmin = async () => {
+            const { data } = await supabase
+                .from('users')
+                .select('id, name')
+                .eq('role', 'admin')
+                .limit(1)
+                .maybeSingle();
+
+            if (data) {
+                setAdminUser(data);
+            }
+        };
+        fetchAdmin();
+    }, []);
     const sections = [
         {
             title: '1. Secure Identity Verification',
@@ -107,13 +128,19 @@ const SafetyPage = () => {
                                 If you are in an immediate emergency, please contact local authorities first. Our 24/7 Safety Team is here to help immediately after.
                             </p>
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                <a
-                                    href="tel:+1800STAYCOOL"
+                                <button
+                                    onClick={() => {
+                                        if (adminUser) {
+                                            setIsChatOpen(true);
+                                        } else {
+                                            toast.error('Safety team chat is currently unavailable. Please call +1-800-782-9266');
+                                        }
+                                    }}
                                     className="px-8 py-4 bg-red-600/10 hover:bg-red-600/20 text-red-500 font-bold rounded-xl transition-all border border-red-500/30 min-w-[200px] flex items-center justify-center gap-2"
                                 >
                                     <Icon name="PhoneIcon" size={20} />
                                     Emergency Line
-                                </a>
+                                </button>
                                 <a
                                     href="/contact"
                                     className="px-8 py-4 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition-all hover:scale-105 active:scale-95 shadow-lg shadow-sky-900/20 min-w-[200px]"
@@ -125,6 +152,14 @@ const SafetyPage = () => {
                     </div>
                 </motion.div>
             </div>
+            {adminUser && (
+                <ContactHostModal
+                    isOpen={isChatOpen}
+                    onClose={() => setIsChatOpen(false)}
+                    hostId={adminUser.id}
+                    hostName="StayCool Safety Team"
+                />
+            )}
         </div>
     );
 };

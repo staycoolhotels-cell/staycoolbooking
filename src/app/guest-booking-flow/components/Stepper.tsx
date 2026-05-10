@@ -15,7 +15,7 @@ const Stepper = ({ steps, currentStep }: StepperProps) => {
         <React.Fragment key={step}>
           <div className="flex flex-col items-center">
             <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
                 currentStep > index + 1
                   ? 'bg-green-500 text-white'
                   : currentStep === index + 1
@@ -24,13 +24,13 @@ const Stepper = ({ steps, currentStep }: StepperProps) => {
               }`}
             >
               {currentStep > index + 1 ? (
-                <Icon name="CheckIcon" size={24} />
+                <Icon name="CheckIcon" size={20} />
               ) : (
-                <span>{index + 1}</span>
+                <span className="text-sm">{index + 1}</span>
               )}
             </div>
             <p
-              className={`mt-2 text-sm font-semibold ${
+              className={`mt-1.5 text-[10px] sm:text-xs font-semibold ${
                 currentStep >= index + 1 ? 'text-primary' : 'text-gray-500'
               }`}
             >

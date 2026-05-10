@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
 import PropertyGallery from './PropertyGallery';
 import PropertyHeader from './PropertyHeader';
@@ -11,6 +11,7 @@ import ReviewsSection from './ReviewsSection';
 import BookingCard from './BookingCard';
 import HostProfile from './HostProfile';
 import dynamic from 'next/dynamic';
+import { toast } from 'sonner';
 
 const LocationMap = dynamic(() => import('./LocationMap'), { 
   ssr: false,
@@ -138,6 +139,8 @@ interface PropertyData {
     items: string[];
     linkText: string;
   };
+  checkInTime?: string;
+  checkOutTime?: string;
   categoryRatings?: { name: string; score: number; icon: string }[];
   badges?: string[];
 }
@@ -150,8 +153,21 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
   const router = useRouter();
   const [currentUser, setCurrentUser] = React.useState<any>(null);
   const [isSaved, setIsSaved] = React.useState(false);
-  const [showMobileBooking, setShowMobileBooking] = useState(false);
+  const searchParams = useSearchParams();
+  const [showMobileBooking, setShowMobileBooking] = useState(
+    searchParams.get('openBooking') === 'true'
+  );
   const [selectedAmenities, setSelectedAmenities] = useState<Record<string, number>>({});
+  const [isOnline, setIsOnline] = useState(true);
+
+  // Clean up the URL query param after opening the booking sheet
+  React.useEffect(() => {
+    if (searchParams.get('openBooking') === 'true') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('openBooking');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, []);
 
   const handleAmenityChange = (amenityId: string, type: string, operation: 'add' | 'remove' | 'toggle') => {
     setSelectedAmenities(prev => {
@@ -195,11 +211,40 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
     };
 
     fetchUserAndWishlist();
+
+    // Track this property as 'last viewed' for home page scrolling
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('last_viewed_property', propertyData.id);
+    }
+
+    // Network status listeners
+    if (typeof window !== 'undefined') {
+      setIsOnline(window.navigator.onLine);
+      const handleOnline = () => setIsOnline(true);
+      const handleOffline = () => setIsOnline(false);
+
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
+    }
   }, [propertyData.id]);
 
   const handleToggleSave = async () => {
+    if (!isOnline) {
+      toast.error('Network unavailable', {
+        description: 'Please check your internet connection to update your wishlist.'
+      });
+      return;
+    }
+
     if (!currentUser) {
-      alert("Please log in to save properties to your wishlist.");
+      toast.error('Login required', {
+        description: 'Please log in to save properties to your wishlist.'
+      });
       router.replace('/auth');
       return;
     }
@@ -235,6 +280,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
       }
     } catch (error) {
       console.error("Error updating wishlist:", error);
+      toast.error('Failed to update wishlist');
       // Revert optimistic update on error
       setIsSaved(currentlySaved);
     }
@@ -249,12 +295,9 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
             <button
               onClick={() => {
                 if (typeof window !== 'undefined') {
+                  // Ensure last viewed property is set for the home page scroll logic
                   sessionStorage.setItem('last_viewed_property', propertyData.id);
-                  if (window.history.length > 2) {
-                    router.back();
-                  } else {
-                    router.push('/homepage');
-                  }
+                  router.push('/homepage');
                 }
               }}
               className="group flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl hover:border-white/30 hover:bg-white/[0.05] transition-all duration-300"
@@ -419,6 +462,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                   upsellAmenities={propertyData.upsellAmenities}
                   rating={propertyData.rating}
                   reviewCount={propertyData.reviewCount}
+                  propertyType={propertyData.propertyType}
                 />
               </div>
             </div>
@@ -445,9 +489,10 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
               {/* Close Button */}
               <button
                 onClick={() => setShowMobileBooking(false)}
-                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                className="absolute top-2 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-all z-[60] backdrop-blur-sm border border-white/10"
+                aria-label="Close booking sheet"
               >
-                <Icon name="XMarkIcon" size={16} className="text-white" />
+                <Icon name="X" size={20} className="text-white" strokeWidth={3} />
               </button>
               <div className="px-4">
                 <BookingCard
@@ -462,6 +507,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                   upsellAmenities={propertyData.upsellAmenities}
                   rating={propertyData.rating}
                   reviewCount={propertyData.reviewCount}
+                  propertyType={propertyData.propertyType}
                 />
               </div>
             </div>

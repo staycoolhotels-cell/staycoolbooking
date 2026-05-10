@@ -156,8 +156,8 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                             booking_id: booking.id,
                                             paymentMethod: 'Razorpay', // Default fallback
                                             breakdown: {
-                                                accommodation: booking.total_price * 0.88,
-                                                service_fee: booking.total_price * 0.10,
+                                                accommodation: booking.total_price * 0.78,
+                                                service_fee: booking.total_price * 0.20,
                                                 taxes: booking.total_price * 0.02
                                             }
                                         };

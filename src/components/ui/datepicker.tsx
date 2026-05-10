@@ -16,6 +16,7 @@ interface DateRangePickerProps {
 }
 
 export function DateRangePicker({ className, onUpdate }: DateRangePickerProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const [date, setDate] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
     to: new Date(),
@@ -24,11 +25,16 @@ export function DateRangePicker({ className, onUpdate }: DateRangePickerProps) {
   const handleDateChange = (newDate: DateRange | undefined) => {
     setDate(newDate);
     onUpdate({ from: newDate?.from, to: newDate?.to });
+    
+    // Auto-close when both dates are selected
+    if (newDate?.from && newDate?.to) {
+      setIsOpen(false);
+    }
   };
 
   return (
     <div className={cn('grid gap-2', className)}>
-      <Popover>
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
             id="date"

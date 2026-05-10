@@ -88,7 +88,7 @@ const PropertyCard = ({
 
           {/* Custom Navigation Arrows */}
           <div
-            className={`swiper-button-next-${property.id} absolute top-1/2 right-2 sm:right-4 z-10 w-8 h-8 sm:w-10 sm:h-10 bg-black/20 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer shadow-lg hover:bg-sky-500/80 hover:scale-110 active:scale-95`}
+            className={`swiper-button-next-${property.id} absolute top-1/2 right-2 sm:right-4 -translate-y-1/2 z-10 w-8 h-8 sm:w-10 sm:h-10 bg-black/20 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer shadow-lg hover:bg-sky-500/80 hover:scale-110 active:scale-95`}
             onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
             role="button"
             aria-label="Next image"
@@ -156,6 +156,11 @@ const PropertyCard = ({
             <h3 className="font-heading text-xs sm:text-sm font-bold text-white leading-tight tracking-tight group-hover:text-sky-400 transition-colors duration-300 truncate">
               {property.title}
             </h3>
+            {property.type && (
+              <p className="text-sky-400 text-[7px] sm:text-[9px] font-black uppercase tracking-[0.1em] -mt-0.5">
+                {property.type}
+              </p>
+            )}
             <div className="flex items-center gap-1">
               <Icon name="MapPinIcon" size={10} className="text-sky-400/80" />
               <p className="text-zinc-400 text-[8px] sm:text-[10px] font-medium truncate">

@@ -143,17 +143,17 @@ const KycDetailsModal = ({ record, onClose }: KycDetailsModalProps) => {
               <div>
                 <span className="block text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Submitted On</span>
                 <p className="text-zinc-300 text-sm">
-                  {new Date(record.created_at).toLocaleString('en-IN', {
+                  {record.created_at ? new Date(record.created_at).toLocaleString('en-IN', {
                     day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-                  })}
+                  }) : 'N/A'}
                 </p>
               </div>
               <div>
                 <span className="block text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Last Updated</span>
                 <p className="text-zinc-300 text-sm">
-                  {new Date(record.updated_at).toLocaleString('en-IN', {
+                  {record.updated_at ? new Date(record.updated_at).toLocaleString('en-IN', {
                     day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-                  })}
+                  }) : 'N/A'}
                 </p>
               </div>
             </div>

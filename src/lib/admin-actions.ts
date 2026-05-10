@@ -406,8 +406,8 @@ export async function syncAndFetchUsers() {
       const name = user.user_metadata?.name || user.email?.split('@')[0] || 'User';
 
       // Determine correct status, PRESERVING existing if metadata has it
-      let status = user.user_metadata?.status || 'active'; // Trust metadata if present
-      if (!user.user_metadata?.status && role === 'host') status = 'pending';
+      // HOST APPROVAL REMOVED: Default to 'active' for all new/synced users
+      let status = user.user_metadata?.status || 'active';
 
       // Use upsert to handle race conditions
       const { error: insertError } = await supabase.from('users').upsert({
@@ -744,4 +744,23 @@ export async function fetchBookingDetailsAsAdmin(bookingId: string) {
   }
 
   return data;
+}
+
+/**
+ * Fetches all support messages and user details using service_role.
+ * Used for the Admin Panel Inbox to bypass RLS.
+ */
+export async function getAdminThreads() {
+  const supabase = await createAdminSupabaseClient();
+  const { data: messages, error } = await supabase
+    .from('messages')
+    .select('*, sender:sender_id(id, name, role), receiver:receiver_id(id, name, role)')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching admin threads:', error);
+    return [];
+  }
+
+  return messages;
 }

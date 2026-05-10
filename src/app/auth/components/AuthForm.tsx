@@ -2,6 +2,7 @@
 
 import React, { useState, useActionState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useSearchParams } from 'next/navigation';
 import './style.css';
 import { signUpUser, login, signInWithMobile, verifyMobileOtp } from '@/lib/auth-actions';
 
@@ -16,6 +17,9 @@ function SubmitButton({ children, onClick }: { children: React.ReactNode, onClic
 }
 
 const ModernAuthForm: React.FC = () => {
+  const searchParams = useSearchParams();
+  const errorParam = searchParams.get('error');
+  
   const [isActive, setIsActive] = useState(false);
   const [selectedRole, setSelectedRole] = useState('guest'); // Default role
 
@@ -30,6 +34,15 @@ const ModernAuthForm: React.FC = () => {
 
   // Form state for Email/Password Login
   const [loginState, loginAction] = useActionState<any, FormData>(login, undefined);
+
+  const getErrorMessage = (error: string | null) => {
+    if (error === 'subscription_expired') return 'Your yearly subscription has expired. Please renew to access the host dashboard.';
+    if (error === 'rejected') return 'Your account has been rejected or suspended.';
+    if (error === 'pending') return 'Your account is pending approval.';
+    return null;
+  };
+
+  const urlErrorMessage = getErrorMessage(errorParam);
 
   // Form state for Mobile OTP
   const [mobileActionState, mobileAction] = useActionState(async (prevState: any, formData: FormData) => {
@@ -178,6 +191,12 @@ const ModernAuthForm: React.FC = () => {
             </div>
             <span>or use your email password</span>
 
+            {urlErrorMessage && (
+              <div className="error-message" style={{ color: 'red', marginBottom: '10px', fontSize: '14px', textAlign: 'center', fontWeight: 'bold' }}>
+                {urlErrorMessage}
+              </div>
+            )}
+
             {loginState && (typeof loginState === 'string' ? (
               <div className="error-message" style={{ color: 'red', marginBottom: '10px', fontSize: '14px' }}>
                 {loginState}
@@ -201,6 +220,12 @@ const ModernAuthForm: React.FC = () => {
           <form action={mobileAction}>
             <h1>Mobile Sign In</h1>
             <span>Enter your mobile number to log in</span>
+
+            {urlErrorMessage && (
+              <div className="error-message" style={{ color: 'red', marginBottom: '10px', fontSize: '14px', textAlign: 'center', fontWeight: 'bold' }}>
+                {urlErrorMessage}
+              </div>
+            )}
 
             {mobileActionState && (typeof mobileActionState === 'string') && (
               <div className="error-message" style={{ color: 'red', marginBottom: '10px', fontSize: '14px' }}>

@@ -79,10 +79,35 @@ export const generateInvoicePDF = async (t: Transaction) => {
   doc.text(`${invoiceId}`, 158, 76);
   doc.text(`${t.date || new Date().toLocaleDateString()}`, 158, 83);
 
+  // Optional Dates
+  let currentY = 88;
+  doc.setFontSize(8);
+  if (t.bookingDate) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('Booking Date:', 140, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${t.bookingDate}`, 170, currentY);
+    currentY += 5;
+  }
+  if (t.cancellationDate) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('Cancellation Date:', 140, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${t.cancellationDate}`, 170, currentY);
+    currentY += 5;
+  }
+  if (t.refundDate) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('Refund Date:', 140, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${t.refundDate}`, 170, currentY);
+    currentY += 5;
+  }
+
   // 3. Table - Matches requested clean modern style
   const breakdown = t.breakdown || {
-    accommodation: (t.amount || 0) * 0.88,
-    service_fee: (t.amount || 0) * 0.10,
+    accommodation: (t.amount || 0) * 0.78,
+    service_fee: (t.amount || 0) * 0.20,
     taxes: (t.amount || 0) * 0.02
   };
 
@@ -133,14 +158,6 @@ export const generateInvoicePDF = async (t: Transaction) => {
   doc.setFont('helvetica', 'bold');
   doc.text('Thank you for choosing STAY COOL', 16, finalY);
 
-  doc.setFontSize(9);
-  doc.text('Payment Info:', 16, finalY + 10);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100);
-  doc.text('Account #:   1234 5678 9012', 16, finalY + 16);
-  doc.text('A/C Name:    STAYCOOL PVT LTD', 16, finalY + 21);
-  doc.text('Bank Details: Add your details', 16, finalY + 26);
-
   // Financial Breakdown on Right
   doc.setTextColor(31, 33, 40);
   doc.setFont('helvetica', 'bold');
@@ -160,7 +177,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
   doc.setDrawColor(240);
   doc.line(140, finalY + 16, 195, finalY + 16);
 
-  // Terms & Signature
+  // Terms
   doc.setTextColor(31, 33, 40);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
@@ -171,29 +188,22 @@ export const generateInvoicePDF = async (t: Transaction) => {
   const terms = "1. Guest is responsible for property condition. 2. Cancellations must be made 72 hours prior for full refund. 3. StayCool is a platform provider and not a party to the stay contract. 4. Luxury services subject to availability.";
   doc.text(terms, 16, finalY + 50, { maxWidth: 80 });
 
-  doc.setDrawColor(31, 33, 40);
-  doc.line(140, 275, 195, 275);
-  doc.setTextColor(31, 33, 40);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Authorised Sign', 167, 280, { align: 'center' });
-
   doc.save(`STAYCOOL_INV_${invoiceId}.pdf`);
 };
 
 export const exportTransactionsToCSV = (transactions: Transaction[]) => {
-  if (transactions.length === 0) return;
+  if (!transactions || transactions.length === 0) return;
 
   const headers = ['ID', 'Date', 'Guest', 'Host', 'Property', 'Amount', 'Status', 'Method'];
   const rows = transactions.map(t => [
-    t.id,
-    t.date,
-    t.guestName,
-    t.hostName,
-    t.propertyName,
-    t.amount,
-    t.status,
-    t.paymentMethod
+    `"${t.transactionId || t.id || 'N/A'}"`,
+    `"${t.date || 'N/A'}"`,
+    `"${(t.guestName || 'N/A').replace(/"/g, '""')}"`,
+    `"${(t.hostName || 'N/A').replace(/"/g, '""')}"`,
+    `"${(t.propertyName || 'N/A').replace(/"/g, '""')}"`,
+    t.amount || 0,
+    `"${(t.status || 'N/A').toUpperCase()}"`,
+    `"${t.paymentMethod || 'N/A'}"`
   ]);
 
   const csvContent = [

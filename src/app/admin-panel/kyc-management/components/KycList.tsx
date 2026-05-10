@@ -200,7 +200,7 @@ const KycList = ({ initialRecords }: KycListProps) => {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-zinc-500 text-xs hidden sm:table-cell">
-                        {new Date(record.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {record.created_at ? new Date(record.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                       </td>
                       <td className="px-4 py-3">
                         <button

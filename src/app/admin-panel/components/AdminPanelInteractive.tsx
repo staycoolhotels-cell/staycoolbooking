@@ -44,7 +44,7 @@ import {
 } from '@/lib/types';
 import { supabase } from '@/lib/supabaseClient';
 import { logActivity } from '@/lib/activity-actions';
-import { deleteUserAsAdmin, updateUserDetailsAsAdmin, approveHost, approveProperty, rejectProperty, updateDisputeStatusAsAdmin, fetchBookingDetailsAsAdmin } from '@/lib/admin-actions';
+import { deleteUserAsAdmin, updateUserDetailsAsAdmin, approveHost, approveProperty, rejectProperty, updateDisputeStatusAsAdmin, fetchBookingDetailsAsAdmin, getAdminThreads } from '@/lib/admin-actions';
 
 ChartJS.register(
   CategoryScale,
@@ -62,7 +62,7 @@ ChartJS.register(
 
 import { User as AuthUser } from '@supabase/supabase-js';
 
-const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], authUsers: AuthUser[], bookings: any[], properties: any[], verifications: any[], disputes: any[], transactions: any[], activities: any[] } }) => {
+const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], authUsers: AuthUser[], bookings: any[], properties: any[], verifications: any[], disputes: any[], transactions: any[], activities: any[], supportThreads?: any[] } }) => {
   const [maintenanceAlerts, setMaintenanceAlerts] = useState<any[]>([]);
   const [analyticsData, setAnalyticsData] = useState({
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
@@ -807,7 +807,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
               {(
                 [
                   { id: 'overview', label: 'Overview', icon: 'ChartBarIcon' },
-                  { id: 'verifications', label: 'Review', icon: 'DocumentCheckIcon' },
                   { id: 'disputes', label: 'Disputes', icon: 'ExclamationTriangleIcon' },
                   { id: 'transactions', label: 'Finances', icon: 'BanknotesIcon' },
                   { id: 'users', label: 'Users', icon: 'UsersIcon' },
@@ -879,18 +878,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         {[
-                          {
-                            tab: 'verifications' as const,
-                            icon: 'DocumentCheckIcon',
-                            label: 'Review Verifications',
-                            badge: verificationQueue.filter((v) => v.status === 'pending').length,
-                            badgeLabel: 'pending',
-                            color: 'emerald',
-                            glow: 'rgba(16,185,129,0.12)',
-                            border: 'rgba(16,185,129,0.2)',
-                            iconColor: 'text-emerald-400',
-                            iconBg: 'bg-emerald-500/10 border-emerald-500/20',
-                          },
                           {
                             tab: 'disputes' as const,
                             icon: 'ExclamationTriangleIcon',
@@ -1181,27 +1168,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                         />
                       </div>
                     </div>
-                    <div className="mb-8">
-                      <h3 className="text-lg font-heading font-bold text-zinc-100 mb-4">Pending Host Approvals</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {users.filter(u => u.role === 'host' && u.status === 'pending').length === 0 ? (
-                          <div className="col-span-full py-8 flex flex-col items-center justify-center bg-white/5 border border-dashed border-white/10 rounded-xl">
-                            <Icon name="CheckCircleIcon" size={36} className="text-zinc-600 mb-2" />
-                            <p className="text-zinc-500 font-heading text-sm">No pending host approvals.</p>
-                          </div>
-                        ) : (
-                          users.filter(u => u.role === 'host' && u.status === 'pending').map((user) => (
-                            <HostApprovalCard
-                              key={user.id}
-                              user={user}
-                              onAction={(userId: string) => {
-                                setUsers(prev => prev.filter(u => u.id !== userId));
-                              }}
-                            />
-                          ))
-                        )}
-                      </div>
-                    </div>
+                    {/* Manual Host Approval Section Removed - Automated via Payment now */}
                     <div className="mb-4 mt-8">
                       <h3 className="text-lg font-heading font-bold text-zinc-100">All Users</h3>
                     </div>
@@ -1272,27 +1239,26 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       const fetchAdminAndThreads = async () => {
         // Get current admin
         const { data: { user } } = await supabase.auth.getUser();
+        let adminId = user?.id;
         if (user) {
           const { data: profile } = await supabase.from('users').select('id, name').eq('id', user.id).single();
           setCurrentAdmin({ id: user.id, name: profile?.name || 'Admin' });
         }
 
-        // Fetch all support messages (where at least one user is admin)
-        const { data: messages, error } = await supabase
-          .from('messages')
-          .select('*, sender:sender_id(id, name), receiver:receiver_id(id, name)')
-          .order('created_at', { ascending: false });
+        // Always use server action to fetch threads to bypass RLS issues with joins
+        const allMessages = await getAdminThreads();
 
-        if (!error && messages) {
+        if (allMessages && allMessages.length > 0) {
           // Group by the "other" user (host/guest)
           const threadMap = new Map();
-          messages.forEach((msg: any) => {
-            const otherUser = msg.sender_id === user?.id ? msg.receiver : msg.sender;
+          allMessages.forEach((msg: any) => {
+            const otherUser = msg.sender_id === adminId ? msg.receiver : msg.sender;
 
             if (!otherUser || !otherUser.id) return;
+            if (otherUser.id === adminId) return;
 
-
-            if (otherUser.id === user?.id) return;
+            // Filter: Only show conversations with Hosts
+            if (otherUser.role !== 'host' && otherUser.role !== 'approved_host') return;
 
             if (!threadMap.has(otherUser.id)) {
               threadMap.set(otherUser.id, {
@@ -1303,8 +1269,9 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
             }
           });
           setThreads(Array.from(threadMap.values()));
+        } else {
+          setThreads([]);
         }
-        setLoading(true);
         setLoading(false);
       };
 

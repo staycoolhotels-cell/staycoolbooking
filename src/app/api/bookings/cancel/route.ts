@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { razorpay } from '@/lib/razorpay';
 import { differenceInDays, startOfDay } from 'date-fns';
-import { getRefundPercentage } from '@/lib/refund-policy';
+import { calculateRefundDistribution } from '@/lib/refund-policy';
 
 export async function POST(req: Request) {
     try {
@@ -47,39 +47,24 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Booking is already cancelled' }, { status: 400 });
         }
 
-        // 2. Cancellation Timeline Logic Calculation
         const now = new Date();
-        const today = startOfDay(now);
-        const checkInDate = startOfDay(new Date(booking.check_in));
-        const daysUntilCheckIn = differenceInDays(checkInDate, today);
-
         const totalPrice = Number(booking.total_price);
-        // Deduct platform fee first (10% of subtotal/base is roughly 9% of total if fee was 10% on top)
-        // However, we'll keep it simple: 10% of total is the platform fee.
-        const platformFee = totalPrice * 0.10;
-        const refundableBase = totalPrice - platformFee;
+        const daysUntilCheckIn = differenceInDays(startOfDay(new Date(booking.check_in)), startOfDay(now));
 
-        const guestRefundPercent = getRefundPercentage(
-            booking.check_in, 
-            now, // Use actual current time for 6-hour and same-day check
-            booking.created_at, 
+        // 2. Cancellation Distribution Logic Calculation
+        const { 
+            guestRefundAmount, 
+            hostShare: newHostAmount, 
+            adminShare: newAdminAmount,
+            hostSharePercent: hostChargePercent,
+            guestRefundPercent
+        } = calculateRefundDistribution(
+            totalPrice,
+            booking.check_in,
+            now,
+            booking.created_at,
             booking.has_free_cancellation
         );
-
-        // Guest gets their percentage of the refundable base
-        const guestRefundAmount = (refundableBase * guestRefundPercent) / 100;
-        
-        // Admin always keeps the platform fee, plus whatever guest didn't get from the base
-        const adminKeptFromBase = refundableBase - guestRefundAmount;
-        const newAdminAmount = platformFee + adminKeptFromBase;
-        
-        // For simplicity in this flow, host gets 0 if guest cancels late, 
-        // unless you want to split the adminKeptFromBase with the host.
-        // The user said "platform fee cut ayyi migitha amount vellali", which usually implies to guest.
-        const newHostAmount = 0;
-
-        const adminChargePercent = (newAdminAmount / totalPrice) * 100;
-        const hostChargePercent = 0;
 
         // 3. Initiate Razorpay Refunds / Reversals
         const rzpPaymentId = booking.razorpay_payment_id;

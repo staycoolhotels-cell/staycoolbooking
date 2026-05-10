@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { getUserMessages } from '@/lib/chat-actions';
 import { Message, SentimentLabel, QuickReply } from '../types';
 import { createBrowserClient } from '@supabase/ssr';
 import RealTimeChat from '@/components/chat/RealTimeChat';
@@ -58,35 +59,37 @@ const UnifiedInbox: React.FC<UnifiedInboxProps> = ({ inboxContext }) => {
   }, [supabase.auth]);
 
   const fetchMessages = async (userId: string) => {
-    const { data: messagesData, error } = await supabase
-      .from('messages')
-      .select(`
-        *,
-        sender:users!messages_sender_id_fkey(name, avatar_url),
-        property:properties!messages_property_id_fkey(title)
-      `)
-      .eq('receiver_id', userId)
-      .order('created_at', { ascending: false });
+    const messagesData = await getUserMessages(userId);
 
-    if (!error && messagesData) {
+    if (messagesData) {
       // Group by sender + property block to create "threads" logic
       // For simplicity in this UI, we just map them as individual actionable threads
       const formattedMessages = messagesData.map((msg: any) => ({
         ...msg,
-        sender_name: msg.sender?.name || 'Guest User',
+        sender_name: msg.sender?.name || 'User',
         sender_avatar: msg.sender?.avatar_url || null,
         property_name: msg.property?.title || 'General Inquiry'
       }));
 
-      // Basic grouping by sender to show latest message per guest
-      const uniqueSenders = new Map();
+      // Basic grouping by sender to show latest message per other user
+      const uniqueThreads = new Map();
       formattedMessages.forEach((msg: any) => {
-        if (!uniqueSenders.has(msg.sender_id)) {
-          uniqueSenders.set(msg.sender_id, msg);
+        const otherUserId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+        const threadKey = `${otherUserId}-${msg.property_id || 'none'}`;
+        
+        if (!uniqueThreads.has(threadKey)) {
+          // Determine the "display name" based on who the other person is
+          const otherUser = msg.sender_id === userId ? msg.receiver : msg.sender;
+          uniqueThreads.set(threadKey, {
+            ...msg,
+            sender_id: otherUserId, // For grouping and selection
+            sender_name: otherUser?.name || 'User',
+            sender_avatar: otherUser?.avatar_url || null
+          });
         }
       });
 
-      setMessages(Array.from(uniqueSenders.values()));
+      setMessages(Array.from(uniqueThreads.values()));
     }
   };
 

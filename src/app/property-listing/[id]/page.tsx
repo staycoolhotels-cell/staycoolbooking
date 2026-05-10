@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 
 import { getNearbyPlaces } from '@/lib/google-places';
 import { AMENITIES } from '@/lib/amenities';
@@ -155,7 +156,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         : property.location;
     
     const nearbyPlacesData = await getNearbyPlaces(fullAddress, property.latitude, property.longitude);
-    const nearbyAttractions = (nearbyPlacesData?.suggestions || []).map(p => ({
+    const nearbyAttractions = (nearbyPlacesData?.suggestions || []).map((p: any) => ({
         name: p.name,
         distance: p.distance,
         type: p.type.toLowerCase().includes('cafe') ? 'restaurant' : p.type.toLowerCase().includes('spot') ? 'park' : 'attraction'
@@ -222,7 +223,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         totalBookings: totalBookingsCount || 0,
         images: processImages(property.images, property.image_url, property.title),
         description: property.description,
-        propertyType: property.type || 'Apartment',
+        propertyType: property.tier || property.type || 'Apartment',
         maxGuests: property.max_guests || property.capacity || 2,
         bedrooms: property.bedrooms || 1,
         beds: property.beds || 1,
@@ -273,11 +274,13 @@ export default async function PropertyListingPage({ params }: { params: Promise<
             description: property.cancellation_policy || 'Free cancellation for 48 hours.',
             linkText: 'Read more'
         },
+        checkInTime: property.check_in_time || '3:00 PM',
+        checkOutTime: property.check_out_time || '11:00 AM',
         houseRules: {
             title: 'House rules',
             rules: [
-                'Check-in after 3:00 PM',
-                'Checkout before 11:00 AM',
+                `Check-in after ${property.check_in_time || '3:00 PM'}`,
+                `Checkout before ${property.check_out_time || '11:00 AM'}`,
                 ...(property.max_guests ? [`${property.max_guests} guests maximum`] : []),
                 ...(property.rules || [])
             ],
@@ -335,7 +338,9 @@ export default async function PropertyListingPage({ params }: { params: Promise<
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
-            <PropertyListingInteractive propertyData={propertyData as any} />
+            <Suspense fallback={null}>
+                <PropertyListingInteractive propertyData={propertyData as any} />
+            </Suspense>
             <Footer />
         </>
     );

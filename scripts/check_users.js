@@ -1,17 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    dotenv.config({ path: '.env.example' });
-}
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const { createClient } = require('@supabase/supabase-js');
+const dotenv = require('dotenv');
+dotenv.config();
 
-async function check() {
-    const { data, error } = await supabase.from('users').select('*').limit(1);
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+
+async function checkUsers() {
+    const { data, error } = await supabase.from('users').select('id, name, role').limit(10);
     if (error) {
-        console.error('Error:', error);
+        console.error('Error fetching users:', error);
     } else {
-        console.log('User keys:', Object.keys(data[0] || {}).join(', '));
+        console.log('Users:', data);
     }
 }
-check();
+
+checkUsers();

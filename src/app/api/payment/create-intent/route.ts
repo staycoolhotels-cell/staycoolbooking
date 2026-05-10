@@ -92,11 +92,11 @@ export async function POST(req: Request) {
             .eq('id', property.host_id)
             .single();
 
-        let commissionRate = 0.10; // Default 10%
+        let commissionRate = 0.20; // Default 20%
         let discountApplied = false;
 
         if (hostProfile && (hostProfile.referral_benefit_count || 0) > 0) {
-            commissionRate = 0.05; // 5% Discount rate
+            commissionRate = 0.10; // 10% Discount rate
             discountApplied = true;
             console.log(`🎁 Host ${property.host_id} has referral benefit! Using 5% commission (Count: ${hostProfile.referral_benefit_count})`);
             

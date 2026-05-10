@@ -15,7 +15,7 @@ interface LocationMapProps {
   }>;
 }
 
-const LocationMap = ({
+export const LocationMap = ({
   latitude,
   longitude,
   locationName,

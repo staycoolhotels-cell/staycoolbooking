@@ -73,6 +73,20 @@ export const getCachedUser = cache(async (userId: string) => {
   return data;
 });
 
+// 4. Fetch Support Admin (Bypasses RLS)
+export const getSupportAdmin = cache(async () => {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, name')
+    .eq('role', 'admin')
+    .limit(1)
+    .single();
+
+  if (error) return null;
+  return data;
+});
+
 // 4. Fetch bookings for a host (Memoized & Cached)
 export const getHostBookings = cache(async (hostId: string) => {
   return unstable_cache(

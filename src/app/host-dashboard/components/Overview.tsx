@@ -35,35 +35,52 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
       if (!user) return;
 
       const fetchNotifications = async () => {
-        const { data } = await supabase
+        // Fetch real notifications (if any)
+        const { data: notes } = await supabase
           .from('notifications')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(10);
           
-        if (data) {
-          setNotifications(data);
-          setUnreadCount(data.filter(n => !n.is_read).length);
-        }
+        // Fetch unread messages
+        const { data: msgs } = await supabase
+          .from('messages')
+          .select('id, content, created_at, sender_id')
+          .eq('receiver_id', user.id)
+          .eq('is_read', false)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        // Map messages to virtual notifications
+        const virtualNotes = (msgs || []).map(m => ({
+          id: `msg-${m.id}`,
+          type: 'message',
+          title: 'New Message Received',
+          message: m.content.length > 50 ? m.content.substring(0, 50) + '...' : m.content,
+          created_at: m.created_at,
+          is_read: false
+        }));
+
+        const combined = [...virtualNotes, ...(notes || [])]
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 10);
+
+        setNotifications(combined);
+        setUnreadCount(combined.filter(n => !n.is_read).length);
       };
 
       await fetchNotifications();
       
       channel = supabase.channel(`host-notifications-${user.id}`)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
-          setNotifications(prev => [payload.new, ...prev].slice(0, 10));
-          setUnreadCount(prev => prev + 1);
+          fetchNotifications();
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
-          setNotifications(prev => prev.map(n => n.id === payload.new.id ? payload.new : n));
-          setUnreadCount(prev => {
-            const wasRead = payload.old.is_read;
-            const isRead = payload.new.is_read;
-            if (!wasRead && isRead) return Math.max(0, prev - 1);
-            if (wasRead && !isRead) return prev + 1;
-            return prev;
-          });
+          fetchNotifications();
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` }, (payload) => {
+          fetchNotifications();
         })
         .subscribe();
     };
@@ -196,7 +213,18 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
                       </div>
                     ) : (
                       notifications.map((note) => (
-                        <div key={note.id} className={`p-4 border-b border-white/5 hover:bg-white/[0.03] transition-colors cursor-pointer group ${!note.is_read ? 'bg-indigo-500/[0.02]' : ''}`}>
+                        <div 
+                          key={note.id} 
+                          onClick={() => {
+                            if (note.type === 'message') {
+                              onAction?.('unified-inbox');
+                            } else if (note.type === 'booking') {
+                              onAction?.('bookings');
+                            }
+                            setShowNotifications(false);
+                          }}
+                          className={`p-4 border-b border-white/5 hover:bg-white/[0.03] transition-colors cursor-pointer group ${!note.is_read ? 'bg-indigo-500/[0.02]' : ''}`}
+                        >
                           <div className="flex gap-3">
                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
                               !note.is_read ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-white/5 border border-white/10'

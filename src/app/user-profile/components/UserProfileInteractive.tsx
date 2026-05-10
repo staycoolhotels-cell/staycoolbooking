@@ -16,6 +16,7 @@ import {
 } from '@/lib/types';
 import AnimatedLoader from '@/components/ui/AnimatedLoader';
 import dynamic from 'next/dynamic';
+import { useAppStore } from '@/lib/store';
 
 
 // Component Imports
@@ -44,6 +45,7 @@ const LocationMap = dynamic(() => import('@/app/property-listing/components/Loca
 
 
 const UserProfileInteractive = ({ userData }: { userData: any }) => {
+  const { setCurrentUser: setStoreUser, setWishlistIds } = useAppStore();
   const [status, setStatus] = useState<'loading' | 'error' | 'success'>('success');
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -54,6 +56,16 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
   };
+
+  // Sync with store on mount or data change
+  useEffect(() => {
+    if (userData) {
+      setStoreUser(userData);
+      if (userData.wishlist) {
+        setWishlistIds(userData.wishlist.map((w: any) => w.property_id));
+      }
+    }
+  }, [userData, setStoreUser, setWishlistIds]);
 
   // Data States
   const [user, setUser] = useState<User | null>(userData);

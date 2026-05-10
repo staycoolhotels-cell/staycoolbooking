@@ -3,7 +3,7 @@ import AdminPanelMotionWrapper from './components/AdminPanelMotionWrapper';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getUsersData, syncAndFetchUsers } from '@/lib/admin-actions';
+import { getUsersData, syncAndFetchUsers, getAdminThreads } from '@/lib/admin-actions';
 import { createAdminSupabaseClient } from '@/lib/admin-actions';
 import { Suspense } from 'react';
 
@@ -41,8 +41,11 @@ export default async function AdminPanelPage() {
     redirect('/auth');
   }
 
-  const profiles = await syncAndFetchUsers();
-  const authUsers = await getUsersData();
+  const [profiles, authUsers, supportThreads] = await Promise.all([
+    syncAndFetchUsers(),
+    getUsersData(),
+    getAdminThreads()
+  ]);
 
   // Use the admin client to bypass RLS for dashboard stats
   const supabaseAdmin = await createAdminSupabaseClient();
@@ -76,7 +79,7 @@ export default async function AdminPanelPage() {
   // Map confirmed bookings to the Transaction interface
   const mappedTransactions = (bookingsWithDetails || []).map(b => {
     const amount = Number(b.total_price);
-    const serviceFee = b.service_fee || (amount * 0.1); // Fallback to 10%
+    const serviceFee = b.service_fee || (amount * 0.2); // Updated to 20% commission as requested
     const netRevenue = amount - serviceFee;
     const guestLocation = locationMap[b.guest_id];
     const guestEmail = b.guest?.email;
@@ -99,7 +102,7 @@ export default async function AdminPanelPage() {
         service_fee: serviceFee,
         taxes: 0 // Default for now
       },
-      date: new Date(b.created_at).toLocaleDateString(),
+      date: b.created_at ? new Date(b.created_at).toLocaleDateString() : 'N/A',
       rawDate: b.created_at,
       status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
               (b.status === 'refunded' ? 'refunded' : 'pending'),
@@ -124,14 +127,17 @@ export default async function AdminPanelPage() {
     type: activity.type || 'user_action',
     title: activity.title || 'Activity',
     description: activity.description || '',
-    timestamp: activity.created_at
-      ? new Date(activity.created_at).toLocaleString('en-US', {
+    timestamp: (() => {
+      if (!activity.created_at) return 'Just now';
+      const d = new Date(activity.created_at);
+      if (isNaN(d.getTime())) return 'Just now';
+      return d.toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
-      })
-      : 'Just now',
+      });
+    })(),
     status: activity.status || 'info'
   })) || [];
 
@@ -145,6 +151,7 @@ export default async function AdminPanelPage() {
     disputes: disputes || [],
     verifications: verifications || [],
     activities: transformedActivities || [],
+    supportThreads: supportThreads || [],
   };
 
   return (

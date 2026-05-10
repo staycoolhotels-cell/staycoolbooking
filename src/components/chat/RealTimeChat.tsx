@@ -5,6 +5,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import Icon from '@/components/ui/AppIcon';
 import { Send } from 'lucide-react';
 import { createNotification } from '@/lib/activity-actions';
+import { toast } from 'sonner';
 
 interface Message {
     id: string;
@@ -92,30 +93,37 @@ const RealTimeChat: React.FC<RealTimeChatProps> = ({
         const { data, error } = await supabase.from('messages').insert({
             sender_id: currentUser.id,
             receiver_id: otherUser.id,
-            property_id: propertyId,
+            property_id: propertyId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(propertyId) ? propertyId : null,
             content,
             sentiment: 'Neutral',
             is_read: false,
         }).select().single();
-        if (!error && data) {
+
+        if (error) {
+            console.error('Error sending message:', error);
+            toast.error(`Error sending message: ${error.message || 'Unknown error'}`);
+        } else if (data) {
             setMessages(prev => [...prev, data as Message]);
             
             // Check if receiver is admin to log notification
-            // For now, we fetch the role of otherUser to decide
-            const { data: userData } = await supabase
-                .from('users')
-                .select('role')
-                .eq('id', otherUser.id)
-                .single();
-                
-            if (userData?.role === 'admin') {
-                await createNotification(
-                    'message',
-                    'New Support Message',
-                    `New message from ${currentUser.name || 'User'}: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
-                    'message' as any, // 'message' isn't in the union but we can use 'info' or cast
-                    otherUser.id
-                );
+            try {
+                const { data: userData } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('id', otherUser.id)
+                    .single();
+                    
+                if (userData?.role === 'admin') {
+                    await createNotification(
+                        'message',
+                        'New Support Message',
+                        `New message from ${currentUser.name || 'User'}: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
+                        'message' as any,
+                        otherUser.id
+                    );
+                }
+            } catch (err) {
+                console.error('Error creating notification:', err);
             }
         }
     };

@@ -124,7 +124,22 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
         .order('created_at', { ascending: false });
 
       if (alertsData) {
-        const enrichedAlerts = alertsData.map((a: any) => ({
+        // Find and auto-delete resolved alerts
+        const resolvedAlerts = alertsData.filter((a: any) => a.status === 'Resolved' || a.status === 'Completed');
+        if (resolvedAlerts.length > 0) {
+          resolvedAlerts.forEach(async (a: any) => {
+            try {
+              await supabase.from('maintenance_alerts').delete().eq('id', a.id);
+            } catch (err) {
+              console.error('Failed to auto-delete resolved alert:', err);
+            }
+          });
+        }
+
+        // Only keep active alerts in UI
+        const activeAlerts = alertsData.filter((a: any) => a.status !== 'Resolved' && a.status !== 'Completed');
+
+        const enrichedAlerts = activeAlerts.map((a: any) => ({
           ...a,
           property_name: propertyMap[a.property_id]?.title || propertyMap[a.property_id]?.name || 'Unknown Property'
         }));
@@ -687,13 +702,25 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-widest">Execution Date</label>
-                      <input
-                        type="date"
-                        required
-                        value={newChecklist.date}
-                        onChange={(e) => setNewChecklist({ ...newChecklist, date: e.target.value })}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl py-3.5 px-4 text-white placeholder-zinc-600 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all outline-none font-medium text-sm [color-scheme:dark]"
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          required
+                          value={newChecklist.date ? newChecklist.date.split('-').reverse().join('/') : ''}
+                          readOnly
+                          className="w-full bg-black/40 border border-white/10 rounded-xl py-3.5 px-4 text-white placeholder-zinc-600 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all outline-none font-medium text-sm"
+                        />
+                        <input
+                          type="date"
+                          required
+                          value={newChecklist.date}
+                          onChange={(e) => setNewChecklist({ ...newChecklist, date: e.target.value })}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer [color-scheme:dark]"
+                        />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none">
+                          <Icon name="CalendarDaysIcon" size={16} />
+                        </div>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-widest">Assignee</label>

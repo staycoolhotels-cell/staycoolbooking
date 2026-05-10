@@ -68,7 +68,7 @@ const UserManagementCard = ({ user, onManage }: UserManagementCardProps) => {
         </div>
         <div className="bg-[#050505]/60 rounded-xl p-3 border border-white/5 shadow-inner flex flex-col justify-center">
           <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Joined</p>
-          <p className="font-heading font-semibold text-zinc-200 drop-shadow-sm">{new Date(user.created_at).toLocaleDateString()}</p>
+          <p className="font-heading font-semibold text-zinc-200 drop-shadow-sm">{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</p>
         </div>
       </div>
 

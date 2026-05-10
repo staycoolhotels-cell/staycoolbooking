@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getHostProperties, getHostBookings, getCachedUser } from '@/lib/data-service';
+import { getHostProperties, getHostBookings, getCachedUser, getSupportAdmin } from '@/lib/data-service';
 import { createServerClient } from '@supabase/ssr';
 import { Metadata } from 'next';
 import { cookies } from 'next/headers';
@@ -56,11 +56,20 @@ export default async function HostDashboardPage() {
 
   // Check if user is host with proper status
   if (host.role === 'host') {
-    // HOST APPROVAL REMOVED: Allow pending hosts to access dashboard
-    // if (host.status === 'pending') {
-    //   await supabase.auth.signOut();
-    //   redirect('/auth?error=pending');
-    // }
+    // Subscription Check
+    if (host.subscription_expiry) {
+      const expiryDate = new Date(host.subscription_expiry);
+      const now = new Date();
+      if (now > expiryDate) {
+        // Subscription expired
+        console.log('❌ BLOCKING: Host subscription expired:', host.subscription_expiry);
+        // We could redirect to a renewal page, but for now let's just show an error or sign out
+        // redirect('/host-renewal'); // Future implementation
+        await supabase.auth.signOut();
+        redirect('/auth?error=subscription_expired');
+      }
+    }
+
     if (host.status === 'rejected' || host.status === 'suspended') {
       await supabase.auth.signOut();
       redirect('/auth?error=rejected');
@@ -76,7 +85,11 @@ export default async function HostDashboardPage() {
   const propertiesPromise = getHostProperties(user.id);
   const bookingsPromise = getHostBookings(user.id);
 
-  const [properties, bookings] = await Promise.all([propertiesPromise, bookingsPromise]);
+  const [properties, bookings, supportAdmin] = await Promise.all([
+    propertiesPromise, 
+    bookingsPromise,
+    getSupportAdmin()
+  ]);
 
   const { data: reviews, error: reviewsError } = await supabase
     .from('reviews')
@@ -117,6 +130,7 @@ export default async function HostDashboardPage() {
     earnings,
     transactions: mappedTransactions || [],
     reviews: reviews || [],
+    supportAdmin: supportAdmin || null,
   };
 
   return (

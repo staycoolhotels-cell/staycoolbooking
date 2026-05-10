@@ -67,6 +67,9 @@ export interface Transaction {
   invoice_id?: string;
   booking_id?: string;
   guestAddress?: string;
+  bookingDate?: string;
+  cancellationDate?: string;
+  refundDate?: string;
 }
 
 export interface User {
@@ -169,6 +172,8 @@ export interface Property {
   beds?: number;
   total_rooms?: number;
   room_type?: string;
+  check_in_time?: string;
+  check_out_time?: string;
   latitude?: number;
   longitude?: number;
 }

@@ -10,7 +10,7 @@ import {
   AreaChart,
   Area,
 } from 'recharts';
-import { RevenueForecastData, PriceSuggestion, Booking } from '@/lib/types';
+import { RevenueForecastData, Booking } from '@/lib/types';
 import { motion } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
 
@@ -19,9 +19,6 @@ interface RevenueForecastingProps {
 }
 
 const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }) => {
-  const [dynamicSuggestions, setDynamicSuggestions] = React.useState<PriceSuggestion[]>([]);
-  const [loadingAI, setLoadingAI] = React.useState(false);
-
   const { revenueData, totalProjected, historicalTotal } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -55,17 +52,17 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
 
     const chartData = [];
     for (let i = -30; i <= 14; i++) {
-        const d = new Date(today);
-        d.setDate(today.getDate() + i);
-        const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        
-        const earnings = forecastMap[label] || historicalMap[label] || 0;
-        
-        chartData.push({
-            date: label,
-            earnings,
-            type: i >= 0 ? 'Projected' : 'Historical'
-        });
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+      const earnings = forecastMap[label] || historicalMap[label] || 0;
+
+      chartData.push({
+        date: label,
+        earnings,
+        type: i >= 0 ? 'Projected' : 'Historical'
+      });
     }
 
     return {
@@ -73,26 +70,6 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
       totalProjected: projectedTotal,
       historicalTotal: histTotal
     };
-  }, [bookings]);
-
-  React.useEffect(() => {
-    const fetchAI = async () => {
-      const propIds = Array.from(new Set(bookings.map(b => b.property_id).filter(Boolean)));
-      if (propIds.length === 0) return;
-      
-      setLoadingAI(true);
-      try {
-        const { generatePricingAI } = await import('@/lib/pricing-actions');
-        const suggestions = await generatePricingAI(propIds);
-        setDynamicSuggestions(suggestions);
-      } catch (err) {
-        console.error('Failed to fetch Pricing AI:', err);
-      } finally {
-        setLoadingAI(false);
-      }
-    };
-
-    fetchAI();
   }, [bookings]);
 
   return (
@@ -132,9 +109,9 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 gap-6 lg:gap-8">
         {/* 2. Expected Earnings Chart */}
-        <div className="lg:col-span-2 relative group overflow-hidden bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl sm:rounded-[2.5rem] border border-white/10 p-4 sm:p-6 md:p-8 shadow-2xl flex flex-col min-h-[300px] sm:min-h-[450px]">
+        <div className="relative group overflow-hidden bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl sm:rounded-[2.5rem] border border-white/10 p-4 sm:p-6 md:p-8 shadow-2xl flex flex-col min-h-[300px] sm:min-h-[450px]">
           <div className="absolute -top-32 -right-32 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-blue-500/15 transition-colors duration-1000" />
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-8 relative z-10">
@@ -208,7 +185,7 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
                 <Area
                   type="monotone"
                   dataKey="earnings"
-                  stroke={(props) => (props as any).payload?.type === 'Projected' ? '#3b82f6' : '#52525b'}
+                  stroke="#3b82f6"
                   strokeWidth={3}
                   fillOpacity={1}
                   fill="url(#colorProjected)"
@@ -216,73 +193,6 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
                 />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* 3. AI Suggestions & Summary */}
-        <div className="space-y-6 lg:space-y-8 flex flex-col h-full">
-          <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl sm:rounded-[2.5rem] border border-white/10 p-3 sm:p-6 shadow-2xl flex-1 relative overflow-hidden group">
-            <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-purple-500/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-purple-500/20 transition-colors duration-1000" />
-
-            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-8 relative z-10">
-              <div className="p-1.5 sm:p-2 bg-purple-500/10 rounded-xl border border-purple-500/20 shadow-inner">
-                <Icon name="BanknotesIcon" size={15} className="text-purple-400 sm:hidden" />
-                <Icon name="BanknotesIcon" size={18} className="text-purple-400 hidden sm:block" />
-              </div>
-              <h2 className="text-xs sm:text-sm font-heading font-bold text-white uppercase tracking-wider">
-                Pricing AI
-              </h2>
-            </div>
-
-            <div className="space-y-4 relative z-10 overflow-y-auto max-h-[280px] pr-1 no-scrollbar">
-              {loadingAI ? (
-                 <div className="flex flex-col items-center justify-center py-12 text-center h-full">
-                  <Icon name="ArrowPathIcon" size={32} className="text-purple-500 animate-spin mb-4" />
-                  <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest animate-pulse">Consulting AI Strategist...</p>
-                </div>
-              ) : dynamicSuggestions.length > 0 ? (
-                dynamicSuggestions.map((s, idx) => (
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                    key={idx}
-                    className="p-4 rounded-[1.5rem] bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 shadow-inner group/card hover:border-purple-500/40 transition-colors"
-                  >
-                    <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-1 shadow-sm">
-                      {s.propertyName}
-                    </p>
-                    <p className="text-sm font-bold text-white mb-2 leading-tight">{s.suggestion}</p>
-                    <div className="flex items-center gap-2">
-                      <Icon name="BoltIcon" size={12} className="text-zinc-500 group-hover/card:text-yellow-500 transition-colors" />
-                      <p className="text-[10px] text-zinc-400 font-medium">{s.impact}</p>
-                    </div>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="flex flex-col items-center justify-center py-6 pb-2 text-center h-full opacity-60">
-                  <Icon name="CpuChipIcon" size={32} className="text-zinc-500 mb-4" />
-                  <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest mb-1">Analyzing Data</p>
-                  <p className="text-xs text-zinc-500 font-medium">No pricing adjustments recommended for current trends.</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-[#12121a] to-[#050505] rounded-xl sm:rounded-[2rem] border border-white/5 p-3 sm:p-6 shadow-xl relative overflow-hidden group">
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay"></div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-success/5 rounded-full blur-[40px] pointer-events-none group-hover:bg-success/10 transition-colors duration-1000" />
-
-            <div className="flex items-center gap-2 mb-3 relative z-10">
-              <Icon name="InformationCircleIcon" size={16} className="text-zinc-500" />
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                AI Summary
-              </p>
-            </div>
-            <p className="text-xs text-zinc-300 leading-relaxed font-medium relative z-10 pr-4">
-              Revenue growth is currently optimized based on local demand markers. 
-              Pricing AI suggests periodic adjustments to maximize yield during high-velocity windows.
-            </p>
           </div>
         </div>
       </div>

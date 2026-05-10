@@ -20,6 +20,10 @@ const PropertyGallery = ({ images, propertyName: _propertyName }: PropertyGaller
   const [isHydrated, setIsHydrated] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const minSwipeDistance = 50;
 
   useEffect(() => {
     setIsHydrated(true);
@@ -46,11 +50,39 @@ const PropertyGallery = ({ images, propertyName: _propertyName }: PropertyGaller
     setIsLightboxOpen(false);
   };
 
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEndEvent = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe) {
+      handleNext();
+    }
+    if (isRightSwipe) {
+      handlePrevious();
+    }
+  };
+
   return (
     <>
       <div className="w-full">
         {/* Main Image */}
-        <div className="relative w-full rounded-3xl overflow-hidden group aspect-[16/9] shadow-2xl shadow-black/50 border border-white/5">
+        <div 
+          className="relative w-full rounded-3xl overflow-hidden group aspect-[16/9] shadow-2xl shadow-black/50 border border-white/5"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEndEvent}
+        >
           <AppImage
             src={images[selectedImageIndex].url}
             alt={images[selectedImageIndex].alt}
@@ -126,7 +158,12 @@ const PropertyGallery = ({ images, propertyName: _propertyName }: PropertyGaller
             <Icon name="XMarkIcon" size={32} className="text-white group-hover:rotate-90 transition-transform duration-300" />
           </button>
 
-          <div className="relative w-full max-w-7xl h-[85vh]">
+          <div 
+            className="relative w-full max-w-7xl h-[85vh]"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEndEvent}
+          >
             <AppImage
               src={images[selectedImageIndex].url}
               alt={images[selectedImageIndex].alt}

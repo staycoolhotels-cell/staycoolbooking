@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import ReactDOM from 'react-dom';
 import Icon from '@/components/ui/AppIcon';
 
 interface ThingsToKnowSectionProps {
@@ -48,41 +49,54 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty }:
                         </div>
                         <div className="prose prose-invert max-w-none overflow-y-auto premium-scrollbar pr-2 pb-2">
                             {cancellationPolicy.description === 'Tiered' ? (
-                                <div className="space-y-4">
-                                    <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em]">Standard Cancellation Policy:</p>
-                                    <div className="grid gap-2">
-                                        {[
-                                            { period: '10+ Days Before', refund: '100% Refund', color: 'text-emerald-400', bg: 'bg-emerald-400/5', border: 'border-emerald-400/10' },
-                                            { period: '5-10 Days Before', refund: '70% Refund', color: 'text-sky-400', bg: 'bg-sky-400/5', border: 'border-sky-400/10' },
-                                            { period: '2-5 Days Before', refund: '50% Refund', color: 'text-amber-400', bg: 'bg-amber-400/5', border: 'border-amber-400/10' },
-                                            { period: '< 2 Days Before', refund: '30% Refund', color: 'text-rose-400', bg: 'bg-rose-400/5', border: 'border-rose-400/10' }
-                                        ].map((item, i) => (
-                                            <div key={i} className={`${item.bg} ${item.border} border px-3 py-2.5 rounded-xl flex items-center justify-between gap-3 transition-colors hover:bg-white/5`}>
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-0.5">{item.period} check-in</span>
-                                                    <span className={`text-sm font-bold ${item.color}`}>{item.refund}</span>
+                                <div className="space-y-6">
+                                    <div className="space-y-3">
+                                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Standard Cancellation Policy:</p>
+                                        <div className="grid gap-2.5">
+                                            {[
+                                                { period: '10+ Days Before', refund: '100% Refund', color: 'text-emerald-400', bg: 'bg-emerald-400/5', border: 'border-emerald-400/10' },
+                                                { period: '5-10 Days Before', refund: '70% Refund', color: 'text-sky-400', bg: 'bg-sky-400/5', border: 'border-sky-400/10' },
+                                                { period: '2-5 Days Before', refund: '50% Refund', color: 'text-amber-400', bg: 'bg-amber-400/5', border: 'border-amber-400/10' },
+                                                { period: '< 2 Days Before', refund: '30% Refund', color: 'text-rose-400', bg: 'bg-rose-400/5', border: 'border-rose-400/10' }
+                                            ].map((item, i) => (
+                                                <div key={i} className={`${item.bg} ${item.border} border px-4 py-3.5 rounded-2xl flex items-center justify-between gap-3 transition-all hover:bg-white/[0.04]`}>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">{item.period} check-in</span>
+                                                        <span className={`text-base font-bold ${item.color}`}>{item.refund}</span>
+                                                    </div>
+                                                    <div className={`w-9 h-9 rounded-xl ${item.bg} flex items-center justify-center border ${item.border} shadow-inner`}>
+                                                        <Icon name="CheckIcon" size={16} className={item.color} />
+                                                    </div>
                                                 </div>
-                                                <div className={`w-8 h-8 rounded-lg ${item.bg} flex items-center justify-center border ${item.border}`}>
-                                                    <Icon name="CheckIcon" size={14} className={item.color} />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="p-4 bg-sky-500/5 border border-sky-500/10 rounded-2xl">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <Icon name="SparklesIcon" size={14} className="text-sky-400" />
-                                            <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest">Special Protection</span>
+                                            ))}
                                         </div>
-                                        <ul className="space-y-1.5">
-                                            <li className="text-[11px] text-zinc-400 flex items-start gap-2">
-                                                <div className="w-1 h-1 rounded-full bg-sky-500 mt-1.5 flex-shrink-0" />
-                                                <span><strong className="text-zinc-200">6-Hour Grace Period:</strong> 100% refund if cancelled within 6 hours of booking.</span>
-                                            </li>
-                                            <li className="text-[11px] text-zinc-400 flex items-start gap-2">
-                                                <div className="w-1 h-1 rounded-full bg-sky-500 mt-1.5 flex-shrink-0" />
-                                                <span><strong className="text-zinc-200">Same Day Booking:</strong> 100% refund if booked and cancelled on the same day.</span>
-                                            </li>
-                                        </ul>
+                                    </div>
+
+                                    {/* Special Protection Section */}
+                                    <div className="p-5 bg-sky-500/5 border border-sky-500/10 rounded-2xl relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-sky-500/10 blur-[40px] -mr-12 -mt-12 group-hover:bg-sky-500/20 transition-colors" />
+                                        <div className="relative z-10">
+                                            <div className="flex items-center gap-2.5 mb-3">
+                                                <div className="w-7 h-7 rounded-lg bg-sky-500/20 flex items-center justify-center border border-sky-500/20">
+                                                    <Icon name="SparklesIcon" size={14} className="text-sky-400" />
+                                                </div>
+                                                <span className="text-[10px] font-black text-sky-400 uppercase tracking-[0.2em]">Special Protection</span>
+                                            </div>
+                                            <ul className="space-y-3">
+                                                <li className="flex items-start gap-3">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 flex-shrink-0" />
+                                                    <p className="text-[12px] text-zinc-400 leading-relaxed">
+                                                        <strong className="text-zinc-100">6-Hours Grace Period:</strong> 100% refund if cancelled within 6 hours of booking.
+                                                    </p>
+                                                </li>
+                                                <li className="flex items-start gap-3">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 flex-shrink-0" />
+                                                    <p className="text-[12px] text-zinc-400 leading-relaxed">
+                                                        <strong className="text-zinc-100">Free Cancellation Protection:</strong> Pay ₹70 to get a 100% refund for same-day booking cancellations.
+                                                    </p>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -222,8 +236,8 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty }:
             </div>
 
             {/* Modal */}
-            {selectedSection && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+            {selectedSection && typeof window !== 'undefined' && document.body && ReactDOM.createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
                     {/* Backdrop */}
                     <div
                         className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300"
@@ -252,7 +266,8 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty }:
                             {renderModalContent()}
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

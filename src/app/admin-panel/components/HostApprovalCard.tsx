@@ -65,7 +65,7 @@ const HostApprovalCard: React.FC<HostApprovalProps> = ({ user, onAction }) => {
           <div className="flex items-center space-x-2">
             <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Applied:</span>
             <span className="text-xs text-brand-default/90 font-medium">
-              {new Date(user.created_at).toLocaleDateString()}
+              {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
             </span>
           </div>
         </div>

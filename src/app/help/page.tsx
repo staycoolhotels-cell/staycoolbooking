@@ -1,13 +1,35 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
+import ContactHostModal from '@/components/ui/ContactHostModal';
+import { supabase } from '@/lib/supabaseClient';
+import Link from 'next/link';
+import { toast } from 'sonner';
 
 const HelpCenterPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
     const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [adminUser, setAdminUser] = useState<{ id: string, name: string } | null>(null);
+
+    useEffect(() => {
+        const fetchAdmin = async () => {
+            const { data } = await supabase
+                .from('users')
+                .select('id, name')
+                .eq('role', 'admin')
+                .limit(1)
+                .maybeSingle();
+
+            if (data) {
+                setAdminUser(data);
+            }
+        };
+        fetchAdmin();
+    }, []);
 
     const categories = ['All', 'Booking', 'Hosting', 'Payments', 'Safety'];
 
@@ -155,7 +177,27 @@ const HelpCenterPage = () => {
                                 <Icon name="MessagesSquareIcon" className="text-sky-400 mb-4" size={32} />
                                 <h3 className="text-xl font-bold text-white mb-2">Chat with us</h3>
                                 <p className="text-zinc-500 text-sm mb-6">Our average response time is less than 5 minutes.</p>
-                                <button className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-all">
+                                <button
+                                    onClick={() => {
+                                        if (adminUser) {
+                                            setIsChatOpen(true);
+                                        } else {
+                                            toast.error('Support chat is temporarily unavailable. Please try again later or use email support.');
+                                            // Re-attempt fetching admin just in case
+                                            const fetchAdmin = async () => {
+                                                const { data } = await supabase
+                                                    .from('users')
+                                                    .select('id, name')
+                                                    .eq('role', 'admin')
+                                                    .limit(1)
+                                                    .maybeSingle();
+                                                if (data) setAdminUser(data);
+                                            };
+                                            fetchAdmin();
+                                        }
+                                    }}
+                                    className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-all"
+                                >
                                     Start Chat
                                 </button>
                             </div>
@@ -164,15 +206,27 @@ const HelpCenterPage = () => {
                             <div className="relative z-10">
                                 <Icon name="MailIcon" className="text-sky-400 mb-4" size={32} />
                                 <h3 className="text-xl font-bold text-white mb-2">Email Support</h3>
-                                <p className="text-zinc-500 text-sm mb-6">Send us a detailed message and we\'ll get back within 24 hours.</p>
-                                <a href="mailto:support@staycoolbooking.com" className="block w-full text-center py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-sky-900/20">
+                                <p className="text-zinc-500 text-sm mb-6">Send us a detailed message and we'll get back within 24 hours.</p>
+                                <Link
+                                    href="/contact"
+                                    className="block w-full text-center py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-sky-900/20"
+                                >
                                     Email Us
-                                </a>
+                                </Link>
                             </div>
                         </div>
                     </div>
                 </motion.div>
             </div>
+
+            {adminUser && (
+                <ContactHostModal
+                    isOpen={isChatOpen}
+                    onClose={() => setIsChatOpen(false)}
+                    hostId={adminUser.id}
+                    hostName="StayCool Support"
+                />
+            )}
         </div>
     );
 };

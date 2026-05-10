@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion, Variants, useScroll, useTransform } from 'framer-motion';
 import { Button, TextField } from '@mui/material';
-import { Search, MapPin, Star, Shield, Award, X } from 'lucide-react';
+import { Search, MapPin, Star, Shield, Award, X, Home, Building, Tent, Building2, Palmtree, Bed, Hotel, Sofa, LayoutGrid } from 'lucide-react';
 import AppImage from '@/components/ui/AppImage';
 
 import { DateRange } from 'react-day-picker';
@@ -12,27 +12,43 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface UltraLuxuryHeroSectionProps {
-  onSearch?: (filters: { location: string; dates?: DateRange }) => void;
+  onSearch?: (filters: { location: string; dates?: DateRange; stayType?: string }) => void;
 }
 
 const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
+  const [stayType, setStayType] = React.useState<string>('all');
+  const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
+  const [isStayTypeOpen, setIsStayTypeOpen] = React.useState(false);
 
-  const hasFilters = searchTerm.trim() !== '' || !!dateRange;
+  const stayTypes = [
+    { id: 'all', name: 'All Stays', icon: LayoutGrid },
+    { id: 'hotel', name: 'Hotel Rooms', icon: Hotel },
+    { id: 'homestay', name: 'Home Stays', icon: Home },
+    { id: 'villa', name: 'Villas', icon: Building2 },
+    { id: 'tent', name: 'Tents', icon: Tent },
+    { id: 'wooden', name: 'Wooden Stays', icon: Sofa },
+    { id: 'dormitory', name: 'Dormitory Stays', icon: Bed },
+    { id: 'apartment', name: 'Apartments', icon: Building },
+    { id: 'resort', name: 'Resorts', icon: Palmtree },
+  ];
+
+  const hasFilters = searchTerm.trim() !== '' || !!dateRange || stayType !== 'all';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (onSearch) {
-      onSearch({ location: searchTerm, dates: dateRange });
+      onSearch({ location: searchTerm, dates: dateRange, stayType });
     }
   };
 
   const handleCancel = () => {
     setSearchTerm('');
     setDateRange(undefined);
+    setStayType('all');
     if (onSearch) {
-      onSearch({ location: '', dates: undefined });
+      onSearch({ location: '', dates: undefined, stayType: 'all' });
     }
   };
 
@@ -137,8 +153,8 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
           <form onSubmit={handleSubmit} className="flex flex-col md:flex-row items-stretch w-full relative">
             
             {/* Where To */}
-            <div className="w-full md:w-2/5 flex flex-col justify-center px-6 md:px-8 py-3.5 text-left hover:bg-white/20 md:rounded-full rounded-t-[2rem] transition-all duration-300 cursor-text group">
-              <label htmlFor="where-to-input" className="text-[11px] font-extrabold text-white uppercase tracking-wider cursor-text mb-0.5" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Where to?</label>
+            <div className="w-full md:w-[30%] flex flex-col justify-center px-6 md:px-7 py-3.5 text-left hover:bg-white/20 md:rounded-full rounded-t-[2rem] transition-all duration-300 cursor-text group">
+              <label htmlFor="where-to-input" className="text-[11px] font-extrabold text-white uppercase tracking-wider cursor-text mb-0.5 whitespace-nowrap" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Where to?</label>
               <div className="flex items-center gap-2">
                 <input
                   id="where-to-input"
@@ -168,15 +184,15 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
             </div>
 
             {/* Check In & Check Out */}
-            <Popover>
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <PopoverTrigger asChild>
                 <button 
                   type="button"
                   aria-label="Select check-in and check-out dates"
                   className="w-full md:w-auto flex-grow flex flex-row items-stretch border-t border-white/20 md:border-t-0 bg-transparent text-left p-0 focus:outline-none focus:ring-2 focus:ring-sky-500 md:focus:rounded-full"
                 >
-                  <div className="flex-1 flex flex-col justify-center px-5 md:px-8 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group border-r border-white/20 md:border-r-0">
-                    <span className="text-[11px] font-extrabold text-white uppercase tracking-wider mb-0.5" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Check in</span>
+                  <div className="flex-1 flex flex-col justify-center px-5 md:px-7 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group border-r border-white/20 md:border-r-0">
+                    <span className="text-[11px] font-extrabold text-white uppercase tracking-wider mb-0.5 whitespace-nowrap" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Check in</span>
                     <span className="text-[14px] md:text-[15px] font-medium text-zinc-100 truncate transition-colors" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
                       {dateRange?.from ? <span className="text-white">{format(dateRange.from, 'MMM dd, yyyy')}</span> : 'Add dates'}
                     </span>
@@ -186,8 +202,8 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                     <div className="w-px h-10 bg-white/30 drop-shadow-md" />
                   </div>
 
-                  <div className="flex-1 flex flex-col justify-center px-5 md:px-8 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group">
-                    <span className="text-[11px] font-extrabold text-white uppercase tracking-wider mb-0.5" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Check out</span>
+                  <div className="flex-1 flex flex-col justify-center px-5 md:px-7 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group">
+                    <span className="text-[11px] font-extrabold text-white uppercase tracking-wider mb-0.5 whitespace-nowrap" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Check out</span>
                     <span className="text-[14px] md:text-[15px] font-medium text-zinc-100 truncate transition-colors" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
                       {dateRange?.to ? <span className="text-white">{format(dateRange.to, 'MMM dd, yyyy')}</span> : 'Add dates'}
                     </span>
@@ -199,7 +215,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                   initialFocus
                   mode="range"
                   defaultMonth={dateRange?.from || new Date()}
-                  disabled={{ before: new Date() }}
+                  disabled={{ before: new Date(new Date().setHours(0,0,0,0)) }}
                   selected={dateRange}
                   onSelect={(range) => {
                     if (
@@ -211,6 +227,10 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                       setDateRange({ from: range.from, to: undefined });
                     } else {
                       setDateRange(range);
+                      // Auto-close when both dates are selected
+                      if (range?.from && range?.to) {
+                        setIsCalendarOpen(false);
+                      }
                     }
                   }}
                   numberOfMonths={1}
@@ -219,8 +239,45 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
               </PopoverContent>
             </Popover>
 
+            <div className="hidden md:flex items-center">
+              <div className="w-px h-10 bg-white/30 drop-shadow-md" />
+            </div>
+
+            {/* Stay Type */}
+            <Popover open={isStayTypeOpen} onOpenChange={setIsStayTypeOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="w-full md:w-auto flex flex-col items-center justify-center px-5 md:px-7 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group border-t border-white/20 md:border-t-0 text-center"
+                >
+                  <span className="text-[11px] font-extrabold text-white uppercase tracking-wider mb-0.5 whitespace-nowrap" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Stay Type</span>
+                  <span className="text-[14px] md:text-[15px] font-medium text-zinc-100 truncate transition-colors" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+                    {stayTypes.find(t => t.id === stayType)?.name || 'All Stays'}
+                  </span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2 border border-white/10 bg-black/70 backdrop-blur-2xl rounded-[1.5rem] shadow-[0_8px_32px_rgba(0,0,0,0.5)] mt-4 relative z-50" align="center">
+                <div className="grid grid-cols-1 gap-1">
+                  {stayTypes.map((type) => (
+                    <button
+                      key={type.id}
+                      type="button"
+                      onClick={() => {
+                        setStayType(type.id);
+                        setIsStayTypeOpen(false);
+                      }}
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 ${stayType === type.id ? 'bg-sky-500/20 text-sky-400' : 'hover:bg-white/10 text-zinc-300 hover:text-white'}`}
+                    >
+                      <type.icon className={`w-4 h-4 ${stayType === type.id ? 'text-sky-400' : 'text-zinc-500'}`} />
+                      <span className="text-sm font-semibold">{type.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+
             {/* Search & Cancel Buttons */}
-            <div className="w-full md:w-auto p-2 flex items-center justify-center gap-2 border-t border-white/20 md:border-t-0">
+            <div className="w-full md:w-auto p-2 flex items-center justify-center gap-2 border-t border-white/20 md:border-t-0 flex-shrink-0">
               {hasFilters && (
                 <button
                   type="button"
@@ -235,7 +292,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
               <button
                 type="submit"
                 aria-label="Submit search for properties"
-                className="flex items-center justify-center gap-2 bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-white font-bold py-3.5 px-6 md:px-8 md:py-4 rounded-[1.5rem] md:rounded-full shadow-[0_4px_20px_rgba(14,165,233,0.4)] hover:shadow-[0_8px_25px_rgba(14,165,233,0.6)] hover:scale-[1.02] transition-all duration-300 w-full md:w-auto"
+                className="flex items-center justify-center gap-2 bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-white font-bold py-3.5 px-6 md:px-7 md:py-4 rounded-[1.5rem] md:rounded-full shadow-[0_4px_20px_rgba(14,165,233,0.4)] hover:shadow-[0_8px_25px_rgba(14,165,233,0.6)] hover:scale-[1.02] transition-all duration-300 w-full md:w-auto"
               >
                 <Search className="w-5 h-5 flex-shrink-0" />
                 <span className="text-[15px] tracking-wide">Search</span>

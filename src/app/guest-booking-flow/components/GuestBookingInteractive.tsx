@@ -18,10 +18,37 @@ const GuestBookingInteractive = () => {
   const searchParams = useSearchParams();
   const preSelectedPropertyId = searchParams.get('propertyId');
   const [currentStep, setCurrentStep] = useState(1);
+
+  // Handle browser/system back button
+  useEffect(() => {
+    // Push a history state for the current step so back button can be intercepted
+    history.pushState({ step: currentStep }, '');
+
+    const handlePopState = (event: PopStateEvent) => {
+      if (currentStep === 1) {
+        // Step 1 → go to property page or previous page
+        if (preSelectedPropertyId) {
+          router.push(`/property-listing/${preSelectedPropertyId}`);
+        } else {
+          router.back();
+        }
+      } else {
+        // Step 2 or 3 → go to previous step
+        setCurrentStep(prev => prev - 1);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [currentStep, preSelectedPropertyId]);
+
   const [bookingCart, setBookingCart] = useState<Property[]>([]);
   const [filters, setFilters] = useState({
     location: '',
     checkIn: searchParams.get('checkIn') || '',
+
     checkOut: searchParams.get('checkOut') || '',
     guests: Number(searchParams.get('guests')) || 1,
     bookingType: searchParams.get('bookingType') || 'single',
@@ -30,6 +57,11 @@ const GuestBookingInteractive = () => {
     selectedRoomIds: searchParams.get('selectedRoomIds') || '[]',
     hasFreeCancellation: searchParams.get('hasFreeCancellation') === 'true',
     freeCancellationFee: Number(searchParams.get('freeCancellationFee')) || 0,
+  });
+
+  const [verificationData, setVerificationData] = useState<{fullName: string, documentFile: File | null}>({
+    fullName: '',
+    documentFile: null
   });
 
 
@@ -66,9 +98,18 @@ const GuestBookingInteractive = () => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <div className="relative min-h-screen w-full overflow-hidden text-slate-300 font-sans">
+      <div className="relative min-h-[100dvh] w-full overflow-hidden text-slate-300 font-sans flex flex-col bg-[#0a0a0f]">
+        {/* Background elements - Enhanced for full screen immersion */}
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] bg-sky-600/20 blur-[140px] rounded-full animate-pulse" />
+          <div className="absolute -bottom-[10%] -right-[10%] w-[60%] h-[60%] bg-purple-600/20 blur-[140px] rounded-full animate-pulse duration-[4000ms]" />
+          <div className="absolute top-[25%] right-[5%] w-[40%] h-[40%] bg-cyan-500/10 blur-[120px] rounded-full animate-pulse duration-[3000ms]" />
+          <div className="absolute bottom-[25%] left-[5%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full animate-pulse duration-[5000ms]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[30%] h-[30%] bg-indigo-500/5 blur-[100px] rounded-full" />
+        </div>
+
         {/* 2. COMPACT FLOATING SLATE */}
-        <main className="relative z-10 w-full max-w-4xl mx-auto pt-32 pb-24 px-4 md:px-0">
+        <main className="relative z-10 w-full max-w-4xl mx-auto flex-1 flex flex-col justify-start md:justify-center pt-24 pb-6 sm:pt-32 sm:pb-10 px-4 md:px-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}
@@ -80,8 +121,8 @@ const GuestBookingInteractive = () => {
               {/* SLENDER CONTAINER */}
               <div className="relative border border-white/5 bg-white/[0.02] backdrop-blur-2xl rounded-3xl overflow-hidden shadow-2xl">
                 {/* Integrated Stepper (Header of the Card) */}
-                <div className="px-8 py-6 border-b border-white/5 bg-white/[0.02]">
-                  <div className="flex justify-between items-center mb-6">
+                <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02]">
+                  <div className="flex justify-between items-center mb-4">
                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-sky-400/60">
                       Step 0{currentStep}
                     </span>
@@ -93,20 +134,17 @@ const GuestBookingInteractive = () => {
                 </div>
 
                 {/* Body - Scaled down padding */}
-                <div className="p-6 md:p-10">
+                <div className="p-3 sm:p-5 md:p-8">
                   {currentStep === 1 && (
                     <Step2_Verification
+                      verificationData={verificationData}
+                      setVerificationData={setVerificationData}
                       onNext={() => setCurrentStep(2)}
                       onBack={() => {
-                        if (typeof window !== 'undefined' && window.history.length > 2) {
-                          router.back();
+                        if (preSelectedPropertyId) {
+                          router.push(`/property-listing/${preSelectedPropertyId}`);
                         } else {
-                          // Fallback to the property page if we have the ID
-                          if (preSelectedPropertyId) {
-                            router.push(`/property-listing/${preSelectedPropertyId}`);
-                          } else {
-                            router.push('/homepage');
-                          }
+                          router.back();
                         }
                       }}
                     />
@@ -131,28 +169,7 @@ const GuestBookingInteractive = () => {
                   )}
                 </div>
 
-                {/* Footer - Inline with the card */}
-                <div className="px-8 py-6 border-t border-white/5 bg-white/[0.01] flex justify-between items-center">
-                  <div>
-                    {currentStep > 1 && currentStep < 3 && (
-                      <button
-                        onClick={() => setCurrentStep((prev) => prev - 1)}
-                        className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
-                      >
-                        [ Back ]
-                      </button>
-                    )}
-                  </div>
-
-                  {currentStep < 3 && (
-                    <button
-                      onClick={() => setCurrentStep((prev) => prev + 1)}
-                      className="px-8 py-3 bg-sky-500 hover:bg-sky-400 text-black text-[10px] font-black uppercase tracking-widest rounded-lg transition-all shadow-[0_0_15px_rgba(56,189,248,0.2)]"
-                    >
-                      Next Phase
-                    </button>
-                  )}
-                </div>
+                {/* Footer removed */}
               </div>
             </motion.div>
           </AnimatePresence>

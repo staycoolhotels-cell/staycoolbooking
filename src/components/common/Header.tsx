@@ -90,7 +90,7 @@ const Header = () => {
 
   const navLinks = [...baseLinks, ...roleSpecificLinks];
 
-  // Hide global header on admin panel pages - admin has its own dedicated header
+  // Hide global header on admin panel pages
   if (pathname.startsWith('/admin-panel')) return null;
 
   return (
@@ -222,7 +222,6 @@ const Header = () => {
               <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-sky-500/10 rounded-full blur-[120px]" />
               <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-[100px]" />
             </div>
-
             <nav className="flex flex-col items-center gap-4 sm:gap-6 z-10 w-full px-8">
               {navLinks.map((link, i) => (
                 <motion.div

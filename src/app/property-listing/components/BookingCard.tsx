@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -32,6 +32,7 @@ interface BookingCardProps {
   upsellAmenities?: UpsellAmenity[];
   rating?: number;
   reviewCount?: number;
+  propertyType?: string;
 }
 
 const BookingCard = ({
@@ -46,22 +47,54 @@ const BookingCard = ({
   upsellAmenities = [],
   rating = 0,
   reviewCount = 0,
+  propertyType = 'Room',
 }: BookingCardProps) => {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
-  const [checkIn, setCheckIn] = useState<Date | null>(null);
-  const [checkOut, setCheckOut] = useState<Date | null>(null);
-  const [guests, setGuests] = useState(2);
+  const [checkIn, setCheckIn] = useState<Date | null>(() => {
+    if (typeof window !== 'undefined') {
+      const val = sessionStorage.getItem(`booking_${propertyId}_checkIn`);
+      return val ? new Date(val) : null;
+    }
+    return null;
+  });
+  const [checkOut, setCheckOut] = useState<Date | null>(() => {
+    if (typeof window !== 'undefined') {
+      const val = sessionStorage.getItem(`booking_${propertyId}_checkOut`);
+      return val ? new Date(val) : null;
+    }
+    return null;
+  });
+  const [guests, setGuests] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const val = sessionStorage.getItem(`booking_${propertyId}_guests`);
+      return val ? parseInt(val) : 2;
+    }
+    return 2;
+  });
   const [isGuestOpen, setIsGuestOpen] = useState(false);
 
   // Bulk Booking State
-  const [bookingType, setBookingType] = useState<'single' | 'bulk'>('single');
-  const [selectedRooms, setSelectedRooms] = useState(1);
+  const [bookingType, setBookingType] = useState<'single' | 'bulk'>(() => {
+    if (typeof window !== 'undefined') {
+      const val = sessionStorage.getItem(`booking_${propertyId}_bookingType`);
+      return (val === 'bulk' || val === 'single') ? val : 'single';
+    }
+    return 'single';
+  });
+  const [selectedRooms, setSelectedRooms] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const val = sessionStorage.getItem(`booking_${propertyId}_selectedRooms`);
+      return val ? parseInt(val) : 1;
+    }
+    return 1;
+  });
   const [isRoomOpen, setIsRoomOpen] = useState(false);
   const [availableRooms, setAvailableRooms] = useState<number>(totalRooms);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   // New Sub-units State
   const [availableRoomsList, setAvailableRoomsList] = useState<any[]>([]);
@@ -69,9 +102,42 @@ const BookingCard = ({
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
   const [isCheckOutOpen, setIsCheckOutOpen] = useState(false);
-  const [hasFreeCancellation, setHasFreeCancellation] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [hasFreeCancellation, setHasFreeCancellation] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const val = sessionStorage.getItem(`booking_${propertyId}_hasFreeCancellation`);
+      return val === 'true';
+    }
+    return false;
+  });
 
+  // Save to sessionStorage when state changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (checkIn) sessionStorage.setItem(`booking_${propertyId}_checkIn`, checkIn.toISOString());
+      else sessionStorage.removeItem(`booking_${propertyId}_checkIn`);
+      
+      if (checkOut) sessionStorage.setItem(`booking_${propertyId}_checkOut`, checkOut.toISOString());
+      else sessionStorage.removeItem(`booking_${propertyId}_checkOut`);
+      
+      sessionStorage.setItem(`booking_${propertyId}_guests`, guests.toString());
+      sessionStorage.setItem(`booking_${propertyId}_bookingType`, bookingType);
+      sessionStorage.setItem(`booking_${propertyId}_selectedRooms`, selectedRooms.toString());
+      sessionStorage.setItem(`booking_${propertyId}_hasFreeCancellation`, hasFreeCancellation.toString());
+    }
+  }, [checkIn, checkOut, guests, bookingType, selectedRooms, hasFreeCancellation, propertyId]);
 
+  const safePropertyType = propertyType || 'Room';
+  const isTent = safePropertyType.toLowerCase().trim() === 'tent' || safePropertyType.toLowerCase().trim() === 'tents';
+  const unitName = isTent ? 'Tent' : 'Room';
+  const unitsName = isTent ? 'Tents' : 'Rooms';
+
+  // Check if bulk booking is allowed for this property type
+  const isBulkBookingAllowed = useMemo(() => {
+    const type = safePropertyType.toLowerCase().trim();
+    const disallowedTypes = ['home stay', 'homestay', 'villa', 'apartment', 'flat'];
+    return !disallowedTypes.some(disallowed => type.includes(disallowed));
+  }, [safePropertyType]);
 
   useEffect(() => {
     setIsHydrated(true);
@@ -81,22 +147,51 @@ const BookingCard = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserRole(user.user_metadata?.role?.toLowerCase() || 'guest');
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
       }
     };
     fetchUser();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserRole(session?.user?.user_metadata?.role?.toLowerCase() || null);
-    });
+    // Network status listeners
+    if (typeof window !== 'undefined') {
+      setIsOnline(window.navigator.onLine);
+      const handleOnline = () => {
+        setIsOnline(true);
+        toast.success('Back online!', { id: 'network-status' });
+      };
+      const handleOffline = () => {
+        setIsOnline(false);
+        toast.error('You are offline. Please check your connection.', { id: 'network-status' });
+      };
 
-    return () => subscription.unsubscribe();
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+
+      // Listen for auth changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          setUserRole(session.user.user_metadata?.role?.toLowerCase() || null);
+          setIsAuthenticated(true);
+        } else {
+          setUserRole(null);
+          setIsAuthenticated(false);
+        }
+      });
+
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+        subscription.unsubscribe();
+      };
+    }
   }, []);
 
   // Check availability when dates change
   useEffect(() => {
     const checkRoomAvailability = async () => {
-      if (!checkIn || !checkOut || !propertyId) return;
+      if (!checkIn || !checkOut || !propertyId || !isOnline) return;
 
       setCheckingAvailability(true);
       try {
@@ -122,6 +217,8 @@ const BookingCard = ({
           // We should handle this gracefully.
           if (typeof data === 'number') {
             setAvailableRooms(data);
+            // Cap selectedRooms if it exceeds newly fetched availableRooms
+            setSelectedRooms(prev => Math.min(prev, data));
           }
         }
       } catch (err) {
@@ -132,7 +229,7 @@ const BookingCard = ({
     };
 
     const fetchAvailableRooms = async () => {
-      if (!checkIn || !checkOut || !propertyId) return;
+      if (!checkIn || !checkOut || !propertyId || !isOnline) return;
       
       setLoadingRooms(true);
       try {
@@ -144,22 +241,16 @@ const BookingCard = ({
 
         if (error) {
           console.error('Error fetching available rooms (Raw):', error);
-          console.error('Error details:', {
-             message: 'An unexpected error occurred.',
-             details: error.details,
-             hint: error.hint,
-             code: error.code
-          });
-          
           if (!data || error) {
             toast.error('Sub-units fetch failed. Ensure SQL migrations are applied.');
           }
         } else {
           setAvailableRoomsList(data || []);
-          // Auto-select first available room for single booking if none selected
-          if (bookingType === 'single' && (data || []).filter((r: any) => r.is_available).length > 0) {
-            const firstAvailable = data.find((r: any) => r.is_available);
-            if (firstAvailable) setSelectedRoomIds([firstAvailable.id]);
+
+          // Auto-select first available room for single booking
+          if (bookingType === 'single' && (data || []).length > 0) {
+            const firstAvailable = data.find((r: any) => r.is_available) || data[0];
+            setSelectedRoomIds([firstAvailable.id]);
           }
         }
       } catch (err) {
@@ -169,11 +260,51 @@ const BookingCard = ({
       }
     };
 
-    if (checkIn && checkOut) {
+    if (checkIn && checkOut && isOnline) {
       checkRoomAvailability();
       fetchAvailableRooms();
     }
-  }, [checkIn, checkOut, propertyId, bookingType]);
+  }, [checkIn, checkOut, propertyId, bookingType, isOnline]);
+
+  // Effect to handle booking type changes
+  useEffect(() => {
+    if (bookingType === 'single' && availableRoomsList.length > 0) {
+      const firstAvailable = availableRoomsList.find((r: any) => r.is_available) || availableRoomsList[0];
+      setSelectedRoomIds([firstAvailable.id]);
+    }
+  }, [bookingType, availableRoomsList]);
+
+  // Auto-selection of units
+  useEffect(() => {
+    if (!availableRoomsList || availableRoomsList.length === 0) return;
+    
+    const available = availableRoomsList.filter(r => r.is_available);
+    const requiredCount = bookingType === 'bulk' ? selectedRooms : 1;
+    
+    if (available.length > 0) {
+      setSelectedRoomIds(prev => {
+        const validSelected = prev.filter(id => available.some(a => a.id === id));
+        if (validSelected.length !== requiredCount) {
+          // Auto-select the first `requiredCount` available rooms
+          return available.slice(0, requiredCount).map(r => r.id);
+        }
+        return prev;
+      });
+    }
+  }, [availableRoomsList, bookingType, selectedRooms]);
+
+  // Reset free cancellation if check-in is NOT today (same-day only feature)
+  useEffect(() => {
+    if (!checkIn) return;
+    const today = new Date();
+    const isSameDay =
+      checkIn.getFullYear() === today.getFullYear() &&
+      checkIn.getMonth() === today.getMonth() &&
+      checkIn.getDate() === today.getDate();
+    if (!isSameDay) {
+      setHasFreeCancellation(false);
+    }
+  }, [checkIn]);
 
 
   if (!isHydrated) {
@@ -221,6 +352,20 @@ const BookingCard = ({
 
 
   const handleBookClick = () => {
+    if (!isOnline) {
+      toast.error('Network unavailable', {
+        description: 'Please check your internet connection to reserve this property.',
+        id: 'offline-error'
+      });
+      return;
+    }
+
+    if (!isAuthenticated) {
+      toast.error('Please login to reserve a property');
+      router.push('/auth');
+      return;
+    }
+
     if (bookingType === 'bulk') {
       setShowConfirmation(true);
     } else {
@@ -229,6 +374,11 @@ const BookingCard = ({
   };
 
   const proceedToBooking = () => {
+    if (!isOnline) {
+      toast.error('Network error', { description: 'Please reconnect to proceed with booking.' });
+      return;
+    }
+
     const params = new URLSearchParams({
       propertyId,
       checkIn: checkIn ? checkIn.toISOString() : '',
@@ -250,20 +400,35 @@ const BookingCard = ({
   };
 
   const isDateSelected = !!checkIn && !!checkOut && nights > 0;
+
+  // Free Cancellation: only show for same-day check-in bookings
+  const isSameDayCheckIn = (() => {
+    if (!checkIn) return false;
+    const today = new Date();
+    return (
+      checkIn.getFullYear() === today.getFullYear() &&
+      checkIn.getMonth() === today.getMonth() &&
+      checkIn.getDate() === today.getDate()
+    );
+  })();
   // Determine if bookable
   // For single: need at least 1 room available.
   // For bulk: need selectedRooms <= availableRooms.
   // If we haven't checked availability (no dates), assume available based on initial prop.
   // But initialIsAvailable is boolean.
 
+  const hasSubUnits = availableRoomsList.length > 0;
+
   const isBookable = isDateSelected
-    ? (bookingType === 'single' ? selectedRoomIds.length === 1 : selectedRoomIds.length > 0 && selectedRoomIds.length <= availableRooms)
+    ? (!hasSubUnits || (bookingType === 'single' ? selectedRoomIds.length === 1 : selectedRoomIds.length > 0 && selectedRoomIds.length <= availableRooms))
     : initialIsAvailable;
 
   const unavailableMessage = checkingAvailability
     ? 'Checking availability...'
     : (isDateSelected 
-      ? (selectedRoomIds.length === 0 ? 'Select a unit' : `Only ${availableRooms} available`)
+      ? (!hasSubUnits 
+          ? (availableRooms > 0 || initialIsAvailable ? 'Select Dates' : 'Unavailable') 
+          : (selectedRoomIds.length === 0 ? 'Select a unit' : `Only ${availableRooms} available`))
       : 'Unavailable');
 
   const popperSx = {
@@ -292,6 +457,10 @@ const BookingCard = ({
     },
     '& .MuiPickersDay-today': {
       border: '1px solid #38bdf8 !important',
+    },
+    '& .MuiPickersDay-root.Mui-disabled': {
+      color: 'rgba(248, 250, 252, 0.15) !important',
+      pointerEvents: 'none',
     },
     '& .MuiPickersCalendarHeader-root': {
       color: '#f8fafc !important',
@@ -407,7 +576,7 @@ const BookingCard = ({
                   {currency}{pricePerNight.toLocaleString('en-IN')}
                 </span>
                 <span className="text-stone-400 text-xs font-medium ml-1">
-                  {bookingType === 'bulk' ? '/ room / night' : '/ night'}
+                  {bookingType === 'bulk' ? `/ ${unitName.toLowerCase()} / night` : '/ night'}
                 </span>
               </div>
               <div className="flex items-center gap-1 text-[13px] bg-sky-900/25 px-2.5 py-1 rounded-full border border-sky-500/20">
@@ -428,7 +597,7 @@ const BookingCard = ({
                     : 'text-gray-400 hover:text-white'
                     }`}
                 >
-                  Single Room
+                  Single {unitName}
                 </button>
                 <button
                   onClick={() => setBookingType('bulk')}
@@ -450,17 +619,39 @@ const BookingCard = ({
                 {/* Check-in */}
                 <div 
                   className="flex-1 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden cursor-pointer"
-                  onClick={() => setIsCheckInOpen(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isCheckInOpen) {
+                      setIsCheckOutOpen(false);
+                      setIsCheckInOpen(true);
+                    }
+                  }}
                 >
                   <div className="px-1 pt-2 pb-1">
                     <p className="text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">Check-in</p>
                     <DatePicker
                       value={checkIn}
-                      onChange={(newValue) => setCheckIn(newValue)}
+                      onChange={(newValue) => {
+                        setCheckIn(newValue);
+                        if (newValue) {
+                          setIsCheckInOpen(false);
+                          // Clear checkout if it's before new checkin
+                          if (checkOut && newValue >= checkOut) {
+                            setCheckOut(null);
+                          }
+                          // More substantial timeout to ensure popper removal and transition completion
+                          setTimeout(() => {
+                            setIsCheckOutOpen(true);
+                          }, 400);
+                        }
+                      }}
                       open={isCheckInOpen}
-                      onOpen={() => setIsCheckInOpen(true)}
+                      onOpen={() => {
+                        setIsCheckOutOpen(false);
+                        setIsCheckInOpen(true);
+                      }}
                       onClose={() => setIsCheckInOpen(false)}
-                      disablePast
+                      minDate={new Date()}
                       format="dd MM yyyy"
                       desktopModeMediaQuery="@media (min-width: 0px)"
                       slotProps={{
@@ -478,21 +669,38 @@ const BookingCard = ({
                 {/* Check-out */}
                 <div 
                   className="flex-1 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden cursor-pointer"
-                  onClick={() => setIsCheckOutOpen(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isCheckOutOpen) {
+                      setIsCheckInOpen(false);
+                      setIsCheckOutOpen(true);
+                    }
+                  }}
                 >
                   <div className="px-1 pt-2 pb-1">
                     <p className="text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">Check-out</p>
                     <DatePicker
                       value={checkOut}
-                      onChange={(newValue) => setCheckOut(newValue)}
+                      onChange={(newValue) => {
+                        setCheckOut(newValue);
+                        if (newValue) {
+                          setIsCheckOutOpen(false);
+                        }
+                      }}
                       open={isCheckOutOpen}
-                      onOpen={() => setIsCheckOutOpen(true)}
+                      onOpen={() => {
+                        setIsCheckInOpen(false);
+                        setIsCheckOutOpen(true);
+                      }}
                       onClose={() => setIsCheckOutOpen(false)}
                       minDate={checkIn || new Date()}
                       format="dd MM yyyy"
                       desktopModeMediaQuery="@media (min-width: 0px)"
                       slotProps={{
-                        textField: { size: 'small', placeholder: 'DD MM YYYY' },
+                        textField: { 
+                          size: 'small', 
+                          placeholder: 'DD MM YYYY',
+                        },
                         popper: { sx: popperSx }
                       }}
                       sx={datePickerSx}
@@ -563,10 +771,15 @@ const BookingCard = ({
                   >
                     <div>
                       <label className="block text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">
-                        Rooms
+                        {unitsName}
                       </label>
                       <div className="text-sm font-medium text-white">
-                        {selectedRooms} {selectedRooms === 1 ? 'room' : 'rooms'}
+                        {selectedRooms} {selectedRooms === 1 ? unitName.toLowerCase() : unitsName.toLowerCase()}
+                        {isDateSelected && (
+                          <span className="text-sky-400 text-[10px] ml-2 font-bold uppercase tracking-wider">
+                            ({availableRooms} available)
+                          </span>
+                        )}
                       </div>
                     </div>
                     <Icon
@@ -579,7 +792,7 @@ const BookingCard = ({
                   {isRoomOpen && (
                     <div className="absolute top-full mt-2 left-0 right-0 bg-zinc-900 border border-sky-900/50 p-4 shadow-xl rounded-xl z-50">
                       <div className="flex items-center justify-between mb-4">
-                        <span className="text-sm font-medium text-white">Rooms to Book</span>
+                        <span className="text-sm font-medium text-white">{unitsName} to Book</span>
                         <div className="flex items-center gap-3">
                           <button
                             onClick={(e) => { e.stopPropagation(); setSelectedRooms(Math.max(1, selectedRooms - 1)); }}
@@ -590,8 +803,8 @@ const BookingCard = ({
                           </button>
                           <span className="w-4 text-center text-sm font-medium text-white">{selectedRooms}</span>
                           <button
-                            onClick={(e) => { e.stopPropagation(); setSelectedRooms(Math.min(totalRooms, selectedRooms + 1)); }}
-                            disabled={selectedRooms >= totalRooms}
+                            onClick={(e) => { e.stopPropagation(); setSelectedRooms(Math.min(availableRooms, selectedRooms + 1)); }}
+                            disabled={selectedRooms >= availableRooms}
                             className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
                           >
                             <Icon name="PlusIcon" size={12} />
@@ -600,10 +813,10 @@ const BookingCard = ({
                       </div>
 
                       <button
-                        onClick={() => { setSelectedRooms(totalRooms); setIsRoomOpen(false); }}
+                        onClick={() => { setSelectedRooms(availableRooms); setIsRoomOpen(false); }}
                         className="w-full py-2 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 hover:text-sky-300 rounded-lg text-sm font-semibold transition-colors mb-2"
                       >
-                        Book Entire Property ({totalRooms} rooms)
+                        Book All Available Units ({availableRooms} {unitsName.toLowerCase()})
                       </button>
 
                       <button
@@ -621,9 +834,9 @@ const BookingCard = ({
               {isDateSelected && availableRoomsList.length > 0 && (
                 <div className="space-y-2 p-3 bg-gray-900/80 border border-gray-700/60 rounded-xl">
                   <label className="block text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-2">
-                    Select Preferred {bookingType === 'bulk' ? 'Units' : 'Unit'}
+                    {bookingType === 'bulk' ? `Select Preferred ${unitsName}` : 'Selected Unit'}
                   </label>
-                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
                     {availableRoomsList.map((room) => (
                       <div 
                         key={room.id}
@@ -639,49 +852,65 @@ const BookingCard = ({
                             );
                           }
                         }}
-                        className={`flex items-center justify-between p-2.5 rounded-lg border transition-all cursor-pointer ${
+                        className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
                           selectedRoomIds.includes(room.id)
-                            ? 'bg-sky-500/10 border-sky-500/50'
+                            ? 'bg-sky-500/15 border-sky-500 shadow-lg shadow-sky-900/20'
                             : room.is_available 
-                              ? 'bg-black/40 border-gray-800 hover:border-gray-600' 
-                              : 'bg-black/20 border-gray-800/50 opacity-50 cursor-not-allowed'
+                              ? 'bg-gray-900/40 border-gray-700/50 hover:border-sky-500/30 hover:bg-gray-800/60 cursor-pointer' 
+                              : 'bg-red-950/5 border-red-900/20 opacity-50 cursor-not-allowed pointer-events-none'
                         }`}
                       >
-                        <div className="flex items-center gap-2">
-                          <div className={`w-3.5 h-3.5 rounded flex items-center justify-center border ${
+                        <div className="flex items-center gap-3">
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all ${
                             selectedRoomIds.includes(room.id) 
-                              ? 'bg-sky-500 border-sky-500' 
-                              : 'border-gray-600'
+                              ? 'bg-sky-500 border-sky-500 shadow-[0_0_10px_rgba(14,165,233,0.4)]' 
+                              : !room.is_available
+                                ? 'border-gray-800 bg-gray-900/50'
+                                : 'border-gray-600 bg-transparent'
                           }`}>
-                            {selectedRoomIds.includes(room.id) && <Icon name="CheckIcon" size={10} className="text-black" />}
+                            {selectedRoomIds.includes(room.id) && <Icon name="CheckIcon" size={12} className="text-black font-bold" />}
+                            {!room.is_available && <Icon name="XMarkIcon" size={10} className="text-gray-600" />}
                           </div>
-                          <span className="text-xs font-medium text-white">{room.name}</span>
+                          <div>
+                            <span className={`text-sm font-bold ${!room.is_available ? 'text-gray-500' : 'text-white'}`}>{room.name}</span>
+                            {selectedRoomIds.includes(room.id) && (
+                              <p className="text-[10px] text-sky-400 font-medium">Selected for your stay</p>
+                            )}
+                            {!room.is_available && (
+                              <p className="text-[10px] text-red-400/60 font-medium italic">
+                                {room.status === 'maintenance' ? 'Under maintenance' : 'Currently unavailable'}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        {!room.is_available && (
-                          <span className="text-[10px] font-bold text-red-400/70 uppercase">Booked</span>
-                        )}
-                        {room.is_available && selectedRoomIds.includes(room.id) && (
-                          <span className="text-[10px] font-bold text-sky-400 uppercase">Selected</span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {room.status === 'maintenance' ? (
+                            <span className="text-[9px] font-black text-white uppercase tracking-widest px-2 py-1 rounded bg-amber-500/80 shadow-[0_0_10px_rgba(245,158,11,0.3)]">Maintenance</span>
+                          ) : !room.is_available ? (
+                            <span className="text-[9px] font-black text-white uppercase tracking-widest px-2 py-1 rounded bg-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.3)]">Booked</span>
+                          ) : null}
+                          {selectedRoomIds.includes(room.id) && (
+                            <div className="px-2 py-0.5 rounded bg-sky-500/20 border border-sky-500/30">
+                              <span className="text-[9px] font-black text-sky-400 uppercase tracking-widest">Active</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
+
                   {bookingType === 'bulk' && selectedRoomIds.length > 0 && (
                     <p className="text-[10px] text-sky-400 font-semibold mt-1">
                       {selectedRoomIds.length} units selected
                     </p>
-                  )}
-                  {bookingType === 'single' && selectedRoomIds.length === 0 && (
-                     <p className="text-[10px] text-amber-400 font-semibold mt-1">
-                       Please select a unit to proceed
-                     </p>
                   )}
                 </div>
               )}
 
             </div>
 
-            {/* Free Cancellation Option */}
+            {/* Free Cancellation Option — only for same-day check-in */}
+            {isSameDayCheckIn && (
             <div className="mb-5 bg-sky-900/10 border border-sky-500/20 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="bg-gradient-to-r from-emerald-500/20 to-sky-500/20 px-4 py-2 border-b border-sky-500/10 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -746,10 +975,16 @@ const BookingCard = ({
                   </div>
                   <div>
                     <p className="text-sm font-bold text-gray-300">No, I don't want Free Cancellation</p>
-                    <p className="text-[10px] text-amber-500/70 font-semibold mt-1 flex items-center gap-1">
-                      <Icon name="ExclamationTriangleIcon" size={12} />
-                      Standard cancellation policy will apply
-                    </p>
+                    <div className="space-y-1.5 mt-1.5">
+                      <div className="flex items-center gap-2 text-amber-500/70">
+                        <Icon name="ExclamationTriangleIcon" size={12} />
+                        <span className="text-[11px] font-semibold">Only 50% refund will apply</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <Icon name="InformationCircleIcon" size={12} />
+                        <span className="text-[10px] font-medium">Split: 25% Admin, 25% Host</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -761,15 +996,21 @@ const BookingCard = ({
                 </div>
               </div>
             </div>
+            )}
 
 
             {/* Primary CTA */}
             <button
               onClick={handleBookClick}
-              disabled={!isBookable || checkingAvailability}
+              disabled={!isBookable || checkingAvailability || !isOnline}
               className="w-full bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-black font-bold rounded-xl py-3 text-base shadow-lg shadow-sky-900/40 transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed mb-2"
             >
-              {isBookable
+              {!isOnline ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Icon name="WifiOff" size={18} />
+                  Offline
+                </div>
+              ) : isBookable
                 ? (nights ? (bookingType === 'bulk' ? 'Request Bulk Booking' : 'Reserve') : 'Select dates')
                 : unavailableMessage}
             </button>
@@ -799,7 +1040,7 @@ const BookingCard = ({
                   <div className="flex justify-between text-gray-300">
                     <span className="underline decoration-gray-700">
                       {currency}{pricePerNight.toLocaleString()} x {nights} nights
-                      {roomsToBook > 1 && ` x ${roomsToBook} rooms`}
+                      {roomsToBook > 1 && ` x ${roomsToBook} ${unitsName.toLowerCase()}`}
                     </span>
                     <span>{currency}{baseTotal.toLocaleString()}</span>
                   </div>

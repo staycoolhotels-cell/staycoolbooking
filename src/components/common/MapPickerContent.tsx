@@ -39,6 +39,8 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const isMapClickUpdateRef = useRef(false);
+  const lastSearchedAddressRef = useRef<string>('');
 
   useEffect(() => {
     setReady(true);
@@ -100,6 +102,7 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
 
     // Map Click Event
     map.on('click', async (e: L.LeafletMouseEvent) => {
+      isMapClickUpdateRef.current = true;
       const { lat: newLat, lng: newLng } = e.latlng;
       
       if (markerRef.current) {
@@ -114,6 +117,9 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
       
       // Fetch address components
       await fetchAddress(newLat, newLng);
+      setTimeout(() => {
+        isMapClickUpdateRef.current = false;
+      }, 1000);
     });
 
     return () => {
@@ -149,6 +155,7 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
 
   const handleLocateMe = () => {
     if (!mapRef.current) return;
+    isMapClickUpdateRef.current = true;
     mapRef.current.locate({ setView: true, maxZoom: 17 });
     mapRef.current.once('locationfound', async (e) => {
       const { lat: newLat, lng: newLng } = e.latlng;
@@ -174,28 +181,55 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
           console.error("Reverse geocoding error:", error);
         }
       }
+      setTimeout(() => {
+        isMapClickUpdateRef.current = false;
+      }, 1000);
     });
   };
 
-  const handleFindOnMap = async () => {
-    if (!address) return;
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
-      );
-      const data = await response.json();
-      if (data && data.length > 0) {
-        const newLat = parseFloat(data[0].lat);
-        const newLng = parseFloat(data[0].lon);
-        onLocationSelect(newLat, newLng);
-        if (mapRef.current) {
-          mapRef.current.flyTo([newLat, newLng], 17);
+  const handleFindOnMap = React.useCallback(async () => {
+    if (!address || address.trim() === '' || address.trim() === lastSearchedAddressRef.current) return;
+    lastSearchedAddressRef.current = address.trim();
+    
+    const addressParts = address.split(',').map(p => p.trim()).filter(Boolean);
+    
+    for (let i = 0; i < addressParts.length; i++) {
+      const searchStr = addressParts.slice(i).join(', ');
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchStr)}&limit=1`,
+          { headers: { 'User-Agent': 'StayCoolBooking/1.0' } }
+        );
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const newLat = parseFloat(data[0].lat);
+          const newLng = parseFloat(data[0].lon);
+          onLocationSelect(newLat, newLng);
+          if (mapRef.current) {
+            mapRef.current.flyTo([newLat, newLng], 17);
+          }
+          return;
         }
+      } catch (error) {
+        console.error("Geocoding error:", error);
       }
-    } catch (error) {
-      console.error("Geocoding error:", error);
+      
+      // Delay to respect Nominatim rate limits (max 1 req/s)
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
-  };
+  }, [address, onLocationSelect]);
+
+  useEffect(() => {
+    if (!address || address.trim().length < 5 || isMapClickUpdateRef.current) return;
+    
+    const timeoutId = setTimeout(() => {
+      if (!isMapClickUpdateRef.current) {
+        handleFindOnMap();
+      }
+    }, 1500);
+
+    return () => clearTimeout(timeoutId);
+  }, [address, handleFindOnMap]);
 
   return (
     <div className="relative w-full h-full group overflow-hidden rounded-xl border border-white/10 shadow-2xl">
