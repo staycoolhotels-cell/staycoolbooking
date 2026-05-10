@@ -116,10 +116,10 @@ const BookingCard = ({
     if (typeof window !== 'undefined') {
       if (checkIn) sessionStorage.setItem(`booking_${propertyId}_checkIn`, checkIn.toISOString());
       else sessionStorage.removeItem(`booking_${propertyId}_checkIn`);
-      
+
       if (checkOut) sessionStorage.setItem(`booking_${propertyId}_checkOut`, checkOut.toISOString());
       else sessionStorage.removeItem(`booking_${propertyId}_checkOut`);
-      
+
       sessionStorage.setItem(`booking_${propertyId}_guests`, guests.toString());
       sessionStorage.setItem(`booking_${propertyId}_bookingType`, bookingType);
       sessionStorage.setItem(`booking_${propertyId}_selectedRooms`, selectedRooms.toString());
@@ -230,7 +230,7 @@ const BookingCard = ({
 
     const fetchAvailableRooms = async () => {
       if (!checkIn || !checkOut || !propertyId || !isOnline) return;
-      
+
       setLoadingRooms(true);
       try {
         const { data, error } = await supabase.rpc('get_available_rooms', {
@@ -277,10 +277,10 @@ const BookingCard = ({
   // Auto-selection of units
   useEffect(() => {
     if (!availableRoomsList || availableRoomsList.length === 0) return;
-    
+
     const available = availableRoomsList.filter(r => r.is_available);
     const requiredCount = bookingType === 'bulk' ? selectedRooms : 1;
-    
+
     if (available.length > 0) {
       setSelectedRoomIds(prev => {
         const validSelected = prev.filter(id => available.some(a => a.id === id));
@@ -391,11 +391,11 @@ const BookingCard = ({
       freeCancellationFee: freeCancellationFee.toString(),
     });
 
-    
+
     if (Object.keys(selectedAmenities).length > 0) {
       params.append('amenities', JSON.stringify(selectedAmenities));
     }
-    
+
     router.push(`/guest-booking-flow?${params.toString()}`);
   };
 
@@ -425,10 +425,10 @@ const BookingCard = ({
 
   const unavailableMessage = checkingAvailability
     ? 'Checking availability...'
-    : (isDateSelected 
-      ? (!hasSubUnits 
-          ? (availableRooms > 0 || initialIsAvailable ? 'Select Dates' : 'Unavailable') 
-          : (selectedRoomIds.length === 0 ? 'Select a unit' : `Only ${availableRooms} available`))
+    : (isDateSelected
+      ? (!hasSubUnits
+        ? (availableRooms > 0 || initialIsAvailable ? 'Select Dates' : 'Unavailable')
+        : (selectedRoomIds.length === 0 ? 'Select a unit' : `Only ${availableRooms} available`))
       : 'Unavailable');
 
   const popperSx = {
@@ -617,7 +617,7 @@ const BookingCard = ({
               {/* Date Pickers */}
               <div className="flex gap-1">
                 {/* Check-in */}
-                <div 
+                <div
                   className="flex-1 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -655,8 +655,8 @@ const BookingCard = ({
                       format="dd MM yyyy"
                       desktopModeMediaQuery="@media (min-width: 0px)"
                       slotProps={{
-                        textField: { 
-                          size: 'small', 
+                        textField: {
+                          size: 'small',
                           placeholder: 'DD MM YYYY',
                         },
                         popper: { sx: popperSx }
@@ -667,7 +667,7 @@ const BookingCard = ({
                 </div>
 
                 {/* Check-out */}
-                <div 
+                <div
                   className="flex-1 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -697,8 +697,8 @@ const BookingCard = ({
                       format="dd MM yyyy"
                       desktopModeMediaQuery="@media (min-width: 0px)"
                       slotProps={{
-                        textField: { 
-                          size: 'small', 
+                        textField: {
+                          size: 'small',
                           placeholder: 'DD MM YYYY',
                         },
                         popper: { sx: popperSx }
@@ -836,38 +836,36 @@ const BookingCard = ({
                   <label className="block text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-2">
                     {bookingType === 'bulk' ? `Select Preferred ${unitsName}` : 'Selected Unit'}
                   </label>
-                                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
                     {availableRoomsList.map((room) => (
-                      <div 
+                      <div
                         key={room.id}
                         onClick={() => {
                           if (!room.is_available) return;
                           if (bookingType === 'single') {
                             setSelectedRoomIds([room.id]);
                           } else {
-                            setSelectedRoomIds(prev => 
-                              prev.includes(room.id) 
+                            setSelectedRoomIds(prev =>
+                              prev.includes(room.id)
                                 ? prev.filter(id => id !== room.id)
                                 : [...prev, room.id]
                             );
                           }
                         }}
-                        className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
-                          selectedRoomIds.includes(room.id)
-                            ? 'bg-sky-500/15 border-sky-500 shadow-lg shadow-sky-900/20'
-                            : room.is_available 
-                              ? 'bg-gray-900/40 border-gray-700/50 hover:border-sky-500/30 hover:bg-gray-800/60 cursor-pointer' 
-                              : 'bg-red-950/5 border-red-900/20 opacity-50 cursor-not-allowed pointer-events-none'
-                        }`}
+                        className={`flex items-center justify-between p-3 rounded-xl border transition-all ${selectedRoomIds.includes(room.id)
+                          ? 'bg-sky-500/15 border-sky-500 shadow-lg shadow-sky-900/20'
+                          : room.is_available
+                            ? 'bg-gray-900/40 border-gray-700/50 hover:border-sky-500/30 hover:bg-gray-800/60 cursor-pointer'
+                            : 'bg-red-950/5 border-red-900/20 opacity-50 cursor-not-allowed pointer-events-none'
+                          }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all ${
-                            selectedRoomIds.includes(room.id) 
-                              ? 'bg-sky-500 border-sky-500 shadow-[0_0_10px_rgba(14,165,233,0.4)]' 
-                              : !room.is_available
-                                ? 'border-gray-800 bg-gray-900/50'
-                                : 'border-gray-600 bg-transparent'
-                          }`}>
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all ${selectedRoomIds.includes(room.id)
+                            ? 'bg-sky-500 border-sky-500 shadow-[0_0_10px_rgba(14,165,233,0.4)]'
+                            : !room.is_available
+                              ? 'border-gray-800 bg-gray-900/50'
+                              : 'border-gray-600 bg-transparent'
+                            }`}>
                             {selectedRoomIds.includes(room.id) && <Icon name="CheckIcon" size={12} className="text-black font-bold" />}
                             {!room.is_available && <Icon name="XMarkIcon" size={10} className="text-gray-600" />}
                           </div>
@@ -911,91 +909,79 @@ const BookingCard = ({
 
             {/* Free Cancellation Option — only for same-day check-in */}
             {isSameDayCheckIn && (
-            <div className="mb-5 bg-sky-900/10 border border-sky-500/20 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="bg-gradient-to-r from-emerald-500/20 to-sky-500/20 px-4 py-2 border-b border-sky-500/10 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="bg-emerald-500 rounded p-1">
-                    <Icon name="CheckIcon" size={10} className="text-black" />
-                  </div>
-                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Enjoy Full Refund</span>
-                </div>
-                <div className="bg-sky-500/20 px-2 py-0.5 rounded text-[10px] font-bold text-sky-400 border border-sky-500/30">
-                  FREE CANCELLATION
-                </div>
-              </div>
-              
-              <div className="p-4 space-y-4">
-                <div 
-                  onClick={() => setHasFreeCancellation(true)}
-                  className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
-                    hasFreeCancellation 
-                      ? 'bg-sky-500/10 border-sky-500/50 shadow-inner' 
-                      : 'bg-black/20 border-gray-800 hover:border-gray-700'
-                  }`}
-                >
-                  <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                    hasFreeCancellation ? 'border-sky-500' : 'border-gray-600'
-                  }`}>
-                    {hasFreeCancellation && <div className="w-2.5 h-2.5 bg-sky-500 rounded-full shadow-[0_0_8px_rgba(14,165,233,0.8)]" />}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center mb-1">
-                      <p className="text-sm font-bold text-white">Yes, I want Free Cancellation</p>
-                      <span className="text-xs font-bold text-sky-400">₹70</span>
+              <div className="mb-5 bg-sky-900/10 border border-sky-500/20 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-gradient-to-r from-emerald-500/20 to-sky-500/20 px-4 py-2 border-b border-sky-500/10 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-emerald-500 rounded p-1">
+                      <Icon name="CheckIcon" size={10} className="text-black" />
                     </div>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 text-emerald-400/90">
-                        <Icon name="CheckCircleIcon" size={14} />
-                        <span className="text-[11px] font-medium">Get full refund of {currency}{total.toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-400">
-                        <Icon name="NoSymbolIcon" size={14} />
-                        <span className="text-[11px] font-medium">₹0 Cancellation fee</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-400">
-                        <Icon name="BoltIcon" size={14} />
-                        <span className="text-[11px] font-medium">Instant full refund</span>
-                      </div>
-                    </div>
+                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Enjoy Full Refund</span>
+                  </div>
+                  <div className="bg-sky-500/20 px-2 py-0.5 rounded text-[10px] font-bold text-sky-400 border border-sky-500/30">
+                    FREE CANCELLATION
                   </div>
                 </div>
 
-                <div 
-                  onClick={() => setHasFreeCancellation(false)}
-                  className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
-                    !hasFreeCancellation 
-                      ? 'bg-zinc-800/50 border-gray-600' 
+                <div className="p-4 space-y-4">
+                  <div
+                    onClick={() => setHasFreeCancellation(true)}
+                    className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${hasFreeCancellation
+                      ? 'bg-sky-500/10 border-sky-500/50 shadow-inner'
                       : 'bg-black/20 border-gray-800 hover:border-gray-700'
-                  }`}
-                >
-                  <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                    !hasFreeCancellation ? 'border-gray-400' : 'border-gray-600'
-                  }`}>
-                    {!hasFreeCancellation && <div className="w-2.5 h-2.5 bg-gray-400 rounded-full" />}
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-300">No, I don't want Free Cancellation</p>
-                    <div className="space-y-1.5 mt-1.5">
-                      <div className="flex items-center gap-2 text-amber-500/70">
-                        <Icon name="ExclamationTriangleIcon" size={12} />
-                        <span className="text-[11px] font-semibold">Only 50% refund will apply</span>
+                      }`}
+                  >
+                    <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${hasFreeCancellation ? 'border-sky-500' : 'border-gray-600'
+                      }`}>
+                      {hasFreeCancellation && <div className="w-2.5 h-2.5 bg-sky-500 rounded-full shadow-[0_0_8px_rgba(14,165,233,0.8)]" />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="text-sm font-bold text-white">Yes, I want Free Cancellation</p>
+                        <span className="text-xs font-bold text-sky-400">₹70</span>
                       </div>
-                      <div className="flex items-center gap-2 text-gray-500">
-                        <Icon name="InformationCircleIcon" size={12} />
-                        <span className="text-[10px] font-medium">Split: 25% Admin, 25% Host</span>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-emerald-400/90">
+                          <Icon name="CheckCircleIcon" size={14} />
+                          <span className="text-[11px] font-medium">Get full refund of {currency}{total.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-400">
+                          <Icon name="NoSymbolIcon" size={14} />
+                          <span className="text-[11px] font-medium">₹0 Cancellation fee</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-start gap-2 pt-2 border-t border-sky-500/10">
-                  <Icon name="InformationCircleIcon" size={14} className="text-sky-400/60 mt-0.5" />
-                  <p className="text-[10px] text-gray-500 leading-relaxed italic">
-                    Valid on cancellation upto 6 hours before scheduled check-in. T&C apply.
-                  </p>
+                  <div
+                    onClick={() => setHasFreeCancellation(false)}
+                    className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${!hasFreeCancellation
+                      ? 'bg-zinc-800/50 border-gray-600'
+                      : 'bg-black/20 border-gray-800 hover:border-gray-700'
+                      }`}
+                  >
+                    <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${!hasFreeCancellation ? 'border-gray-400' : 'border-gray-600'
+                      }`}>
+                      {!hasFreeCancellation && <div className="w-2.5 h-2.5 bg-gray-400 rounded-full" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-300">No, I don't want Free Cancellation</p>
+                      <div className="space-y-1.5 mt-1.5">
+                        <div className="flex items-center gap-2 text-amber-500/70">
+                          <Icon name="ExclamationTriangleIcon" size={12} />
+                          <span className="text-[11px] font-semibold">Only 50% refund will apply</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2 pt-2 border-t border-sky-500/10">
+                    <Icon name="InformationCircleIcon" size={14} className="text-sky-400/60 mt-0.5" />
+                    <p className="text-[10px] text-gray-500 leading-relaxed italic">
+                      Valid on cancellation upto 6 hours before scheduled check-in. T&C apply.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
             )}
 
 

@@ -23,89 +23,113 @@ export function getRefundPercentage(
   const checkIn = new Date(checkInDate);
   const booking = bookingDate ? new Date(bookingDate) : null;
   
-  // Normalize hasFreeCancellation (handle string, number, or boolean)
   const isFreeCancellationActive = hasFreeCancellation === true || hasFreeCancellation === 1 || hasFreeCancellation === 'true' || hasFreeCancellation === '1';
 
-  // 1. Grace Period: Within 6 hours of booking creation
-  if (booking) {
-    const msSinceBooking = cancellation.getTime() - booking.getTime();
-    const hoursSinceBooking = msSinceBooking / (1000 * 60 * 60);
-    
-    // If cancelled within 6 hours of booking -> 100% refund
-    if (hoursSinceBooking >= 0 && hoursSinceBooking <= 6) {
-        return 100;
-    }
-
-    // 2. Same day booking & cancellation (Calendar day)
-    if (isSameDay(startOfDay(booking), startOfDay(cancellation))) {
-        return 100;
-    }
-  }
-
-  // 3. Free Cancellation Option (Paid ₹70)
+  // 1. If Free Cancellation is Active
   if (isFreeCancellationActive) {
-    return 100;
+    // A. Grace Period: Within 6 hours of booking creation
+    if (booking) {
+      const msSinceBooking = cancellation.getTime() - booking.getTime();
+      const hoursSinceBooking = msSinceBooking / (1000 * 60 * 60);
+      if (hoursSinceBooking >= 0 && hoursSinceBooking <= 6) {
+          return 100;
+      }
+    }
+
+    // B. Window Period: Up to 6 hours before check-in
+    const msUntilCheckIn = checkIn.getTime() - cancellation.getTime();
+    const hoursUntilCheckIn = msUntilCheckIn / (1000 * 60 * 60);
+    if (hoursUntilCheckIn >= 6) {
+        return 100;
+    }
+
+    // C. Fallback for Free Cancellation users: If they miss the window, they follow the tiered policy
+    const daysUntilCheckIn = Math.floor((checkIn.getTime() - cancellation.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysUntilCheckIn >= 10) return 100;
+    if (daysUntilCheckIn >= 5) return 70;
+    if (daysUntilCheckIn >= 2) return 50;
+    return 30;
   }
 
-  // 4. Standard Tiered Policy
-  const daysUntilCheckIn = differenceInDays(startOfDay(checkIn), startOfDay(cancellation));
-
-  if (daysUntilCheckIn >= 10) {
-      return 100;
-  } else if (daysUntilCheckIn >= 5) {
-      return 70;
-  } else if (daysUntilCheckIn >= 2) {
-      return 50;
-  } else {
-      return 30;
-  }
+  // 2. Normal Booking (No Free Cancellation)
+  // ALWAYS 50% Refund, regardless of timing.
+  return 50;
 }
 
 
 /**
- * Calculates the refund amount based on total price and cancellation timing.
- */
-export function calculateRefundAmount(
-  totalPrice: number,
-  checkInDate: string | Date,
-  cancellationDate: string | Date,
-  bookingDate?: string | Date,
-  hasFreeCancellation: any = false
-): number {
-  const percent = getRefundPercentage(checkInDate, cancellationDate, bookingDate, hasFreeCancellation);
-  return (totalPrice * percent) / 100;
-}
-
-/**
- * Calculates the full distribution of the total price upon cancellation.
- * Split logic: 
- * 1. Guest gets tiered refund (100%, 70%, 50%, or 30%).
- * 2. Remaining penalty is split EQUALLY (50/50) between Admin and Host.
+ * Calculates the refund distribution of the total price upon cancellation.
+ * Logic:
+ * 1. Platform Fee (₹70) is deducted first and kept by Admin.
+ * 2. Refund is calculated on the remaining Base Price.
+ * 3. Remaining penalty is split EQUALLY between Admin and Host.
  */
 export function calculateRefundDistribution(
   totalPrice: number,
   checkInDate: string | Date,
   cancellationDate: string | Date,
   bookingDate?: string | Date,
-  hasFreeCancellation: any = false
+  hasFreeCancellation: any = false,
+  platformFee: number = 0,
+  commissionRate: number = 20 // Default 20%
 ) {
+  const isFreeCancellationActive = hasFreeCancellation === true || hasFreeCancellation === 1 || hasFreeCancellation === 'true' || hasFreeCancellation === '1';
+
+  // 1. Deduct platform fee first (e.g. ₹70) - ONLY if it was selected
+  const actualPlatformFee = isFreeCancellationActive ? platformFee : 0;
+  const basePrice = Math.max(0, totalPrice - actualPlatformFee);
+  
+  // 2. Calculate Admin Commission (e.g. 20% of Base)
+  // This is kept by Admin regardless of refund percentage
+  const commissionAmount = (basePrice * commissionRate) / 100;
+  
+  // 3. The amount available after platform fee and commission
+  const netRefundablePool = basePrice - commissionAmount;
+
   const guestRefundPercent = getRefundPercentage(checkInDate, cancellationDate, bookingDate, hasFreeCancellation);
-  const guestRefundAmount = (totalPrice * guestRefundPercent) / 100;
   
-  const totalPenalty = totalPrice - guestRefundAmount;
+  // Guest gets their percentage out of the net refundable pool
+  const guestRefundAmount = (netRefundablePool * guestRefundPercent) / 100;
   
-  // Penalty is split equally between host and admin
-  const hostShare = totalPenalty / 2;
-  const adminShare = totalPenalty / 2;
+  // 4. Remaining penalty (from the net pool) is split between Admin and Host
+  const remainingPenalty = netRefundablePool - guestRefundAmount;
+  
+  const hostShare = remainingPenalty / 2;
+  const adminShareFromPenalty = remainingPenalty / 2;
 
   return {
     guestRefundAmount,
     hostShare,
-    adminShare,
-    totalRetained: totalPenalty,
+    adminShare: adminShareFromPenalty + commissionAmount + actualPlatformFee,
+    totalRetained: totalPrice - guestRefundAmount,
     guestRefundPercent,
-    hostSharePercent: (100 - guestRefundPercent) / 2,
-    adminSharePercent: (100 - guestRefundPercent) / 2
+    basePrice,
+    platformFee: actualPlatformFee,
+    commissionAmount,
+    netRefundablePool,
+    hostSharePercent: basePrice > 0 ? (hostShare / basePrice) * 100 : 0,
   };
 }
+
+export function calculateRefundAmount(
+  totalPrice: number,
+  checkInDate: string | Date,
+  cancellationDate: string | Date,
+  bookingDate?: string | Date,
+  hasFreeCancellation: any = false,
+  platformFee: number = 0,
+  commissionRate: number = 20
+) {
+  const result = calculateRefundDistribution(
+    totalPrice,
+    checkInDate,
+    cancellationDate,
+    bookingDate,
+    hasFreeCancellation,
+    platformFee,
+    commissionRate
+  );
+  return result.guestRefundAmount;
+}
+
 

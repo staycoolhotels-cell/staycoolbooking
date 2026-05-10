@@ -351,6 +351,32 @@ export async function approveBooking(bookingId: string) {
     console.error('Approve booking error:', error);
     throw error;
   }
+
+  // 3. Sync user stats (total bookings etc.)
+  const { data: bookingData } = await adminSupabase
+    .from('bookings')
+    .select('guest_id')
+    .eq('id', bookingId)
+    .single();
+  
+  if (bookingData?.guest_id) {
+    // We can't easily import from admin-actions here due to potential circular dependencies
+    // so we'll do a direct update or call a shared utility if exists.
+    // For now, let's just use the direct increment as it's safe.
+    const { data: guestData } = await adminSupabase
+      .from('users')
+      .select('total_bookings')
+      .eq('id', bookingData.guest_id)
+      .single();
+    
+    if (guestData) {
+      await adminSupabase
+        .from('users')
+        .update({ total_bookings: (guestData.total_bookings || 0) + 1 })
+        .eq('id', bookingData.guest_id);
+    }
+  }
+
   revalidateTag(CACHE_TAGS.bookings);
   revalidatePath('/host-dashboard');
   return data;
@@ -400,7 +426,7 @@ export async function rejectBooking(bookingId: string) {
 
     if (!userFetchError) {
       const currentCount = userData?.cancellation_count || 0;
-      await supabase
+      await adminSupabase
         .from('users')
         .update({ cancellation_count: currentCount + 1 })
         .eq('id', hostId);

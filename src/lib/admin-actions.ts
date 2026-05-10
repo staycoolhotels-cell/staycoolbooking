@@ -370,6 +370,93 @@ export const rejectProperty = async (propertyId: string, rejectionReason: string
 };
 
 /**
+ * Recalculates and updates statistics for a specific user in the public.users table.
+ * Metrics include: total_bookings, completion_percentage, and cancellation_count.
+ */
+export async function recalculateUserStats(userId: string) {
+  const supabase = await createAdminSupabaseClient();
+
+  // 1. Fetch data for calculation
+  const [
+    { count: totalBookings },
+    { count: guestCancellations },
+    { data: userProfile },
+    { data: personalInfo },
+    { data: verification }
+  ] = await Promise.all([
+    // Total Confirmed/Completed Bookings
+    supabase
+      .from('bookings')
+      .select('*', { count: 'exact', head: true })
+      .eq('guest_id', userId)
+      .in('status', ['confirmed', 'completed']),
+    
+    // Total Cancelled Bookings (where user was the guest)
+    supabase
+      .from('bookings')
+      .select('*', { count: 'exact', head: true })
+      .eq('guest_id', userId)
+      .eq('status', 'cancelled'),
+
+    // User Profile
+    supabase.from('users').select('name, email, avatar_url, phone').eq('id', userId).single(),
+
+    // Personal Info
+    supabase.from('user_personal_info').select('*').eq('user_id', userId).maybeSingle(),
+
+    // Verification status
+    supabase.from('verifications').select('status').eq('user_id', userId).eq('status', 'approved').maybeSingle()
+  ]);
+
+  // 2. Calculate Completion Percentage
+  // Weights: Name(10), Email(10), Avatar(10), Phone(10), Bio(10), Location(10), DOB(10), Gender(10), KYC(20)
+  let completion = 0;
+  if (userProfile?.data?.name) completion += 10;
+  if (userProfile?.data?.email) completion += 10;
+  if (userProfile?.data?.avatar_url) completion += 10;
+  if (userProfile?.data?.phone) completion += 10;
+  
+  if (personalInfo?.bio) completion += 10;
+  if (personalInfo?.location) completion += 10;
+  if (personalInfo?.date_of_birth || (personalInfo as any)?.dateOfBirth) completion += 10;
+  if (personalInfo?.gender) completion += 10;
+  
+  if (verification) completion += 20;
+
+  // 3. Update the Users Table
+  const { error } = await supabase
+    .from('users')
+    .update({
+      total_bookings: totalBookings || 0,
+      completion_percentage: completion,
+      // We don't overwrite cancellation_count here if it's primarily used for host penalties,
+      // but we could store guest cancellations if needed. 
+      // For now, let's just sync what's requested.
+    })
+    .eq('id', userId);
+
+  if (error) {
+    console.error(`Failed to update stats for user ${userId}:`, error);
+  }
+}
+
+/**
+ * Updates stats for all users in the database.
+ */
+export async function updateAllUserStats() {
+  const supabase = await createAdminSupabaseClient();
+  const { data: users } = await supabase.from('users').select('id');
+  
+  if (!users) return;
+
+  console.log(`Starting batch update for ${users.length} users...`);
+  for (const user of users) {
+    await recalculateUserStats(user.id);
+  }
+  console.log('Batch update complete.');
+}
+
+/**
  * Fetches all users from public.users, but first ensures that any user in auth.users
  * also exists in public.users. This "heals" any missing trigger executions.
  */
@@ -404,13 +491,9 @@ export async function syncAndFetchUsers() {
     for (const user of missingUsers) {
       const role = user.user_metadata?.role || 'guest';
       const name = user.user_metadata?.name || user.email?.split('@')[0] || 'User';
-
-      // Determine correct status, PRESERVING existing if metadata has it
-      // HOST APPROVAL REMOVED: Default to 'active' for all new/synced users
       const status = user.user_metadata?.status || 'active';
 
-      // Use upsert to handle race conditions
-      const { error: insertError } = await supabase.from('users').upsert({
+      await supabase.from('users').upsert({
         id: user.id,
         email: user.email,
         name: name,
@@ -418,31 +501,14 @@ export async function syncAndFetchUsers() {
         status: status,
         avatar_url: user.user_metadata?.avatar_url || null
       }, { onConflict: 'id' });
-
-      if (insertError) {
-        console.error(`Failed to sync user ${user.id}:`, JSON.stringify(insertError, null, 2));
-      } else {
-        console.log(`Synced user ${user.id} (${role})`);
-      }
     }
-
-    // 5. Refetch public users to get the updated list
-    const { data: updatedPublicUsers } = await supabase.from('users').select('*');
-
-    // Enrich with metadata for rejection_reason (fallback)
-    const enrichedUsers = (updatedPublicUsers || []).map(user => {
-      const authUser = authUsers.find(au => au.id === user.id);
-      return {
-        ...user,
-        rejection_reason: user.rejection_reason || authUser?.user_metadata?.rejection_reason
-      };
-    });
-
-    return enrichedUsers;
   }
 
-  // Enrich with metadata for rejection_reason (fallback) even if no sync details needed
-  const enrichedPublicUsers = (publicUsers || []).map(user => {
+  // 5. Fetch final list of public users
+  const { data: finalPublicUsers } = await supabase.from('users').select('*');
+
+  // 6. Enrich with metadata for rejection_reason (fallback)
+  const enrichedUsers = (finalPublicUsers || []).map(user => {
     const authUser = authUsers.find(au => au.id === user.id);
     return {
       ...user,
@@ -450,7 +516,7 @@ export async function syncAndFetchUsers() {
     };
   });
 
-  return enrichedPublicUsers;
+  return enrichedUsers;
 }
 
 

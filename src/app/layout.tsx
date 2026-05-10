@@ -4,6 +4,7 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import Header from '../components/common/Header'; // Import the Header component
 import PageWrapper from '../components/common/PageWrapper'; // Import the new PageWrapper component
 import { Toaster } from 'sonner';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 import { Lora, Montserrat } from 'next/font/google';
 
@@ -170,9 +171,11 @@ export default function RootLayout({
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <div className="flex flex-col min-h-screen">
             <Header /> {/* Render the Header component without isScrolled prop */}
-            <PageWrapper>
-              {children}
-            </PageWrapper>
+            <ErrorBoundary>
+              <PageWrapper>
+                {children}
+              </PageWrapper>
+            </ErrorBoundary>
           </div>
         </AppRouterCacheProvider>
         <Toaster position="top-center" richColors />

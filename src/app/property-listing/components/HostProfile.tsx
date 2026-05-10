@@ -14,6 +14,7 @@ interface HostProfileProps {
   responseTime: string;
   totalProperties: number;
   bio: string;
+  gender?: string;
   coHostName?: string;
   hostId: string;
   propertyId: string;
@@ -29,12 +30,27 @@ const HostProfile = ({
   responseTime,
   totalProperties: initialTotalProperties,
   bio,
+  gender,
   coHostName,
   hostId,
   propertyId,
 }: HostProfileProps) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [totalProperties, setTotalProperties] = React.useState(initialTotalProperties);
+
+  // Generate a gender-specific seed for Dicebear if no avatar is provided
+  const getDicebearUrl = () => {
+    const isMale = gender?.toLowerCase() === 'male';
+    const isFemale = gender?.toLowerCase() === 'female';
+    let seed = name;
+    
+    if (isMale) seed = 'male-' + name;
+    if (isFemale) seed = 'female-' + name;
+    
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+  };
+
+  const defaultAvatar = getDicebearUrl();
 
   React.useEffect(() => {
     const fetchPropertyCount = async () => {
@@ -72,7 +88,8 @@ const HostProfile = ({
         <div className="relative flex-shrink-0">
           <div className="w-14 h-14 md:w-20 md:h-20 rounded-2xl overflow-hidden border border-white/10 shadow-lg shadow-black/40">
             <AppImage
-              src={avatar}
+              src={avatar || defaultAvatar}
+              fallbackSrc={defaultAvatar}
               alt={avatarAlt}
               className="w-full h-full"
               fill={true}

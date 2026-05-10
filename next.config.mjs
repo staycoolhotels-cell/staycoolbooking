@@ -14,26 +14,37 @@ const nextConfig = {
     middlewareClientMaxBodySize: '100mb',
   },
   images: {
+    dangerouslyAllowSVG: true,
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
+        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'images.pexels.com',
+        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'images.pixabay.com',
+        pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: 'img.rocket.new', // Add this new hostname
+        hostname: 'img.rocket.new',
+        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'dlislsrlwovcxsuqdlvy.supabase.co',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+        pathname: '/**',
       },
     ],
   },

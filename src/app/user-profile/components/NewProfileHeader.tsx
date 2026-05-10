@@ -37,6 +37,21 @@ const ProfileHeader = ({
     }
   };
 
+  /* Generate a gender-specific seed for Dicebear if no avatar is provided */
+  const getDicebearUrl = () => {
+    const gender = personalInfo?.gender;
+    const isMale = gender?.toLowerCase() === 'male';
+    const isFemale = gender?.toLowerCase() === 'female';
+    let seed = user.name || 'User';
+    
+    if (isMale) seed = 'male-' + seed;
+    if (isFemale) seed = 'female-' + seed;
+    
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+  };
+
+  const defaultAvatar = getDicebearUrl();
+
   /* derive a tier from points */
   const points = (user as any).reward_points ?? 0;
   const tier =
@@ -82,7 +97,7 @@ const ProfileHeader = ({
             <div className={`relative p-[3px] rounded-full bg-gradient-to-br ${tier.color}`}>
               <div className="relative rounded-full overflow-hidden">
                 <img
-                  src={user.avatar_url || 'https://images.unsplash.com/photo-1517841905240-472988babdf9'}
+                  src={user.avatar_url || defaultAvatar}
                   alt={user.name}
                   className={`w-16 h-16 md:w-36 md:h-36 rounded-full object-cover transition-all duration-300 ${isEditing ? 'cursor-pointer brightness-75' : ''}`}
                 />

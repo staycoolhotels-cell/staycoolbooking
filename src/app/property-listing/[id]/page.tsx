@@ -126,7 +126,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
 
     const { data: hostPersonalInfo, error: personalInfoError } = await adminSupabase
         .from('user_personal_info')
-        .select('bio')
+        .select('bio, gender')
         .eq('user_id', property.host_id)
         .single();
 
@@ -259,6 +259,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
             responseTime: 'Within 1 hour',
             totalProperties: 1,
             bio: personalInfoError ? 'No bio available.' : hostPersonalInfo?.bio || 'No bio available.',
+            gender: hostPersonalInfo?.gender || '',
             coHostName: property.co_host_name,
             id: property.host_id,
         },
@@ -274,12 +275,12 @@ export default async function PropertyListingPage({ params }: { params: Promise<
             description: property.cancellation_policy || 'Free cancellation for 48 hours.',
             linkText: 'Read more'
         },
-        checkInTime: property.check_in_time || '3:00 PM',
+        checkInTime: property.check_in_time || '12:00 PM',
         checkOutTime: property.check_out_time || '11:00 AM',
         houseRules: {
             title: 'House rules',
             rules: [
-                `Check-in after ${property.check_in_time || '3:00 PM'}`,
+                `Check-in after ${property.check_in_time || '12:00 PM'}`,
                 `Checkout before ${property.check_out_time || '11:00 AM'}`,
                 ...(property.max_guests ? [`${property.max_guests} guests maximum`] : []),
                 ...(property.rules || [])

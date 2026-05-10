@@ -30,6 +30,7 @@ import { toast } from 'sonner';
 import { resetCancellationPenalty } from '@/lib/booking-actions';
 import { createHostSignupOrder } from '@/lib/payment-actions';
 import { approveHost } from '@/lib/admin-actions';
+import { updateHostProfile } from '@/lib/host-actions';
 import Overview from './Overview';
 import Properties from './Properties';
 import Bookings from './Bookings';
@@ -460,13 +461,75 @@ const HostDashboardInteractive = ({
     }
   };
 
-
   const [hostName, setHostName] = useState(hostData.name);
   const [hostEmail, setHostEmail] = useState(hostData.email);
   const [hostPhotoUrl, setHostPhotoUrl] = useState(hostData.avatar_url);
   const [phoneNumber, setPhoneNumber] = useState(hostData.phone || '');
   const [address, setAddress] = useState(hostData.address || '');
   const [bio, setBio] = useState(hostData.bio || '');
+  const [gender, setGender] = useState(hostData.gender || '');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const handleUpdateProfile = async (newData: any) => {
+    setIsSavingProfile(true);
+    try {
+      const result = await updateHostProfile(
+        hostData.id,
+        {
+          name: newData.name || hostName,
+          email: newData.email || hostEmail,
+          avatar_url: newData.avatar_url || hostPhotoUrl,
+          phone: newData.phone || phoneNumber,
+        },
+        {
+          bio: newData.bio || bio,
+          address: newData.address || address,
+          gender: newData.gender || gender,
+        }
+      );
+
+      if (result.success) {
+        toast.success('Profile updated successfully!');
+        if (newData.name) setHostName(newData.name);
+        if (newData.email) setHostEmail(newData.email);
+        if (newData.avatar_url) setHostPhotoUrl(newData.avatar_url);
+        if (newData.phone) setPhoneNumber(newData.phone);
+        if (newData.address) setAddress(newData.address);
+        if (newData.bio) setBio(newData.bio);
+        if (newData.gender) setGender(newData.gender);
+      } else {
+        toast.error('Failed to update profile: ' + result.error);
+      }
+    } catch (err) {
+      toast.error('An unexpected error occurred while saving profile.');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${hostData.id}-${Math.random()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      
+      const result = await updateHostProfile(hostData.id, { avatar_url: publicUrl }, {});
+      if (result.success) {
+        setHostPhotoUrl(publicUrl);
+        toast.success('Profile picture updated!');
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (err: any) {
+      toast.error('Failed to upload image: ' + err.message);
+    }
+  };
+
 
   const handleSaveProperty = React.useCallback(
     async (formData: FormData) => {
@@ -967,12 +1030,17 @@ const HostDashboardInteractive = ({
                       phoneNumber={phoneNumber}
                       address={address}
                       bio={bio}
+                      gender={gender}
                       onUpdateHostName={setHostName}
                       onUpdateHostEmail={setHostEmail}
                       onUpdateHostPhoto={setHostPhotoUrl}
                       onUpdatePhoneNumber={setPhoneNumber}
                       onUpdateAddress={setAddress}
                       onUpdateBio={setBio}
+                      onUpdateGender={setGender}
+                      onSaveProfile={handleUpdateProfile}
+                      onAvatarUpload={handleAvatarUpload}
+                      isSaving={isSavingProfile}
                       cancellationCount={hostData.cancellation_count}
                       referralCode={hostData.referral_code}
                       referralBenefitCount={hostData.referral_benefit_count}

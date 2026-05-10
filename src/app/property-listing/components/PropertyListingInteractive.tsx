@@ -110,6 +110,7 @@ interface PropertyData {
     responseTime: string;
     totalProperties: number;
     bio: string;
+    gender?: string;
     coHostName?: string;
     id: string;
   };
@@ -344,6 +345,8 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                 area={propertyData.area}
                 totalRooms={propertyData.totalRooms}
                 highlights={propertyData.highlights}
+                checkInTime={propertyData.checkInTime}
+                checkOutTime={propertyData.checkOutTime}
               />
 
               <AmenitiesSection amenities={propertyData.amenities} />
@@ -429,6 +432,8 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                 cancellationPolicy={propertyData.cancellationPolicy}
                 houseRules={propertyData.houseRules}
                 safetyProperty={propertyData.safetyProperty}
+                checkInTime={propertyData.checkInTime}
+                checkOutTime={propertyData.checkOutTime}
               />
 
               <HostProfile
@@ -441,6 +446,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                 responseTime={propertyData.host.responseTime}
                 totalProperties={propertyData.host.totalProperties}
                 bio={propertyData.host.bio}
+                gender={propertyData.host.gender}
                 coHostName={propertyData.host.coHostName}
                 hostId={propertyData.host.id}
                 propertyId={propertyData.id}

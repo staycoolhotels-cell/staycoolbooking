@@ -81,8 +81,13 @@ export interface User {
   created_at: string;
   rejection_reason?: string;
   avatar_url?: string;
-  totalBookings?: number;
+  total_bookings?: number;
+  completion_percentage?: number;
+  cancellation_count?: number;
+  referral_benefit_count?: number;
   reward_points?: number;
+  referral_code?: string;
+  referred_by?: string;
 }
 
 export interface UserVerificationStatus {

@@ -169,3 +169,73 @@ export async function getGuestProfileForHost(guestId: string) {
     return { success: false, error: errorMessage };
   }
 }
+
+export async function updateUserProfile(userId: string, userData: any, personalInfo: any) {
+  try {
+    const supabaseAdmin = await createSupabaseAdminClient();
+
+    // 1. Update public.users
+    const { error: userError } = await supabaseAdmin
+      .from('users')
+      .update({ 
+        name: userData.name, 
+        avatar_url: userData.avatar_url,
+        phone: userData.phone 
+      })
+      .eq('id', userId);
+
+    if (userError) throw userError;
+
+    // 2. Update user_personal_info
+    if (personalInfo) {
+      const { error: infoError } = await supabaseAdmin
+        .from('user_personal_info')
+        .upsert({
+          user_id: userId,
+          bio: personalInfo.bio || '',
+          languages: personalInfo.languages || [],
+          location: personalInfo.location || null,
+          occupation: personalInfo.occupation || null,
+          date_of_birth: personalInfo.date_of_birth || personalInfo.dateOfBirth || null,
+          nationality: personalInfo.nationality || null,
+          gender: personalInfo.gender || null,
+        }, { onConflict: 'user_id' });
+
+      if (infoError) throw infoError;
+    }
+
+    // 3. Recalculate Completion Percentage
+    // We can't import from admin-actions here to avoid circular deps
+    // so we'll do a quick calculation here.
+    
+    const { data: verif } = await supabaseAdmin
+      .from('verifications')
+      .select('status')
+      .eq('user_id', userId)
+      .eq('status', 'approved')
+      .maybeSingle();
+
+    let completion = 0;
+    if (userData.name) completion += 10;
+    if (userData.email || userData.email) completion += 10; // email usually from auth
+    if (userData.avatar_url) completion += 10;
+    if (userData.phone || personalInfo.phone) completion += 10;
+    
+    if (personalInfo.bio) completion += 10;
+    if (personalInfo.location) completion += 10;
+    if (personalInfo.date_of_birth || personalInfo.dateOfBirth) completion += 10;
+    if (personalInfo.gender) completion += 10;
+    
+    if (verif) completion += 20;
+
+    await supabaseAdmin
+      .from('users')
+      .update({ completion_percentage: completion })
+      .eq('id', userId);
+
+    return { success: true, completion };
+  } catch (error: any) {
+    console.error('updateUserProfile error:', error);
+    return { success: false, error: error.message };
+  }
+}

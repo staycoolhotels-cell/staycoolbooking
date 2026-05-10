@@ -8,9 +8,11 @@ import { toast } from 'sonner';
 
 interface Room {
     id: string;
-    property_id: string;
+    property_id?: string;
     name: string;
     status: 'available' | 'maintenance' | 'booked';
+    current_guest?: string;
+    booking_id?: string;
     created_at?: string;
 }
 
@@ -37,19 +39,28 @@ export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
 
     const fetchRooms = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('rooms')
-            .select('*')
-            .eq('property_id', property.id)
-            .order('created_at', { ascending: true });
+        try {
+            const { data, error } = await supabase.rpc('get_rooms_realtime_status', {
+                p_property_id: property.id
+            });
 
-        if (error) {
-            console.error('Error fetching rooms:', error);
-            toast.error('Failed to load sub-units');
-        } else {
-            setRooms(data || []);
+            if (error) {
+                console.error('Error fetching rooms:', error);
+                // Fallback to table fetch if RPC fails
+                const { data: tableData } = await supabase
+                    .from('rooms')
+                    .select('*')
+                    .eq('property_id', property.id)
+                    .order('created_at', { ascending: true });
+                setRooms(tableData || []);
+            } else {
+                setRooms(data || []);
+            }
+        } catch (err) {
+            console.error('Failed to fetch rooms', err);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const handleAddRoom = async () => {
@@ -217,6 +228,11 @@ export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
                                                         'bg-purple-400'
                                                 }`} />
                                             <span className="text-[10px] font-bold uppercase tracking-widest">{room.status}</span>
+                                            {room.status === 'booked' && room.current_guest && (
+                                                <span className="text-[10px] font-medium text-purple-300/60 ml-2 border-l border-purple-500/30 pl-2">
+                                                    Guest: {room.current_guest}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 

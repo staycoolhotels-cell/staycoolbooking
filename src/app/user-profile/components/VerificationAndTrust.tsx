@@ -13,20 +13,24 @@ type VerificationAndTrustProps = {
   verifications: UserVerificationStatus;
   bookings?: (Booking & { properties: Partial<Property> })[];
   onUpdate?: (newVerifications: UserVerificationStatus) => void;
+  onContactHost?: (hostId: string) => void;
 };
 
-const VerificationAndTrust = ({ verifications, bookings = [], onUpdate }: VerificationAndTrustProps) => {
+const VerificationAndTrust = ({ verifications, bookings = [], onUpdate, onContactHost }: VerificationAndTrustProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [ocrData, setOcrData] = useState<{ idNumber?: string; fullName?: string } | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
 
   // Extract unique hosts from bookings
-  const uniqueHosts = bookings.reduce<Array<{ name: string; avatar: string; location?: string }>>((acc, booking) => {
+  const uniqueHosts = bookings.reduce<Array<{ id: string; name: string; avatar: string; location?: string }>>((acc, booking) => {
     // Some bookings might have host info nested or it might be missing
     const host = booking.properties?.host;
-    if (host && host.name && !acc.some((h) => h.name === host.name)) {
+    const hostId = booking.properties?.host_id;
+    
+    if (host && host.name && hostId && !acc.some((h) => h.id === hostId)) {
       acc.push({
+        id: hostId,
         name: host.name,
         avatar: host.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(host.name)}&background=0D8ABC&color=fff`,
         location: booking.properties.location
@@ -224,29 +228,36 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate }: Verifi
           <div className="space-y-3">
             {uniqueHosts.length > 0 ? (
               uniqueHosts.map((host, index) => (
-                <div key={index} className="flex items-center gap-3 bg-zinc-900/50 p-2 rounded-lg">
-                  <img
-                    src={host.avatar}
-                    alt={host.name}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white text-sm truncate">{host.name}</p>
-                    <p className="text-xs text-zinc-500 truncate">
-                      {host.location ? `Host in ${host.location}` : 'Property Host'}
-                    </p>
-                  </div>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
+                  <div 
+                    key={index} 
+                    className="flex items-center gap-3 bg-zinc-900/50 p-2 rounded-lg cursor-pointer hover:bg-zinc-900/80 transition-colors group"
                     onClick={() => {
-                      alert(`Starting secure chat with ${host.name}... Redirecting to inbox.`);
+                      if (onContactHost) {
+                        onContactHost(host.id);
+                      } else {
+                        alert(`Starting secure chat with ${host.name}... Redirecting to inbox.`);
+                      }
                     }}
-                    className="p-2 bg-sky-500/20 rounded-full hover:bg-sky-500/30"
                   >
-                    <Icon name="MessageSquareIcon" size={16} className="text-sky-400" />
-                  </motion.button>
-                </div>
+                    <img
+                      src={host.avatar}
+                      alt={host.name}
+                      className="w-10 h-10 rounded-full object-cover border border-zinc-800"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-white text-sm truncate group-hover:text-sky-400 transition-colors">{host.name}</p>
+                      <p className="text-xs text-zinc-500 truncate">
+                        {host.location ? `Host in ${host.location}` : 'Property Host'}
+                      </p>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="p-2 bg-sky-500/20 rounded-full group-hover:bg-sky-500/30 transition-colors"
+                    >
+                      <Icon name="MessageSquare" size={16} className="text-sky-400" />
+                    </motion.button>
+                  </div>
               ))
             ) : (
               <div className="text-center py-4 text-gray-500 text-xs">

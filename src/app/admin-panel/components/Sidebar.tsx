@@ -18,6 +18,7 @@ const navLinks = [
   { href: '/admin-panel/marketing', label: 'Marketing', icon: 'MegaphoneIcon' },
   { href: '/admin-panel/reviews', label: 'Reviews', icon: 'ChatBubbleBottomCenterTextIcon' },
   { href: '/admin-panel?tab=inbox', label: 'Chat', icon: 'ChatBubbleLeftRightIcon' },
+  { href: 'https://dashboard.razorpay.com/app/route/accounts', label: 'Route', icon: 'ArrowsRightLeftIcon', isExternal: true },
 ];
 
 interface SidebarProps {
@@ -191,6 +192,8 @@ const Sidebar = ({ isMobileMenuOpen, onMobileToggle, onCloseMobileMenu }: Sideba
                   key={link.href}
                   href={link.href}
                   onClick={onCloseMobileMenu}
+                  target={(link as any).isExternal ? "_blank" : undefined}
+                  rel={(link as any).isExternal ? "noopener noreferrer" : undefined}
                   className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
                     ? 'bg-white/10 text-white'
                     : 'text-zinc-400 hover:bg-white/5 hover:text-white'
@@ -201,6 +204,7 @@ const Sidebar = ({ isMobileMenuOpen, onMobileToggle, onCloseMobileMenu }: Sideba
                 </Link>
               );
             })}
+
         </nav>
 
         <div className="px-4 py-6 border-t border-white/10 mt-auto relative">

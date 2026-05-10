@@ -40,7 +40,7 @@ const Header = () => {
       setUser(session?.user ?? null);
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [pathname]);
 
   // Close mobile menu when pathname changes
   useEffect(() => {

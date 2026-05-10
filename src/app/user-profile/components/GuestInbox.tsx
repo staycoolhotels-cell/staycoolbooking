@@ -22,7 +22,7 @@ interface Message {
     is_read: boolean;
 }
 
-const GuestInbox: React.FC<{ guestId: string }> = ({ guestId }) => {
+const GuestInbox: React.FC<{ guestId: string; initialThreadId?: string }> = ({ guestId, initialThreadId }) => {
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -99,6 +99,42 @@ const GuestInbox: React.FC<{ guestId: string }> = ({ guestId }) => {
     useEffect(() => {
         fetchThreads();
     }, [guestId]);
+
+    useEffect(() => {
+        const handleInitialThread = async () => {
+            if (!initialThreadId) return;
+
+            const actualHostId = initialThreadId.split(':')[0];
+
+            // First, check if thread exists in our list
+            const existingThread = threads.find(t => t.otherUserId === actualHostId);
+            if (existingThread) {
+                setSelectedThread(existingThread);
+                fetchMessages(existingThread.otherUserId);
+            } else {
+                // If no existing messages, fetch user info to show a "New Conversation" state
+                const { data: userData } = await supabase
+                    .from('users')
+                    .select('id, name')
+                    .eq('id', actualHostId)
+                    .single();
+
+                if (userData) {
+                    const newTempThread: Thread = {
+                        otherUserId: userData.id,
+                        otherUserName: userData.name || 'Host',
+                        lastMessage: 'Starting new conversation...',
+                        lastTime: new Date().toISOString(),
+                        unread: 0
+                    };
+                    setSelectedThread(newTempThread);
+                    setMessages([]); // Empty conversation
+                }
+            }
+        };
+
+        handleInitialThread();
+    }, [initialThreadId, threads.length > 0]); // Re-run when initialThreadId changes or threads are loaded
 
     // Scroll to bottom when messages update
     useEffect(() => {

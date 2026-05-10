@@ -12,6 +12,8 @@ interface PropertyDescriptionProps {
   area: number;
   totalRooms: number;
   highlights: string[];
+  checkInTime?: string;
+  checkOutTime?: string;
 }
 
 const PropertyDescription = ({
@@ -24,6 +26,8 @@ const PropertyDescription = ({
   area,
   totalRooms,
   highlights,
+  checkInTime,
+  checkOutTime,
 }: PropertyDescriptionProps) => {
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -51,6 +55,8 @@ const PropertyDescription = ({
     { icon: 'Bath', label: 'Bathrooms', value: bathrooms },
     { icon: 'Square3Stack3DIcon', label: 'Area', value: `${area} sq ft` },
     { icon: 'UserGroupIcon', label: 'Guests', value: maxGuests },
+    { icon: 'ArrowRightEndOnRectangleIcon', label: 'Check-in', value: checkInTime || '12:00 PM' },
+    { icon: 'ArrowLeftStartOnRectangleIcon', label: 'Check-out', value: checkOutTime || '11:00 AM' },
   ];
 
   return (
@@ -73,18 +79,18 @@ const PropertyDescription = ({
         </h2>
       </motion.div>
 
-      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-4 mb-10">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-2 md:gap-3 mb-10">
         {features.map((feature, idx) => (
           <div
             key={idx}
-            className="group flex flex-col items-center justify-center p-1 sm:p-2 md:p-3 bg-white/[0.02] border border-white/5 rounded-2xl md:rounded-3xl hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/20 transition-all duration-300 min-h-[90px] sm:min-h-[130px]"
+            className="group flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-2 bg-white/[0.02] border border-white/5 rounded-2xl md:rounded-3xl hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/20 transition-all duration-300 min-h-[90px] sm:min-h-[120px]"
           >
             <div className="w-8 h-8 sm:w-12 sm:h-12 mb-1 sm:mb-2 rounded-full bg-white/[0.03] flex items-center justify-center group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300 border border-white/5 group-hover:border-primary/30">
               <Icon name={feature.icon as string} size={24} className="text-white/60 group-hover:text-primary transition-colors w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="text-center w-full">
-              <p className="text-[7px] sm:text-[9px] md:text-[11px] font-medium text-white/40 tracking-tighter uppercase leading-tight px-0.5 whitespace-nowrap">{feature.label}</p>
-              <p className="text-[10px] sm:text-base md:text-lg font-bold text-white mt-0.5 sm:mt-1 px-0.5 whitespace-nowrap leading-tight">{feature.value}</p>
+              <p className="text-[7px] sm:text-[8px] md:text-[9px] font-medium text-white/40 tracking-tight uppercase leading-tight px-0.5 whitespace-nowrap">{feature.label}</p>
+              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-white mt-0.5 sm:mt-1 px-0.5 whitespace-nowrap leading-tight">{feature.value}</p>
             </div>
           </div>
         ))}

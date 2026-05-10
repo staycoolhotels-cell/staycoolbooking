@@ -12,15 +12,20 @@ interface ProfileProps {
   phoneNumber: string;
   address: string;
   bio: string;
+  gender: string;
   onUpdateHostName: (newName: string) => void;
   onUpdateHostEmail: (newEmail: string) => void;
   onUpdateHostPhoto: (newPhotoUrl: string) => void;
   onUpdatePhoneNumber: (newPhoneNumber: string) => void;
   onUpdateAddress: (newAddress: string) => void;
   onUpdateBio: (newBio: string) => void;
+  onUpdateGender: (newGender: string) => void;
   cancellationCount?: number;
   referralCode?: string;
   referralBenefitCount?: number;
+  onSaveProfile?: (newData: any) => void;
+  onAvatarUpload?: (file: File) => void;
+  isSaving?: boolean;
 }
 
 const Profile = ({
@@ -30,22 +35,28 @@ const Profile = ({
   phoneNumber,
   address,
   bio,
+  gender,
   onUpdateHostName,
   onUpdateHostEmail,
   onUpdateHostPhoto,
   onUpdatePhoneNumber,
   onUpdateAddress,
   onUpdateBio,
+  onUpdateGender,
+  onSaveProfile,
+  onAvatarUpload,
+  isSaving,
   cancellationCount = 0,
   referralCode = '',
   referralBenefitCount = 0,
-}: ProfileProps) => {
+}: any) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(hostName);
   const [editedEmail, setEditedEmail] = useState(hostEmail);
   const [editedPhoneNumber, setEditedPhoneNumber] = useState(phoneNumber);
   const [editedAddress, setEditedAddress] = useState(address);
   const [editedBio, setEditedBio] = useState(bio);
+  const [editedGender, setEditedGender] = useState(gender);
 
   const photoInputRef = useRef<HTMLInputElement>(null);
 
@@ -55,14 +66,20 @@ const Profile = ({
     setEditedPhoneNumber(phoneNumber);
     setEditedAddress(address);
     setEditedBio(bio);
-  }, [hostName, hostEmail, phoneNumber, address, bio]);
+    setEditedGender(gender);
+  }, [hostName, hostEmail, phoneNumber, address, bio, gender]);
 
   const handleSave = () => {
-    onUpdateHostName(editedName);
-    onUpdateHostEmail(editedEmail);
-    onUpdatePhoneNumber(editedPhoneNumber);
-    onUpdateAddress(editedAddress);
-    onUpdateBio(editedBio);
+    if (onSaveProfile) {
+      onSaveProfile({
+        name: editedName,
+        email: editedEmail,
+        phone: editedPhoneNumber,
+        address: editedAddress,
+        bio: editedBio,
+        gender: editedGender,
+      });
+    }
     setIsEditing(false);
   };
 
@@ -72,17 +89,27 @@ const Profile = ({
     setEditedPhoneNumber(phoneNumber);
     setEditedAddress(address);
     setEditedBio(bio);
+    setEditedGender(gender);
     setIsEditing(false);
   };
 
+  const getDicebearUrl = () => {
+    const isMale = (editedGender || gender)?.toLowerCase() === 'male';
+    const isFemale = (editedGender || gender)?.toLowerCase() === 'female';
+    let seed = hostName;
+    
+    if (isMale) seed = 'male-' + hostName;
+    if (isFemale) seed = 'female-' + hostName;
+    
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+  };
+
+  const defaultAvatar = getDicebearUrl();
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        onUpdateHostPhoto(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (file && onAvatarUpload) {
+      onAvatarUpload(file);
     }
   };
 
@@ -129,11 +156,7 @@ const Profile = ({
                 {hostPhotoUrl ? (
                   <img src={hostPhotoUrl} alt="Host Avatar" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-800 to-black">
-                    <div className="block md:hidden"><Icon name="UserIcon" size={24} className="text-zinc-600 mb-0.5" /></div>
-                    <div className="hidden md:block"><Icon name="UserIcon" size={40} className="text-zinc-600 mb-2" /></div>
-                    <span className="text-[8px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest">No Visual</span>
-                  </div>
+                  <img src={defaultAvatar} alt="Host Avatar" className="w-full h-full object-cover" />
                 )}
                 {/* Vignette */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
@@ -251,6 +274,28 @@ const Profile = ({
               </div>
             </div>
 
+            {/* Gender */}
+            <div className="space-y-2">
+              <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                <Icon name="UserIcon" size={14} /> Gender Identity
+              </label>
+              {isEditing ? (
+                <select
+                  value={editedGender}
+                  onChange={(e) => setEditedGender(e.target.value)}
+                  className="w-full text-base font-bold text-white bg-black/40 border border-white/10 hover:border-sky-500/50 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all appearance-none cursor-pointer"
+                >
+                  <option value="" disabled className="bg-zinc-900">Select Gender</option>
+                  <option value="Male" className="bg-zinc-900">Male</option>
+                  <option value="Female" className="bg-zinc-900">Female</option>
+                  <option value="Other" className="bg-zinc-900">Other</option>
+                  <option value="Prefer not to say" className="bg-zinc-900">Prefer not to say</option>
+                </select>
+              ) : (
+                <p className="text-base font-bold text-white bg-white/[0.02] border border-transparent rounded-xl px-4 py-3.5 break-all">{gender || 'Not Specified'}</p>
+              )}
+            </div>
+
             {/* Bio */}
             <div className="md:col-span-2 space-y-2">
               <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
@@ -283,9 +328,20 @@ const Profile = ({
                 </button>
                 <button
                   onClick={handleSave}
-                  className="w-full sm:w-auto px-8 py-3.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-400 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(14,165,233,0.15)] flex items-center justify-center gap-2"
+                  disabled={isSaving}
+                  className="w-full sm:w-auto px-8 py-3.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-400 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(14,165,233,0.15)] flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <Icon name="CheckCircleIcon" size={16} /> Finalize Configuration
+                  {isSaving ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                      <span>Saving Parameters...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="CheckCircleIcon" size={16} />
+                      <span>Finalize Configuration</span>
+                    </>
+                  )}
                 </button>
               </div>
             ) : (

@@ -20,9 +20,11 @@ interface ThingsToKnowSectionProps {
         items: string[];
         linkText: string;
     };
+    checkInTime?: string;
+    checkOutTime?: string;
 }
 
-const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty }: ThingsToKnowSectionProps) => {
+const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty, checkInTime, checkOutTime }: ThingsToKnowSectionProps) => {
     const [selectedSection, setSelectedSection] = React.useState<'cancellation' | 'rules' | 'safety' | null>(null);
 
     const closeModal = () => setSelectedSection(null);
@@ -78,7 +80,7 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty }:
                                         <div className="relative z-10">
                                             <div className="flex items-center gap-2.5 mb-3">
                                                 <div className="w-7 h-7 rounded-lg bg-sky-500/20 flex items-center justify-center border border-sky-500/20">
-                                                    <Icon name="SparklesIcon" size={14} className="text-sky-400" />
+                                                    <Icon name="ShieldCheckIcon" size={14} className="text-sky-400" />
                                                 </div>
                                                 <span className="text-[10px] font-black text-sky-400 uppercase tracking-[0.2em]">Special Protection</span>
                                             </div>
@@ -116,6 +118,18 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty }:
                                 <Icon name="KeyIcon" size={16} className="text-amber-400" />
                             </div>
                             <h3 className="text-base font-bold text-foreground">{houseRules.title}</h3>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div className="p-3 bg-white/5 border border-white/10 rounded-2xl flex flex-col items-center justify-center text-center">
+                                <Icon name="ArrowRightEndOnRectangleIcon" size={16} className="text-amber-400 mb-1" />
+                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Check-in</span>
+                                <span className="text-sm font-bold text-white">{checkInTime || '12:00 PM'}</span>
+                            </div>
+                            <div className="p-3 bg-white/5 border border-white/10 rounded-2xl flex flex-col items-center justify-center text-center">
+                                <Icon name="ArrowLeftStartOnRectangleIcon" size={16} className="text-amber-400 mb-1" />
+                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Check-out</span>
+                                <span className="text-sm font-bold text-white">{checkOutTime || '11:00 AM'}</span>
+                            </div>
                         </div>
                         <ul className="space-y-0.5 overflow-y-auto premium-scrollbar pr-2 pb-1">
                             {houseRules.rules.map((rule, index) => (
@@ -251,7 +265,7 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty }:
                         aria-modal="true"
                     >
                         {/* Header with Close Button */}
-                        <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50">
+                        <div className="absolute top-0 right-2 md:top-1 md:right-4 z-50">
                             <button
                                 onClick={closeModal}
                                 className="w-10 h-10 rounded-full bg-zinc-800/80 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-zinc-700 hover:scale-105 text-white transition-all shadow-lg"

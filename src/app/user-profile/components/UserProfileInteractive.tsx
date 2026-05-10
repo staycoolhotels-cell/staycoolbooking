@@ -30,6 +30,7 @@ import ProfileHeader from './NewProfileHeader';
 import ReviewHistory from './NewReviewHistory';
 import BookingHistory from './BookingHistory';
 import GuestInbox from './GuestInbox';
+import { updateUserProfile } from '@/lib/guest-actions';
 
 const LocationMap = dynamic(() => import('@/app/property-listing/components/LocationMap'), {
   ssr: false,
@@ -51,6 +52,7 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [greeting, setGreeting] = useState('');
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [activeThreadId, setActiveThreadId] = useState<string | undefined>(undefined);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
@@ -137,31 +139,16 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
     if (!user) return;
     setIsSaving(true);
     try {
-      const { error: userError } = await supabase
-        .from('users')
-        .update({ name: user.name, avatar_url: user.avatar_url })
-        .eq('id', user.id);
-
-      if (userError) throw new Error(`User Update Failed: ${userError.message}`);
-
-      if (personalInfo) {
-        const { error: infoError } = await supabase
-          .from('user_personal_info')
-          .upsert({
-            user_id: user.id,
-            bio: personalInfo.bio || '',
-            languages: personalInfo.languages || [],
-            location: personalInfo.location || null,
-            occupation: personalInfo.occupation || null,
-            dateOfBirth: personalInfo.dateOfBirth || null,
-            nationality: personalInfo.nationality || null,
-            gender: personalInfo.gender || null,
-          }, { onConflict: 'user_id' });
-
-        if (infoError) throw new Error(`Personal Info Update Failed: ${infoError.message || JSON.stringify(infoError)}`);
+      const result = await updateUserProfile(user.id, user, personalInfo);
+      
+      if (!result.success) {
+        throw new Error(result.error);
       }
 
       setIsEditing(false);
+      if (result.completion !== undefined) {
+        setUser({ ...user, completion_percentage: result.completion });
+      }
       showToast('Profile Securely Updated ✓');
     } catch (error: any) {
       showToast('An unexpected error occurred. Please try again later.', 'error');
@@ -347,8 +334,8 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
               </motion.div>,
 
               user && (
-                <motion.div key="inbox" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
-                  <GuestInbox guestId={user.id} />
+                <motion.div id="guest-inbox-section" key="inbox" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
+                  <GuestInbox guestId={user.id} initialThreadId={activeThreadId} />
                 </motion.div>
               ),
 
@@ -381,6 +368,10 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
                 verifications={verifications} 
                 bookings={bookings} 
                 onUpdate={(newVerifications) => setVerifications(newVerifications)}
+                onContactHost={(hostId) => {
+                  setActiveThreadId(`${hostId}:${Date.now()}`);
+                  document.getElementById('guest-inbox-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
               />
             </motion.div>
           </aside>

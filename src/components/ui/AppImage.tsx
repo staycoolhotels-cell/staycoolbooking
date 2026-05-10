@@ -71,6 +71,11 @@ const AppImage = (props: AppImageProps) => {
     finalImageProps.unoptimized = false;
   }
 
+  // Force unoptimized for Dicebear images (SVGs) to avoid hostname issues and optimization overhead
+  if (typeof finalImageProps.src === 'string' && finalImageProps.src.includes('api.dicebear.com')) {
+    finalImageProps.unoptimized = true;
+  }
+
   if (fill) {
     delete finalImageProps.width;
     delete finalImageProps.height;

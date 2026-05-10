@@ -44,7 +44,7 @@ import {
 } from '@/lib/types';
 import { supabase } from '@/lib/supabaseClient';
 import { logActivity } from '@/lib/activity-actions';
-import { deleteUserAsAdmin, updateUserDetailsAsAdmin, approveHost, approveProperty, rejectProperty, updateDisputeStatusAsAdmin, fetchBookingDetailsAsAdmin, getAdminThreads } from '@/lib/admin-actions';
+import { deleteUserAsAdmin, updateUserDetailsAsAdmin, approveHost, approveProperty, rejectProperty, updateDisputeStatusAsAdmin, fetchBookingDetailsAsAdmin, getAdminThreads, updateAllUserStats } from '@/lib/admin-actions';
 
 ChartJS.register(
   CategoryScale,
@@ -1155,9 +1155,27 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                 {activeTab === 'users' && (
                   <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-4 md:p-6">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
-                      <h2 className="text-xl font-heading font-bold text-zinc-100">
-                        User Management
-                      </h2>
+                      <div className="flex items-center gap-4">
+                        <h2 className="text-xl font-heading font-bold text-zinc-100">
+                          User Management
+                        </h2>
+                        <button 
+                          onClick={async () => {
+                            const id = toast.loading('Synchronizing user analytics...');
+                            try {
+                              await updateAllUserStats();
+                              toast.success('Analytics synchronized successfully', { id });
+                            } catch (e) {
+                              toast.error('Failed to sync analytics', { id });
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-lg text-xs font-medium hover:bg-indigo-500/20 transition-all flex items-center gap-2"
+                          title="Recalculate stats for all users (Total Bookings, Completion %, etc.)"
+                        >
+                          <Icon name="ArrowPathIcon" size={14} />
+                          Sync Stats
+                        </button>
+                      </div>
                       <div className="flex items-center w-full sm:w-auto">
                         <input
                           type="text"

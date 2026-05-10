@@ -44,7 +44,7 @@ const CancellationPolicyPage = () => {
                         <div className="relative z-10">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center border border-sky-500/20">
-                                    <Icon name="SparklesIcon" size={16} className="text-sky-400" />
+                                    <Icon name="ShieldCheckIcon" size={16} className="text-sky-400" />
                                 </div>
                                 <span className="text-[11px] font-black text-sky-400 uppercase tracking-[0.2em]">Special Protection</span>
                             </div>

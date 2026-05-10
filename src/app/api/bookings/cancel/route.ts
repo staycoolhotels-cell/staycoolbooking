@@ -52,6 +52,9 @@ export async function POST(req: Request) {
         const daysUntilCheckIn = differenceInDays(startOfDay(new Date(booking.check_in)), startOfDay(now));
 
         // 2. Cancellation Distribution Logic Calculation
+        const transfer = booking.payment_transfer && booking.payment_transfer.length > 0 ? booking.payment_transfer[0] : null;
+        const commissionRate = transfer?.commission_value ? Number(transfer.commission_value) : 20;
+
         const { 
             guestRefundAmount, 
             hostShare: newHostAmount, 
@@ -63,7 +66,9 @@ export async function POST(req: Request) {
             booking.check_in,
             now,
             booking.created_at,
-            booking.has_free_cancellation
+            booking.has_free_cancellation,
+            Number(booking.free_cancellation_fee || 0),
+            commissionRate
         );
 
         // 3. Initiate Razorpay Refunds / Reversals

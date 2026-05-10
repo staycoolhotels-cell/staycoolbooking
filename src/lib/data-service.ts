@@ -63,14 +63,28 @@ export const getHostProperties = cache(async (hostId: string) => {
 // 3. Simple Request-level memoized User fetch
 export const getCachedUser = cache(async (userId: string) => {
   const supabase = createServiceClient();
-  const { data, error } = await supabase
+  
+  // Fetch user basic info
+  const { data: userData, error: userError } = await supabase
     .from('users')
     .select('*')
     .eq('id', userId)
     .single();
 
-  if (error) return null;
-  return data;
+  if (userError || !userData) return null;
+
+  // Fetch personal info separately to avoid relationship cache issues
+  const { data: personalData, error: personalError } = await supabase
+    .from('user_personal_info')
+    .select('gender, bio')
+    .eq('user_id', userId)
+    .maybeSingle();
+  
+  return {
+    ...userData,
+    gender: personalData?.gender || '',
+    bio: personalData?.bio || '',
+  };
 });
 
 // 4. Fetch Support Admin (Bypasses RLS)

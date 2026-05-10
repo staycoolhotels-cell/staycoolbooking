@@ -107,7 +107,27 @@ const OccupancyPulse: React.FC<OccupancyPulseProps> = ({ bookings = [] }) => {
         const checkIn = b.check_in;
         const checkOut = b.check_out;
         if (!checkIn || !checkOut) return false;
-        return checkIn <= today && checkOut >= today;
+        
+        // Basic date range check
+        const isInRange = checkIn <= today && checkOut >= today;
+        if (!isInRange) return false;
+
+        // If today is check-out day, check if current time is past check-out time
+        if (checkOut === today) {
+          const checkOutTimeStr = b.properties?.check_out_time || '11:00 AM';
+          try {
+            const [time, modifier] = checkOutTimeStr.split(' ');
+            let [hours, minutes] = time.split(':').map(Number);
+            if (modifier === 'PM' && hours < 12) hours += 12;
+            if (modifier === 'AM' && hours === 12) hours = 0;
+            const checkOutTime = new Date();
+            checkOutTime.setHours(hours, minutes, 0, 0);
+            return new Date() <= checkOutTime;
+          } catch (e) {
+            return true;
+          }
+        }
+        return true;
       })
       .map((b) => {
         let calculatedStatus: GuestStatus = 'In-house';
