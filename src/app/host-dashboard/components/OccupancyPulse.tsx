@@ -117,7 +117,9 @@ const OccupancyPulse: React.FC<OccupancyPulseProps> = ({ bookings = [] }) => {
           const checkOutTimeStr = b.properties?.check_out_time || '11:00 AM';
           try {
             const [time, modifier] = checkOutTimeStr.split(' ');
-            let [hours, minutes] = time.split(':').map(Number);
+            const [h, m] = time.split(':').map(Number);
+            let hours = h;
+            const minutes = m;
             if (modifier === 'PM' && hours < 12) hours += 12;
             if (modifier === 'AM' && hours === 12) hours = 0;
             const checkOutTime = new Date();
