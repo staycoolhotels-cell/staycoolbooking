@@ -131,7 +131,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
       >
         <motion.h1
           variants={itemVariants}
-          className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-4 tracking-tight leading-tight"
+          className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-4 tracking-tight leading-tight select-on-hold"
           style={{ textShadow: '0 4px 15px rgba(0,0,0,0.5)' }}
         >
           Find Your Stay
@@ -139,7 +139,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
 
         <motion.p
           variants={itemVariants}
-          className="text-lg md:text-xl lg:text-2xl max-w-3xl mx-auto mb-8 text-zinc-300"
+          className="text-lg md:text-xl lg:text-2xl max-w-3xl mx-auto mb-8 text-zinc-300 select-on-hold"
         >
           Discover a curated collection of the world&apos;s most extraordinary properties, where
           luxury meets tranquility.
@@ -154,7 +154,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
             
             {/* Where To */}
             <div className="w-full md:w-[30%] flex flex-col justify-center px-6 md:px-7 py-3.5 text-left hover:bg-white/20 md:rounded-full rounded-t-[2rem] transition-all duration-300 cursor-text group">
-              <label htmlFor="where-to-input" className="text-[11px] font-extrabold text-white uppercase tracking-wider cursor-text mb-0.5 whitespace-nowrap" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Where to?</label>
+              <label htmlFor="where-to-input" className="text-[11px] font-extrabold text-white uppercase tracking-wider cursor-default mb-0.5 whitespace-nowrap select-none" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Where to?</label>
               <div className="flex items-center gap-2">
                 <input
                   id="where-to-input"
@@ -318,7 +318,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
               className="flex flex-col items-center gap-2"
             >
               <feature.IconComp className="w-8 h-8 md:w-10 md:h-10 text-sky-400" />
-              <span className="text-sm md:text-base font-semibold text-zinc-200">{feature.text}</span>
+              <span className="text-sm md:text-base font-semibold text-zinc-200 select-none">{feature.text}</span>
             </motion.div>
           ))}
         </div>

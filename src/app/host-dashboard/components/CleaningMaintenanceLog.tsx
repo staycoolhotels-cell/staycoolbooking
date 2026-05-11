@@ -251,6 +251,7 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
       toast.success('Cleaning checklist created successfully!');
       setIsAddModalOpen(false);
       setNewChecklist(prev => ({ ...prev, assigned_to: '', tasks: [...DEFAULT_TASKS] }));
+      fetchData(false); // Manually trigger fetch to update UI immediately
     } catch (error: any) {
       console.error('Error creating checklist:', error);
       toast.error('An unexpected error occurred. Please try again later.');
@@ -702,17 +703,31 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-widest">Execution Date</label>
-                      <div className="relative">
+                      <div 
+                        className="relative cursor-pointer"
+                        onClick={() => {
+                          const dateInput = document.getElementById('execution_date_input') as HTMLInputElement;
+                          if (dateInput) {
+                            if ('showPicker' in dateInput) {
+                              dateInput.showPicker();
+                            } else {
+                              dateInput.click();
+                            }
+                          }
+                        }}
+                      >
                         <input
                           type="text"
                           required
                           value={newChecklist.date ? newChecklist.date.split('-').reverse().join('/') : ''}
                           readOnly
-                          className="w-full bg-black/40 border border-white/10 rounded-xl py-3.5 px-4 text-white placeholder-zinc-600 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all outline-none font-medium text-sm"
+                          className="w-full bg-black/40 border border-white/10 rounded-xl py-3.5 px-4 text-white placeholder-zinc-600 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all outline-none font-medium text-sm pointer-events-none"
                         />
                         <input
+                          id="execution_date_input"
                           type="date"
                           required
+                          min={new Date().toISOString().split('T')[0]}
                           value={newChecklist.date}
                           onChange={(e) => setNewChecklist({ ...newChecklist, date: e.target.value })}
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer [color-scheme:dark]"

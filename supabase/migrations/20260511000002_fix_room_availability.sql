@@ -1,3 +1,8 @@
+-- 0. Ensure property time columns exist
+ALTER TABLE public.properties 
+ADD COLUMN IF NOT EXISTS check_in_time TEXT DEFAULT '02:00 PM',
+ADD COLUMN IF NOT EXISTS check_out_time TEXT DEFAULT '11:00 AM';
+
 -- Drop existing functions to avoid conflicts
 DROP FUNCTION IF EXISTS public.get_available_rooms(uuid, date, date);
 DROP FUNCTION IF EXISTS public.check_availability(uuid, date, date);

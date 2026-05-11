@@ -42,6 +42,7 @@ BEGIN
         total_price,
         status,
         booking_type,
+        total_rooms_booked,
         has_free_cancellation,
         free_cancellation_fee
     )
@@ -53,6 +54,7 @@ BEGIN
         p_total_price,
         'pending_payment',
         p_booking_type,
+        ARRAY_LENGTH(p_room_ids, 1),
         p_has_free_cancellation,
         p_free_cancellation_fee
     )
@@ -90,7 +92,33 @@ SECURITY DEFINER
 AS $$
 DECLARE
     new_booking_id uuid;
+    v_available_room_ids uuid[];
+    v_room_id uuid;
 BEGIN
+    -- 1. Find available rooms
+    SELECT ARRAY_AGG(r.id) INTO v_available_room_ids
+    FROM (
+        SELECT id FROM public.rooms
+        WHERE property_id = p_property_id
+        AND id NOT IN (
+            SELECT br.room_id FROM public.booking_rooms br
+            JOIN public.bookings b ON b.id = br.booking_id
+            WHERE b.property_id = p_property_id
+              AND b.status IN ('confirmed', 'pending_payment')
+              AND (
+                  (p_check_in BETWEEN b.check_in AND b.check_out - INTERVAL '1 day') OR
+                  (p_check_out - INTERVAL '1 day' BETWEEN b.check_in AND b.check_out - INTERVAL '1 day') OR
+                  (b.check_in BETWEEN p_check_in AND p_check_out - INTERVAL '1 day')
+              )
+        )
+        LIMIT p_room_count
+    ) r;
+
+    IF v_available_room_ids IS NULL OR ARRAY_LENGTH(v_available_room_ids, 1) < p_room_count THEN
+        RAISE EXCEPTION 'Not enough rooms available';
+    END IF;
+
+    -- 2. Create the booking record
     INSERT INTO public.bookings (
         guest_id,
         property_id,
@@ -99,7 +127,7 @@ BEGIN
         total_price,
         status,
         booking_type,
-        room_count,
+        total_rooms_booked,
         has_free_cancellation,
         free_cancellation_fee
     )
@@ -116,6 +144,12 @@ BEGIN
         p_free_cancellation_fee
     )
     RETURNING id INTO new_booking_id;
+
+    -- 3. Assign Rooms
+    FOREACH v_room_id IN ARRAY v_available_room_ids LOOP
+        INSERT INTO public.booking_rooms (booking_id, room_id)
+        VALUES (new_booking_id, v_room_id);
+    END LOOP;
 
     RETURN new_booking_id;
 END;

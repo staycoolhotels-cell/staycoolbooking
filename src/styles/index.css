@@ -209,3 +209,30 @@
   }
 }
 
+/* Global tap highlight reset to prevent blue/gray flash on mobile tap */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* UI Elements: Selection is never wanted */
+button, label, .btn, .nav-link, .no-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Content Elements: Allow selection (usually via long-press on mobile) */
+h1, h2, h3, h4, h5, h6, p, .select-on-hold {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  -webkit-touch-callout: default; /* Ensures long-press menu appears */
+}
+
+/* Ensure inputs remain selectable */
+input, textarea {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
