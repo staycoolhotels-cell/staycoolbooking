@@ -20,7 +20,7 @@ const createSupabaseAdminClient = async () => {
 export async function updateHostProfile(
   userId: string, 
   userData: { name?: string; email?: string; avatar_url?: string; phone?: string },
-  personalInfo: { bio?: string; address?: string }
+  personalInfo: { bio?: string; address?: string; gender?: string }
 ) {
   try {
     const supabaseAdmin = await createSupabaseAdminClient();
@@ -48,6 +48,7 @@ export async function updateHostProfile(
         user_id: userId,
         bio: personalInfo.bio || '',
         location: personalInfo.address || null, // Mapping address to location
+        gender: personalInfo.gender || null,
       }, { onConflict: 'user_id' });
 
     if (infoError) throw infoError;

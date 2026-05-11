@@ -21,6 +21,8 @@ import {
   Scale,
   LifeBuoy,
   Lock,
+  Gift,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { resetCancellationPenalty } from '@/lib/booking-actions';
@@ -44,7 +46,7 @@ import BankingDetails from './BankingDetails';
 import LicenseComplianceTracker from './LicenseComplianceTracker';
 import PayoutHistory from './PayoutHistory';
 import AddPropertyModal, { FormData } from './AddPropertyModal';
-import { Property, Transaction, HostDashboardData } from '@/lib/types';
+import { Property, Transaction, HostDashboardData, Dispute } from '@/lib/types';
 import { createBrowserClient } from '@supabase/ssr';
 import { AMENITIES } from '@/lib/amenities';
 import AvailabilityCalendar from './AvailabilityCalendar';
@@ -117,10 +119,19 @@ const HostDashboardInteractive = ({
   }, [cachedProperties]);
 
   const [propertyToEdit, setPropertyToEdit] = useState<Property | null>(null);
-  const [disputes, setDisputes] = useState<unknown[]>([]);
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [isLoadingDisputes, setIsLoadingDisputes] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
-  const [inboxContext, setInboxContext] = useState<unknown>(null);
+
+  type InboxContext = {
+    guest_id: string;
+    sender_name: string;
+    sender_avatar?: string;
+    property_id: string;
+    property_name: string;
+  };
+
+  const [inboxContext, setInboxContext] = useState<InboxContext | null>(null);
   const [bookingSearchTerm, setBookingSearchTerm] = useState('');
 
   const isLocked = Number(hostData.cancellation_count || 0) >= 5;
@@ -409,13 +420,13 @@ const HostDashboardInteractive = ({
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setDisputes((prev) => [payload.new as any, ...prev]);
+            setDisputes((prev) => [payload.new as Dispute, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
             setDisputes((prev) =>
-              prev.map((d) => (d.id === payload.new.id ? payload.new : d))
+              prev.map((d) => (d.id === (payload.new as Dispute).id ? (payload.new as Dispute) : d))
             );
           } else if (payload.eventType === 'DELETE') {
-            setDisputes((prev) => prev.filter((d) => d.id !== payload.old.id));
+            setDisputes((prev) => prev.filter((d) => d.id !== (payload.old as Dispute).id));
           }
         }
       )

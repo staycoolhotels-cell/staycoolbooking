@@ -88,6 +88,10 @@ export interface User {
   reward_points?: number;
   referral_code?: string;
   referred_by?: string;
+  phone?: string;
+  address?: string;
+  bio?: string;
+  gender?: string;
 }
 
 export interface UserVerificationStatus {
