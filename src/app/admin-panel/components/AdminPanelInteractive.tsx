@@ -212,19 +212,23 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
     const channel = supabase.channel('admin-notifications')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload: { new: any }) => {
-        setNotifications(prev => [payload.new as AppNotification, ...prev].slice(0, 10));
-        setUnreadCount(prev => prev + 1);
-        toast.info(`New Notification: ${payload.new.title}`);
+        if (payload.new) {
+          setNotifications(prev => [payload.new as AppNotification, ...prev].slice(0, 10));
+          setUnreadCount(prev => prev + 1);
+          toast.info(`New Notification: ${payload.new.title}`);
+        }
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications' }, (payload) => {
-        setNotifications(prev => prev.map(n => n.id === payload.new.id ? (payload.new as AppNotification) : n));
-        setUnreadCount(prev => {
-          const wasRead = payload.old.is_read;
-          const isRead = payload.new.is_read;
-          if (!wasRead && isRead) return Math.max(0, prev - 1);
-          if (wasRead && !isRead) return prev + 1;
-          return prev;
-        });
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications' }, (payload: any) => {
+        if (payload.new) {
+          setNotifications(prev => prev.map(n => n.id === payload.new.id ? (payload.new as AppNotification) : n));
+          setUnreadCount(prev => {
+            const wasRead = payload.old?.is_read;
+            const isRead = payload.new.is_read;
+            if (!wasRead && isRead) return Math.max(0, prev - 1);
+            if (wasRead && !isRead) return prev + 1;
+            return prev;
+          });
+        }
       })
       .subscribe();
 
@@ -394,19 +398,20 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   useEffect(() => {
     const channel = supabase.channel('realtime-admin');
     channel
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, (payload: any) => {
+        if (payload.eventType === 'INSERT' && payload.new) {
           setProperties((prev) => [...prev, payload.new as Property]);
-        } else if (payload.eventType === 'UPDATE') {
+        } else if (payload.eventType === 'UPDATE' && payload.new) {
           setProperties((prev) =>
             prev.map((p) => (p.id === payload.new.id ? (payload.new as Property) : p))
           );
-        } else if (payload.eventType === 'DELETE') {
+        } else if (payload.eventType === 'DELETE' && payload.old) {
           setProperties((prev) => prev.filter((p) => p.id !== payload.old.id));
         }
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, async (payload) => {
-        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, async (payload: any) => {
+        if ((payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') && payload.new) {
+          if (!payload.new.id) return;
           const booking = await fetchBookingDetailsAsAdmin(payload.new.id);
           if (booking) {
             setBookings((prev) => {
@@ -449,57 +454,55 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
               return [...filtered, payload.new as Booking];
             });
           }
-        } else if (payload.eventType === 'DELETE') {
+        } else if (payload.eventType === 'DELETE' && payload.old) {
           setBookings((prev) => prev.filter((b) => b.id !== payload.old.id));
           setTransactions((prev) => prev.filter((t) => t.id !== payload.old.id));
         }
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          setUsers((prev) => [...prev, payload.new as User]);
-        } else if (payload.eventType === 'UPDATE') {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload: any) => {
+        if ((payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') && payload.new) {
           setUsers((prev) =>
             prev.map((u) => (u.id === payload.new.id ? { ...u, ...(payload.new as User) } : u))
           );
-        } else if (payload.eventType === 'DELETE') {
+        } else if (payload.eventType === 'DELETE' && payload.old) {
           setUsers((prev) => prev.filter((u) => u.id !== payload.old.id));
         }
       })
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'verifications' },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
+        (payload: any) => {
+          if (payload.eventType === 'INSERT' && payload.new) {
             setVerificationQueue((prev) => [...prev, payload.new as VerificationItem]);
-          } else if (payload.eventType === 'UPDATE') {
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
             setVerificationQueue((prev) =>
               prev.map((v) => (v.id === payload.new.id ? (payload.new as VerificationItem) : v))
             );
-          } else if (payload.eventType === 'DELETE') {
+          } else if (payload.eventType === 'DELETE' && payload.old) {
             setVerificationQueue((prev) => prev.filter((v) => v.id !== payload.old.id));
           }
         }
       )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'disputes' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'disputes' }, (payload: any) => {
+        if (payload.eventType === 'INSERT' && payload.new) {
           setDisputes((prev) => [...prev, payload.new as Dispute]);
-        } else if (payload.eventType === 'UPDATE') {
+        } else if (payload.eventType === 'UPDATE' && payload.new) {
           setDisputes((prev) =>
             prev.map((d) => (d.id === payload.new.id ? (payload.new as Dispute) : d))
           );
-        } else if (payload.eventType === 'DELETE') {
+        } else if (payload.eventType === 'DELETE' && payload.old) {
           setDisputes((prev) => prev.filter((d) => d.id !== payload.old.id));
         }
       })
       // Note: transactions are derived from bookings (mapped above), not from the raw transactions table.
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_alerts' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_alerts' }, (payload: any) => {
+        if (payload.eventType === 'INSERT' && payload.new) {
           setMaintenanceAlerts((prev) => [payload.new as MaintenanceAlert, ...prev]);
-        } else if (payload.eventType === 'UPDATE') {
+        } else if (payload.eventType === 'UPDATE' && payload.new) {
           setMaintenanceAlerts((prev) =>
             prev.map((a) => (a.id === payload.new.id ? (payload.new as MaintenanceAlert) : a))
           );
-        } else if (payload.eventType === 'DELETE') {
+        } else if (payload.eventType === 'DELETE' && payload.old) {
           setMaintenanceAlerts((prev) => prev.filter((a) => a.id !== payload.old.id));
         }
       })
@@ -670,16 +673,16 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   const filteredTransactions = transactions.filter((t) => {
     const query = searchQuery.toLowerCase();
     return (
-      t.id.toLowerCase().includes(query) ||
-      t.guestName.toLowerCase().includes(query) ||
-      t.hostName.toLowerCase().includes(query) ||
-      t.propertyName.toLowerCase().includes(query)
+      t.id?.toLowerCase().includes(query) ||
+      t.guestName?.toLowerCase().includes(query) ||
+      t.hostName?.toLowerCase().includes(query) ||
+      t.propertyName?.toLowerCase().includes(query)
     );
   });
 
   const filteredUsers = users.filter((u) => {
     const query = searchQuery.toLowerCase();
-    return (
+    return u && (
       (u.name?.toLowerCase().includes(query)) ||
       (u.email?.toLowerCase().includes(query))
     );
@@ -1193,8 +1196,8 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                       <h3 className="text-lg font-heading font-bold text-zinc-100">All Users</h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {filteredUsers.filter(u => u.name).length > 0 ? (
-                        filteredUsers.filter(u => u.name).map((user) => (
+                      {filteredUsers.filter(u => u && u.name).length > 0 ? (
+                        filteredUsers.filter(u => u && u.name).map((user) => (
                           <UserManagementCard key={user.id} user={user} onManage={handleManageUser} />
                         ))
                       ) : (

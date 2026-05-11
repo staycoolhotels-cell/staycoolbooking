@@ -75,7 +75,11 @@ const mapPropertyForCard = (property: Property): PropertyForCard => {
   let displayImages: { url: string; alt: string }[] = [];
 
   if (property.images && property.images.length > 0) {
-    displayImages = property.images;
+    displayImages = property.images.map((img: any) => {
+      if (typeof img === 'string') return { url: img, alt: property.title || property.name };
+      if (img && typeof img === 'object' && img.url) return { url: img.url, alt: img.alt || property.title || property.name };
+      return { url: '/assets/images/no_image.png', alt: 'No Image' };
+    });
   } else if (property.image_url) {
     displayImages = [{ url: property.image_url, alt: property.title || property.name }];
   } else {

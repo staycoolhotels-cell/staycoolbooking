@@ -32,7 +32,8 @@ const UserManagementCard = ({ user, onManage }: UserManagementCardProps) => {
     <motion.div
       whileHover={{ y: -4, scale: 1.01 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      className="relative bg-[#0a0a0f]/80 backdrop-blur-xl border-t border-l border-white/20 border-b border-r border-black/50 rounded-xl p-4 sm:p-5 shadow-[0_15px_30px_rgba(0,0,0,0.6)] hover:shadow-[0_25px_50px_rgba(0,0,0,0.8)] hover:border-white/30 transition-all duration-300 w-full min-w-0 group"
+      className="relative bg-[#0a0a0f]/80 backdrop-blur-xl border-t border-l border-white/20 border-b border-r border-black/50 rounded-xl p-4 sm:p-5 shadow-[0_15px_30px_rgba(0,0,0,0.6)] hover:shadow-[0_25px_50px_rgba(0,0,0,0.8)] hover:border-white/30 transition-all duration-300 w-full min-w-0 group cursor-pointer"
+      onClick={() => onManage(user.id)}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 

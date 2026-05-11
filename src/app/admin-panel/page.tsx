@@ -141,6 +141,35 @@ export default async function AdminPanelPage() {
     status: activity.status || 'info'
   })) || [];
 
+  // Transform verifications to match VerificationItem interface
+  const transformedVerifications = (verifications || []).map((v: any) => ({
+    id: v.id,
+    name: v.name || 'Unknown User',
+    type: v.type || 'guest',
+    submittedDate: v.submitted_date || v.submittedDate || (v.created_at ? new Date(v.created_at).toLocaleDateString() : 'N/A'),
+    documentType: v.document_type || v.documentType || 'ID Document',
+    status: v.status || 'pending',
+    profileImage: v.profile_image || v.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.name || 'User'}`,
+    profileImageAlt: v.profile_image_alt || v.profileImageAlt || 'Profile Image',
+    priority: v.priority || 'low'
+  }));
+
+  // Transform disputes to match Dispute interface
+  const transformedDisputes = (disputes || []).map((d: any) => ({
+    id: d.id,
+    caseNumber: d.case_number || d.caseNumber || `DS-${d.id.slice(0, 8).toUpperCase()}`,
+    guestName: d.guest_name || d.guestName || 'Unknown Guest',
+    hostName: d.host_name || d.hostName || 'Unknown Host',
+    propertyName: d.property_name || d.propertyName || 'Unknown Property',
+    issueType: d.issue_type || d.issueType || 'General Issue',
+    priority: d.priority || 'low',
+    status: d.status || 'open',
+    createdDate: d.created_date || d.createdDate || (d.created_at ? new Date(d.created_at).toLocaleDateString() : 'N/A'),
+    lastUpdate: d.last_update || d.lastUpdate || (d.updated_at || d.created_at ? new Date(d.updated_at || d.created_at).toLocaleDateString() : 'N/A'),
+    description: d.description,
+    amount: d.amount
+  }));
+
   const adminData = {
     profiles: profiles || [],
     authUsers: authUsers || [],
@@ -148,8 +177,8 @@ export default async function AdminPanelPage() {
     bookings: bookingsWithDetails || [],
     transactions: mappedTransactions || [],
     reviews: reviews || [],
-    disputes: disputes || [],
-    verifications: verifications || [],
+    disputes: transformedDisputes || [],
+    verifications: transformedVerifications || [],
     activities: transformedActivities || [],
     supportThreads: supportThreads || [],
   };

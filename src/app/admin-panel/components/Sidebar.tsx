@@ -9,6 +9,7 @@ import { updateAdminCredentials } from '@/lib/admin-actions';
 import { supabase } from '@/lib/supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import AppImage from '@/components/ui/AppImage';
 
 interface NavLink {
   href: string;
@@ -250,8 +251,8 @@ const Sidebar = ({ isMobileMenuOpen, onMobileToggle: _onMobileToggle, onCloseMob
             className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/5 transition-all duration-300 group text-left"
           >
             <div className="relative">
-              <Image
-                src={adminProfile?.avatar_url || "https://i.pravatar.cc/40"}
+              <AppImage
+                src={adminProfile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${adminProfile?.name || 'Admin'}`}
                 alt="Admin"
                 width={40}
                 height={40}
@@ -305,8 +306,8 @@ const Sidebar = ({ isMobileMenuOpen, onMobileToggle: _onMobileToggle, onCloseMob
               <form onSubmit={handleUpdateProfile} className="space-y-4">
                 <div className="flex flex-col items-center mb-6">
                   <div className="relative group cursor-pointer" onClick={() => document.getElementById('avatar-upload')?.click()}>
-                    <Image
-                      src={avatarPreview || adminProfile?.avatar_url || "https://i.pravatar.cc/40"}
+                    <AppImage
+                      src={avatarPreview || adminProfile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${adminProfile?.name || 'Admin'}`}
                       alt="Preview"
                       width={96}
                       height={96}

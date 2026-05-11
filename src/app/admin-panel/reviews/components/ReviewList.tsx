@@ -281,7 +281,8 @@ const ReviewList = ({ initialReviews }: ReviewListProps) => {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0 }}
                       transition={{ delay: i * 0.02, duration: 0.3 }}
-                      className="border-b border-white/5 hover:bg-white/[0.03] transition-colors duration-200 group"
+                      className="border-b border-white/5 hover:bg-white/[0.03] transition-colors duration-200 group cursor-pointer"
+                      onClick={() => handleOpenDetails(review)}
                     >
                       {/* Review ID */}
                       <td className="px-6 py-4">
@@ -337,7 +338,7 @@ const ReviewList = ({ initialReviews }: ReviewListProps) => {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleOpenDelete(review)}
+                            onClick={(e) => { e.stopPropagation(); handleOpenDelete(review); }}
                             className="h-8 w-8 p-0 bg-transparent hover:bg-rose-500/10 text-zinc-500 hover:text-rose-400 border border-white/10 hover:border-rose-500/20 transition-all"
                           >
                             <Trash2 size={14} />

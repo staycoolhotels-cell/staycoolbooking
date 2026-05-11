@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import { useRouter } from 'next/navigation';
 import { Property } from '@/lib/types';
 import Icon from '@/components/ui/AppIcon';
 
@@ -10,13 +10,18 @@ interface PropertyApprovalCardProps {
 }
 
 const PropertyApprovalCard = ({ property, onReview }: PropertyApprovalCardProps) => {
+  const router = useRouter();
+
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden flex flex-col hover:border-zinc-700 transition-all">
+    <div 
+      onClick={() => router.push(`/admin-panel/property-management/${property.id}`)}
+      className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden flex flex-col hover:border-zinc-700 transition-all cursor-pointer group"
+    >
       <div className="relative h-48 w-full bg-zinc-800">
-        {property.image_url ? (
+        {(property.images?.[0] || property.image_url) ? (
           <img
-            src={property.image_url}
-            alt={property.title}
+            src={(property.images?.[0] as any)?.url || property.images?.[0] || property.image_url}
+            alt={property.title || 'Property'}
             className="w-full h-full object-cover"
           />
         ) : (
@@ -25,7 +30,7 @@ const PropertyApprovalCard = ({ property, onReview }: PropertyApprovalCardProps)
           </div>
         )}
         <div className="absolute top-2 right-2">
-          <span className={`px-2 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${property.status === 'pending' ? 'bg-yellow-500/90 text-black' : 'bg-zinc-500/90 text-white'
+          <span className={`px-2 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${property.status?.toLowerCase() === 'pending' ? 'bg-yellow-500/90 text-black' : 'bg-zinc-500/90 text-white'
             }`}>
             {property.status}
           </span>
@@ -52,14 +57,14 @@ const PropertyApprovalCard = ({ property, onReview }: PropertyApprovalCardProps)
 
         <div className="grid grid-cols-2 gap-3 mt-auto">
           <button
-            onClick={() => onReview(property.id, 'rejected')}
+            onClick={(e) => { e.stopPropagation(); onReview(property.id, 'rejected'); }}
             className="flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 rounded-lg text-sm font-bold hover:bg-red-500/20 transition-colors border border-red-500/20"
           >
             <Icon name="XMarkIcon" size={16} />
             Reject
           </button>
           <button
-            onClick={() => onReview(property.id, 'active')}
+            onClick={(e) => { e.stopPropagation(); onReview(property.id, 'active'); }}
             className="flex items-center justify-center gap-2 px-4 py-2 bg-green-500/10 text-green-500 rounded-lg text-sm font-bold hover:bg-green-500/20 transition-colors border border-green-500/20"
           >
             <Icon name="CheckIcon" size={16} />

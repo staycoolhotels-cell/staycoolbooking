@@ -120,9 +120,9 @@ const PropertyList = ({ initialProperties }: PropertyListProps) => {
     }
   };
 
-  const pendingProperties = properties.filter((p) => p.status === 'pending');
-  const activeProperties = properties.filter((p) => p.status === 'active');
-  const rejectedProperties = properties.filter((p) => p.status === 'rejected');
+  const pendingProperties = properties.filter((p) => p.status?.toLowerCase() === 'pending');
+  const activeProperties = properties.filter((p) => p.status?.toLowerCase() === 'active');
+  const rejectedProperties = properties.filter((p) => p.status?.toLowerCase() === 'rejected');
 
   const tabs: { key: TabKey; label: string; count: number; icon: React.ReactNode }[] = [
     { key: 'all', label: 'All', count: properties.length, icon: <Home size={14} /> },
@@ -253,9 +253,9 @@ const PropertyList = ({ initialProperties }: PropertyListProps) => {
 
                   {/* Image area placeholder */}
                   <div className="relative h-36 bg-white/[0.03] border-b border-white/8 overflow-hidden">
-                    {(property as any).images?.[0] ? (
+                    {((property as any).images?.[0] || property.image_url) ? (
                       <img
-                        src={(property as any).images[0]}
+                        src={(property as any).images?.[0]?.url || (property as any).images?.[0] || property.image_url}
                         alt={property.title || property.name || 'Property'}
                         className="w-full h-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-105 transition-all duration-500"
                       />
@@ -294,8 +294,8 @@ const PropertyList = ({ initialProperties }: PropertyListProps) => {
                     </div>
 
                     {/* Action buttons */}
-                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                      {property.status === 'pending' && (
+                    <div className="flex gap-2">
+                      {property.status?.toLowerCase() === 'pending' && (
                         <>
                           <button
                             onClick={(e) => handleApprove(e, property.id)}
@@ -315,7 +315,7 @@ const PropertyList = ({ initialProperties }: PropertyListProps) => {
                           </button>
                         </>
                       )}
-                      {property.status === 'rejected' && (
+                      {property.status?.toLowerCase() === 'rejected' && (
                         <button
                           onClick={(e) => handleApprove(e, property.id)}
                           disabled={isLoading}
@@ -325,7 +325,7 @@ const PropertyList = ({ initialProperties }: PropertyListProps) => {
                           {isLoading ? 'Processing...' : 'Re-approve'}
                         </button>
                       )}
-                      {property.status === 'active' && (
+                      {(property.status?.toLowerCase() === 'active' || !['pending', 'rejected', 'active'].includes(property.status?.toLowerCase() || '')) && (
                         <button
                           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-bold hover:bg-sky-500/20 hover:text-sky-300 hover:border-sky-500/40 transition-all duration-300"
                         >

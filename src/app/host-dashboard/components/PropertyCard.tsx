@@ -92,7 +92,10 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
   const statusConfig = getStatusConfig(property.status);
 
   return (
-    <div className="group relative bg-[#0a0a0f] backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-3xl overflow-hidden hover:border-indigo-500/50 transition-all duration-500 shadow-2xl hover:shadow-[0_0_40px_rgba(99,102,241,0.15)] flex flex-col h-full">
+    <div 
+      onClick={() => onEdit(property.id)}
+      className="group relative bg-[#0a0a0f] backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-3xl overflow-hidden hover:border-indigo-500/50 transition-all duration-500 shadow-2xl hover:shadow-[0_0_40px_rgba(99,102,241,0.15)] flex flex-col h-full cursor-pointer"
+    >
       {/* 1. ANIMATED SHIMMER EFFECT */}
       <motion.div
         animate={{ x: ['-100%', '200%'] }}
@@ -102,15 +105,9 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
 
       {/* 2. IMAGE SECTION WITH VIGNETTE */}
       <div className="relative h-28 md:h-52 w-full overflow-hidden shrink-0">
-        {property.images && property.images.length > 0 ? (
+        {(property.images?.[0] || property.image_url) ? (
           <img
-            src={property.images[0].url}
-            alt={property.name || ''}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-        ) : property.image_url ? (
-          <img
-            src={property.image_url}
+            src={(property.images?.[0] as any)?.url || property.images?.[0] || property.image_url}
             alt={property.name || ''}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
@@ -190,7 +187,7 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
         <div className="pt-1.5 md:pt-2 mt-2 md:mt-3 border-t border-white/5 flex items-center justify-between gap-1.5 md:gap-2">
 
           <button
-            onClick={() => onManageRooms(property)}
+            onClick={(e) => { e.stopPropagation(); onManageRooms(property); }}
             className="flex-1 px-2 py-1.5 md:py-2 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg md:rounded-xl border border-indigo-500/20 transition-all text-indigo-400 hover:text-indigo-300 text-[8px] md:text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1 md:gap-2 group/btn"
           >
             <Icon name="Squares2X2Icon" size={11} className="group-hover/btn:scale-110 transition-transform" /> Sub-Units
@@ -198,14 +195,15 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
 
           <div className="flex gap-1 shrink-0">
             <button
-              onClick={() => onEdit(property.id)}
+              onClick={(e) => { e.stopPropagation(); onEdit(property.id); }}
               className="w-7 h-7 md:w-8 md:h-8 bg-white/5 hover:bg-white/10 rounded-lg md:rounded-xl border border-white/10 transition-all text-zinc-400 hover:text-white flex items-center justify-center group/edit"
               title="Configure Asset"
             >
               <Icon name="AdjustmentsHorizontalIcon" size={11} className="group-hover/edit:rotate-90 transition-transform" />
             </button>
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 if (window.confirm('Are you certain you wish to terminate this asset? This action is irreversible.')) {
                   onDelete(property.id);
                 }
