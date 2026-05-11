@@ -8,8 +8,16 @@ import { signOutUser } from '@/lib/auth-actions';
 import { updateAdminCredentials } from '@/lib/admin-actions';
 import { supabase } from '@/lib/supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 
-const navLinks = [
+interface NavLink {
+  href: string;
+  label: string;
+  icon: string;
+  isExternal?: boolean;
+}
+
+const navLinks: NavLink[] = [
   { href: '/admin-panel', label: 'Dashboard', icon: 'ChartBarIcon' },
   { href: '/admin-panel/property-management', label: 'Property Management', icon: 'HomeModernIcon' },
   { href: '/admin-panel/financials', label: 'Financials', icon: 'BanknotesIcon' },
@@ -27,7 +35,7 @@ interface SidebarProps {
   onCloseMobileMenu: () => void;
 }
 
-const Sidebar = ({ isMobileMenuOpen, onMobileToggle, onCloseMobileMenu }: SidebarProps) => {
+const Sidebar = ({ isMobileMenuOpen, onMobileToggle: _onMobileToggle, onCloseMobileMenu }: SidebarProps) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const activeTabQuery = searchParams.get('tab');
@@ -192,8 +200,8 @@ const Sidebar = ({ isMobileMenuOpen, onMobileToggle, onCloseMobileMenu }: Sideba
                   key={link.href}
                   href={link.href}
                   onClick={onCloseMobileMenu}
-                  target={(link as any).isExternal ? "_blank" : undefined}
-                  rel={(link as any).isExternal ? "noopener noreferrer" : undefined}
+                  target={link.isExternal ? "_blank" : undefined}
+                  rel={link.isExternal ? "noopener noreferrer" : undefined}
                   className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
                     ? 'bg-white/10 text-white'
                     : 'text-zinc-400 hover:bg-white/5 hover:text-white'
@@ -242,9 +250,11 @@ const Sidebar = ({ isMobileMenuOpen, onMobileToggle, onCloseMobileMenu }: Sideba
             className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/5 transition-all duration-300 group text-left"
           >
             <div className="relative">
-              <img
+              <Image
                 src={adminProfile?.avatar_url || "https://i.pravatar.cc/40"}
                 alt="Admin"
+                width={40}
+                height={40}
                 className="w-10 h-10 rounded-full object-cover grayscale opacity-80 group-hover:opacity-100 transition-opacity"
               />
               <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-success rounded-full border-2 border-[#0a0a0f]" />
@@ -295,9 +305,11 @@ const Sidebar = ({ isMobileMenuOpen, onMobileToggle, onCloseMobileMenu }: Sideba
               <form onSubmit={handleUpdateProfile} className="space-y-4">
                 <div className="flex flex-col items-center mb-6">
                   <div className="relative group cursor-pointer" onClick={() => document.getElementById('avatar-upload')?.click()}>
-                    <img
+                    <Image
                       src={avatarPreview || adminProfile?.avatar_url || "https://i.pravatar.cc/40"}
                       alt="Preview"
+                      width={96}
+                      height={96}
                       className="w-24 h-24 rounded-full object-cover border-2 border-white/10 group-hover:border-primary/50 transition-colors"
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">

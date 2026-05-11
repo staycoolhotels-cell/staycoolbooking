@@ -144,7 +144,7 @@ export default function RootLayout({
     ],
     contactPoint: {
       '@type': 'ContactPoint',
-      telephone: '+91-XXXXXXXXXX',
+      telephone: '+91-7382118810',
       contactType: 'customer service',
     },
   };

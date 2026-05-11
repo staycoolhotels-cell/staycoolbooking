@@ -215,24 +215,17 @@
 }
 
 /* UI Elements: Selection is never wanted */
-button, label, .btn, .nav-link, .no-select {
+button, label, .btn, .nav-link, .no-select, h1, h2, h3, h4, h5, h6, p, .select-on-hold {
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-}
-
-/* Content Elements: Allow selection (usually via long-press on mobile) */
-h1, h2, h3, h4, h5, h6, p, .select-on-hold {
-  user-select: text;
-  -webkit-user-select: text;
-  -moz-user-select: text;
-  -ms-user-select: text;
-  -webkit-touch-callout: default; /* Ensures long-press menu appears */
+  -webkit-touch-callout: none; /* Prevents context menu on long-press */
 }
 
 /* Ensure inputs remain selectable */
-input, textarea {
+input, textarea, [contenteditable="true"] {
   user-select: text !important;
   -webkit-user-select: text !important;
+  -webkit-touch-callout: default !important;
 }

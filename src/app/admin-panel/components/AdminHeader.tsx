@@ -8,6 +8,7 @@ import Icon from '@/components/ui/AppIcon';
 import { supabase } from '@/lib/supabaseClient';
 import { signOutUser } from '@/lib/auth-actions';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 const adminNavLinks = [
     { name: 'Home', path: '/' },
@@ -75,16 +76,20 @@ const AdminHeader = ({ onMenuToggle, isMobileMenuOpen }: AdminHeaderProps) => {
                         >
                             { }
                             <div className="rounded-full border-2 border-sky-500/70 p-[4px] shadow-[0_0_8px_rgba(14,165,233,0.4)] flex items-center justify-center">
-                                <img
+                                <Image
                                     src="/assets/images/logo.png"
                                     alt="StayCool Logo"
+                                    width={32}
+                                    height={32}
                                     className="h-7 sm:h-8 w-auto object-contain"
                                 />
                             </div>
                             { }
-                            <img
+                            <Image
                                 src="/assets/Picsart_26-03-22_23-32-24-684.png"
                                 alt="StayCool"
+                                width={120}
+                                height={32}
                                 className="h-6 sm:h-8 w-auto object-contain"
                             />
                         </motion.div>

@@ -92,7 +92,7 @@ const PrivacyPage = () => {
                                 If you have any questions or concerns regarding our privacy practices, please reach out to our Data Protection Officer.
                             </p>
                             <a
-                                href="mailto:support@staycoolbooking.com"
+                                href="mailto:staycoolhotels@gmail.com"
                                 className="inline-flex items-center justify-center px-8 py-4 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition-all hover:scale-105 active:scale-95 shadow-lg shadow-sky-900/20"
                             >
                                 Contact Privacy Officer

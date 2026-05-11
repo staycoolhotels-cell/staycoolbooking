@@ -7,7 +7,7 @@ import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Phone, ArrowRight, Loader2, Sparkles, Lock, User, Home, UserCheck, Smartphone, Check, Eye, EyeOff, Gift } from 'lucide-react';
+import { Mail, Phone, ArrowRight, Loader2, Lock, User, Home, UserCheck, Smartphone, Check, Eye, EyeOff, Gift } from 'lucide-react';
 import Script from 'next/script';
 
 export default function SignupPage() {
@@ -34,10 +34,10 @@ function SignupContent() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Email Signup State
-  const [emailState, emailAction] = useActionState<any, FormData>(signUpUser, undefined);
+  const [emailState, emailAction] = useActionState<unknown, FormData>(signUpUser, undefined);
 
   // Mobile Signup State
-  const [mobileState, mobileDispatch] = useActionState<any, FormData>(async (prevState: any, formData: FormData) => {
+  const [mobileState, mobileDispatch] = useActionState<unknown, FormData>(async (prevState: unknown, formData: FormData) => {
     if (!otpSent) {
       // Send OTP
       const result = await signInWithMobile(prevState, formData);
@@ -146,12 +146,12 @@ function SignupContent() {
           mobileDispatch(formData);
         });
 
-      } catch (err: any) {
-        if (err.message === 'Payment cancelled') {
+      } catch (err: unknown) {
+        if ((err as Error).message === 'Payment cancelled') {
           console.warn("Payment was cancelled by the user.");
         } else {
           console.error("Payment failed (Mobile):", err);
-          alert('Payment failed: ' + err.message);
+          alert('Payment failed: ' + (err as Error).message);
         }
       }
     } else {

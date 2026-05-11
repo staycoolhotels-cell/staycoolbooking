@@ -324,6 +324,17 @@ export interface PropertyQualityScore {
   feedback: string[];
 }
 
+export interface HostDashboardData extends User {
+  properties: Property[];
+  bookings: Booking[];
+  earnings: Array<{ month: string; earnings: number }>;
+  transactions: Transaction[];
+  reviews: Review[];
+  supportAdmin: User | null;
+  subscription_expiry?: string;
+  cancellation_count?: number;
+}
+
 export interface MaintenanceAlert {
   id: string;
   status: 'Pending' | 'In Progress' | 'Resolved';

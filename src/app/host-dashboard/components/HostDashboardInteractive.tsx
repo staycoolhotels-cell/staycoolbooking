@@ -17,12 +17,10 @@ import {
   Banknote,
   MessageSquare,
   Star,
-  Gift,
   ClipboardList,
   Scale,
   LifeBuoy,
   Lock,
-  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { resetCancellationPenalty } from '@/lib/booking-actions';
@@ -46,7 +44,7 @@ import BankingDetails from './BankingDetails';
 import LicenseComplianceTracker from './LicenseComplianceTracker';
 import PayoutHistory from './PayoutHistory';
 import AddPropertyModal, { FormData } from './AddPropertyModal';
-import { Property, Transaction } from '@/lib/types';
+import { Property, Transaction, HostDashboardData } from '@/lib/types';
 import { createBrowserClient } from '@supabase/ssr';
 import { AMENITIES } from '@/lib/amenities';
 import AvailabilityCalendar from './AvailabilityCalendar';
@@ -56,7 +54,7 @@ const HostDashboardInteractive = ({
   hostData,
   accessToken,
 }: {
-  hostData: any;
+  hostData: HostDashboardData;
   accessToken: string;
 }) => {
   const router = useRouter();
@@ -119,10 +117,10 @@ const HostDashboardInteractive = ({
   }, [cachedProperties]);
 
   const [propertyToEdit, setPropertyToEdit] = useState<Property | null>(null);
-  const [disputes, setDisputes] = useState<any[]>([]);
+  const [disputes, setDisputes] = useState<unknown[]>([]);
   const [isLoadingDisputes, setIsLoadingDisputes] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
-  const [inboxContext, setInboxContext] = useState<any>(null);
+  const [inboxContext, setInboxContext] = useState<unknown>(null);
   const [bookingSearchTerm, setBookingSearchTerm] = useState('');
 
   const isLocked = Number(hostData.cancellation_count || 0) >= 5;
@@ -140,7 +138,7 @@ const HostDashboardInteractive = ({
           return;
         }
 
-        const payment: any = await new Promise((resolve, reject) => {
+        const payment: unknown = await new Promise((resolve, reject) => {
           if (typeof (window as any).Razorpay === 'undefined') {
             reject(new Error('Razorpay SDK not loaded.'));
             return;
@@ -153,7 +151,7 @@ const HostDashboardInteractive = ({
             name: "StayCool",
             description: "Host Account Approval Fee",
             order_id: order.orderId,
-            handler: (response: any) => resolve(response),
+            handler: (response: unknown) => resolve(response),
             modal: {
               ondismiss: () => reject(new Error('Payment cancelled')),
             },
@@ -175,9 +173,9 @@ const HostDashboardInteractive = ({
         } else {
           toast.error("Account activation failed. Please contact support.");
         }
-      } catch (err: any) {
-        if (err?.message !== 'Payment cancelled') {
-          toast.error("Payment failed: " + err?.message);
+      } catch (_err: unknown) {
+        if ((_err as any)?.message !== 'Payment cancelled') {
+          toast.error("Payment failed: " + (_err as any)?.message);
         }
       } finally {
         setIsProcessing(false);

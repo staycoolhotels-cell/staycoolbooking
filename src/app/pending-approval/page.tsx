@@ -48,8 +48,8 @@ export default function PendingApprovalPage() {
                     <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-6">
                         <p className="text-sm text-text-secondary">
                             <strong className="text-foreground">Need help?</strong> Contact our support team at{' '}
-                            <a href="mailto:support@staycoolbooking.com" className="text-primary font-bold hover:underline">
-                                support@staycoolbooking.com
+                            <a href="mailto:staycoolhotels@gmail.com" className="text-primary font-bold hover:underline">
+                                staycoolhotels@gmail.com
                             </a>
                         </p>
                     </div>

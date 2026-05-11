@@ -229,7 +229,7 @@ const CareersPage = () => {
                         send us your resume and tell us how you'd make StayCool better.
                     </p>
                     <a
-                        href="mailto:support@staycoolbooking.com"
+                        href="mailto:staycoolhotels@gmail.com"
                         className="inline-flex items-center px-10 py-4 bg-sky-600 hover:bg-sky-500 text-white font-black rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-xl shadow-sky-900/20 relative z-10"
                     >
                         General Application
