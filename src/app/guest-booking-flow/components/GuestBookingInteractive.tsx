@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Stepper from './Stepper';
@@ -45,7 +45,7 @@ const GuestBookingInteractive = () => {
   }, [currentStep, preSelectedPropertyId]);
 
   const [bookingCart, setBookingCart] = useState<Property[]>([]);
-  const [filters, setFilters] = useState({
+  const [filters] = useState({
     location: '',
     checkIn: searchParams.get('checkIn') || '',
 
@@ -76,7 +76,7 @@ const GuestBookingInteractive = () => {
     setLoadingProperties(true);
     const { data, error } = await supabase.from('properties').select('*');
     if (!error && data) {
-      const mappedProperties: Property[] = data.map((item: any) => ({
+      const mappedProperties: Property[] = data.map((item: Property) => ({
         ...item,
         instantBook: item.instant_book,
       }));
@@ -102,9 +102,9 @@ const GuestBookingInteractive = () => {
         {/* Background elements - Enhanced for full screen immersion */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] bg-sky-600/20 blur-[140px] rounded-full animate-pulse" />
-          <div className="absolute -bottom-[10%] -right-[10%] w-[60%] h-[60%] bg-purple-600/20 blur-[140px] rounded-full animate-pulse duration-[4000ms]" />
-          <div className="absolute top-[25%] right-[5%] w-[40%] h-[40%] bg-cyan-500/10 blur-[120px] rounded-full animate-pulse duration-[3000ms]" />
-          <div className="absolute bottom-[25%] left-[5%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full animate-pulse duration-[5000ms]" />
+          <div className="absolute -bottom-[10%] -right-[10%] w-[60%] h-[60%] bg-purple-600/20 blur-[140px] rounded-full animate-pulse [animation-duration:4000ms]" />
+          <div className="absolute top-[25%] right-[5%] w-[40%] h-[40%] bg-cyan-500/10 blur-[120px] rounded-full animate-pulse [animation-duration:3000ms]" />
+          <div className="absolute bottom-[25%] left-[5%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full animate-pulse [animation-duration:5000ms]" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[30%] h-[30%] bg-indigo-500/5 blur-[100px] rounded-full" />
         </div>
 
@@ -159,8 +159,8 @@ const GuestBookingInteractive = () => {
                   )}
                   {currentStep === 3 && (
                     <Step4_Confirmation 
-                      latitude={(bookingCart[0] as any)?.latitude}
-                      longitude={(bookingCart[0] as any)?.longitude}
+                      latitude={bookingCart[0]?.latitude}
+                      longitude={bookingCart[0]?.longitude}
                       address={bookingCart[0]?.show_specific_location 
                         ? `${bookingCart[0]?.address_line1 || ''} ${bookingCart[0]?.address_line2 || ''}, ${bookingCart[0]?.city || ''}, ${bookingCart[0]?.state || ''}`.trim()
                         : bookingCart[0]?.location

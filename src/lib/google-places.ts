@@ -62,9 +62,9 @@ export async function getNearbyPlaces(address: string, lat?: number | null, lng?
           console.warn(`Overpass endpoint ${endpoint} failed with status ${status}`);
           lastError = new Error(`Overpass API failed with status ${status}`);
         }
-      } catch (err: any) {
-        console.warn(`Overpass endpoint ${endpoint} connection failed: ${err.message}`);
-        lastError = err;
+      } catch (err: unknown) {
+        console.warn(`Overpass endpoint ${endpoint} connection failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        lastError = err instanceof Error ? err : new Error('Unknown error');
       }
     }
 
@@ -87,8 +87,8 @@ export async function getNearbyPlaces(address: string, lat?: number | null, lng?
     };
 
     const suggestions = (data.elements || [])
-      .filter((el: any) => el.tags && (el.tags.name || el.tags['name:en']))
-      .map((el: any) => {
+      .filter((el: { tags?: Record<string, string>; lat: number; lon: number }) => el.tags && (el.tags.name || el.tags['name:en']))
+      .map((el: { tags: Record<string, string>; lat: number; lon: number }) => {
         const dist = calculateDistance(finalLat!, finalLng!, el.lat, el.lon);
         let type = 'Attraction';
         if (el.tags.amenity === 'cafe' || el.tags.amenity === 'restaurant') type = 'Cafe';
@@ -103,7 +103,7 @@ export async function getNearbyPlaces(address: string, lat?: number | null, lng?
           address: el.tags['addr:street'] || 'Nearby',
         };
       })
-      .sort((a: any, b: any) => parseFloat(a.distance) - parseFloat(b.distance));
+      .sort((a: { distance: string }, b: { distance: string }) => parseFloat(a.distance) - parseFloat(b.distance));
 
     return {
       coordinates: { lat: finalLat, lng: finalLng },

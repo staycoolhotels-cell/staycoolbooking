@@ -11,10 +11,18 @@ export default tseslint.config(
       ".next/",
       "out/",
       "public/",
+      "scripts/",
+      "cypress/",
+      "**/scratch/",
       "*.js",
+      "*.cjs",
       "*.mjs",
       "*.ts",
-      "scripts/**/*"
+      "*.sql",
+      "*.txt",
+      "*.json",
+      "*.ps1",
+      "*.bat"
     ],
   },
   pluginJs.configs.recommended,
@@ -42,6 +50,8 @@ export default tseslint.config(
       "@next/next": nextPlugin,
     },
     rules: {
+      ...nextPlugin.configs.recommended.rules,
+      ...nextPlugin.configs['core-web-vitals'].rules,
       "@typescript-eslint/no-unused-vars": [
         "warn",
         {
@@ -70,15 +80,5 @@ export default tseslint.config(
         rootDir: true,
       },
     },
-  },
-  {
-    // Specific setup for config files that ARE in tsconfig.json
-    files: ["eslint.config.mjs", "postcss.config.js", "tailwind.config.js", "next.config.mjs"],
-    languageOptions: {
-      parser: tseslint.parser,
-      parserOptions: {
-        project: ["./tsconfig.json"],
-      },
-    }
   }
 );

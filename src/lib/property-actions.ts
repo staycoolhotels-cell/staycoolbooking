@@ -19,10 +19,10 @@ const createSupabaseServerClient = async () => {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options: any) {
+        set(name: string, value: string, options: Record<string, unknown>) {
           cookieStore.set({ name, value, ...options });
         },
-        remove(name: string, options: any) {
+        remove(name: string, options: Record<string, unknown>) {
           cookieStore.set({ name, value: '', ...options });
         },
       },
@@ -37,12 +37,12 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function addProperty(prevState: any, formData: FormData) {
+export async function addProperty(prevState: unknown, formData: FormData) {
   const supabase = await createSupabaseServerClient();
 
   const { data: { session } } = await supabase.auth.getSession();
-  console.log("Is Authenticated:", !!session);
-  console.log("User ID:", session?.user?.id);
+  console.info("Is Authenticated:", !!session);
+  console.info("User ID:", session?.user?.id);
 
   if (!session?.user) {
     return { error: 'User not authenticated.' };

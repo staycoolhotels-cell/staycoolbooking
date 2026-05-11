@@ -43,7 +43,7 @@ export async function processIdDocument(formData: FormData) {
       return { error: 'No document file provided.' };
     }
 
-    console.log('Starting OCR processing for file:', file.name, file.type, file.size);
+    console.info('Starting OCR processing for file:', file.name, file.type, file.size);
 
     // Convert file to base64 for Gemini
     const arrayBuffer = await file.arrayBuffer();
@@ -69,7 +69,7 @@ export async function processIdDocument(formData: FormData) {
       Return the data in JSON format only.
     `;
 
-    console.log('Sending request to Gemini...');
+    console.info('Sending request to Gemini...');
     const result = await model.generateContent([
       prompt,
       {
@@ -82,7 +82,7 @@ export async function processIdDocument(formData: FormData) {
 
     const response = await result.response;
     let text = response.text();
-    console.log('Gemini raw response text length:', text.length);
+    console.info('Gemini raw response text length:', text.length);
 
     // Clean up markdown
     if (text.includes('```json')) {
@@ -92,7 +92,7 @@ export async function processIdDocument(formData: FormData) {
     }
 
     const data = JSON.parse(text);
-    console.log('OCR Data extracted successfully:', data.idNumber);
+    console.info('OCR Data extracted successfully:', data.idNumber);
     return { success: true, data };
   } catch (err: any) {
     console.error('OCR Error:', err);
@@ -100,7 +100,7 @@ export async function processIdDocument(formData: FormData) {
   }
 }
 //...
-export async function verifyUser(_prevState: any, formData: FormData) {
+export async function verifyUser(_prevState: unknown, formData: FormData) {
   try {
     if (!formData) {
       console.error('VerifyUser Error: No FormData received.');
@@ -184,9 +184,9 @@ export async function verifyUser(_prevState: any, formData: FormData) {
     await logActivity('user_verification', `User ${user.id} submitted a document for verification.${ocrMetadata?.idNumber ? ` OCR detected Aadhaar: ${ocrMetadata.idNumber}` : ''}`);
 
     return { success: true, data };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('VerifyUser Action Error:', err);
-    return { error: `Action Error: ${err.message || 'Unknown error'}` };
+    return { error: `Action Error: ${err instanceof Error ? err.message : 'Unknown error'}` };
   }
 }
 
@@ -202,7 +202,7 @@ export async function createBooking(bookingDetails: {
   amenities?: Array<{ id: string; count: number; price: number; name: string }>;
   hasFreeCancellation?: boolean;
   freeCancellationFee?: number;
-}, _prevState: any) {
+}, _prevState: unknown) {
   try {
     const supabase = await createSupabaseServerClient();
     const {
@@ -311,9 +311,9 @@ export async function createBooking(bookingDetails: {
     // RPC returns booking UUID
     return { success: true, data: [{ id: data }] };
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Booking Action Error:", err);
-    return { error: `Booking Action Error: ${err.message || 'Unknown error'}` };
+    return { error: `Booking Action Error: ${err instanceof Error ? err.message : 'Unknown error'}` };
   }
 }
 

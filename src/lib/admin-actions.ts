@@ -176,7 +176,7 @@ export async function approveHost(userId: string) {
       .update({ status: 'active' })
       .eq('id', userId);
   } else {
-    console.log('✅ approveHost: Verified status=active for user:', userId);
+    console.info('✅ approveHost: Verified status=active for user:', userId);
   }
 
   await logActivity('host_approval', `Host ${userId} has been approved.`, userId, 'Host Approved', 'success');
@@ -411,10 +411,10 @@ export async function recalculateUserStats(userId: string) {
   // 2. Calculate Completion Percentage
   // Weights: Name(10), Email(10), Avatar(10), Phone(10), Bio(10), Location(10), DOB(10), Gender(10), KYC(20)
   let completion = 0;
-  if (userProfile?.data?.name) completion += 10;
-  if (userProfile?.data?.email) completion += 10;
-  if (userProfile?.data?.avatar_url) completion += 10;
-  if (userProfile?.data?.phone) completion += 10;
+  if (userProfile?.name) completion += 10;
+  if (userProfile?.email) completion += 10;
+  if (userProfile?.avatar_url) completion += 10;
+  if (userProfile?.phone) completion += 10;
   
   if (personalInfo?.bio) completion += 10;
   if (personalInfo?.location) completion += 10;
@@ -453,7 +453,7 @@ export async function updateAllUserStats() {
   for (const user of users) {
     await recalculateUserStats(user.id);
   }
-  console.log('Batch update complete.');
+  console.info('Batch update complete.');
 }
 
 /**
@@ -485,7 +485,7 @@ export async function syncAndFetchUsers() {
   const missingUsers = authUsers.filter(au => !publicUsers?.some(pu => pu.id === au.id));
 
   if (missingUsers.length > 0) {
-    console.log(`Found ${missingUsers.length} users missing in public.users. Syncing...`);
+    console.info(`Found ${missingUsers.length} users missing in public.users. Syncing...`);
 
     // 4. Create profiles for missing users
     for (const user of missingUsers) {
@@ -562,7 +562,7 @@ export async function updateAdminCredentials(userId: string, newEmail?: string, 
   }, { onConflict: 'id' });
 
   // 5. Build minimal auth update (never include user_metadata — avoids trigger edge cases)
-  const authUpdate: any = {};
+  const authUpdate: Record<string, string | boolean> = {};
   if (emailChanged) {
     authUpdate.email = newEmail!.trim();
     authUpdate.email_confirm = true;
@@ -582,7 +582,7 @@ export async function updateAdminCredentials(userId: string, newEmail?: string, 
   }
 
   // 7. Sync public.users
-  const profileUpdate: any = {};
+  const profileUpdate: Record<string, string> = {};
   if (emailChanged) profileUpdate.email = newEmail!.trim();
   if (newAvatarUrl) profileUpdate.avatar_url = newAvatarUrl;
 

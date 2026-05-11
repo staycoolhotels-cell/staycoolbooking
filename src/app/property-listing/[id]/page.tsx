@@ -108,7 +108,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         if (propertyError && (propertyError.message || propertyError.code || propertyError.details)) {
             console.error('Error fetching property:', propertyError);
         } else {
-            console.log(`Property not found or access denied for id: ${id}`);
+            console.info(`Property not found or access denied for id: ${id}`);
         }
         notFound();
     }
@@ -156,14 +156,14 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         : property.location;
     
     const nearbyPlacesData = await getNearbyPlaces(fullAddress, property.latitude, property.longitude);
-    const nearbyAttractions = (nearbyPlacesData?.suggestions || []).map((p: any) => ({
+    const nearbyAttractions = (nearbyPlacesData?.suggestions || []).map((p: { name: string; distance: string; type: string }) => ({
         name: p.name,
         distance: p.distance,
         type: p.type.toLowerCase().includes('cafe') ? 'restaurant' : p.type.toLowerCase().includes('spot') ? 'park' : 'attraction'
     }));
 
     // Helper to process amenities
-    const processAmenities = (amenities: any[]) => {
+    const processAmenities = (amenities: unknown[]) => {
         if (!amenities || !Array.isArray(amenities)) return [];
         return amenities.map((item, index) => {
             if (typeof item === 'string') {
@@ -187,7 +187,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
     };
 
     // Helper to process images
-    const processImages = (images: any[], fallbackUrl: string, title: string) => {
+    const processImages = (images: unknown[], fallbackUrl: string, title: string) => {
         if (images && Array.isArray(images) && images.length > 0) {
             return images.map((img, idx) => ({
                 id: idx,
@@ -199,7 +199,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         return [{ id: 1, url: fallbackUrl, alt: title }];
     };
 
-    const calculateAverage = (reviews: any[], field: string) => {
+    const calculateAverage = (reviews: Record<string, any>[], field: string) => {
         if (!reviews || reviews.length === 0) return 0;
         const validReviews = reviews.filter(r => r[field] !== undefined && r[field] !== null);
         if (validReviews.length === 0) return 0;
@@ -230,7 +230,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         bathrooms: property.bathrooms || 1,
         totalRooms: property.total_rooms || 1,
         area: property.area || 500,
-        highlights: property.amenities && Array.isArray(property.amenities) ? property.amenities.slice(0, 3).map((a: any) => typeof a === 'string' ? a : a.name) : ['Great location'],
+        highlights: property.amenities && Array.isArray(property.amenities) ? property.amenities.slice(0, 3).map((a: string | Record<string, any>) => typeof a === 'string' ? a : a.name) : ['Great location'],
         amenities: processAmenities(property.amenities),
         upsellAmenities: upsellAmenities || [],
         reviews:

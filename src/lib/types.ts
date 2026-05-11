@@ -145,11 +145,11 @@ export interface Property {
   updated_at?: string;
   cancellationPolicy?: string;
   description?: string;
-  isActive?: any;
+  isActive?: boolean;
   type?: string;
   price?: number;
   weekendPrice?: number;
-  documents?: any;
+  documents?: Record<string, string>;
   weekend_price_per_night?: number;
   license_url?: string;
   tax_bill_url?: string;
@@ -322,4 +322,24 @@ export interface PropertyQualityScore {
   propertyName: string;
   score: number;
   feedback: string[];
+}
+
+export interface MaintenanceAlert {
+  id: string;
+  status: 'Pending' | 'In Progress' | 'Resolved';
+  priority: 'Urgent' | 'High' | 'Normal';
+  issue: string;
+  property_id: string;
+  reported_by: string;
+  reported_date: string;
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  is_read: boolean;
+  created_at: string;
+  user_id?: string;
 }

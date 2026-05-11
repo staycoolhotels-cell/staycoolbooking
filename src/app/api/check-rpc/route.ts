@@ -10,10 +10,6 @@ export async function GET() {
     );
 
     // SQL to be executed
-    const sqls = [
-        `CREATE OR REPLACE FUNCTION exec_sql(sql_string text) RETURNS void AS $$ BEGIN EXECUTE sql_string; END; $$ LANGUAGE plpgsql SECURITY DEFINER;`
-    ];
-
     // BUT we can't execute this from the client to create a function! 
     // Is there any existing function we can call? 
     // We will just do it through REST API if there is an endpoint, but there isn't.

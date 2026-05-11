@@ -21,7 +21,7 @@ export const CACHE_TAGS = {
 // 1. Fetch all active properties (Cached across requests)
 export const getActiveProperties = unstable_cache(
   async () => {
-    console.log('Fetching active properties from DB (Cache Miss)...');
+    console.info('Fetching active properties from DB (Cache Miss)...');
     const supabase = createServiceClient();
     const { data, error } = await supabase
       .from('properties')
@@ -42,7 +42,7 @@ export const getActiveProperties = unstable_cache(
 export const getHostProperties = cache(async (hostId: string) => {
   return unstable_cache(
     async () => {
-      console.log(`Fetching properties for host ${hostId} from DB (Cache Miss)...`);
+      console.info(`Fetching properties for host ${hostId} from DB (Cache Miss)...`);
       const supabase = createServiceClient();
       const { data, error } = await supabase
         .from('properties')
@@ -105,7 +105,7 @@ export const getSupportAdmin = cache(async () => {
 export const getHostBookings = cache(async (hostId: string) => {
   return unstable_cache(
     async () => {
-      console.log(`Fetching bookings for host ${hostId} from DB (Cache Miss)...`);
+      console.info(`Fetching bookings for host ${hostId} from DB (Cache Miss)...`);
       const supabase = createServiceClient();
       const { data, error } = await supabase
         .from('bookings')

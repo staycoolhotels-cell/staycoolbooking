@@ -14,7 +14,6 @@ import TransactionDetailsModal from './TransactionDetailsModal';
 import DisputeDetailsModal from './DisputeDetailsModal';
 import RealTimeChat from '@/components/chat/RealTimeChat';
 import PropertyApproval from './PropertyApproval';
-import HostApprovalCard from './HostApprovalCard';
 import VerificationDetailsModal from './VerificationDetailsModal';
 import AdminFinancialTreasury from './AdminFinancialTreasury';
 import {
@@ -41,10 +40,13 @@ import {
   RecentActivity,
   Stat,
   VerificationItem,
+  Booking,
+  MaintenanceAlert,
+  AppNotification,
 } from '@/lib/types';
 import { supabase } from '@/lib/supabaseClient';
 import { logActivity } from '@/lib/activity-actions';
-import { deleteUserAsAdmin, updateUserDetailsAsAdmin, approveHost, approveProperty, rejectProperty, updateDisputeStatusAsAdmin, fetchBookingDetailsAsAdmin, getAdminThreads, updateAllUserStats } from '@/lib/admin-actions';
+import { deleteUserAsAdmin, updateUserDetailsAsAdmin, approveHost, approveProperty, rejectProperty, updateDisputeStatusAsAdmin, fetchBookingDetailsAsAdmin, updateAllUserStats, getAdminThreads } from '@/lib/admin-actions';
 
 ChartJS.register(
   CategoryScale,
@@ -62,8 +64,8 @@ ChartJS.register(
 
 import { User as AuthUser } from '@supabase/supabase-js';
 
-const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], authUsers: AuthUser[], bookings: any[], properties: any[], verifications: any[], disputes: any[], transactions: any[], activities: any[], supportThreads?: any[] } }) => {
-  const [maintenanceAlerts, setMaintenanceAlerts] = useState<any[]>([]);
+const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], authUsers: AuthUser[], bookings: Booking[], properties: Property[], verifications: VerificationItem[], disputes: Dispute[], transactions: Transaction[], activities: RecentActivity[], supportThreads?: unknown[] } }) => {
+  const [maintenanceAlerts, setMaintenanceAlerts] = useState<MaintenanceAlert[]>([]);
   const [analyticsData, setAnalyticsData] = useState({
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     datasets: [
@@ -188,7 +190,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -209,13 +211,13 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     fetchNotifications();
 
     const channel = supabase.channel('admin-notifications')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload) => {
-        setNotifications(prev => [payload.new, ...prev].slice(0, 10));
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload: { new: any }) => {
+        setNotifications(prev => [payload.new as AppNotification, ...prev].slice(0, 10));
         setUnreadCount(prev => prev + 1);
         toast.info(`New Notification: ${payload.new.title}`);
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications' }, (payload) => {
-        setNotifications(prev => prev.map(n => n.id === payload.new.id ? payload.new : n));
+        setNotifications(prev => prev.map(n => n.id === payload.new.id ? (payload.new as AppNotification) : n));
         setUnreadCount(prev => {
           const wasRead = payload.old.is_read;
           const isRead = payload.new.is_read;
@@ -275,10 +277,10 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   const [transactions, setTransactions] = useState<Transaction[]>(adminData.transactions || []);
   const [users, setUsers] = useState<User[]>([]);
   const [properties, setProperties] = useState<Property[]>(adminData.properties || []);
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>(
+                  const [_recentActivities] = useState<RecentActivity[]>(
     adminData.activities || []
   );
-  const [bookings, setBookings] = useState<any[]>(adminData.bookings || []);
+  const [bookings, setBookings] = useState<Booking[]>(adminData.bookings || []);
 
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -314,7 +316,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
 
   useEffect(() => {
-    const totalRevenue = bookings.reduce((sum: number, b: any) => {
+    const totalRevenue = bookings.reduce((sum: number, b: Booking) => {
       if (b.status === 'confirmed' || b.status === 'completed') {
         return sum + (Number(b.total_price) || 0);
       }
@@ -348,7 +350,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       },
       {
         title: 'Active Listings',
-        value: properties.filter((p: any) => p.status === 'active').length.toString(),
+        value: properties.filter((p: Property) => p.status === 'active').length.toString(),
         icon: 'HomeModernIcon',
         trend: { value: '+3%', isPositive: true },
         bgColor: 'bg-yellow-500',
@@ -356,7 +358,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       },
       {
         title: 'Pending Verifications',
-        value: verificationQueue.filter((v: any) => v.status === 'pending').length.toString(),
+        value: verificationQueue.filter((v: VerificationItem) => v.status === 'pending').length.toString(),
         icon: 'DocumentCheckIcon',
         trend: { value: '-2%', isPositive: false },
         bgColor: 'bg-red-500',
@@ -366,7 +368,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
     const monthlyBookings = new Array(12).fill(0);
     const monthlyRevenue = new Array(12).fill(0);
-    bookings.forEach((booking: any) => {
+    bookings.forEach((booking: Booking) => {
       const month = new Date(booking.created_at).getMonth();
       monthlyBookings[month]++;
       if (booking.status === 'confirmed' || booking.status === 'completed') {
@@ -444,7 +446,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
           } else {
             setBookings((prev) => {
               const filtered = prev.filter((b) => b.id !== payload.new.id);
-              return [...filtered, payload.new];
+              return [...filtered, payload.new as Booking];
             });
           }
         } else if (payload.eventType === 'DELETE') {
@@ -454,10 +456,10 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          setUsers((prev) => [...prev, payload.new as any]);
+          setUsers((prev) => [...prev, payload.new as User]);
         } else if (payload.eventType === 'UPDATE') {
           setUsers((prev) =>
-            prev.map((u) => (u.id === payload.new.id ? { ...u, ...payload.new } : u))
+            prev.map((u) => (u.id === payload.new.id ? { ...u, ...(payload.new as User) } : u))
           );
         } else if (payload.eventType === 'DELETE') {
           setUsers((prev) => prev.filter((u) => u.id !== payload.old.id));
@@ -492,10 +494,10 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       // Note: transactions are derived from bookings (mapped above), not from the raw transactions table.
       .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_alerts' }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          setMaintenanceAlerts((prev) => [payload.new, ...prev]);
+          setMaintenanceAlerts((prev) => [payload.new as MaintenanceAlert, ...prev]);
         } else if (payload.eventType === 'UPDATE') {
           setMaintenanceAlerts((prev) =>
-            prev.map((a) => (a.id === payload.new.id ? payload.new : a))
+            prev.map((a) => (a.id === payload.new.id ? (payload.new as MaintenanceAlert) : a))
           );
         } else if (payload.eventType === 'DELETE') {
           setMaintenanceAlerts((prev) => prev.filter((a) => a.id !== payload.old.id));
@@ -509,7 +511,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   }, [supabase]);
 
   const refetchUsers = async () => {
-    const { data: profiles, error: profilesError } = await supabase.from('users').select('*');
+    const { data: profiles } = await supabase.from('users').select('*');
     if (profiles) {
       const authUsersMap = new Map<string, AuthUser>(adminData.authUsers.map((u: AuthUser) => [u.id, u]));
       const mergedUsers = profiles.map((p: User) => {
@@ -755,7 +757,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                                   <div className="flex gap-3">
                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${!note.is_read ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-white/5 border border-white/10'
                                       }`}>
-                                      <Icon name={getNotificationIcon(note.type) as any} size={14} className={!note.is_read ? 'text-indigo-400' : 'text-zinc-500'} />
+                                      <Icon name={getNotificationIcon(note.type as string) as any} size={14} className={!note.is_read ? 'text-indigo-400' : 'text-zinc-500'} />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center justify-between gap-2">

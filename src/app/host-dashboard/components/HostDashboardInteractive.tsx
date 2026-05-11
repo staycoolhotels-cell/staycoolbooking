@@ -14,11 +14,9 @@ import {
   Plus,
   Calendar,
   DollarSign,
-  Building,
   Banknote,
   MessageSquare,
   Star,
-  FolderKanban,
   Gift,
   ClipboardList,
   Scale,
@@ -51,7 +49,6 @@ import AddPropertyModal, { FormData } from './AddPropertyModal';
 import { Property, Transaction } from '@/lib/types';
 import { createBrowserClient } from '@supabase/ssr';
 import { AMENITIES } from '@/lib/amenities';
-import AnimatedLoader from '@/components/ui/AnimatedLoader';
 import AvailabilityCalendar from './AvailabilityCalendar';
 import { useAppStore } from '@/lib/store';
 
@@ -67,7 +64,6 @@ const HostDashboardInteractive = ({
   const { 
     properties: cachedProperties, 
     setProperties: setStoreProperties, 
-    bookings: cachedBookings, 
     setBookings: setStoreBookings 
   } = useAppStore();
 
@@ -180,8 +176,8 @@ const HostDashboardInteractive = ({
           toast.error("Account activation failed. Please contact support.");
         }
       } catch (err: any) {
-        if (err.message !== 'Payment cancelled') {
-          toast.error("Payment failed: " + err.message);
+        if (err?.message !== 'Payment cancelled') {
+          toast.error("Payment failed: " + err?.message);
         }
       } finally {
         setIsProcessing(false);
@@ -849,7 +845,7 @@ const HostDashboardInteractive = ({
       </AnimatePresence>
 
       {/* 1. SIDEBAR NAVIGATION */}
-      <aside className={`fixed top-[100px] left-0 z-[95] w-72 h-[calc(100vh-100px)] bg-zinc-950 border-r border-zinc-900 flex flex-col items-center md:items-start py-6 px-4 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-[20px_0_40px_rgba(0,0,0,0.8)]' : '-translate-x-full'}`}>
+      <aside className={`fixed top-[100px] left-0 z-[95] w-72 h-[calc(100vh-100px)] bg-zinc-950 border-r border-zinc-900 flex flex-col items-center md:items-start py-6 px-4 transition-transform duration-500 [transition-timing-function:cubic-bezier(0.32,0.72,0,1)] md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-[20px_0_40px_rgba(0,0,0,0.8)]' : '-translate-x-full'}`}>
         <div className="flex w-full items-center justify-between mt-4 mb-6 px-4 md:hidden">
           <span className="text-sm font-black uppercase tracking-widest text-white/40">Navigation</span>
         </div>
