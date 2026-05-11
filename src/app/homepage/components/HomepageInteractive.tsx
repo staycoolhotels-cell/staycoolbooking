@@ -86,7 +86,7 @@ const mapPropertyForCard = (property: Property): PropertyForCard => {
     id: property.id,
     title: property.title || property.name,
     location: property.location,
-    type: property.tier,
+    type: property.tier || 'Elite',
     price: property.price_per_night || 0,
     rating: parseFloat((Math.random() * (5.0 - 4.0) + 4.0).toFixed(2)), // Random rating 4.0-5.0
     reviews: Math.floor(Math.random() * 200) + 10, // Random reviews
@@ -133,10 +133,10 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
   }, [initialProperties, setProperties]);
 
   const allProperties = useMemo(() => {
-    // Prefer store properties if available and not empty, otherwise use initial
-    const propsToUse = (cachedProperties && cachedProperties.length > 0) 
-      ? cachedProperties 
-      : initialProperties;
+    // Prefer initial properties from server (most fresh), then fallback to store/cache
+    const propsToUse = (initialProperties && initialProperties.length > 0) 
+      ? initialProperties 
+      : cachedProperties;
     return propsToUse.map(mapPropertyForCard);
   }, [cachedProperties, initialProperties]);
 
