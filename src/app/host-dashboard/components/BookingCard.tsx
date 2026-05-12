@@ -77,6 +77,8 @@ const getStatusStyles = (status: Booking['status']) => {
 
 const BookingCard = ({ booking, onAction }: BookingCardProps) => {
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+  const [isIdModalOpen, setIsIdModalOpen] = useState(false);
+  const [guestIdDoc, setGuestIdDoc] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
@@ -87,7 +89,25 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    // Fetch guest ID document info
+    const fetchGuestId = async () => {
+      try {
+        const { getGuestVerification } = await import('@/lib/booking-actions');
+        const result = await getGuestVerification(booking.guest_id);
+        
+        if (result.success && result.fileUrl) {
+          setGuestIdDoc(result.fileUrl);
+        }
+      } catch (err) {
+        console.error('Failed to fetch guest ID:', err);
+      }
+    };
+
+    if (booking.guest_id) {
+      fetchGuestId();
+    }
+  }, [booking.guest_id]);
 
   const statusStyles = getStatusStyles(booking.status);
 
@@ -97,61 +117,64 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
       {/* Animated Top Border Glow */}
       <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity duration-1000 ${statusStyles.glow}`} />
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between p-5 md:p-6 gap-5 relative z-10">
-        {/* Guest & Property Info */}
-        <div className="flex flex-col gap-3 sm:gap-4 flex-1 min-w-0">
-          <div className="flex items-start sm:items-center gap-4">
-            <div className="relative shrink-0">
-              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/10 group-hover:border-white/30 transition-colors bg-zinc-900 flex items-center justify-center">
-                {booking.guest?.avatar_url ? (
-                  <img
-                    src={booking.guest.avatar_url}
-                    alt={booking.guest?.name || 'Guest'}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <Icon name="UserIcon" size={20} className="text-zinc-600" />
-                )}
-              </div>
-              {/* Status Dot Ring */}
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#0a0a0f] rounded-full flex items-center justify-center border border-white/10">
-                <div className={`w-2 h-2 rounded-full ${statusStyles.indicator}`} />
-              </div>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between p-5 md:p-8 gap-6 relative z-10">
+        {/* Left: Guest & Property & Dates */}
+        <div className="flex flex-col sm:flex-row items-start gap-4 md:gap-6 flex-1 min-w-0">
+          {/* Avatar Area */}
+          <div className="relative shrink-0">
+            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/20 transition-all bg-zinc-900 shadow-2xl relative">
+              {booking.guest?.avatar_url ? (
+                <img
+                  src={booking.guest.avatar_url}
+                  alt={booking.guest?.name || 'Guest'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Icon name="UserIcon" size={24} className="text-zinc-600" />
+              )}
+              {/* Subtle Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
             </div>
+            {/* Status Dot */}
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#0a0a0f] rounded-lg flex items-center justify-center border border-white/10 shadow-lg">
+              <div className={`w-2.5 h-2.5 rounded-full ${statusStyles.indicator}`} />
+            </div>
+          </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center justify-between mb-1 gap-2">
-                <h3 className="text-base md:text-lg font-bold text-white truncate leading-tight max-w-[150px] sm:max-w-none">
+          <div className="flex-1 min-w-0 space-y-3 md:space-y-4">
+            <div>
+              <div className="flex flex-wrap items-center gap-3 mb-1.5">
+                <h3 className="text-lg md:text-xl font-heading font-black text-white truncate tracking-tight">
                   {booking.guest?.name?.trim() ? booking.guest.name : 'Verified Guest'}
                 </h3>
-                <span className={`px-2.5 py-1 text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-md border backdrop-blur-md shrink-0 flex items-center justify-center w-fit ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} ${statusStyles.shadow}`}>
+                <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] rounded-lg border backdrop-blur-xl shrink-0 ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} ${statusStyles.shadow}`}>
                   {booking.status.replace('_', ' ')}
                 </span>
               </div>
               
-              <p className="text-xs md:text-sm text-zinc-300 font-bold truncate flex items-center gap-2 mt-1 md:mt-1.5">
-                <Icon name="HomeIcon" size={14} className="text-indigo-400 shrink-0" /> <span className="truncate">{booking.properties?.title || booking.properties?.name || 'Property'}</span>
+              <p className="text-xs md:text-sm text-zinc-400 font-bold truncate flex items-center gap-2">
+                <Icon name="HomeIcon" size={14} className="text-indigo-400/70 shrink-0" /> 
+                <span className="truncate opacity-80">{booking.properties?.title || booking.properties?.name || 'Property'}</span>
               </p>
             </div>
-          </div>
 
-          {/* Date Container (Full Width) */}
-          <div className="flex items-center gap-2.5 bg-white/[0.05] border border-white/10 py-2.5 px-3 md:px-4 rounded-xl w-full shadow-inner shrink-0">
-            <Icon name="CalendarDaysIcon" size={16} className="text-indigo-400 shrink-0" />
-            <div suppressHydrationWarning className="text-[11px] md:text-[13px] text-white font-bold uppercase tracking-widest leading-tight flex flex-wrap items-center gap-x-2 flex-1 min-w-0">
-              <span className="text-white whitespace-nowrap">{new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-              <span className="text-zinc-500 font-normal">→</span>
-              <span className="text-white whitespace-nowrap">{new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-              <span className="text-indigo-300 font-black ml-0.5 whitespace-nowrap">{new Date(booking.check_out).getFullYear()}</span>
+            {/* Date Container */}
+            <div className="flex items-center gap-3 bg-white/[0.03] border border-white/5 py-2.5 px-4 rounded-xl w-fit shadow-inner group-hover:bg-white/[0.05] transition-colors">
+              <Icon name="CalendarDaysIcon" size={16} className="text-indigo-400/80 shrink-0" />
+              <div suppressHydrationWarning className="text-[11px] md:text-[13px] text-white font-bold uppercase tracking-widest leading-none flex items-center gap-2">
+                <span className="text-zinc-100">{new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                <span className="text-zinc-600 font-normal">/</span>
+                <span className="text-zinc-100">{new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                <span className="text-indigo-400/60 font-black ml-1 text-[10px] md:text-[11px]">{new Date(booking.check_out).getFullYear()}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Actions & Approvals */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 md:gap-3 md:pl-6 md:border-l border-white/5 shrink-0 mt-4 md:mt-0 w-full md:w-auto">
-
+        {/* Right: Actions */}
+        <div className="flex flex-col gap-3 shrink-0 lg:pl-8 lg:border-l border-white/5">
           {booking.status === 'pending' && (
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="grid grid-cols-2 gap-2 w-full lg:w-auto">
               <button
                 disabled={isApproving || isRejecting}
                 onClick={async () => {
@@ -165,20 +188,16 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                         setIsApproving(false);
                     }
                 }}
-                className="w-full sm:w-auto px-4 md:px-6 py-2.5 md:py-3 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-400 rounded-xl font-bold uppercase tracking-widest text-[10px] md:text-xs flex items-center justify-center gap-2 transition-colors shadow-[0_0_20px_rgba(52,211,153,0.15)] group/approve disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(52,211,153,0.1)] hover:shadow-[0_0_30px_rgba(52,211,153,0.2)] disabled:opacity-50"
               >
-                {isApproving ? (
-                  <Icon name="ArrowPathIcon" size={16} className="animate-spin md:w-[18px] md:h-[18px]" /> 
-                ) : (
-                  <Icon name="CheckCircleIcon" size={16} className="group-hover/approve:scale-110 transition-transform md:w-[18px] md:h-[18px]" /> 
-                )}
-                <span>{isApproving ? 'Authorizing...' : 'Auth Release'}</span>
+                {isApproving ? <Icon name="ArrowPathIcon" size={16} className="animate-spin" /> : <Icon name="CheckCircleIcon" size={16} />}
+                <span>Authorize</span>
               </button>
 
               <button
                 disabled={isApproving || isRejecting}
                 onClick={async () => {
-                    if (confirm('Are you sure you want to reject this booking? This will count towards your cancellation record.')) {
+                    if (confirm('Are you sure you want to reject this booking?')) {
                       setIsRejecting(true);
                       try {
                           await rejectBooking(booking.id);
@@ -190,19 +209,15 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                       }
                     }
                 }}
-                className="w-full sm:w-auto px-4 md:px-6 py-2.5 md:py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-500 rounded-xl font-bold uppercase tracking-widest text-[10px] md:text-xs flex items-center justify-center gap-2 transition-colors shadow-[0_0_20px_rgba(239,68,68,0.15)] group/reject disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all disabled:opacity-50"
               >
-                {isRejecting ? (
-                  <Icon name="ArrowPathIcon" size={16} className="animate-spin md:w-[18px] md:h-[18px]" /> 
-                ) : (
-                  <Icon name="NoSymbolIcon" size={16} className="group-hover/reject:scale-110 transition-transform md:w-[18px] md:h-[18px]" /> 
-                )}
-                <span>{isRejecting ? 'Rejecting...' : 'Reject'}</span>
+                {isRejecting ? <Icon name="ArrowPathIcon" size={16} className="animate-spin" /> : <Icon name="NoSymbolIcon" size={16} />}
+                <span>Reject</span>
               </button>
             </div>
           )}
 
-          <div className="flex flex-wrap sm:flex-nowrap items-center justify-center sm:justify-start gap-1.5 md:gap-3 w-full sm:w-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:flex lg:items-center gap-2">
             <button
               onClick={() => onAction('unified-inbox', {
                 guest_id: booking.guest_id,
@@ -211,165 +226,270 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                 property_id: booking.property_id,
                 property_name: booking.properties?.title || booking.properties?.name || 'Property'
               })}
-              className="flex-1 sm:flex-none h-[36px] md:h-[48px] px-2 md:px-6 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg md:rounded-xl border border-indigo-500/20 text-indigo-400 hover:text-indigo-300 transition-all font-bold text-[8px] md:text-[12px] uppercase tracking-widest flex items-center justify-center gap-1.5 md:gap-2"
+              className="px-4 py-3 bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
             >
-              <Icon name="ChatBubbleLeftRightIcon" size={14} className="shrink-0 md:w-[18px] md:h-[18px]" /> <span>Message</span>
+              <Icon name="ChatBubbleLeftRightIcon" size={14} /> <span>Message</span>
             </button>
 
             {booking.status === 'confirmed' && (
               <button
                 disabled={isRejecting}
                 onClick={async () => {
-                  if (confirm('Are you sure you want to cancel this confirmed booking? This will count towards your cancellation record and may incur penalties.')) {
+                  if (confirm('Are you sure you want to cancel this booking?')) {
                     setIsRejecting(true);
                     try {
                       await rejectBooking(booking.id);
-                      toast.success('Booking cancelled successfully.');
+                      toast.success('Booking cancelled.');
                     } catch (err: any) {
-                      toast.error('Failed to cancel booking.');
+                      toast.error('Cancellation failed.');
                     } finally {
                       setIsRejecting(false);
                     }
                   }
                 }}
-                className="flex-1 sm:flex-none h-[36px] md:h-[48px] px-2 md:px-6 bg-red-500/10 hover:bg-red-500/20 rounded-lg md:rounded-xl border border-red-500/20 text-red-500 hover:text-red-400 transition-all font-bold text-[8px] md:text-[12px] uppercase tracking-widest flex items-center justify-center gap-1.5 md:gap-2 shadow-[0_0_15px_rgba(239,68,68,0.1)]"
+                className="px-4 py-3 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
               >
-                <Icon name="NoSymbolIcon" size={14} className="shrink-0 md:w-[18px] md:h-[18px]" />
-                <span>{isRejecting ? 'Wait' : 'Cancel'}</span>
+                <Icon name="NoSymbolIcon" size={14} /> <span>Cancel</span>
               </button>
             )}
 
             <button
               onClick={() => setIsDisputeModalOpen(true)}
-              className="flex-1 sm:flex-none h-[36px] md:h-[48px] px-2 md:px-6 bg-red-500/5 hover:bg-red-500/10 rounded-lg md:rounded-xl border border-red-500/10 text-red-500/60 hover:text-red-400 transition-all font-bold text-[8px] md:text-[12px] uppercase tracking-widest flex items-center justify-center gap-1.5 md:gap-2"
+              className="px-4 py-3 bg-zinc-800/50 hover:bg-zinc-800 border border-white/5 text-zinc-500 hover:text-red-400 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
             >
-              <Icon name="ScaleIcon" size={14} className="shrink-0 md:w-[18px] md:h-[18px]" /> <span>Dispute</span>
+              <Icon name="ScaleIcon" size={14} /> <span>Dispute</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (guestIdDoc) setIsIdModalOpen(true);
+                else toast.error('ID not uploaded.');
+              }}
+              className={`px-4 py-3 rounded-xl border font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
+                guestIdDoc ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-900/50 border-white/5 text-zinc-700 cursor-not-allowed'
+              }`}
+            >
+              <Icon name="FingerPrintIcon" size={14} /> <span>ID</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Dispute Modal (Ultra-Premium) */}
-      <AnimatePresence>
-        {isDisputeModalOpen && mounted && createPortal(
-          <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="w-full max-w-lg bg-[#0a0a0f] border border-red-500/20 rounded-[2.5rem] p-6 sm:p-10 shadow-[0_0_100px_rgba(220,38,38,0.15)] overflow-hidden relative"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Deep Ambient Glow */}
-              <div className="absolute top-0 right-0 w-96 h-96 bg-red-500/10 rounded-full blur-[100px] pointer-events-none" />
-
-              <div className="relative z-10 flex items-center gap-4 mb-8">
-                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 shadow-[inset_0_0_20px_rgba(220,38,38,0.2)]">
-                  <Icon name="ScaleIcon" size={28} />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-heading font-black text-white drop-shadow-lg">Dispute Initiator</h3>
-                  <p className="text-xs font-bold text-red-400 uppercase tracking-widest">Target ID: {booking.id.slice(0, 8).toUpperCase()}</p>
-                </div>
-              </div>
-
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setIsSubmitting(true);
-                  const res = await createDispute({
-                    booking_id: booking.id,
-                    guest_id: booking.guest_id,
-                    host_id: booking.properties?.host_id || '',
-                    property_id: booking.property_id,
-                    guestName: booking.guest?.name || 'Guest',
-                    hostName: 'Current Host',
-                    propertyName: booking.properties?.title || 'Property',
-                    issueType,
-                    description,
-                    priority,
-                  });
-
-                  if (res.success) {
-                    toast.success("Dispute escalation successfully recorded.");
-                    setIsDisputeModalOpen(false);
-                    setDescription('');
-                  } else {
-                    toast.error("Escalation failed: " + res.error);
-                  }
-                  setIsSubmitting(false);
-                }}
-                className="space-y-6 relative z-10"
+      {mounted && createPortal(
+        <AnimatePresence>
+          {isDisputeModalOpen && (
+            <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto" onClick={() => setIsIdModalOpen(false)}>
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                className="w-full max-w-lg bg-[#0a0a0f] border border-red-500/20 rounded-[2.5rem] p-6 sm:p-10 shadow-[0_0_100px_rgba(220,38,38,0.15)] overflow-hidden relative"
+                onClick={(e) => e.stopPropagation()}
               >
-                <div className="space-y-2">
-                  <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Dispute Classification</label>
-                  <select
-                    value={issueType}
-                    onChange={(e) => setIssueType(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white outline-none focus:ring-2 focus:ring-red-500/50 hover:border-white/30 transition-all font-medium appearance-none cursor-pointer"
-                  >
-                    <option value="Damage to property" className="bg-zinc-900">Physical Asset Damage</option>
-                    <option value="House rules violation" className="bg-zinc-900">Policy Breach Configuration</option>
-                    <option value="Extra guests without notice" className="bg-zinc-900">Unauthorized Occupancy</option>
-                    <option value="Smoking/Noise complaints" className="bg-zinc-900">Environmental Disturbance</option>
-                    <option value="Other" className="bg-zinc-900">Unclassified Anomaly</option>
-                  </select>
-                </div>
+                {/* Deep Ambient Glow */}
+                <div className="absolute top-0 right-0 w-96 h-96 bg-red-500/10 rounded-full blur-[100px] pointer-events-none" />
 
-                <div className="space-y-2">
-                  <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Tactical Assessment (Details)</label>
-                  <textarea
-                    required
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Provide a comprehensive breakdown of the incident..."
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white outline-none focus:ring-2 focus:ring-red-500/50 hover:border-white/30 transition-all font-medium placeholder:text-zinc-600 resize-none"
-                    rows={4}
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Severity Matrix</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {(['low', 'medium', 'high', 'critical'] as const).map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setPriority(p)}
-                        className={`py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${priority === p
-                          ? 'bg-red-500/20 border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(220,38,38,0.2)] scale-[1.02]'
-                          : 'bg-white/5 border-transparent text-zinc-500 hover:text-white/80 hover:bg-white/10'
-                          }`}
-                      >
-                        {p}
-                      </button>
-                    ))}
+                <div className="relative z-10 flex items-center gap-4 mb-8">
+                  <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 shadow-[inset_0_0_20px_rgba(220,38,38,0.2)]">
+                    <Icon name="ScaleIcon" size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-heading font-black text-white drop-shadow-lg">Dispute Initiator</h3>
+                    <p className="text-xs font-bold text-red-400 uppercase tracking-widest">Target ID: {booking.id.slice(0, 8).toUpperCase()}</p>
                   </div>
                 </div>
 
-                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 mt-4 border-t border-white/5">
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setIsSubmitting(true);
+                    const res = await createDispute({
+                      booking_id: booking.id,
+                      guest_id: booking.guest_id,
+                      host_id: booking.properties?.host_id || '',
+                      property_id: booking.property_id,
+                      guestName: booking.guest?.name || 'Guest',
+                      hostName: 'Current Host',
+                      propertyName: booking.properties?.title || 'Property',
+                      issueType,
+                      description,
+                      priority,
+                    });
+
+                    if (res.success) {
+                      toast.success("Dispute escalation successfully recorded.");
+                      setIsDisputeModalOpen(false);
+                      setDescription('');
+                    } else {
+                      toast.error("Escalation failed: " + res.error);
+                    }
+                    setIsSubmitting(false);
+                  }}
+                  className="space-y-6 relative z-10"
+                >
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Dispute Classification</label>
+                    <select
+                      value={issueType}
+                      onChange={(e) => setIssueType(e.target.value)}
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white outline-none focus:ring-2 focus:ring-red-500/50 hover:border-white/30 transition-all font-medium appearance-none cursor-pointer"
+                    >
+                      <option value="Damage to property" className="bg-zinc-900">Physical Asset Damage</option>
+                      <option value="House rules violation" className="bg-zinc-900">Policy Breach Configuration</option>
+                      <option value="Extra guests without notice" className="bg-zinc-900">Unauthorized Occupancy</option>
+                      <option value="Smoking/Noise complaints" className="bg-zinc-900">Environmental Disturbance</option>
+                      <option value="Other" className="bg-zinc-900">Unclassified Anomaly</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Tactical Assessment (Details)</label>
+                    <textarea
+                      required
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Provide a comprehensive breakdown of the incident..."
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white outline-none focus:ring-2 focus:ring-red-500/50 hover:border-white/30 transition-all font-medium placeholder:text-zinc-600 resize-none"
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Severity Matrix</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {(['low', 'medium', 'high', 'critical'] as const).map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setPriority(p)}
+                          className={`py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${priority === p
+                            ? 'bg-red-500/20 border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(220,38,38,0.2)] scale-[1.02]'
+                            : 'bg-white/5 border-transparent text-zinc-500 hover:text-white/80 hover:bg-white/10'
+                            }`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 mt-4 border-t border-white/5">
+                    <button
+                      type="button"
+                      onClick={() => setIsDisputeModalOpen(false)}
+                      className="w-full sm:w-auto px-6 py-3.5 bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/10 rounded-xl text-zinc-400 hover:text-white text-xs font-bold uppercase tracking-widest transition-all"
+                    >
+                      Abort
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || !description.trim()}
+                      className="w-full sm:w-auto px-8 py-3.5 bg-red-600/90 hover:bg-red-500 border border-red-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(220,38,38,0.4)] flex items-center justify-center gap-2"
+                    >
+                      <Icon name={isSubmitting ? "ArrowPathIcon" : "BoltIcon"} size={16} className={isSubmitting ? "animate-spin" : ""} />
+                      {isSubmitting ? 'Transmitting...' : 'Execute Escalation'}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {mounted && createPortal(
+        <AnimatePresence>
+          {isIdModalOpen && (
+            <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 sm:p-6" onClick={() => setIsIdModalOpen(false)}>
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="relative max-w-4xl w-full aspect-[3/4] sm:aspect-[4/3] md:aspect-auto md:h-[85vh] bg-[#0a0a0f] border border-white/10 rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-[0_0_100px_rgba(16,185,129,0.1)] flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-3.5 md:p-6 border-b border-white/5 flex items-center justify-between bg-black/40">
+                  <div className="flex items-center gap-2.5 md:gap-3">
+                    <div className="p-1.5 md:p-2 bg-emerald-500/10 rounded-lg">
+                      <Icon name="FingerPrintIcon" size={18} className="text-emerald-400 md:w-5 md:h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-sm md:text-lg leading-tight">Identity: {booking.guest?.name || 'Verified Guest'}</h3>
+                      <p className="text-[7px] md:text-[10px] text-zinc-500 uppercase tracking-widest font-black mt-0.5">
+                        Secure Access Control • Encrypted
+                      </p>
+                    </div>
+                  </div>
                   <button
-                    type="button"
-                    onClick={() => setIsDisputeModalOpen(false)}
-                    className="w-full sm:w-auto px-6 py-3.5 bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/10 rounded-xl text-zinc-400 hover:text-white text-xs font-bold uppercase tracking-widest transition-all"
+                    onClick={() => setIsIdModalOpen(false)}
+                    className="p-2 hover:bg-white/10 rounded-full transition-colors text-zinc-400 hover:text-white"
                   >
-                    Abort
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !description.trim()}
-                    className="w-full sm:w-auto px-8 py-3.5 bg-red-600/90 hover:bg-red-500 border border-red-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(220,38,38,0.4)] flex items-center justify-center gap-2"
-                  >
-                    <Icon name={isSubmitting ? "ArrowPathIcon" : "BoltIcon"} size={16} className={isSubmitting ? "animate-spin" : ""} />
-                    {isSubmitting ? 'Transmitting...' : 'Execute Escalation'}
+                    <Icon name="XMarkIcon" size={24} />
                   </button>
                 </div>
-              </form>
-            </motion.div>
-          </div>,
-          document.body
-        )}
-      </AnimatePresence>
+
+                <div className="flex-1 overflow-auto p-4 md:p-10 flex items-center justify-center bg-[#050507]">
+                  {(() => {
+                    const url = guestIdDoc;
+                    if (!url) return <p className="text-zinc-500 italic">No document available</p>;
+
+                    const isPdf = url.includes('.pdf') || url.includes('pdf');
+
+                    return (
+                      <div className="relative w-full h-full flex items-center justify-center group">
+                        <div className="absolute inset-0 bg-emerald-500/5 blur-[100px] pointer-events-none" />
+                        {isPdf ? (
+                          <iframe
+                            src={url}
+                            className="w-full h-full rounded-xl border border-white/10 relative z-10 bg-white"
+                            title="ID Document PDF"
+                          />
+                        ) : (
+                          <img
+                            src={url}
+                            alt="Guest ID Proof"
+                            className="max-w-full max-h-full object-contain rounded-xl shadow-2xl border border-white/10 relative z-10"
+                          />
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className="p-3.5 md:p-6 bg-black/60 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3 md:gap-4">
+                  <div className="hidden sm:flex items-center gap-2 text-emerald-400/60 font-medium text-[11px] uppercase tracking-widest">
+                    <Icon name="ShieldCheckIcon" size={14} />
+                    <span>Secure Host Access Protocol</span>
+                  </div>
+                  <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto">
+                    {guestIdDoc && (
+                      <a
+                        href={guestIdDoc}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 sm:flex-none px-4 md:px-6 py-2.5 md:py-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 rounded-xl font-bold text-[10px] md:text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 md:gap-2"
+                      >
+                        <Icon name="ArrowDownTrayIcon" size={14} className="md:w-4 md:h-4" />
+                        Download
+                      </a>
+                    )}
+                    <button
+                      onClick={() => setIsIdModalOpen(false)}
+                      className="flex-1 sm:flex-none px-4 md:px-8 py-2.5 md:py-3 bg-white hover:bg-zinc-200 text-black rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all active:scale-95 shadow-xl"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };

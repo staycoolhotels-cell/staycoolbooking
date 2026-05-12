@@ -132,22 +132,22 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
             }}
             disabled={!statusConfig.allowToggle}
             title={statusConfig.actionLabel}
-            className={`flex items-center gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-full backdrop-blur-md border transition-all 
+            className={`flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-full backdrop-blur-md border transition-all 
                ${statusConfig.bg} ${statusConfig.border} ${statusConfig.shadow}
                ${statusConfig.allowToggle ? 'cursor-pointer hover:bg-white/10 hover:border-white/30' : 'cursor-not-allowed opacity-90'}
             `}
           >
-            <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${statusConfig.indicator}`} />
-            <span className={`text-[9px] font-black uppercase tracking-widest ${statusConfig.color}`}>
+            <div className={`w-1 h-1 md:w-2 md:h-2 rounded-full ${statusConfig.indicator}`} />
+            <span className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest ${statusConfig.color}`}>
               {statusConfig.label}
             </span>
           </button>
         </div>
 
-        {/* Property Type Badge */}
-        <div className="absolute top-2.5 md:top-4 left-2.5 md:left-4 z-30">
-          <div className="px-2 md:px-3 py-1 md:py-1.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg shadow-xl">
-            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white">
+        {/* Property Type Badge - Relocated to prevent overlap with status */}
+        <div className="absolute bottom-6 left-2.5 md:left-4 z-30">
+          <div className="px-1.5 md:px-3 py-0.5 md:py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg shadow-xl">
+            <span className="text-[7px] md:text-[9px] font-bold uppercase tracking-[0.2em] text-white/90">
               {property.type || 'Property'}
             </span>
           </div>
@@ -184,7 +184,7 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
         </div>
 
         {/* 4. ACTIONS AREA */}
-        <div className="pt-1.5 md:pt-2 mt-2 md:mt-3 border-t border-white/5 flex items-center justify-between gap-1.5 md:gap-2">
+        <div className="pt-1.5 md:pt-2 mt-2 md:mt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-y-2 gap-x-1.5 md:gap-2">
 
           <div className="flex-1 flex items-center gap-1.5 md:gap-2">
             {!['Home Stay', 'Apartment', 'Villa'].includes(property.type || property.tier || '') && (

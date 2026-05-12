@@ -384,48 +384,52 @@ const Profile = ({
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="max-w-3xl space-y-4">
             {/* Referral Instruction */}
-            <div className="md:col-span-2 space-y-4">
-              <p className="text-xs md:text-sm text-zinc-400 font-medium leading-relaxed">
-                Refer a new host to <span className="text-sky-400 font-bold">StayCool</span>. When they register their host account, you'll receive a <span className="text-emerald-400 font-bold">50% discount</span> on the platform commission (reducing it to 5%) for your next 5 bookings.
-              </p>
-              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4 bg-white/[0.03] p-4 rounded-2xl border border-white/5">
+            <p className="text-xs md:text-sm text-zinc-400 font-medium leading-relaxed">
+              Refer a new host to <span className="text-sky-400 font-bold">StayCool</span>. When they register their host account, you'll receive a <span className="text-emerald-400 font-bold">50% discount</span> on the platform commission (reducing it to 5%) for your next 5 bookings.
+            </p>
+
+            <div className="flex flex-col gap-4 max-w-xl">
+              {/* Referral Link Box */}
+              <div className="flex items-center gap-3 md:gap-4 bg-white/[0.03] p-4 rounded-2xl border border-white/5">
                 <div className="flex-1 min-w-0">
                   <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Your Referral Link</span>
-                  <p className="text-xs md:text-sm font-bold text-sky-400 break-all">
+                  <p className="text-xs md:text-sm font-bold text-sky-400 truncate">
                     {`${BASE_URL}/signup?ref=${referralCode}`}
                   </p>
                 </div>
-                <button 
+                <button
                   onClick={() => {
                     const link = `${BASE_URL}/signup?ref=${referralCode}`;
                     navigator.clipboard.writeText(link);
                     alert('Referral link copied to clipboard!');
                   }}
-                  className="px-4 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                  className="px-4 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0"
                 >
                   Copy Link
                 </button>
               </div>
-            </div>
 
-            {/* Referral Code Card */}
-            <div className="bg-gradient-to-br from-zinc-900 to-black p-5 md:p-6 rounded-3xl border border-white/5 relative group overflow-hidden flex flex-col items-center justify-center text-center">
-              <div className="absolute inset-0 bg-sky-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 relative z-10">Direct Code</span>
-              <div className="text-2xl md:text-3xl font-black text-white tracking-tighter mb-4 relative z-10 selection:bg-sky-500/30 break-all">
-                {referralCode || 'NOT-SET'}
+              {/* Referral Code Card */}
+              <div className="bg-gradient-to-br from-zinc-900 to-black p-4 px-5 rounded-2xl border border-white/5 relative group overflow-hidden flex flex-col justify-center">
+                <div className="absolute inset-0 bg-sky-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 relative z-10">Direct Code</span>
+                <div className="flex items-center justify-between gap-4 relative z-10">
+                  <div className="text-xl font-black text-white tracking-tighter selection:bg-sky-500/30 whitespace-nowrap overflow-hidden">
+                    {referralCode || 'NOT-SET'}
+                  </div>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(referralCode);
+                      alert('Referral code copied!');
+                    }}
+                    className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-[9px] font-bold uppercase tracking-[0.2em] transition-all shrink-0"
+                  >
+                    Copy
+                  </button>
+                </div>
               </div>
-              <button 
-                onClick={() => {
-                  navigator.clipboard.writeText(referralCode);
-                  alert('Referral code copied!');
-                }}
-                className="relative z-10 w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-[9px] font-bold uppercase tracking-[0.2em] transition-all"
-              >
-                Copy Code
-              </button>
             </div>
           </div>
         </div>

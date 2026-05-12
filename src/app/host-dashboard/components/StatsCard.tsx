@@ -23,7 +23,7 @@ const StatsCard = ({ title, value, icon, onClick }: StatsCardProps) => {
         scale: 1.02,
         transition: { type: 'spring', stiffness: 400, damping: 10 },
       }}
-      className={`relative overflow-hidden bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl group ${onClick ? 'cursor-pointer hover:border-primary/50' : ''}`}
+      className={`relative overflow-hidden bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl group ${onClick ? 'cursor-pointer hover:border-primary/50' : ''}`}
       onClick={onClick}
     >
       {/* 1. INTERNAL GLOW ORB 
@@ -32,26 +32,26 @@ const StatsCard = ({ title, value, icon, onClick }: StatsCardProps) => {
       <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/10 rounded-full blur-[40px] group-hover:bg-primary/20 transition-colors duration-500" />
 
       {/* 2. CARD CONTENT */}
-      <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-start gap-3 sm:gap-0 relative z-10">
-        <div className="space-y-1">
-          <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-white/40">{title}</p>
+      <div className="flex flex-col-reverse lg:flex-row lg:justify-between items-start gap-4 lg:gap-2 relative z-10 w-full">
+        <div className="flex-1 min-w-0">
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mb-1 leading-tight">{title}</p>
           <motion.h3
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            className="text-xl sm:text-3xl font-heading font-bold text-white tracking-tight"
+            className="text-lg sm:text-xl lg:text-2xl font-heading font-bold text-white tracking-tight break-words"
           >
             {value}
           </motion.h3>
         </div>
 
         {/* 3. ICON CONTAINER WITH NEON BORDER */}
-        <div className="relative">
+        <div className="relative shrink-0">
           <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="relative p-2.5 sm:p-3.5 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 group-hover:border-primary/50 transition-colors">
+          <div className="relative p-2 sm:p-3 bg-white/5 rounded-xl border border-white/10 group-hover:border-primary/50 transition-colors">
             <Icon
               name={icon}
-              size={20}
-              className="text-primary sm:w-6 sm:h-6"
+              size={18}
+              className="text-primary sm:w-5 sm:h-5"
             />
           </div>
         </div>

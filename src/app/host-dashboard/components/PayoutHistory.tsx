@@ -131,16 +131,16 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
             </div>
 
             {/* Summary cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
                 <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl p-4 md:p-6 relative overflow-hidden">
                     <div className="absolute -top-12 -right-12 w-40 h-40 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none" />
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 text-zinc-400 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-2 md:mb-3">
                             <TrendingUp className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-400" />
-                            Total Payouts Settled
+                            Total Settled
                         </div>
-                        <div className="flex items-center gap-1 text-xl md:text-2xl font-black text-white">
-                            <IndianRupee className="w-4 h-4 md:w-5 md:h-5 text-emerald-400" />
+                        <div className="flex items-center gap-1 text-lg sm:text-xl md:text-2xl font-black text-white truncate">
+                            <IndianRupee className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 shrink-0" />
                             {totalSettled.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                     </div>
@@ -153,14 +153,14 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
                             <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 text-amber-400" />
                             Pending Payouts
                         </div>
-                        <div className="flex items-center gap-1 text-xl md:text-2xl font-black text-amber-400">
-                            <IndianRupee className="w-4 h-4 md:w-5 md:h-5" />
+                        <div className="flex items-center gap-1 text-lg sm:text-xl md:text-2xl font-black text-amber-400 truncate">
+                            <IndianRupee className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
                             {totalPending.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl p-4 md:p-6 relative overflow-hidden">
+                <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl p-4 md:p-6 relative overflow-hidden sm:col-span-2 lg:col-span-1">
                     <div className="absolute -top-12 -right-12 w-40 h-40 bg-sky-500/10 rounded-full blur-[40px] pointer-events-none" />
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 text-zinc-400 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-2 md:mb-3">

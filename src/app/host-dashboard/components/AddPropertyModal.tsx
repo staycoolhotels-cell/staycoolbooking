@@ -551,7 +551,6 @@ const AddPropertyModal = ({
                     </select>
                   </div>
 
-                  <InputField label="Flat, house, etc." name="addressLine1" value={formData.addressLine1} onChange={handleInputChange} placeholder="e.g. Flat 101, Blue Sky Apts" />
                   <InputField label="Street address" name="addressLine2" value={formData.addressLine2} onChange={handleInputChange} placeholder="e.g. MG Road" />
                   <InputField label="Nearby landmark" name="landmark" value={formData.landmark} onChange={handleInputChange} placeholder="e.g. Near Apollo Hospital" />
                   <InputField label="District/locality" name="district" value={formData.district} onChange={handleInputChange} placeholder="e.g. Banjara Hills" />
@@ -583,21 +582,25 @@ const AddPropertyModal = ({
                         const cityRaw = addressData.city || addressData.town || addressData.village || addressData.municipality;
                         const cleanedCity = cleanField(cityRaw);
                         
-                        const landmarkRaw = addressData.amenity || addressData.tourism || addressData.historic || addressData.building || addressData.shop || addressData.leisure || addressData.office;
+                        const landmarkRaw = addressData.amenity || addressData.tourism || addressData.historic || addressData.building || addressData.shop || addressData.leisure || addressData.office || addressData.place || addressData.neighbourhood;
                         
+                        const toTitleCase = (str: string) => {
+                          return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                        };
+
+                        const districtRaw = addressData.suburb || addressData.neighbourhood || addressData.city_district || addressData.state_district || addressData.county;
+
                         setFormData(prev => ({
                           ...prev,
-                          addressLine1: addressData.house_number || addressData.house_name || '', // Clear if no specific house info
-                          addressLine2: addressData.road || prev.addressLine2,
-                          landmark: cleanField(landmarkRaw) || prev.landmark,
-                          city: cleanedCity || prev.city,
-                          state: addressData.state || prev.state,
-                          postalCode: addressData.postcode || prev.postalCode,
-                          district: addressData.suburb || addressData.neighbourhood || addressData.city_district || addressData.state_district || addressData.county || prev.district,
+                          addressLine2: addressData.road ? toTitleCase(addressData.road) : '',
+                          landmark: landmarkRaw ? toTitleCase(cleanField(landmarkRaw)) : '',
+                          city: cleanedCity ? toTitleCase(cleanedCity) : '',
+                          state: addressData.state ? toTitleCase(addressData.state) : '',
+                          postalCode: addressData.postcode || '',
+                          district: districtRaw ? toTitleCase(cleanField(districtRaw)) : '',
                         }));
                       }}
                       address={[
-                        formData.addressLine1,
                         formData.addressLine2,
                         formData.landmark,
                         formData.district,

@@ -261,7 +261,7 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
       </motion.div>
 
       {/* 2. TOP METRICS (4 Columns) */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
         <StatsCard title="Active Listings" value={properties?.length || 0} icon="HomeIcon" onClick={() => onAction?.('properties')} />
         <StatsCard title="Pending Bookings" value={bookings?.filter(b => b.status === 'pending').length || 0} icon="CalendarDaysIcon" onClick={() => onAction?.('bookings')} />
         <StatsCard
@@ -395,9 +395,9 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
       </div>
 
       {/* 4. BOTTOM ROW: QUICK ACTIONS & DISPUTES */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         {/* Quick Actions Toolbox */}
-        <motion.div variants={itemVariants} className="md:col-span-1 lg:col-span-1 grid grid-cols-2 gap-4">
+        <motion.div variants={itemVariants} className="xl:col-span-1 grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 gap-4">
           {[
             { label: 'Inbox', icon: 'ChatBubbleLeftRightIcon', color: 'text-primary', bg: 'bg-primary/10', border: 'hover:border-primary/40', tabId: 'unified-inbox' },
             { label: 'Reviews', icon: 'StarIcon', color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'hover:border-yellow-500/40', tabId: 'aura-quality' },
@@ -407,14 +407,14 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
             <button
               key={action.label}
               onClick={() => onAction?.(action.tabId)}
-              className={`flex flex-col items-center justify-center p-5 rounded-[2rem] bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/10 transition-all duration-300 group ${action.border} shadow-2xl relative overflow-hidden`}
+              className={`flex flex-col items-center justify-center p-4 rounded-3xl bg-[#0a0a0f]/80 backdrop-blur-xl border border-white/10 transition-all duration-300 group ${action.border} shadow-2xl relative overflow-hidden`}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-              <div className={`w-12 h-12 rounded-full ${action.bg} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-500 shadow-inner z-10`}>
+              <div className={`w-10 h-10 rounded-full ${action.bg} flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-500 shadow-inner z-10`}>
                 <Icon
                   name={action.icon}
                   className={`${action.color} opacity-80 group-hover:opacity-100 drop-shadow-sm`}
-                  size={22}
+                  size={20}
                 />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 group-hover:text-white transition-colors z-10">
@@ -427,7 +427,7 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
         {/* Disputes (Action Items) */}
         <motion.div
           variants={itemVariants}
-          className="md:col-span-2 lg:col-span-3 bg-[#0a0a0f]/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-6 md:p-8 shadow-2xl flex flex-col relative overflow-hidden group"
+          className="xl:col-span-3 bg-[#0a0a0f]/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-6 md:p-8 shadow-2xl flex flex-col relative overflow-hidden group"
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-error/5 rounded-full blur-[100px] pointer-events-none transition-opacity duration-1000 opacity-50 group-hover:opacity-100" />
 

@@ -559,7 +559,7 @@ const BookingCard = ({
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <div className="bg-zinc-900/95 backdrop-blur-md border border-sky-500/30 shadow-xl shadow-sky-900/20 rounded-3xl p-4 md:p-5 sticky top-28 z-30">
+    <div className="bg-zinc-900/95 backdrop-blur-md border border-sky-500/30 shadow-xl shadow-sky-900/20 rounded-3xl p-4 md:p-5 relative">
         {(userRole === 'host' || userRole === 'admin') ? (
           <div className="text-center py-8 px-4">
             <div className="w-16 h-16 bg-sky-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-sky-500/20">

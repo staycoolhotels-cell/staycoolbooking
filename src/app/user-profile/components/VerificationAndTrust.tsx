@@ -104,7 +104,9 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate, onContac
         .from('verifications')
         .upsert({
           user_id: verifications.user_id,
-          isIdVerified: true, // In real app, this would be 'pending' until manual review
+          isIdVerified: true,
+          file_url: filePath,
+          status: 'pending',
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' })
         .select()

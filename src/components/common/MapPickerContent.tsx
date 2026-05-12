@@ -233,17 +233,7 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
     }
   }, [address, onLocationSelect]);
 
-  useEffect(() => {
-    if (!address || address.trim().length < 5 || isMapClickUpdateRef.current) return;
-    
-    const timeoutId = setTimeout(() => {
-      if (!isMapClickUpdateRef.current) {
-        handleFindOnMap();
-      }
-    }, 1500);
 
-    return () => clearTimeout(timeoutId);
-  }, [address, handleFindOnMap]);
 
   return (
     <div className="relative w-full h-full group overflow-hidden rounded-xl border border-white/10 shadow-2xl">

@@ -75,7 +75,7 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
   return (
     <div className="w-full space-y-6 md:space-y-8">
       {/* 1. Header & Summary */}
-      <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-3 md:gap-6 bg-[#0a0a0f]/80 p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+      <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 bottom-0 w-64 bg-gradient-to-l from-success/10 to-transparent pointer-events-none" />
         <div className="relative z-10 flex items-center gap-4">
           <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-success/30 to-success/10 border border-success/20 flex items-center justify-center shadow-[0_0_30px_rgba(34,197,94,0.3)]">
@@ -88,23 +88,23 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
           </div>
         </div>
 
-        <div className="relative z-10 bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-5 shadow-inner w-full md:w-auto">
-          <div>
-            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-1">Historical (30d)</p>
-            <p className="text-base sm:text-xl font-heading font-black text-zinc-400 px-1">₹{historicalTotal.toLocaleString('en-IN')}</p>
+        <div className="relative z-10 bg-white/5 border border-white/10 rounded-2xl p-4 grid grid-cols-2 sm:flex items-center gap-4 sm:gap-8 shadow-inner w-full lg:w-auto overflow-hidden">
+          <div className="min-w-0">
+            <p className="text-[9px] sm:text-[10px] font-bold text-zinc-500 uppercase tracking-widest whitespace-nowrap">Historical (30d)</p>
+            <p className="text-sm sm:text-xl font-heading font-black text-zinc-400">₹{historicalTotal.toLocaleString('en-IN')}</p>
           </div>
-          <div className="h-10 w-[1px] bg-white/10" />
-          <div>
-            <p className="text-[10px] font-bold text-success uppercase tracking-widest pl-1">Projected (14d)</p>
-            <p className="text-lg sm:text-2xl font-heading font-black text-white px-1">₹{totalProjected.toLocaleString('en-IN')}</p>
+          <div className="hidden sm:block h-10 w-[1px] bg-white/10 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[9px] sm:text-[10px] font-bold text-success uppercase tracking-widest whitespace-nowrap">Projected (14d)</p>
+            <p className="text-sm sm:text-2xl font-heading font-black text-white">₹{totalProjected.toLocaleString('en-IN')}</p>
           </div>
-          <div className="h-10 w-[1px] bg-white/10" />
-          <div className="flex flex-col items-center justify-center pr-2">
-            <div className="flex items-center gap-1 text-success bg-success/10 px-2 py-0.5 rounded-md border border-success/20">
+          <div className="hidden sm:block h-10 w-[1px] bg-white/10 shrink-0" />
+          <div className="col-span-2 sm:col-span-1 flex items-center justify-between sm:justify-center sm:flex-col gap-2 pt-3 sm:pt-0 border-t sm:border-t-0 border-white/10">
+            <div className="flex items-center gap-1 text-success bg-success/10 px-2 py-1 rounded-md border border-success/20">
               <Icon name="ArrowTrendingUpIcon" size={14} />
               <span className="text-xs font-bold">+{historicalTotal > 0 ? Math.round((totalProjected / historicalTotal) * 100) : 0}%</span>
             </div>
-            <p className="text-[9px] text-zinc-500 mt-1 uppercase tracking-wider font-bold">Velocity</p>
+            <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">Velocity Score</p>
           </div>
         </div>
       </div>

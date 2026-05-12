@@ -65,7 +65,7 @@ export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
             });
 
             if (error) {
-                console.error('Error fetching rooms:', error);
+                console.error('Error fetching rooms:', error.message, error.code);
                 // Fallback to table fetch if RPC fails
                 const { data: tableData } = await supabase
                     .from('rooms')

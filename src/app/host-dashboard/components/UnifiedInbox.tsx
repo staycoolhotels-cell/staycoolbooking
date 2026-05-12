@@ -160,29 +160,29 @@ const UnifiedInbox: React.FC<UnifiedInboxProps> = ({ inboxContext }) => {
   return (
     <div className="w-full space-y-4 md:space-y-8 h-auto lg:h-[calc(100vh-140px)] lg:min-h-[700px] flex flex-col">
       {/* 1. Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-4 md:p-6 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden flex-none">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-4 md:p-6 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden flex-none">
         <div className="absolute top-0 right-0 bottom-0 w-64 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
 
-        <div className="relative z-10 flex items-center gap-3 md:gap-5">
-          <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)]">
+        <div className="relative z-10 flex items-center gap-3 md:gap-5 w-full lg:w-auto">
+          <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)] shrink-0">
             <Icon name="ChatBubbleLeftRightIcon" size={20} className="text-indigo-400 drop-shadow-md md:hidden" />
             <Icon name="ChatBubbleLeftRightIcon" size={32} className="text-indigo-400 drop-shadow-md hidden md:block" />
           </div>
-          <div>
-            <h1 className="text-xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Unified Inbox</h1>
-            <p className="text-[10px] md:text-sm font-medium text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Unified Inbox</h1>
+            <p className="text-[10px] md:text-sm font-bold text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap">
               <Icon name="ChatBubbleOvalLeftEllipsisIcon" size={12} className="text-indigo-400" />
               Sentiment AI Enabled
             </p>
           </div>
         </div>
 
-        <div className="relative z-10 flex gap-3 md:gap-4 w-full md:w-auto">
-          <div className="flex-1 md:flex-none bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-2.5 md:py-4 flex flex-col items-center justify-center shadow-inner relative overflow-hidden">
+        <div className="relative z-10 flex gap-3 md:gap-4 w-full lg:w-auto mt-2 lg:mt-0">
+          <div className="flex-1 lg:flex-none bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-5 md:px-8 py-3 md:py-4 flex flex-col items-center justify-center shadow-inner relative overflow-hidden min-w-[140px]">
             {unreadCount > 0 && (
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-orange-500" />
             )}
-            <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5 md:mb-1">Unread Contexts</p>
+            <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 whitespace-nowrap">Unread Contexts</p>
             <p className={`text-xl md:text-3xl font-heading font-black drop-shadow-sm ${unreadCount > 0 ? 'text-white' : 'text-zinc-600'}`}>{unreadCount}</p>
           </div>
         </div>
@@ -291,7 +291,7 @@ const UnifiedInbox: React.FC<UnifiedInboxProps> = ({ inboxContext }) => {
           {selectedMessage && currentUser ? (
             <div className="h-full relative z-10 flex flex-col bg-black/20">
               {/* Context Header for the Chat */}
-              <div className="p-4 md:p-5 border-b border-white/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#0a0a0f]/80 backdrop-blur-md">
+              <div className="p-3 md:p-4 border-b border-white/10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 bg-[#0a0a0f]/80 backdrop-blur-md">
                 <div className="flex items-center gap-3 md:gap-4 w-full">
                   <button
                     onClick={() => setViewMode('list')}
@@ -314,14 +314,14 @@ const UnifiedInbox: React.FC<UnifiedInboxProps> = ({ inboxContext }) => {
                   </div>
                 </div>
 
-                <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                <div className="flex gap-2 w-full lg:w-auto mt-1 lg:mt-0">
                   <button 
                     onClick={() => setIsGuestDetailsOpen(true)}
-                    className="flex-1 sm:flex-none px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 lg:flex-none px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] md:text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
                   >
                     <Icon name="DocumentTextIcon" size={14} /> Details
                   </button>
-                  <button className="flex-1 sm:flex-none px-3 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center justify-center gap-2">
+                  <button className="flex-1 lg:flex-none px-3 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[10px] md:text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center justify-center gap-2 whitespace-nowrap">
                     <Icon name="CheckCircleIcon" size={14} /> Resolve
                   </button>
                 </div>

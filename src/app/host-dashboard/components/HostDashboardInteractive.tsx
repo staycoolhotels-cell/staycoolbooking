@@ -944,7 +944,7 @@ const HostDashboardInteractive = ({
         {/* Background Decorative Element */}
         <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-sky-500/5 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="px-4 sm:px-6 md:px-16 py-6 md:py-8">
+        <div className="px-4 sm:px-6 lg:px-10 py-6 md:py-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -955,7 +955,7 @@ const HostDashboardInteractive = ({
             >
               {/* Content Canvas */}
               <div className="bg-zinc-900/30 border border-zinc-900 rounded-[2rem] p-1 shadow-2xl overflow-hidden md:overflow-visible">
-                <div className="bg-zinc-950/50 rounded-[1.8rem] p-4 sm:p-6 md:p-8">
+                <div className="bg-zinc-950/50 rounded-[1.8rem] p-4 sm:p-6">
                   {activeTab === 'overview' && (
                     <Overview
                       properties={properties}

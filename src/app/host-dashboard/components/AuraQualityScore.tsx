@@ -236,25 +236,25 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
   return (
     <div className="w-full space-y-4 md:space-y-8">
       {/* 1. Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-4 md:p-8 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-4 md:p-8 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 left-0 bottom-0 w-64 bg-gradient-to-r from-amber-500/10 to-transparent pointer-events-none" />
 
-        <div className="relative z-10 flex items-center gap-3 md:gap-5">
-          <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)]">
+        <div className="relative z-10 flex items-center gap-3 md:gap-5 w-full lg:w-auto">
+          <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)] shrink-0">
             <Icon name="StarIcon" size={20} className="text-amber-400 drop-shadow-md md:hidden" />
             <Icon name="StarIcon" size={32} className="text-amber-400 drop-shadow-md hidden md:block" />
           </div>
-          <div>
-            <h1 className="text-xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Property <span className="text-amber-400/70 text-base md:text-3xl font-semibold">Insights</span></h1>
-            <p className="text-[10px] md:text-sm font-medium text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Property <span className="text-amber-400/70 text-base md:text-3xl font-semibold">Insights</span></h1>
+            <p className="text-[10px] md:text-sm font-bold text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap">
               Deep Property Analysis
             </p>
           </div>
         </div>
 
-        <div className="relative z-10 flex gap-3 md:gap-4 w-full md:w-auto">
-          <div className="flex-1 md:flex-none bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-2.5 md:py-4 flex flex-col items-center justify-center shadow-inner relative overflow-hidden">
-            <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5 md:mb-1">Total Signals</p>
+        <div className="relative z-10 flex gap-3 md:gap-4 w-full lg:w-auto mt-2 lg:mt-0">
+          <div className="flex-1 lg:flex-none bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-5 md:px-8 py-3 md:py-4 flex flex-col items-center justify-center shadow-inner relative overflow-hidden min-w-[140px]">
+            <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 whitespace-nowrap">Total Signals</p>
             <p className="text-xl md:text-3xl font-heading font-black text-white drop-shadow-sm">{guestReviews.length}</p>
           </div>
         </div>
@@ -276,10 +276,10 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
           <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Chronological Reviews</p>
         </div>
 
-        <div className={`relative z-10 ${!showAllReviews ? 'max-h-[500px]' : ''} overflow-y-auto pr-2 no-scrollbar transition-all duration-500`}>
+        <div className={`relative z-10 ${!showAllReviews ? 'max-h-[600px]' : ''} overflow-y-auto pr-2 no-scrollbar transition-all duration-500`}>
           {guestReviews.length > 0 ? (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
                 {(showAllReviews ? guestReviews : guestReviews.slice(0, 2)).map((review, idx) => (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -297,7 +297,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="font-bold text-white text-sm truncate pr-2">{review.reviewer_name}</p>
+                      <p className="font-bold text-white text-sm pr-2">{review.reviewer_name}</p>
                       <span className="text-[9px] text-zinc-500 font-bold whitespace-nowrap">
                         {new Date(review.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                       </span>
@@ -313,7 +313,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
                       ))}
                       <span className="text-[10px] text-zinc-400 font-bold ml-1.5">{review.rating}.0</span>
                     </div>
-                    <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-1.5 truncate">
+                    <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-1.5">
                       {review.property_name}
                     </p>
                     <p className="text-xs text-zinc-400 leading-relaxed font-medium">"{review.comment}"</p>

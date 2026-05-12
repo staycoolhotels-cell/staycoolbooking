@@ -477,10 +477,10 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
       </div>
 
       {/* Mobile Sticky Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-[110] lg:hidden">
         {/* Full Booking Sheet (slide-up) */}
         {showMobileBooking && (
-          <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          <div className="fixed inset-0 z-[120] flex flex-col justify-end">
             {/* Backdrop */}
             <div
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -495,12 +495,12 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
               {/* Close Button */}
               <button
                 onClick={() => setShowMobileBooking(false)}
-                className="absolute top-2 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-all z-[60] backdrop-blur-sm border border-white/10"
+                className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-all z-[130] backdrop-blur-sm border border-white/10"
                 aria-label="Close booking sheet"
               >
                 <Icon name="X" size={20} className="text-white" strokeWidth={3} />
               </button>
-              <div className="px-4">
+              <div className="px-4 pt-16">
                 <BookingCard
                   propertyId={propertyData.id}
                   pricePerNight={propertyData.pricePerNight}

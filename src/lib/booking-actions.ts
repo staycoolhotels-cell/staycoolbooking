@@ -458,3 +458,31 @@ export async function resetCancellationPenalty() {
   revalidatePath('/host-dashboard');
   return { success: true };
 }
+
+export async function getGuestVerification(guestId: string) {
+  try {
+    const adminSupabase = createServiceClient();
+    const { data, error } = await adminSupabase
+      .from('verifications')
+      .select('file_url')
+      .eq('user_id', guestId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data?.file_url) return { success: true, fileUrl: null };
+
+    // Get signed URL
+    const { data: signedData, error: signedError } = await adminSupabase.storage
+      .from('documents')
+      .createSignedUrl(data.file_url, 3600);
+
+    if (signedError) throw signedError;
+
+    return { success: true, fileUrl: signedData.signedUrl };
+  } catch (err: any) {
+    console.error('Error fetching guest verification:', err);
+    return { success: false, error: err.message };
+  }
+}
