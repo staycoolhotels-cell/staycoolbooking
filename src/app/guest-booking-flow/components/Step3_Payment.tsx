@@ -322,8 +322,8 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
               </h3>
               <ul className="space-y-2">
                 {[
-                  'Check-in: After 2:00 PM',
-                  'Check-out: Before 11:00 AM',
+                  `Check-in: After ${property?.check_in_time || '12:00 PM'}`,
+                  `Check-out: Before ${property?.check_out_time || '11:00 AM'}`,
                   'No smoking inside the property',
                   'Pets are subject to approval'
                 ].map((rule, i) => (

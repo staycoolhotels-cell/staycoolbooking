@@ -146,7 +146,7 @@ export default function AddPropertyPage() {
             <option value="house">House</option>
             <option value="condo">Condo</option>
             <option value="villa">Villa</option>
-            <option value="cabin">Cabin</option>
+            <option value="wooden-stay">Wooden Stay</option>
           </select>
         </div>
 

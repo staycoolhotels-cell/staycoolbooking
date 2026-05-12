@@ -22,6 +22,8 @@ interface RoomManagerProps {
 }
 
 export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
+    const isSingleUnit = ['Home Stay', 'Apartment', 'Villa'].includes(property.tier || property.type || '');
+
     const [rooms, setRooms] = useState<Room[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingRoom, setEditingRoom] = useState<Room | null>(null);
@@ -34,8 +36,26 @@ export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
     );
 
     useEffect(() => {
-        fetchRooms();
-    }, [property.id]);
+        if (!isSingleUnit) {
+            fetchRooms();
+        } else {
+            setLoading(false);
+        }
+    }, [property.id, isSingleUnit]);
+
+    if (isSingleUnit) {
+        return (
+            <div className="flex flex-col items-center justify-center py-12 bg-white/[0.02] border border-dashed border-white/10 rounded-2xl text-center">
+                <div className="p-4 bg-amber-500/10 rounded-full mb-4 border border-amber-500/20">
+                    <Icon name="InformationCircleIcon" size={32} className="text-amber-400" />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">Sub-Units Not Supported</h3>
+                <p className="text-sm text-zinc-400 max-w-sm px-6">
+                    {property.tier || property.type} assets function as single integrated units. Sub-unit division is not available for this property category.
+                </p>
+            </div>
+        );
+    }
 
     const fetchRooms = async () => {
         setLoading(true);

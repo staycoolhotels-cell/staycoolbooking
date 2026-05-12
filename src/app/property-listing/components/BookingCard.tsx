@@ -306,6 +306,15 @@ const BookingCard = ({
     }
   }, [checkIn]);
 
+  // Reset booking type if bulk is not allowed
+  useEffect(() => {
+    if (!isBulkBookingAllowed && bookingType === 'bulk') {
+      setBookingType('single');
+      setSelectedRooms(1);
+      setSelectedRoomIds([]);
+    }
+  }, [isBulkBookingAllowed, bookingType]);
+
 
   if (!isHydrated) {
     return (
@@ -588,7 +597,7 @@ const BookingCard = ({
             </div>
 
             {/* Booking Type Toggle */}
-            {totalRooms > 1 && (
+            {totalRooms > 1 && isBulkBookingAllowed && (
               <div className="mb-4 p-1 bg-gray-900/80 rounded-xl flex">
                 <button
                   onClick={() => { setBookingType('single'); setSelectedRooms(1); }}

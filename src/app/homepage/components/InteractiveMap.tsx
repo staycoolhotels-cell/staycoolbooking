@@ -47,8 +47,9 @@ async function geocodeLocation(locationStr: string): Promise<{ lat: number; lng:
   try {
     const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationStr)}&format=json&limit=1&countrycodes=in`;
     const osmRes = await fetch(osmUrl, {
-      headers: { 'Accept-Language': 'en', 'User-Agent': 'StayCoolBooking/1.0' },
+      headers: { 'Accept-Language': 'en' },
     });
+    if (!osmRes.ok) throw new Error(`HTTP error! status: ${osmRes.status}`);
     const osmData = await osmRes.json();
     if (osmData && osmData.length > 0) {
       const result = { lat: parseFloat(osmData[0].lat), lng: parseFloat(osmData[0].lon) };

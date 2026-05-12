@@ -28,12 +28,12 @@ const ContactPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-12"
+          className="text-center mb-10"
         >
-          <h1 className="text-5xl md:text-7xl font-heading font-black text-text-primary mb-4 tracking-tighter">
+          <h1 className="text-4xl md:text-5xl font-heading font-black text-text-primary mb-3 tracking-tighter">
             Contact Us
           </h1>
-          <p className="max-w-2xl mx-auto text-xl text-text-secondary">
+          <p className="max-w-xl mx-auto text-lg text-text-secondary">
             Have a question or a special request? Our team is here to provide bespoke assistance.
           </p>
         </motion.div>
@@ -42,10 +42,10 @@ const ContactPage = () => {
           initial={{ opacity: 0, y: 50, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.9, delay: 0.3, ease: 'easeOut' }}
-          className="w-full max-w-4xl bg-surface/5 backdrop-blur-2xl border border-primary/20 rounded-3xl p-8 md:p-12"
+          className="w-full max-w-3xl bg-surface/5 backdrop-blur-2xl border border-primary/20 rounded-3xl p-6 md:p-10"
         >
           <form 
-            className="space-y-8"
+            className="space-y-6"
             onSubmit={async (e) => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
@@ -60,18 +60,18 @@ const ContactPage = () => {
               (e.target as HTMLFormElement).reset();
             }}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="relative">
                 <input
                   type="text"
                   id="name"
                   name="name"
-                  className="peer w-full bg-transparent border-b-2 border-primary/20 pt-3 text-lg text-text-primary focus:border-primary focus:outline-none transition-colors"
+                  className="peer w-full bg-transparent border-b-2 border-primary/20 pt-2 text-base text-text-primary focus:border-primary focus:outline-none transition-colors"
                   placeholder=" "
                 />
                 <label
                   htmlFor="name"
-                  className="absolute left-0 -top-4 text-sm text-text-secondary transition-all peer-placeholder-shown:text-lg peer-placeholder-shown:top-3 peer-focus:-top-4 peer-focus:text-sm peer-focus:text-primary"
+                  className="absolute left-0 -top-4 text-xs text-text-secondary transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-2 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-primary"
                 >
                   Full Name
                 </label>
@@ -81,29 +81,29 @@ const ContactPage = () => {
                   type="email"
                   id="email"
                   name="email"
-                  className="peer w-full bg-transparent border-b-2 border-primary/20 pt-3 text-lg text-text-primary focus:border-primary focus:outline-none transition-colors"
+                  className="peer w-full bg-transparent border-b-2 border-primary/20 pt-2 text-base text-text-primary focus:border-primary focus:outline-none transition-colors"
                   placeholder=" "
                 />
                 <label
                   htmlFor="email"
-                  className="absolute left-0 -top-4 text-sm text-text-secondary transition-all peer-placeholder-shown:text-lg peer-placeholder-shown:top-3 peer-focus:-top-4 peer-focus:text-sm peer-focus:text-primary"
+                  className="absolute left-0 -top-4 text-xs text-text-secondary transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-2 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-primary"
                 >
                   Email Address
                 </label>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="relative">
                 <input
                   type="tel"
                   id="phone"
                   name="phone"
-                  className="peer w-full bg-transparent border-b-2 border-primary/20 pt-3 text-lg text-text-primary focus:border-primary focus:outline-none transition-colors"
+                  className="peer w-full bg-transparent border-b-2 border-primary/20 pt-2 text-base text-text-primary focus:border-primary focus:outline-none transition-colors"
                   placeholder=" "
                 />
                 <label
                   htmlFor="phone"
-                  className="absolute left-0 -top-4 text-sm text-text-secondary transition-all peer-placeholder-shown:text-lg peer-placeholder-shown:top-3 peer-focus:-top-4 peer-focus:text-sm peer-focus:text-primary"
+                  className="absolute left-0 -top-4 text-xs text-text-secondary transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-2 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-primary"
                 >
                   Phone Number (Optional)
                 </label>
@@ -113,12 +113,12 @@ const ContactPage = () => {
                   type="text"
                   id="subject"
                   name="subject"
-                  className="peer w-full bg-transparent border-b-2 border-primary/20 pt-3 text-lg text-text-primary focus:border-primary focus:outline-none transition-colors"
+                  className="peer w-full bg-transparent border-b-2 border-primary/20 pt-2 text-base text-text-primary focus:border-primary focus:outline-none transition-colors"
                   placeholder=" "
                 />
                 <label
                   htmlFor="subject"
-                  className="absolute left-0 -top-4 text-sm text-text-secondary transition-all peer-placeholder-shown:text-lg peer-placeholder-shown:top-3 peer-focus:-top-4 peer-focus:text-sm peer-focus:text-primary"
+                  className="absolute left-0 -top-4 text-xs text-text-secondary transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-2 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-primary"
                 >
                   Subject
                 </label>
@@ -129,12 +129,12 @@ const ContactPage = () => {
                 id="message"
                 name="message"
                 rows={5}
-                className="peer w-full bg-transparent border-b-2 border-primary/20 pt-3 text-lg text-text-primary focus:border-primary focus:outline-none transition-colors"
+                className="peer w-full bg-transparent border-b-2 border-primary/20 pt-2 text-base text-text-primary focus:border-primary focus:outline-none transition-colors"
                 placeholder=" "
               ></textarea>
               <label
                 htmlFor="message"
-                className="absolute left-0 -top-4 text-sm text-text-secondary transition-all peer-placeholder-shown:text-lg peer-placeholder-shown:top-3 peer-focus:-top-4 peer-focus:text-sm peer-focus:text-primary"
+                className="absolute left-0 -top-4 text-xs text-text-secondary transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-2 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-primary"
               >
                 Your Message
               </label>
@@ -144,7 +144,7 @@ const ContactPage = () => {
                 whileHover={{ scale: 1.05, boxShadow: '0px 0px 20px rgba(14, 165, 233, 0.5)' }}
                 whileTap={{ scale: 0.98 }}
                 type="submit"
-                className="bg-primary text-primary-foreground font-bold py-4 px-16 rounded-full text-lg transition-shadow"
+                className="bg-primary text-primary-foreground font-bold py-3 px-12 rounded-full text-base transition-shadow"
               >
                 Send Inquiry
               </motion.button>
@@ -160,16 +160,10 @@ const ContactPage = () => {
               <Icon name="Mail" size={24} />
               <span className="text-xs">staycoolhotels@gmail.com</span>
             </a>
-            <a
-              href="tel:7382118810"
-              className="flex flex-col items-center gap-2 text-text-secondary hover:text-primary transition-colors"
-            >
-              <Icon name="Phone" size={24} />
-              <span className="text-xs">7382118810</span>
-            </a>
+
             <div className="flex flex-col items-center gap-2 text-text-secondary">
               <Icon name="MapPin" size={24} />
-              <span className="text-xs">Office</span>
+              <span className="text-xs">Rasoolpet, Phirangipuram</span>
             </div>
           </div>
         </motion.div>

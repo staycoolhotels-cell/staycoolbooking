@@ -163,9 +163,9 @@ export default async function PropertyListingPage({ params }: { params: Promise<
     }));
 
     // Helper to process amenities
-    const processAmenities = (amenities: unknown[]) => {
+    const processAmenities = (amenities: any[]) => {
         if (!amenities || !Array.isArray(amenities)) return [];
-        return amenities.map((item, index) => {
+        return amenities.map((item: any, index) => {
             if (typeof item === 'string') {
                 return {
                     id: index,
@@ -187,9 +187,9 @@ export default async function PropertyListingPage({ params }: { params: Promise<
     };
 
     // Helper to process images
-    const processImages = (images: unknown[], fallbackUrl: string, title: string) => {
+    const processImages = (images: any[], fallbackUrl: string, title: string) => {
         if (images && Array.isArray(images) && images.length > 0) {
-            return images.map((img, idx) => ({
+            return images.map((img: any, idx) => ({
                 id: idx,
                 url: img.url || img, // Handle object or string
                 alt: img.alt || title,

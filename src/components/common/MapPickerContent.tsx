@@ -84,13 +84,26 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
       markerRef.current = marker;
     }
 
+    // Fix for map not filling container on initial load or layout change
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    // Small timeout as a fallback
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 500);
+
     const fetchAddress = async (lat: number, lng: number) => {
       if (!onAddressSelect) return;
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-          { headers: { 'User-Agent': 'StayCoolBooking/1.0' } }
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
         );
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         if (data && data.address) {
           onAddressSelect(data.address);
@@ -123,6 +136,7 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
     });
 
     return () => {
+      resizeObserver.disconnect();
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -170,9 +184,9 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
       if (onAddressSelect) {
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${newLat}&lon=${newLng}&zoom=18&addressdetails=1`,
-            { headers: { 'User-Agent': 'StayCoolBooking/1.0' } }
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${newLat}&lon=${newLng}&zoom=18&addressdetails=1`
           );
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
           const data = await response.json();
           if (data && data.address) {
             onAddressSelect(data.address);
@@ -197,9 +211,9 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
       const searchStr = addressParts.slice(i).join(', ');
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchStr)}&limit=1`,
-          { headers: { 'User-Agent': 'StayCoolBooking/1.0' } }
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchStr)}&limit=1`
         );
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         if (data && data.length > 0) {
           const newLat = parseFloat(data[0].lat);
@@ -249,6 +263,7 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
         {/* Style Switcher */}
         <div className="bg-black/60 backdrop-blur-xl border border-white/20 p-1 rounded-xl flex gap-1 shadow-2xl">
           <button
+            type="button"
             onClick={() => setMapType('street')}
             className={`p-2 rounded-lg transition-all ${mapType === 'street' ? 'bg-sky-500 text-black shadow-lg shadow-sky-500/20' : 'text-white hover:bg-white/10'}`}
             title="Street View"
@@ -256,6 +271,7 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
             <MapIcon size={18} />
           </button>
           <button
+            type="button"
             onClick={() => setMapType('satellite')}
             className={`p-2 rounded-lg transition-all ${mapType === 'satellite' ? 'bg-sky-500 text-black shadow-lg shadow-sky-500/20' : 'text-white hover:bg-white/10'}`}
             title="Satellite View"
@@ -266,6 +282,7 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
 
         {/* Locate Me */}
         <button
+          type="button"
           onClick={handleLocateMe}
           className="bg-black/60 backdrop-blur-xl border border-white/20 p-2.5 rounded-xl text-white hover:bg-white/10 transition-all shadow-2xl active:scale-95"
           title="My Location"

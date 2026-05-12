@@ -201,6 +201,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
             { headers: { 'Accept-Language': 'en' } }
           );
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
           const data = await res.json();
           const city =
             data?.address?.city ||
@@ -325,9 +326,9 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
     let filtered = allProperties;
 
     // 1. Filter by Search Location
-    if (searchLocation) {
+    if (searchLocation && searchLocation.trim()) {
       filtered = filtered.filter((p) =>
-        p.location.toLowerCase().includes(searchLocation.toLowerCase())
+        p.location.toLowerCase().includes(searchLocation.trim().toLowerCase())
       );
     }
 
@@ -426,7 +427,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
 
   const handleSearch = (filters: any) => {
     // Determine location and stay type from filters object or direct parameters
-    const locationStr = typeof filters === 'string' ? filters : (filters?.location || '');
+    const locationStr = typeof filters === 'string' ? filters.trim() : (filters?.location?.trim() || '');
     const stayTypeStr = filters?.stayType || 'all';
     const dates = filters?.dates;
 

@@ -76,7 +76,7 @@ const GuestBookingInteractive = () => {
     setLoadingProperties(true);
     const { data, error } = await supabase.from('properties').select('*');
     if (!error && data) {
-      const mappedProperties: Property[] = data.map((item: Property) => ({
+      const mappedProperties: Property[] = data.map((item: any) => ({
         ...item,
         instantBook: item.instant_book,
       }));

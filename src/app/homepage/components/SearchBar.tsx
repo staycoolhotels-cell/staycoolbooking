@@ -45,7 +45,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
 
   const handleSearch = () => {
     onSearch({
-      location,
+      location: location.trim(),
       checkIn,
       checkOut,
       guests,
@@ -54,7 +54,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
   };
 
   const filteredSuggestions = locationSuggestions.filter((suggestion) =>
-    suggestion.toLowerCase().includes(location.toLowerCase())
+    suggestion.toLowerCase().includes(location.trim().toLowerCase())
   );
 
   return (

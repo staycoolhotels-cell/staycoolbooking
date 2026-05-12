@@ -39,7 +39,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (onSearch) {
-      onSearch({ location: searchTerm, dates: dateRange, stayType });
+      onSearch({ location: searchTerm.trim(), dates: dateRange, stayType });
     }
   };
 

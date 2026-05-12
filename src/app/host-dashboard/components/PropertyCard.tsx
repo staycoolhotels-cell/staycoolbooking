@@ -186,12 +186,21 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
         {/* 4. ACTIONS AREA */}
         <div className="pt-1.5 md:pt-2 mt-2 md:mt-3 border-t border-white/5 flex items-center justify-between gap-1.5 md:gap-2">
 
-          <button
-            onClick={(e) => { e.stopPropagation(); onManageRooms(property); }}
-            className="flex-1 px-2 py-1.5 md:py-2 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg md:rounded-xl border border-indigo-500/20 transition-all text-indigo-400 hover:text-indigo-300 text-[8px] md:text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1 md:gap-2 group/btn"
-          >
-            <Icon name="Squares2X2Icon" size={11} className="group-hover/btn:scale-110 transition-transform" /> Sub-Units
-          </button>
+          <div className="flex-1 flex items-center gap-1.5 md:gap-2">
+            {!['Home Stay', 'Apartment', 'Villa'].includes(property.type || property.tier || '') && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onManageRooms(property); }}
+                className="flex-1 px-2 py-1.5 md:py-2 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg md:rounded-xl border border-indigo-500/20 transition-all text-indigo-400 hover:text-indigo-300 text-[8px] md:text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1 md:gap-2 group/btn"
+              >
+                <Icon name="Squares2X2Icon" size={11} className="group-hover/btn:scale-110 transition-transform" /> Sub-Units
+              </button>
+            )}
+
+            <div className="px-2 py-1.5 md:py-2 bg-white/5 border border-white/10 rounded-lg md:rounded-xl text-zinc-400 text-[8px] md:text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 whitespace-nowrap">
+              <div className="w-1 h-1 rounded-full bg-indigo-500/50" />
+              {property.type || property.tier || 'Unit'}
+            </div>
+          </div>
 
           <div className="flex gap-1 shrink-0">
             <button

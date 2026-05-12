@@ -619,8 +619,6 @@ const HostDashboardInteractive = ({
           bathrooms: Number(formData.bathrooms) || 0,
           max_guests: Number(formData.maxGuests) || 0,
           area: Number(formData.area) || 0,
-          co_host_name: formData.coHostName,
-          co_host_email: formData.coHostEmail,
           address_line1: formData.addressLine1,
           address_line2: formData.addressLine2,
           landmark: formData.landmark,
@@ -629,7 +627,6 @@ const HostDashboardInteractive = ({
           state: formData.state,
           postal_code: formData.postalCode,
           country: formData.country,
-          show_specific_location: formData.showSpecificLocation,
           location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
           total_rooms: Number(formData.totalRooms) || 0,
           check_in_time: formData.checkInTime,
@@ -693,30 +690,30 @@ const HostDashboardInteractive = ({
             p_bathrooms: Number(formData.bathrooms) || 0,
             p_max_guests: Number(formData.maxGuests) || 0,
             p_area: Number(formData.area) || 0,
-            p_co_host_name: formData.coHostName,
-            p_co_host_email: formData.coHostEmail,
-            p_address_line1: formData.addressLine1,
-            p_address_line2: formData.addressLine2,
-            p_landmark: formData.landmark,
-            p_district: formData.district,
-            p_city: formData.city,
-            p_state: formData.state,
-            p_postal_code: formData.postalCode,
-            p_country: formData.country,
-            p_show_specific_location: formData.showSpecificLocation,
+            p_address_line1: formData.addressLine1 || '',
+            p_address_line2: formData.addressLine2 || '',
+            p_landmark: formData.landmark || '',
+            p_district: formData.district || '',
+            p_city: formData.city || '',
+            p_state: formData.state || '',
+            p_postal_code: formData.postalCode || '',
+            p_country: formData.country || '',
             p_location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
             p_total_rooms: Number(formData.totalRooms) || 0,
-            p_check_in_time: formData.checkInTime,
-            p_check_out_time: formData.checkOutTime,
-            p_latitude: formData.latitude,
-            p_longitude: formData.longitude,
+            p_check_in_time: formData.checkInTime || '12:00 PM',
+            p_check_out_time: formData.checkOutTime || '11:00 AM',
+            p_latitude: formData.latitude || null,
+            p_longitude: formData.longitude || null,
           };
 
+          console.log('Sending RPC create_property with params:', rpcParams);
           const { data: newPropertyId, error } = await supabase.rpc('create_property', rpcParams);
 
           if (error) {
             console.error('Error creating property via RPC:', error);
-            alert('An unexpected error occurred. Please try again later.');
+            // Handle both PostgrestError and standard Error objects
+            const errorStr = error.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+            alert(`Error creating property: ${errorStr}`);
             return;
           }
 

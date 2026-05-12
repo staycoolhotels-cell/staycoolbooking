@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Property } from '@/lib/types';
 import { AMENITIES, CATEGORIZED_AMENITIES, AmenityItem } from '@/lib/amenities';
-import { Plus, X, ChevronRight, ChevronLeft, Home, Sparkles, Layers, Users, Bed, Building2, CheckCircle, Bath, Clock } from 'lucide-react';
+import { Plus, X, ChevronRight, ChevronLeft, Home, Sparkles, Layers, Users, Bed, Building2, CheckCircle, Bath, Clock, AlertCircle, ChevronDown, Palmtree, Tent, LayoutGrid, Castle, Trees, Building } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient'; // Import supabase client
 import { NumberInput } from '@/components/ui/number-input';
 import MapPicker from '@/components/common/MapPicker';
@@ -44,8 +45,6 @@ export interface FormData {
   bathrooms: number;
   maxGuests: number;
   area: number;
-  coHostName: string;
-  coHostEmail: string;
   addressLine1: string;
   addressLine2: string;
   landmark: string;
@@ -54,7 +53,6 @@ export interface FormData {
   state: string;
   postalCode: string;
   country: string;
-  showSpecificLocation: boolean;
   totalRooms: number; // New field for bulk booking
   checkInTime: string;
   checkOutTime: string;
@@ -106,8 +104,6 @@ const AddPropertyModal = ({
     bathrooms: 1,
     maxGuests: 2,
     area: 500,
-    coHostName: '',
-    coHostEmail: '',
     addressLine1: '',
     addressLine2: '',
     landmark: '',
@@ -116,7 +112,6 @@ const AddPropertyModal = ({
     state: '',
     postalCode: '',
     country: 'India - IN',
-    showSpecificLocation: false,
     totalRooms: 1, // Default to 1 room
     checkInTime: '12:00 PM',
     checkOutTime: '11:00 AM',
@@ -127,6 +122,33 @@ const AddPropertyModal = ({
   const [newCustomAmenity, setNewCustomAmenity] = useState('');
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const categoryRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const propertyCategories = [
+    { id: 'Hotel', name: 'Hotel', icon: Building2 },
+    { id: 'Resort', name: 'Resort', icon: Palmtree },
+    { id: 'Home Stay', name: 'Home Stay', icon: Home },
+    { id: 'Apartment', name: 'Apartment', icon: LayoutGrid },
+    { id: 'Villa', name: 'Villa', icon: Castle },
+    { id: 'Wooden Stay', name: 'Wooden Stay', icon: Trees },
+    { id: 'Tent', name: 'Tent', icon: Tent },
+    { id: 'Dormitory', name: 'Dormitory', icon: Users },
+  ];
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryRef.current && !categoryRef.current.contains(event.target as Node)) {
+        setIsCategoryOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const uploadFileToSupabase = async (file: File, bucketName: string, folderPath: string): Promise<string> => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -159,10 +181,10 @@ const AddPropertyModal = ({
         : (propertyToEdit.image_url ? [propertyToEdit.image_url] : []);
 
       setFormData({
-        name: propertyToEdit.name || '',
+        name: propertyToEdit.title || propertyToEdit.name || '',
         description: propertyToEdit.description || '',
-        price: propertyToEdit.price_per_night || 0,
-        weekendPrice: propertyToEdit.weekend_price_per_night || 0,
+        price: propertyToEdit.price_per_night || propertyToEdit.price || 0,
+        weekendPrice: propertyToEdit.weekend_price_per_night || propertyToEdit.weekendPrice || 0,
         location: propertyToEdit.location || '',
         type: propertyToEdit.tier || '',
         photos: [], // Reset photos when editing
@@ -188,8 +210,6 @@ const AddPropertyModal = ({
         bathrooms: propertyToEdit.bathrooms || 1,
         maxGuests: propertyToEdit.max_guests || 2,
         area: propertyToEdit.area || 500,
-        coHostName: propertyToEdit.co_host_name || '',
-        coHostEmail: propertyToEdit.co_host_email || '',
         addressLine1: propertyToEdit.address_line1 || '',
         addressLine2: propertyToEdit.address_line2 || '',
         landmark: propertyToEdit.landmark || '',
@@ -198,8 +218,7 @@ const AddPropertyModal = ({
         state: propertyToEdit.state || '',
         postalCode: propertyToEdit.postal_code || '',
         country: propertyToEdit.country || 'India - IN',
-        showSpecificLocation: propertyToEdit.show_specific_location || false,
-        totalRooms: propertyToEdit.total_rooms || 1,
+        totalRooms: ['Home Stay', 'Apartment', 'Villa'].includes(propertyToEdit.tier || '') ? 1 : (propertyToEdit.total_rooms || 1),
         checkInTime: propertyToEdit.check_in_time || '12:00 PM',
         checkOutTime: propertyToEdit.check_out_time || '11:00 AM',
         customAmenities: propertyToEdit.amenities
@@ -240,8 +259,6 @@ const AddPropertyModal = ({
         bathrooms: 1,
         maxGuests: 2,
         area: 500,
-        coHostName: '',
-        coHostEmail: '',
         addressLine1: '',
         addressLine2: '',
         landmark: '',
@@ -250,7 +267,6 @@ const AddPropertyModal = ({
         state: '',
         postalCode: '',
         country: 'India - IN',
-        showSpecificLocation: false,
         totalRooms: 1,
         checkInTime: '12:00 PM',
         checkOutTime: '11:00 AM',
@@ -272,7 +288,16 @@ const AddPropertyModal = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === 'type') {
+      const isSingleUnitType = ['Home Stay', 'Apartment', 'Villa'].includes(value);
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        totalRooms: isSingleUnitType ? 1 : prev.totalRooms
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof FormData) => {
@@ -340,10 +365,24 @@ const AddPropertyModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    
+    if (formData.price <= 0) {
+      setErrorMessage("Please enter a valid price per night.");
+      return;
+    }
+
+    if (formData.weekendPrice <= 0) {
+      setErrorMessage("Please enter a valid weekend price per night.");
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session || !session.user) {
-        alert("You must be logged in to add a property.");
+        setErrorMessage("You must be logged in to add a property.");
+        setIsSubmitting(false);
         return;
       }
 
@@ -383,11 +422,12 @@ const AddPropertyModal = ({
         }
       }
 
-      onSaveProperty(updatedFormData);
+      await onSaveProperty(updatedFormData);
       onClose(); // Close modal after successful submission
     } catch (error: any) {
-      alert('An unexpected error occurred. Please try again later.');
+      setErrorMessage('An unexpected error occurred. Please try again later.');
       console.error("Error saving property:", error);
+      setIsSubmitting(false);
     }
   };
 
@@ -399,7 +439,68 @@ const AddPropertyModal = ({
     "Pricing"
   ];
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
+  const nextStep = () => {
+    // Validate current step before proceeding
+    if (currentStep === 0) {
+      if (formRef.current && !formRef.current.reportValidity()) {
+        return;
+      }
+
+      if (!formData.latitude || !formData.longitude) {
+        setErrorMessage("Please select the property location on the map.");
+        return;
+      }
+    }
+
+    if (currentStep === 1) {
+      if (formData.amenities.length === 0 && formData.customAmenities.length === 0) {
+        setErrorMessage("Please select at least one amenity.");
+        return;
+      }
+    }
+
+    if (currentStep === 2) {
+      if (formData.rules.length === 0) {
+        setErrorMessage("Please select at least one house rule.");
+        return;
+      }
+      if (formData.safetyItems.length === 0) {
+        setErrorMessage("Please select at least one safety item.");
+        return;
+      }
+    }
+
+    if (currentStep === 3) {
+      const hasPhotos = formData.photos.length > 0 || formData.photo_urls.length > 0;
+      if (!hasPhotos) {
+        setErrorMessage("Please upload at least one property photo.");
+        return;
+      }
+
+      if (formData.type === 'Tent') {
+        const hasAadhar = formData.aadhar.length > 0 || formData.aadhar_url;
+        const hasPan = formData.pan.length > 0 || formData.pan_url;
+        const hasNoc = formData.noc.length > 0 || formData.noc_url;
+        if (!hasAadhar || !hasPan || !hasNoc) {
+          setErrorMessage("Please upload Aadhaar, PAN, and NOC for the Tent listing.");
+          return;
+        }
+      } else {
+        const docCount = [
+          formData.license.length > 0 || formData.license_url,
+          formData.taxBill.length > 0 || formData.tax_bill_url,
+          formData.currentBill.length > 0 || formData.current_bill_url
+        ].filter(Boolean).length;
+
+        if (docCount < 2) {
+          setErrorMessage("Please upload at least 2 documents (Property License, Tax Bill, or Utility Bill).");
+          return;
+        }
+      }
+    }
+
+    setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
+  };
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
 
   if (!isOpen) return null;
@@ -431,7 +532,7 @@ const AddPropertyModal = ({
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-8">
             {currentStep === 0 && (
               <div className="space-y-4 md:space-y-6 animate-fade-in">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
@@ -442,6 +543,7 @@ const AddPropertyModal = ({
                       name="country"
                       value={formData.country}
                       onChange={handleInputChange}
+                      required
                       className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-2.5 md:p-3 text-sm md:text-base text-white focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition"
                     >
                       <option value="India - IN">India - IN</option>
@@ -449,10 +551,10 @@ const AddPropertyModal = ({
                     </select>
                   </div>
 
-                  <InputField label="Flat, house, etc. (if applicable)" name="addressLine1" value={formData.addressLine1} onChange={handleInputChange} />
-                  <InputField label="Street address" name="addressLine2" value={formData.addressLine2} onChange={handleInputChange} />
-                  <InputField label="Nearby landmark (if applicable)" name="landmark" value={formData.landmark} onChange={handleInputChange} />
-                  <InputField label="District/locality (if applicable)" name="district" value={formData.district} onChange={handleInputChange} />
+                  <InputField label="Flat, house, etc." name="addressLine1" value={formData.addressLine1} onChange={handleInputChange} placeholder="e.g. Flat 101, Blue Sky Apts" />
+                  <InputField label="Street address" name="addressLine2" value={formData.addressLine2} onChange={handleInputChange} placeholder="e.g. MG Road" />
+                  <InputField label="Nearby landmark" name="landmark" value={formData.landmark} onChange={handleInputChange} placeholder="e.g. Near Apollo Hospital" />
+                  <InputField label="District/locality" name="district" value={formData.district} onChange={handleInputChange} placeholder="e.g. Banjara Hills" />
 
                   <div className="grid grid-cols-2 gap-3 md:gap-4">
                     <InputField label="City/town" name="city" value={formData.city} onChange={handleInputChange} />
@@ -461,7 +563,7 @@ const AddPropertyModal = ({
 
                   <InputField label="PIN code" name="postalCode" value={formData.postalCode} onChange={handleInputChange} />
 
-                  <div className="rounded-xl overflow-hidden h-64 bg-zinc-800 border border-zinc-700 relative">
+                  <div className="md:col-span-2 rounded-2xl overflow-hidden h-[450px] bg-zinc-800 border border-zinc-700 relative shadow-2xl group/map">
                     <MapPicker
                       key={propertyToEdit?.id || 'new-property'}
                       lat={formData.latitude} 
@@ -507,22 +609,7 @@ const AddPropertyModal = ({
                     />
                   </div>
 
-                  <div className="flex items-center justify-between gap-3 p-3 md:p-4 bg-zinc-800 rounded-lg border border-zinc-700">
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm md:text-base text-white leading-tight">Show your specific location</p>
-                      <p className="text-[10px] md:text-sm text-zinc-400 mt-1 md:mt-1.5 leading-snug">Make it clear to guests where your place is located. We'll only share your address after they've made a reservation.</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                      <input
-                        type="checkbox"
-                        name="showSpecificLocation"
-                        checked={formData.showSpecificLocation}
-                        onChange={(e) => setFormData(prev => ({ ...prev, showSpecificLocation: e.target.checked }))}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-sky-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
-                    </label>
-                  </div>
+
                 </div>
                 <div>
                   <label htmlFor="description" className="block text-xs md:text-sm font-medium text-zinc-400 mb-1.5 md:mb-2">Description</label>
@@ -537,28 +624,66 @@ const AddPropertyModal = ({
                     required
                   />
                 </div>
-                <div>
-                  <label htmlFor="type" className="block text-xs md:text-sm font-medium text-zinc-400 mb-1.5 md:mb-2">Property Type</label>
-                  <select
-                    id="type"
-                    name="type"
-                    value={formData.type}
-                    onChange={handleInputChange}
-                    className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-2.5 md:p-3 text-sm md:text-base text-white focus:ring-2 focus:ring-primary focus:border-primary transition"
-                    required
+                <div className="relative" ref={categoryRef}>
+                  <label className="block text-xs md:text-sm font-medium text-zinc-400 mb-1.5 md:mb-2">Property Type</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 md:p-3 text-sm md:text-base text-white flex items-center justify-between hover:border-primary/50 transition-all focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   >
-                    <option value="">Select a Category</option>
-                    <option value="Hotel">Hotel</option>
-                    <option value="Resort">Resort</option>
-                    <option value="Home Stay">Home Stay</option>
-                    <option value="Apartment">Apartment</option>
-                    <option value="Villa">Villa</option>
-                    <option value="Cabin">Cabin</option>
-                    <option value="Cottage">Cottage</option>
-                    <option value="Tent">Tent</option>
-                    <option value="Guest House">Guest House</option>
-                    <option value="Dormitory">Dormitory</option>
-                  </select>
+                    <div className="flex items-center gap-3">
+                      {formData.type ? (
+                        <>
+                          {React.createElement(propertyCategories.find(c => c.id === formData.type)?.icon || Building, { className: "w-5 h-5 text-sky-400" })}
+                          <span className="font-medium">{formData.type}</span>
+                        </>
+                      ) : (
+                        <span className="text-zinc-500">Select a Category</span>
+                      )}
+                    </div>
+                    <ChevronDown className={`w-5 h-5 text-zinc-500 transition-transform duration-300 ${isCategoryOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  <AnimatePresence>
+                    {isCategoryOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="absolute z-[60] left-0 right-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden"
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-2 p-2 gap-1">
+                          {propertyCategories.map((category) => (
+                            <button
+                              key={category.id}
+                              type="button"
+                              onClick={() => {
+                                handleInputChange({ target: { name: 'type', value: category.id } } as any);
+                                setIsCategoryOpen(false);
+                              }}
+                              className={`flex items-center gap-3 p-3 rounded-lg transition-all text-left ${formData.type === category.id 
+                                ? 'bg-primary text-white' 
+                                : 'hover:bg-zinc-800 text-zinc-300 hover:text-white'}`}
+                            >
+                              <category.icon className={`w-5 h-5 ${formData.type === category.id ? 'text-white' : 'text-sky-400'}`} />
+                              <span className="text-sm font-semibold">{category.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
+                  {/* Hidden input for form validation */}
+                  <input 
+                    type="text" 
+                    name="type" 
+                    value={formData.type} 
+                    required 
+                    className="opacity-0 absolute inset-0 pointer-events-none" 
+                    onChange={() => {}} 
+                  />
                 </div>
 
                 {/* Check-in & Check-out Timings */}
@@ -621,7 +746,7 @@ const AddPropertyModal = ({
                 <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
 
                   {/* Total Rooms / Units Input */}
-                  <div className="bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50">
+                  <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${['Home Stay', 'Apartment', 'Villa'].includes(formData.type) ? 'opacity-40 pointer-events-none' : ''}`}>
                     <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
                       <Building2 className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
                       <label htmlFor="totalRooms" className="block text-xs md:text-sm font-medium text-zinc-300">Total Rooms/Units</label>
@@ -631,6 +756,7 @@ const AddPropertyModal = ({
                         value={formData.totalRooms}
                         onChange={(val) => setFormData(prev => ({ ...prev, totalRooms: val }))}
                         min={1}
+                        disabled={['Home Stay', 'Apartment', 'Villa'].includes(formData.type)}
                       />
                     </div>
                     <p className="text-[10px] md:text-xs text-zinc-500 mt-1 text-center">For bulk bookings.</p>
@@ -711,13 +837,7 @@ const AddPropertyModal = ({
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-zinc-800">
-                  <h4 className="text-base md:text-lg font-semibold text-white mb-3">Co-Host Information</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    <InputField label="Co-Host Name" name="coHostName" value={formData.coHostName} onChange={handleInputChange} placeholder="e.g. John Doe" />
-                    <InputField label="Co-Host Email" name="coHostEmail" value={formData.coHostEmail} onChange={handleInputChange} placeholder="e.g. john@example.com" />
-                  </div>
-                </div>
+
 
               </div>
             )}
@@ -953,14 +1073,62 @@ const AddPropertyModal = ({
               <button
                 type="submit"
                 onClick={handleSubmit}
-                className="px-6 py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors"
+                disabled={isSubmitting}
+                className={`px-6 py-3 rounded-lg bg-green-600 text-white font-semibold transition-colors flex items-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-green-700'}`}
               >
-                {propertyToEdit ? 'Update Property' : 'Add Property'}
+                {isSubmitting ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    {propertyToEdit ? 'Updating...' : 'Adding...'}
+                  </>
+                ) : (
+                  propertyToEdit ? 'Update Property' : 'Add Property'
+                )}
               </button>
             )}
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {errorMessage && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setErrorMessage(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-zinc-900 border border-red-500/30 text-white px-8 py-8 rounded-3xl shadow-[0_0_50px_rgba(239,68,68,0.2)] flex flex-col items-center gap-4 max-w-sm text-center relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-50" />
+              
+              <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mb-2">
+                <AlertCircle className="w-8 h-8 text-red-500" />
+              </div>
+              
+              <div>
+                <h4 className="font-bold text-xl tracking-tight">Hold on a second</h4>
+                <p className="text-zinc-400 text-sm mt-2 leading-relaxed">
+                  {errorMessage}
+                </p>
+              </div>
+
+              <button 
+                onClick={() => setErrorMessage(null)}
+                className="mt-4 w-full bg-zinc-800 hover:bg-zinc-700 text-white py-3 rounded-xl font-bold transition-all border border-zinc-700 active:scale-95"
+              >
+                Got it
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
