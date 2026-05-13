@@ -222,13 +222,24 @@ button, label, .btn, .nav-link, .no-select {
   -ms-user-select: none;
 }
 
-/* Allow text selection for content elements and restore long-press menu on mobile */
-h1, h2, h3, h4, h5, h6, p, .select-on-hold, span {
-  user-select: text !important;
-  -webkit-user-select: text !important;
-  -moz-user-select: text !important;
-  -ms-user-select: text !important;
-  -webkit-touch-callout: default !important;
+/* Allow text selection for content elements and restore long-press menu on desktop only */
+@media (min-width: 1024px) {
+  h1, h2, h3, h4, h5, h6, p, .select-on-hold, span {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    -webkit-touch-callout: default !important;
+  }
+}
+
+/* For mobile and tablet, we explicitly disable selection if not already covered */
+@media (max-width: 1023px) {
+  h1, h2, h3, h4, h5, h6, p, span:not(.allow-select) {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -webkit-touch-callout: none !important;
+  }
 }
 
 /* Ensure inputs remain selectable */
