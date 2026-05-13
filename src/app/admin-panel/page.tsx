@@ -112,9 +112,7 @@ export default async function AdminPanelPage() {
 
   const { data: reviews, error: reviewsError } = await supabaseAdmin.from('reviews').select('*');
   const { data: disputes, error: disputesError } = await supabaseAdmin.from('disputes').select('*');
-  const { data: verifications, error: verificationsError } = await supabaseAdmin
-    .from('verifications')
-    .select('*');
+
   const { data: activities, error: activitiesError } = await supabaseAdmin
     .from('activities')
     .select('*')
@@ -141,18 +139,7 @@ export default async function AdminPanelPage() {
     status: activity.status || 'info'
   })) || [];
 
-  // Transform verifications to match VerificationItem interface
-  const transformedVerifications = (verifications || []).map((v: any) => ({
-    id: v.id,
-    name: v.name || 'Unknown User',
-    type: v.type || 'guest',
-    submittedDate: v.submitted_date || v.submittedDate || (v.created_at ? new Date(v.created_at).toLocaleDateString() : 'N/A'),
-    documentType: v.document_type || v.documentType || 'ID Document',
-    status: v.status || 'pending',
-    profileImage: v.profile_image || v.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.name || 'User'}`,
-    profileImageAlt: v.profile_image_alt || v.profileImageAlt || 'Profile Image',
-    priority: v.priority || 'low'
-  }));
+
 
   // Transform disputes to match Dispute interface
   const transformedDisputes = (disputes || []).map((d: any) => ({
@@ -178,7 +165,6 @@ export default async function AdminPanelPage() {
     transactions: mappedTransactions || [],
     reviews: reviews || [],
     disputes: transformedDisputes || [],
-    verifications: transformedVerifications || [],
     activities: transformedActivities || [],
     supportThreads: supportThreads || [],
   };

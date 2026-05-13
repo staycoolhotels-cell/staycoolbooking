@@ -245,6 +245,83 @@ export async function POST(req: Request) {
                 break;
             }
 
+            case 'refund.processed': {
+                const refund = payload?.refund?.entity;
+                if (!refund) break;
+
+                const razorpayPaymentId = refund.payment_id;
+                const bookingId = refund.notes?.booking_id;
+
+                if (bookingId) {
+                    // 1. Update Booking Status
+                    await supabase
+                        .from('bookings')
+                        .update({ status: 'refunded' })
+                        .eq('id', bookingId);
+
+                    // 2. Update Secondary Ledger
+                    await supabase
+                        .from('transactions')
+                        .update({ status: 'refunded' })
+                        .eq('booking_id', bookingId);
+                    
+                    console.log(`[Webhook] refund.processed: Booking ${bookingId} marked as refunded.`);
+                    
+                    // 3. Log Notification for Admin
+                    await createNotification(
+                        'booking',
+                        'Refund Processed',
+                        `Refund of ₹${refund.amount / 100} processed for booking ${bookingId}.`,
+                        'info'
+                    );
+                } else if (razorpayPaymentId) {
+                    // Fallback: Find booking by payment ID if booking_id not in notes
+                    const { data: booking } = await supabase
+                        .from('bookings')
+                        .select('id')
+                        .eq('razorpay_payment_id', razorpayPaymentId)
+                        .maybeSingle();
+                    
+                    if (booking) {
+                        await supabase
+                            .from('bookings')
+                            .update({ status: 'refunded' })
+                            .eq('id', booking.id);
+                        
+                        await supabase
+                            .from('transactions')
+                            .update({ status: 'refunded' })
+                            .eq('booking_id', booking.id);
+
+                        console.log(`[Webhook] refund.processed: Booking ${booking.id} marked as refunded (found via payment ID).`);
+
+                        await createNotification(
+                            'booking',
+                            'Refund Processed',
+                            `Refund of ₹${refund.amount / 100} processed for booking ${booking.id}.`,
+                            'info'
+                        );
+                    }
+                }
+                break;
+            }
+
+            case 'refund.failed': {
+                const refund = payload?.refund?.entity;
+                if (!refund) break;
+                const bookingId = refund.notes?.booking_id;
+                
+                if (bookingId) {
+                    await createNotification(
+                        'booking',
+                        'Refund Failed',
+                        `Refund for booking ${bookingId} failed. Reason: ${refund.error_description || 'Unknown'}`,
+                        'error'
+                    );
+                }
+                break;
+            }
+
             default:
                 console.log(`[Webhook] Unhandled event type: ${eventType}`);
         }

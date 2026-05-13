@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
 import StatsCard from './StatsCard';
-import VerificationQueueCard from './VerificationQueueCard';
 import DisputeCard from './DisputeCard';
 import TransactionRow from './TransactionRow';
 import UserManagementCard from './UserManagementCard';
@@ -14,7 +13,6 @@ import TransactionDetailsModal from './TransactionDetailsModal';
 import DisputeDetailsModal from './DisputeDetailsModal';
 import RealTimeChat from '@/components/chat/RealTimeChat';
 import PropertyApproval from './PropertyApproval';
-import VerificationDetailsModal from './VerificationDetailsModal';
 import AdminFinancialTreasury from './AdminFinancialTreasury';
 import {
   Chart as ChartJS,
@@ -64,7 +62,7 @@ ChartJS.register(
 
 import { User as AuthUser } from '@supabase/supabase-js';
 
-const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], authUsers: AuthUser[], bookings: Booking[], properties: Property[], verifications: VerificationItem[], disputes: Dispute[], transactions: Transaction[], activities: RecentActivity[], supportThreads?: unknown[] } }) => {
+const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], authUsers: AuthUser[], bookings: Booking[], properties: Property[], disputes: Dispute[], transactions: Transaction[], activities: RecentActivity[], supportThreads?: unknown[] } }) => {
   const [maintenanceAlerts, setMaintenanceAlerts] = useState<MaintenanceAlert[]>([]);
   const [analyticsData, setAnalyticsData] = useState({
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
@@ -169,12 +167,12 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   const searchParamsFromHook = useSearchParams();
 
   const [activeTab, setActiveTabState] = useState<
-    'overview' | 'verifications' | 'disputes' | 'transactions' | 'users' | 'properties' | 'inbox'
+    'overview' | 'disputes' | 'transactions' | 'users' | 'properties' | 'inbox'
   >('overview');
 
   useEffect(() => {
     const tab = searchParamsFromHook.get('tab');
-    if (tab && ['overview', 'verifications', 'disputes', 'transactions', 'users', 'properties', 'inbox'].includes(tab)) {
+    if (tab && ['overview', 'disputes', 'transactions', 'users', 'properties', 'inbox'].includes(tab)) {
       setActiveTabState(tab as typeof activeTab);
     } else {
       setActiveTabState('overview');
@@ -274,9 +272,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   };
 
   const [stats, setStats] = useState<Stat[]>([]);
-  const [verificationQueue, setVerificationQueue] = useState<VerificationItem[]>(
-    adminData.verifications || []
-  );
   const [disputes, setDisputes] = useState<Dispute[]>(adminData.disputes || []);
   const [transactions, setTransactions] = useState<Transaction[]>(adminData.transactions || []);
   const [users, setUsers] = useState<User[]>([]);
@@ -288,20 +283,15 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [selectedVerification, setSelectedVerification] = useState<VerificationItem | null>(null);
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
   const [sortByPriority, setSortByPriority] = useState(false);
 
   const handleCloseModal = () => {
-    setSelectedTransaction(null);
     setSelectedUser(null);
-    setSelectedVerification(null);
     setSelectedDispute(null);
   };
 
-  const handleViewVerification = (item: VerificationItem) => {
-    setSelectedVerification(item);
-  };
+
 
   useEffect(() => {
     if (adminData.profiles && adminData.authUsers) {
@@ -360,14 +350,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         bgColor: 'bg-yellow-500',
         onClick: () => setActiveTab('properties'),
       },
-      {
-        title: 'Pending Verifications',
-        value: verificationQueue.filter((v: VerificationItem) => v.status === 'pending').length.toString(),
-        icon: 'DocumentCheckIcon',
-        trend: { value: '-2%', isPositive: false },
-        bgColor: 'bg-red-500',
-        onClick: () => setActiveTab('verifications'),
-      },
     ]);
 
     const monthlyBookings = new Array(12).fill(0);
@@ -393,7 +375,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       if (data) setMaintenanceAlerts(data);
     };
     fetchMaintenanceAlerts();
-  }, [bookings, properties, verificationQueue, users]);
+  }, [bookings, properties, users]);
 
   useEffect(() => {
     const channel = supabase.channel('realtime-admin');
@@ -468,21 +450,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
           setUsers((prev) => prev.filter((u) => u.id !== payload.old.id));
         }
       })
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'verifications' },
-        (payload: any) => {
-          if (payload.eventType === 'INSERT' && payload.new) {
-            setVerificationQueue((prev) => [...prev, payload.new as VerificationItem]);
-          } else if (payload.eventType === 'UPDATE' && payload.new) {
-            setVerificationQueue((prev) =>
-              prev.map((v) => (v.id === payload.new.id ? (payload.new as VerificationItem) : v))
-            );
-          } else if (payload.eventType === 'DELETE' && payload.old) {
-            setVerificationQueue((prev) => prev.filter((v) => v.id !== payload.old.id));
-          }
-        }
-      )
+
       .on('postgres_changes', { event: '*', schema: 'public', table: 'disputes' }, (payload: any) => {
         if (payload.eventType === 'INSERT' && payload.new) {
           setDisputes((prev) => [...prev, payload.new as Dispute]);
@@ -529,14 +497,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     }
   }
 
-  const handleReview = async (id: string, action: 'approved' | 'rejected') => {
-    const { error } = await supabase.from('verifications').update({ status: action }).eq('id', id);
-    if (!error) {
-      setVerificationQueue((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, status: action } : item))
-      );
-    }
-  };
+
 
   const handlePropertyReview = async (id: string, action: 'active' | 'rejected') => {
     try {
@@ -801,7 +762,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-5 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8">
               {stats.map((stat, index) => (
                 <StatsCard key={index} {...stat} />
               ))}
@@ -1017,46 +978,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                   </div>
                 )}
 
-                {/* Verifications Tab */}
-                {activeTab === 'verifications' && (
-                  <div className="bg-[#0a0a0f] border border-white/10 rounded-xl p-4 md:p-6">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                      <h2 className="text-xl font-heading font-bold text-zinc-100">
-                        Verification Queue
-                      </h2>
-                      <div className="flex items-center space-x-3 w-full sm:w-auto">
-                        <select
-                          value={filterStatus}
-                          onChange={(e) => setFilterStatus(e.target.value)}
-                          className="w-full sm:w-auto px-4 py-2 bg-[#050505] border border-white/10 rounded-lg text-zinc-200 focus:outline-none focus:ring-2 focus:ring-white/20"
-                        >
-                          <option value="all">All Status</option>
-                          <option value="pending">Pending</option>
-                          <option value="under_review">Under Review</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {verificationQueue.length > 0 ? (
-                        verificationQueue.map((item) => (
-                          <VerificationQueueCard
-                            key={item.id}
-                            item={item}
-                            onReview={(idFromCard: string, actionFromCard: 'approved' | 'rejected') =>
-                              handleReview(idFromCard, actionFromCard)
-                            }
-                            onViewDetails={() => handleViewVerification(item)}
-                          />
-                        ))
-                      ) : (
-                        <div className="col-span-full py-12 flex flex-col items-center justify-center bg-white/5 border border-dashed border-white/10 rounded-xl">
-                          <Icon name="DocumentCheckIcon" size={48} className="text-zinc-600 mb-4" />
-                          <p className="text-zinc-500 font-heading">No pending verifications found.</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
+
 
                 {/* Disputes Tab */}
                 {activeTab === 'disputes' && (

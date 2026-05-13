@@ -40,13 +40,18 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
 
     async function fetchTransfers() {
         setLoading(true);
-        // 1. Try to fetch actual transfers filtered by host properties
+        // 1. Try to fetch actual transfers filtered by host_id
+        // The table has a direct host_id column which is more reliable than joins
         const { data: transfersData, error: transfersError } = await supabase
             .from('payment_transfers')
-            .select('*, bookings!inner(properties!inner(host_id))')
-            .eq('bookings.properties.host_id', hostId)
+            .select('*')
+            .eq('host_id', hostId)
             .order('created_at', { ascending: false })
             .limit(50);
+
+        if (transfersError) {
+            console.error('[PayoutHistory] Error fetching transfers:', transfersError);
+        }
 
         if (!transfersError && transfersData && transfersData.length > 0) {
             setTransfers(transfersData as any);
@@ -54,7 +59,7 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
             return;
         }
 
-        // 2. Fallback: Derive from bookings if transfers are not being recorded yet
+        // 2. Fallback: Derive from bookings if transfers are not being recorded yet (for legacy bookings)
         const { data: bookingsData, error: bookingsError } = await supabase
             .from('bookings')
             .select('*, properties!inner(*)')
@@ -66,7 +71,8 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
         if (!bookingsError && bookingsData) {
             const mappedTransfers: PaymentTransfer[] = bookingsData.map(b => {
                 const total = Number(b.total_price);
-                const commission = total * 0.1; // 10% platform fee
+                const commissionRate = 20; // Platform default is 20%
+                const commission = total * (commissionRate / 100);
                 const hostShare = total - commission;
                 
                 return {
@@ -78,12 +84,14 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
                     platform_commission: commission,
                     host_amount: hostShare,
                     commission_type: 'percentage',
-                    commission_value: 10,
+                    commission_value: commissionRate,
                     transfer_status: b.status === 'completed' ? 'settled' : 'pending',
                     created_at: b.created_at
                 };
             });
             setTransfers(mappedTransfers);
+        } else if (bookingsError) {
+            console.error('[PayoutHistory] Error fetching fallback bookings:', bookingsError);
         }
         setLoading(false);
     }
@@ -186,11 +194,18 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
                 </div>
 
                 {transfers.length === 0 ? (
-                    <div className="py-20 flex flex-col items-center gap-4 text-zinc-600">
+                    <div className="py-20 flex flex-col items-center text-center px-4 gap-4">
                         <div className="w-16 h-16 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
                             <IndianRupee className="w-8 h-8 text-sky-500/40" />
                         </div>
-                        <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">No payouts yet. Complete your first booking to see transfers here.</p>
+                        <div className="max-w-md">
+                            <p className="text-sm font-bold uppercase tracking-widest text-white mb-2">No active payouts found</p>
+                            <p className="text-xs text-zinc-500 leading-relaxed">
+                                Payout history syncs automatically after each successful booking. 
+                                If you have existing bookings from before the sync system was active, 
+                                they may not appear here until a new transaction is processed.
+                            </p>
+                        </div>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
