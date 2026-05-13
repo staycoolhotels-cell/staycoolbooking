@@ -11,6 +11,8 @@ import { Megaphone, Activity, Wallet, TrendingUp, Target, Calendar, Plus, Edit2,
 import Icon from '@/components/ui/AppIcon';
 import { createCampaign, updateCampaign, deleteCampaign } from '@/lib/marketing-actions';
 import { toast } from 'sonner';
+import ActionConfirmModal from '@/components/ui/ActionConfirmModal';
+
 
 // ─── KPI Card ────────────────────────────────────────────────────────────────
 interface KpiCardProps {
@@ -86,6 +88,8 @@ const CampaignList = ({ initialCampaigns }: CampaignListProps) => {
     start_date: '',
     end_date: ''
   });
+  const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
+
 
   useEffect(() => {
     setCampaigns(initialCampaigns);
@@ -245,17 +249,16 @@ const CampaignList = ({ initialCampaigns }: CampaignListProps) => {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this campaign?')) {
-      const { success, error } = await deleteCampaign(id);
-      if (success) {
-        toast.success('Campaign deleted');
-        setCampaigns(prev => prev.filter(c => c.id !== id));
-        router.refresh();
-      } else {
-        toast.error(error || 'Failed to delete');
-      }
+    const { success, error } = await deleteCampaign(id);
+    if (success) {
+      toast.success('Campaign deleted');
+      setCampaigns(prev => prev.filter(c => c.id !== id));
+      router.refresh();
+    } else {
+      toast.error(error || 'Failed to delete');
     }
   };
+
 
   return (
     <div className="space-y-8">
@@ -373,9 +376,10 @@ const CampaignList = ({ initialCampaigns }: CampaignListProps) => {
                     <button onClick={() => openModal(campaign)} className="p-2 text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition flex items-center justify-center">
                       <Edit2 size={14} />
                     </button>
-                    <button onClick={() => handleDelete(campaign.id)} className="p-2 text-zinc-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 rounded-lg transition flex items-center justify-center">
+                    <button onClick={() => setCampaignToDelete(campaign.id)} className="p-2 text-zinc-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 rounded-lg transition flex items-center justify-center">
                       <Trash2 size={14} />
                     </button>
+
                   </div>
                 </motion.div>
               ))
@@ -487,9 +491,10 @@ const CampaignList = ({ initialCampaigns }: CampaignListProps) => {
                           <button onClick={() => openModal(campaign)} className="p-2 text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition flex items-center justify-center">
                             <Edit2 size={14} />
                           </button>
-                          <button onClick={() => handleDelete(campaign.id)} className="p-2 text-zinc-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 rounded-lg transition flex items-center justify-center">
+                          <button onClick={() => setCampaignToDelete(campaign.id)} className="p-2 text-zinc-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 rounded-lg transition flex items-center justify-center">
                             <Trash2 size={14} />
                           </button>
+
                         </div>
                       </td>
                     </motion.tr>
@@ -656,7 +661,21 @@ const CampaignList = ({ initialCampaigns }: CampaignListProps) => {
           </div>
         )}
       </AnimatePresence>
+
+      <ActionConfirmModal
+        isOpen={!!campaignToDelete}
+        onClose={() => setCampaignToDelete(null)}
+        onConfirm={() => {
+          if (campaignToDelete) handleDelete(campaignToDelete);
+          setCampaignToDelete(null);
+        }}
+        title="Delete Campaign?"
+        description="Are you sure you want to delete this marketing campaign? All performance data and configuration will be permanently removed."
+        confirmLabel="Delete Campaign"
+        variant="danger"
+      />
     </div>
+
   );
 };
 

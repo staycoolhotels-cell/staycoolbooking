@@ -8,6 +8,9 @@ import { supabase } from '@/lib/supabaseClient';
 import { processIdDocument } from '@/lib/booking-actions';
 import { Loader2, ScanLine } from 'lucide-react';
 import Tesseract from 'tesseract.js';
+import { toast } from 'sonner';
+import ActionConfirmModal from '@/components/ui/ActionConfirmModal';
+
 
 type VerificationAndTrustProps = {
   verifications: UserVerificationStatus;
@@ -21,6 +24,8 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate, onContac
   const [isUploading, setIsUploading] = useState(false);
   const [ocrData, setOcrData] = useState<{ idNumber?: string; fullName?: string } | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
+
 
   // Extract unique hosts from bookings
   const uniqueHosts = bookings.reduce<Array<{ id: string; name: string; avatar: string; location?: string }>>((acc, booking) => {
@@ -61,7 +66,8 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate, onContac
       processIdDocument(ocrFormData).then(async (result) => {
         if (result.success && result.data) {
           if (result.data.isValidId === false) {
-            alert('The uploaded image is not recognized as a valid ID document. Please upload a real ID card.');
+            toast.error('The uploaded image is not recognized as a valid ID document. Please upload a real ID card.');
+
             setOcrData(null);
             setOcrLoading(false);
             return;
@@ -118,10 +124,12 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate, onContac
         onUpdate(updatedData as UserVerificationStatus);
       }
       
-      alert('ID Document uploaded successfully! Verification is now in progress.');
+      toast.success('ID Document uploaded successfully! Verification is now in progress.');
+
     } catch (error: any) {
       console.error('Upload failed:', error);
-      alert('Failed to upload document: ' + (error.message || 'Unknown error'));
+      toast.error('Failed to upload document: ' + (error.message || 'Unknown error'));
+
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -129,7 +137,7 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate, onContac
   };
 
   const removeId = async () => {
-    if (!confirm('Are you sure you want to remove your ID verification?')) return;
+
     
     try {
       setIsUploading(true);
@@ -146,7 +154,8 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate, onContac
         onUpdate(updatedData as UserVerificationStatus);
       }
     } catch (error: any) {
-      alert('Failed to remove ID: ' + error.message);
+      toast.error('Failed to remove ID: ' + error.message);
+
     } finally {
       setIsUploading(false);
     }
@@ -179,7 +188,8 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate, onContac
               <p className="font-semibold text-white">ID Verification Active</p>
               <p className="text-xs text-gray-400">Successfully verified on {new Date().toLocaleDateString()}</p>
               <button 
-                onClick={removeId}
+                onClick={() => setIsRemoveModalOpen(true)}
+
                 disabled={isUploading}
                 className="text-xs text-red-400 mt-2 hover:underline disabled:opacity-50"
               >
@@ -237,7 +247,8 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate, onContac
                       if (onContactHost) {
                         onContactHost(host.id);
                       } else {
-                        alert(`Starting secure chat with ${host.name}... Redirecting to inbox.`);
+                        toast.info(`Starting secure chat with ${host.name}... Redirecting to inbox.`);
+
                       }
                     }}
                   >
@@ -269,7 +280,21 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate, onContac
           </div>
         </div>
       </div>
+
+      <ActionConfirmModal
+        isOpen={isRemoveModalOpen}
+        onClose={() => setIsRemoveModalOpen(false)}
+        onConfirm={() => {
+          removeId();
+          setIsRemoveModalOpen(false);
+        }}
+        title="Remove ID Verification?"
+        description="Are you sure you want to remove your ID verification? This may prevent you from booking certain premium properties."
+        confirmLabel="Remove ID"
+        variant="danger"
+      />
     </div>
+
   );
 };
 

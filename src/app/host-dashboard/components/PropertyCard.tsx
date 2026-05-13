@@ -4,6 +4,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
 import { Property } from '@/lib/types';
+import ActionConfirmModal from '@/components/ui/ActionConfirmModal';
+
 
 interface PropertyCardProps {
   property: Property;
@@ -80,6 +82,8 @@ const getStatusConfig = (status: string) => {
 };
 
 const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatus, onManageRooms }: PropertyCardProps) => {
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+
   const estimatedEarnings = React.useMemo(() => {
     return bookings.reduce((sum, b) => {
       if (b.status === 'confirmed' || b.status === 'completed') {
@@ -92,8 +96,10 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
   const statusConfig = getStatusConfig(property.status);
 
   return (
-    <div 
-      onClick={() => onEdit(property.id)}
+    <>
+      <div 
+        onClick={() => onEdit(property.id)}
+
       className="group relative bg-[#0a0a0f] backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-3xl overflow-hidden hover:border-indigo-500/50 transition-all duration-500 shadow-2xl hover:shadow-[0_0_40px_rgba(99,102,241,0.15)] flex flex-col h-full cursor-pointer"
     >
       {/* 1. ANIMATED SHIMMER EFFECT */}
@@ -213,9 +219,7 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (window.confirm('Are you certain you wish to terminate this asset? This action is irreversible.')) {
-                  onDelete(property.id);
-                }
+                setIsDeleteModalOpen(true);
               }}
               className="w-7 h-7 md:w-8 md:h-8 bg-red-500/10 hover:bg-red-500/20 rounded-lg md:rounded-xl border border-red-500/20 transition-all text-red-500/70 hover:text-red-400 flex items-center justify-center group/del"
               title="Terminate Asset"
@@ -226,9 +230,22 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
         </div>
       </div>
 
-      {/* Subtle Bottom Glow Line */}
       <div className="absolute bottom-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 bg-gradient-to-r from-transparent via-indigo-500 to-transparent transition-opacity duration-500" />
     </div>
+
+    <ActionConfirmModal
+      isOpen={isDeleteModalOpen}
+      onClose={() => setIsDeleteModalOpen(false)}
+      onConfirm={() => {
+        onDelete(property.id);
+        setIsDeleteModalOpen(false);
+      }}
+      title="Terminate Asset?"
+      description="Are you certain you wish to terminate this asset? This action is irreversible and all associated data will be archived."
+      confirmLabel="Terminate Asset"
+      variant="danger"
+    />
+    </>
   );
 };
 

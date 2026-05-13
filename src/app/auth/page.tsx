@@ -34,7 +34,7 @@ export default async function AuthPage() {
     } else if (profile?.role === 'host') {
       redirect('/host-dashboard');
     } else {
-      redirect('/user-profile');
+      redirect('/');
     }
   }
 

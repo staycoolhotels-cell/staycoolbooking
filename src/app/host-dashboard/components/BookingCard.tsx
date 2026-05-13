@@ -10,6 +10,8 @@ import { createDispute } from '@/lib/dispute-actions';
 import { toast } from 'sonner';
 import { createPortal } from 'react-dom';
 import { useEffect } from 'react';
+import ActionConfirmModal from '@/components/ui/ActionConfirmModal';
+
 
 interface BookingCardProps {
   booking: Booking;
@@ -86,6 +88,11 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
   const [mounted, setMounted] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: 'reject' | 'cancel' | null;
+  }>({ isOpen: false, type: null });
+
 
   useEffect(() => {
     setMounted(true);
@@ -196,19 +203,10 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
 
               <button
                 disabled={isApproving || isRejecting}
-                onClick={async () => {
-                    if (confirm('Are you sure you want to reject this booking?')) {
-                      setIsRejecting(true);
-                      try {
-                          await rejectBooking(booking.id);
-                          toast.success('Booking rejected successfully.');
-                      } catch (err: any) {
-                          toast.error('Failed to reject booking.');
-                      } finally {
-                          setIsRejecting(false);
-                      }
-                    }
+                onClick={() => {
+                  setConfirmModal({ isOpen: true, type: 'reject' });
                 }}
+
                 className="px-4 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all disabled:opacity-50"
               >
                 {isRejecting ? <Icon name="ArrowPathIcon" size={16} className="animate-spin" /> : <Icon name="NoSymbolIcon" size={16} />}
@@ -234,19 +232,10 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
             {booking.status === 'confirmed' && (
               <button
                 disabled={isRejecting}
-                onClick={async () => {
-                  if (confirm('Are you sure you want to cancel this booking?')) {
-                    setIsRejecting(true);
-                    try {
-                      await rejectBooking(booking.id);
-                      toast.success('Booking cancelled.');
-                    } catch (err: any) {
-                      toast.error('Cancellation failed.');
-                    } finally {
-                      setIsRejecting(false);
-                    }
-                  }
+                onClick={() => {
+                  setConfirmModal({ isOpen: true, type: 'cancel' });
                 }}
+
                 className="px-4 py-3 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
               >
                 <Icon name="NoSymbolIcon" size={14} /> <span>Cancel</span>
@@ -490,7 +479,34 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
         </AnimatePresence>,
         document.body
       )}
+
+      <ActionConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, type: null })}
+        onConfirm={async () => {
+          const type = confirmModal.type;
+          setConfirmModal({ isOpen: false, type: null });
+          
+          setIsRejecting(true);
+          try {
+            await rejectBooking(booking.id);
+            toast.success(type === 'reject' ? 'Booking rejected successfully.' : 'Booking cancelled.');
+          } catch (err: any) {
+            toast.error(type === 'reject' ? 'Failed to reject booking.' : 'Cancellation failed.');
+          } finally {
+            setIsRejecting(false);
+          }
+        }}
+        title={confirmModal.type === 'reject' ? "Reject Reservation?" : "Cancel Reservation?"}
+        description={confirmModal.type === 'reject' 
+          ? "Are you sure you want to reject this booking? This will notify the guest and release the dates."
+          : "Are you sure you want to cancel this confirmed booking? This may impact your hosting metrics."
+        }
+        confirmLabel={confirmModal.type === 'reject' ? "Reject" : "Cancel"}
+        variant="warning"
+      />
     </div>
+
   );
 };
 

@@ -6,6 +6,8 @@ import Icon from '@/components/ui/AppIcon';
 import { Dispute } from '@/lib/types';
 import { respondToDispute, deleteDispute } from '@/lib/dispute-actions';
 import { toast } from 'sonner';
+import ActionConfirmModal from '@/components/ui/ActionConfirmModal';
+
 
 interface DisputesListProps {
     disputes: Dispute[];
@@ -41,6 +43,8 @@ const DisputesList = ({ disputes, isLoading }: DisputesListProps) => {
     const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
     const [responseMessage, setResponseMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [disputeToDelete, setDisputeToDelete] = useState<string | null>(null);
+
 
     // Keep selectedDispute synced with real-time updates from parent
     React.useEffect(() => {
@@ -179,21 +183,11 @@ const DisputesList = ({ disputes, isLoading }: DisputesListProps) => {
                                 <div className="flex items-center gap-3">
                                     {isClosed && (
                                         <button
-                                            onClick={async (e) => {
+                                            onClick={(e) => {
                                                 e.stopPropagation();
-                                                if (!confirm('Are you sure you want to delete this case?')) return;
-                                                try {
-                                                    const res = await deleteDispute(dispute.id);
-                                                    if (res.success) {
-                                                        toast.success('Case deleted successfully.');
-                                                        window.location.reload();
-                                                    } else {
-                                                        toast.error('Failed to delete case: ' + res.error);
-                                                    }
-                                                } catch (err) {
-                                                    toast.error('An unexpected error occurred.');
-                                                }
+                                                setDisputeToDelete(dispute.id);
                                             }}
+
                                             className="p-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all shrink-0"
                                             title="Delete Case"
                                         >
@@ -482,7 +476,34 @@ const DisputesList = ({ disputes, isLoading }: DisputesListProps) => {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <ActionConfirmModal
+                isOpen={!!disputeToDelete}
+                onClose={() => setDisputeToDelete(null)}
+                onConfirm={async () => {
+                    const id = disputeToDelete;
+                    setDisputeToDelete(null);
+                    if (!id) return;
+                    
+                    try {
+                        const res = await deleteDispute(id);
+                        if (res.success) {
+                            toast.success('Case deleted successfully.');
+                            window.location.reload();
+                        } else {
+                            toast.error('Failed to delete case: ' + res.error);
+                        }
+                    } catch (err) {
+                        toast.error('An unexpected error occurred.');
+                    }
+                }}
+                title="Delete Dispute Case?"
+                description="Are you sure you want to delete this case? This action is permanent and will remove all associated logs."
+                confirmLabel="Delete Case"
+                variant="danger"
+            />
         </div>
+
     );
 };
 

@@ -58,7 +58,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   if (userProfile.role === 'guest') {
-    redirect('/user-profile');
+    redirect('/');
   }
 
   // Only admins can proceed

@@ -5,6 +5,8 @@ import { createBrowserClient } from '@supabase/ssr';
 import { Property } from '@/lib/types';
 import Icon from '@/components/ui/AppIcon';
 import { toast } from 'sonner';
+import ActionConfirmModal from '@/components/ui/ActionConfirmModal';
+
 
 interface Room {
     id: string;
@@ -29,6 +31,8 @@ export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
     const [editingRoom, setEditingRoom] = useState<Room | null>(null);
     const [newRoomName, setNewRoomName] = useState('');
     const [isAdding, setIsAdding] = useState(false);
+    const [roomToDelete, setRoomToDelete] = useState<string | null>(null);
+
 
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -102,8 +106,6 @@ export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
     };
 
     const handleDeleteRoom = async (roomId: string) => {
-        if (!confirm('Are you certain? This termination cannot be reversed.')) return;
-
         const { error } = await supabase
             .from('rooms')
             .delete()
@@ -117,6 +119,7 @@ export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
             onUpdate();
         }
     };
+
 
     const handleUpdateRoom = async () => {
         if (!editingRoom || !editingRoom.name.trim()) return;
@@ -265,12 +268,13 @@ export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
                                             <Icon name="Cog6ToothIcon" size={18} />
                                         </button>
                                         <button
-                                            onClick={() => handleDeleteRoom(room.id)}
+                                            onClick={() => setRoomToDelete(room.id)}
                                             className="p-3 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
                                             title="Terminate"
                                         >
                                             <Icon name="TrashIcon" size={18} />
                                         </button>
+
                                     </div>
                                 </>
                             )}
@@ -278,6 +282,20 @@ export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
                     ))}
                 </div>
             )}
+
+            <ActionConfirmModal
+                isOpen={!!roomToDelete}
+                onClose={() => setRoomToDelete(null)}
+                onConfirm={() => {
+                    if (roomToDelete) handleDeleteRoom(roomToDelete);
+                    setRoomToDelete(null);
+                }}
+                title="Terminate Sub-Unit?"
+                description="Are you certain? This termination cannot be reversed and all history for this unit will be archived."
+                confirmLabel="Terminate Unit"
+                variant="danger"
+            />
         </div>
+
     );
 }

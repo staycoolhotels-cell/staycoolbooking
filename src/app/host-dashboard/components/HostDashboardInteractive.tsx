@@ -43,9 +43,11 @@ import DynamicAmenityUpsell from './DynamicAmenityUpsell'; // Imported DynamicAm
 import CleaningMaintenanceLog from './CleaningMaintenanceLog';
 import DisputesList from './DisputesList';
 import BankingDetails from './BankingDetails';
-import LicenseComplianceTracker from './LicenseComplianceTracker';
+
 import PayoutHistory from './PayoutHistory';
 import AddPropertyModal, { FormData } from './AddPropertyModal';
+import { deleteProperty } from '@/lib/property-actions';
+
 import { Property, Transaction, HostDashboardData, Dispute } from '@/lib/types';
 import { createBrowserClient } from '@supabase/ssr';
 import { AMENITIES } from '@/lib/amenities';
@@ -101,8 +103,7 @@ const HostDashboardInteractive = ({
     | 'availability'
     | 'support-chat'
     | 'banking-details'
-    | 'payout-history'
-    | 'license-compliance';
+    | 'payout-history';
 
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -313,7 +314,7 @@ const HostDashboardInteractive = ({
       'occupancy-pulse', 'revenue-velocity', 'financial-treasury',
       'unified-inbox', 'aura-quality', 'amenity-upsell',
       'cleaning-maintenance', 'disputes', 'availability', 'support-chat',
-      'banking-details', 'payout-history', 'license-compliance'
+      'banking-details', 'payout-history'
     ].includes(tab)) {
       setActiveTab(tab);
     } else {
@@ -633,6 +634,7 @@ const HostDashboardInteractive = ({
           check_out_time: formData.checkOutTime,
           latitude: formData.latitude,
           longitude: formData.longitude,
+          show_specific_location: true,
           updated_at: new Date().toISOString(),
         };
 
@@ -704,6 +706,7 @@ const HostDashboardInteractive = ({
             p_check_out_time: formData.checkOutTime || '11:00 AM',
             p_latitude: formData.latitude || null,
             p_longitude: formData.longitude || null,
+            p_show_specific_location: true,
           };
 
           console.log('Sending RPC create_property with params:', rpcParams);
@@ -742,7 +745,7 @@ const HostDashboardInteractive = ({
     { id: 'payout-history', label: 'Payout History', icon: Wallet },
     { id: 'unified-inbox', label: 'Unified Inbox', icon: MessageSquare },
     { id: 'aura-quality', label: 'Aura Quality', subtitle: 'AI suggestions', icon: Star },
-    { id: 'license-compliance', label: 'License & Compliance', icon: Scale },
+
     { id: 'amenity-upsell', label: 'Amenity Upsell', icon: Gift },
     { id: 'cleaning-maintenance', label: 'Cleaning & Maintenance', icon: ClipboardList },
     { id: 'support-chat', label: 'Support Chat', icon: LifeBuoy },
@@ -981,7 +984,20 @@ const HostDashboardInteractive = ({
                           setIsModalOpen(true);
                         }
                       }}
-                      onDelete={(id: string) => setProperties((p) => p.filter((x) => x.id !== id))}
+                      onDelete={async (id: string) => {
+                        try {
+                          const res = await deleteProperty(id);
+                          if (res.success) {
+                            setProperties((p) => p.filter((x) => x.id !== id));
+                            toast.success('Property terminated successfully.');
+                          } else {
+                            toast.error('Failed to terminate property: ' + res.error);
+                          }
+                        } catch (err: any) {
+                          toast.error('An unexpected error occurred during termination.');
+                        }
+                      }}
+
                       onToggleStatus={async (id: string, newStatus: 'active' | 'pending' | 'rejected' | 'offline') => {
                         try {
                           const { error } = await supabase.rpc('toggle_property_status', {
@@ -1018,7 +1034,7 @@ const HostDashboardInteractive = ({
                   {activeTab === 'cleaning-maintenance' && <CleaningMaintenanceLog properties={properties} />}
                   {activeTab === 'disputes' && <DisputesList disputes={disputes} isLoading={isLoadingDisputes} />}
                   {activeTab === 'availability' && <AvailabilityCalendar properties={properties} />}
-                  {activeTab === 'license-compliance' && <LicenseComplianceTracker properties={properties} />}
+
                   {activeTab === 'banking-details' && <BankingDetails />}
                   {activeTab === 'payout-history' && <PayoutHistory hostId={hostData.id} />}
                   {activeTab === 'support-chat' && (

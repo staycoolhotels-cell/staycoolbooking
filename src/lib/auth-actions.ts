@@ -449,7 +449,7 @@ export async function login(_prevState: string | undefined, formData: FormData) 
       await supabase.auth.signOut();
       return 'Guest account suspended.';
     }
-    redirect('/user-profile');
+    redirect('/');
   }
 
   // Fallback for unrecognized roles

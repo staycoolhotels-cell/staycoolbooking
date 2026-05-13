@@ -296,3 +296,48 @@ export const updatePropertyPrice = async (propertyId: string, suggestedPrice: nu
 
   return { success: true, data };
 };
+
+export const deleteProperty = async (propertyId: string) => {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  // Use admin client to bypass restrictive RLS or ensure host_id matches
+  // We first verify ownership
+  const { data: propData, error: propError } = await supabaseAdmin
+    .from('properties')
+    .select('host_id')
+    .eq('id', propertyId)
+    .single();
+
+  if (propError || !propData) {
+    return { success: false, error: 'Property not found' };
+  }
+
+  if (propData.host_id !== user.id) {
+    return { success: false, error: 'Unauthorized deletion attempt' };
+  }
+
+  // Delete the property
+  const { error } = await supabaseAdmin
+    .from('properties')
+    .delete()
+    .eq('id', propertyId);
+
+  if (error) {
+    console.error('Error deleting property:', error);
+    return { success: false, error: error.message };
+  }
+
+  // Invalidate caches
+  revalidateTag(CACHE_TAGS.properties);
+  if (user.id) revalidateTag(CACHE_TAGS.host_properties(user.id));
+  revalidatePath('/homepage', 'page');
+  revalidatePath('/', 'layout');
+  revalidatePath('/property-listing/[id]', 'page');
+
+  return { success: true };
+};

@@ -35,7 +35,7 @@ export default function AuthClient() {
           .eq('id', user.id)
           .single();
 
-        let target = '/user-profile';
+        let target = '/';
         if (profile?.role === 'admin') target = '/admin-panel';
         else if (profile?.role === 'host') target = '/host-dashboard';
 

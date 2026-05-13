@@ -264,8 +264,8 @@ export default async function PropertyListingPage({ params }: { params: Promise<
             id: property.host_id,
         },
         location_details: {
-            latitude: property.show_specific_location ? (property.latitude || nearbyPlacesData?.coordinates?.lat) : null,
-            longitude: property.show_specific_location ? (property.longitude || nearbyPlacesData?.coordinates?.lng) : null,
+            latitude: property.latitude || nearbyPlacesData?.coordinates?.lat || null,
+            longitude: property.longitude || nearbyPlacesData?.coordinates?.lng || null,
             locationName: property.location,
             address: fullAddress,
             nearbyAttractions: nearbyAttractions,

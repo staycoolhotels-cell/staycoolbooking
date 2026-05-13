@@ -62,7 +62,8 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
 
     // Initialize map
     const map = L.map(containerRef.current, {
-      zoomControl: false // Custom zoom control for better aesthetics
+      zoomControl: false, // Custom zoom control for better aesthetics
+      attributionControl: false
     }).setView([initialLat, initialLng], initialZoom);
     mapRef.current = map;
 

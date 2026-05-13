@@ -51,7 +51,7 @@ export default async function HostDashboardPage() {
 
   // Redirect guests to user profile
   if (host.role === 'guest') {
-    redirect('/user-profile');
+    redirect('/');
   }
 
   // Check if user is host with proper status
