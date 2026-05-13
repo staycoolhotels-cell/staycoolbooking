@@ -7,6 +7,7 @@ import { razorpay } from '@/lib/razorpay';
  *
  * Creates a Razorpay order with automatic payment split via Route.
  * Commission is fetched dynamically from commission_rules table.
+ * Supports Referral Commission Split for the first 5 bookings.
  */
 export async function POST(req: Request) {
     try {
@@ -53,9 +54,6 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Forbidden: this is not your booking' }, { status: 403 });
         }
 
-        // Only block if a real Razorpay payment was already captured.
-        // The create_bulk_booking RPC may set status='confirmed' by default,
-        // so we check for an actual payment ID, not just the status.
         if (booking.razorpay_payment_id) {
             return NextResponse.json({ error: 'This booking is already paid.' }, { status: 409 });
         }
@@ -67,8 +65,10 @@ export async function POST(req: Request) {
         // ─────────────────────────────────────────────
         // 2. Calculate commission dynamically
         // ─────────────────────────────────────────────
-        let commissionAmount = totalAmount * 0.20; // default 20%
-        let hostAmount = totalAmount - commissionAmount;
+        let adminCommission = totalAmount * 0.20; // default 20%
+        let hostAmount = totalAmount - adminCommission;
+        let referrerCommission = 0;
+        let referrerId = null;
         let commissionType = 'percentage';
         let commissionValue = 20;
 
@@ -79,16 +79,19 @@ export async function POST(req: Request) {
             });
 
         if (commissionData) {
-            commissionAmount = Number(commissionData.commission_amount);
+            adminCommission = Number(commissionData.admin_commission_amount);
             hostAmount = Number(commissionData.host_amount);
+            referrerCommission = Number(commissionData.referrer_commission_amount);
+            referrerId = commissionData.referrer_id;
             commissionType = commissionData.commission_type;
             commissionValue = Number(commissionData.commission_value);
         }
 
         // ─────────────────────────────────────────────
-        // 3. Fetch host's linked account (only if activated)
+        // 3. Fetch host's and referrer's linked accounts
         // ─────────────────────────────────────────────
         let hostRazorpayAccountId: string | null = null;
+        let referrerRazorpayAccountId: string | null = null;
 
         if (hostId) {
             const { data: hostKyc } = await supabase
@@ -102,12 +105,28 @@ export async function POST(req: Request) {
             }
         }
 
+        if (referrerId && referrerCommission > 0) {
+            const { data: referrerKyc } = await supabase
+                .from('host_kyc_details')
+                .select('razorpay_account_id, kyc_status')
+                .eq('user_id', referrerId)
+                .single();
+
+            if (referrerKyc?.razorpay_account_id && referrerKyc.kyc_status === 'activated') {
+                referrerRazorpayAccountId = referrerKyc.razorpay_account_id;
+            } else {
+                console.warn(`Referrer ${referrerId} has no active Razorpay account. Split will stay with Admin.`);
+            }
+        }
+
         // ─────────────────────────────────────────────
         // 4. Build Razorpay order with Route transfers
         // ─────────────────────────────────────────────
         const amountInPaise = Math.round(totalAmount * 100);
 
         const transfers = [];
+        
+        // Host Payout
         if (hostRazorpayAccountId && hostAmount > 0) {
             transfers.push({
                 account: hostRazorpayAccountId,
@@ -123,6 +142,23 @@ export async function POST(req: Request) {
             });
         }
 
+        // Referrer Commission Split
+        if (referrerRazorpayAccountId && referrerCommission > 0) {
+            transfers.push({
+                account: referrerRazorpayAccountId,
+                amount: Math.round(referrerCommission * 100), // paise
+                currency: 'INR',
+                notes: {
+                    booking_id: bookingId,
+                    type: 'referral_commission',
+                    referred_host_id: hostId,
+                    referrer_id: referrerId
+                },
+                linked_account_notes: ['booking_id'],
+                on_hold: 0,
+            });
+        }
+
         const orderOptions: any = {
             amount: amountInPaise.toString(),
             currency: 'INR',
@@ -131,7 +167,8 @@ export async function POST(req: Request) {
                 booking_id: bookingId,
                 guest_id: user.id,
                 property_id: booking.property_id,
-                platform_commission: commissionAmount.toFixed(2),
+                admin_commission: adminCommission.toFixed(2),
+                referrer_commission: referrerCommission.toFixed(2),
                 host_amount: hostAmount.toFixed(2),
             },
         };
@@ -161,7 +198,7 @@ export async function POST(req: Request) {
                     host_id: hostId,
                     razorpay_order_id: order.id,
                     total_amount: totalAmount,
-                    platform_commission: commissionAmount,
+                    platform_commission: adminCommission,
                     host_amount: hostAmount,
                     commission_type: commissionType,
                     commission_value: commissionValue,
@@ -177,7 +214,8 @@ export async function POST(req: Request) {
             keyId: process.env.RAZORPAY_KEY_ID,
             breakdown: {
                 total: totalAmount,
-                platformCommission: commissionAmount,
+                adminCommission: adminCommission,
+                referrerCommission: referrerCommission,
                 hostAmount: hostAmount,
                 commissionType,
                 commissionValue,

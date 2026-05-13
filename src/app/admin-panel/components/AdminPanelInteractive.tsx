@@ -1161,11 +1161,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         onUpdateUser={handleUpdateUser}
         onApprove={handleApproveUser}
       />
-      <VerificationDetailsModal
-        item={selectedVerification}
-        onClose={handleCloseModal}
-        onReview={handleReview}
-      />
       <DisputeDetailsModal
         dispute={selectedDispute}
         onClose={handleCloseModal}

@@ -68,10 +68,10 @@ export async function POST(req: Request) {
         }
 
         // ─────────────────────────────────────────────
-        // 4. Record Transaction (Secondary Ledger)
+        // 4. Financial Record & Referral Logic
         // ─────────────────────────────────────────────
         try {
-            // Fetch booking details to get financial info
+            // Fetch booking details to get financial and host info
             const { data: booking } = await supabase
                 .from('bookings')
                 .select('*, property:properties(*)')
@@ -79,28 +79,45 @@ export async function POST(req: Request) {
                 .single();
 
             if (booking) {
+                const hostId = booking.property?.host_id;
                 const amount = Number(booking.total_price);
-                const platformFee = amount * 0.20; // Default 20% commission
+                const platformFee = amount * 0.20; // Default 20% commission for logging
                 const hostPayout = amount - platformFee;
 
-                // Attempt to insert into transactions table
-                // We use a safe columns list based on common schema patterns
+                // A. Record Transaction (Secondary Ledger)
                 await supabase
                     .from('transactions')
                     .insert({
                         booking_id: bookingId,
                         guest_id: booking.guest_id,
-                        host_id: booking.property?.host_id,
+                        host_id: hostId,
                         property_id: booking.property_id,
                         amount: amount,
                         platform_fee: platformFee,
                         host_payout: hostPayout,
                         status: 'completed'
                     });
+
+                // B. Handle Referral Commission Decrement
+                if (hostId) {
+                    const { data: hostProfile } = await supabase
+                        .from('users')
+                        .select('referred_by, referral_commissions_remaining')
+                        .eq('id', hostId)
+                        .single();
+
+                    if (hostProfile && hostProfile.referred_by && (hostProfile.referral_commissions_remaining || 0) > 0) {
+                        await supabase
+                            .from('users')
+                            .update({ referral_commissions_remaining: hostProfile.referral_commissions_remaining - 1 })
+                            .eq('id', hostId);
+                        console.log(`📉 Decremented referral commissions for host ${hostId}. Remaining: ${hostProfile.referral_commissions_remaining - 1}`);
+                    }
+                }
             }
         } catch (txnError) {
-            // Log but don't fail the verification response if the secondary ledger fails
-            console.error('Secondary transaction logging failed:', txnError);
+            // Log but don't fail the verification response if the secondary tasks fail
+            console.error('Secondary ledger or referral tasks failed:', txnError);
         }
 
         return NextResponse.json({

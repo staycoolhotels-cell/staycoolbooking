@@ -166,6 +166,7 @@ export async function signUpUser(_prevState: string | undefined, formData: FormD
         created_at: new Date().toISOString(),
         referred_by: referrerId,
         referral_code: newReferralCode,
+        referral_commissions_remaining: (referrerId && userRole === 'host') ? 5 : 0,
         subscription_status: subscriptionStatus,
         subscription_expiry: subscriptionExpiry,
       }, { onConflict: 'id' });
@@ -615,6 +616,7 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
           status: userStatus,
           referred_by: referrerId,
           referral_code: newReferralCode,
+          referral_commissions_remaining: (referrerId && userRole === 'host') ? 5 : 0,
           subscription_status: subscriptionStatus,
           subscription_expiry: subscriptionExpiry,
         })
