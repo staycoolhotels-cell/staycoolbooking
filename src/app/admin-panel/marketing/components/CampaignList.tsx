@@ -12,6 +12,7 @@ import Icon from '@/components/ui/AppIcon';
 import { createCampaign, updateCampaign, deleteCampaign } from '@/lib/marketing-actions';
 import { toast } from 'sonner';
 import ActionConfirmModal from '@/components/ui/ActionConfirmModal';
+import { DatePicker } from '@/components/ui/datepicker';
 
 
 // ─── KPI Card ────────────────────────────────────────────────────────────────
@@ -587,20 +588,18 @@ const CampaignList = ({ initialCampaigns }: CampaignListProps) => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Start Date</label>
-                      <input
-                        type="date"
-                        className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3 text-white [color-scheme:dark] focus:outline-none focus:border-indigo-500 transition"
-                        value={formData.start_date || ''}
-                        onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                      <DatePicker
+                        value={formData.start_date}
+                        onChange={(date) => setFormData({ ...formData, start_date: date })}
+                        placeholder="Select start date"
                       />
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">End Date</label>
-                      <input
-                        type="date"
-                        className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3 text-white [color-scheme:dark] focus:outline-none focus:border-indigo-500 transition"
-                        value={formData.end_date || ''}
-                        onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                      <DatePicker
+                        value={formData.end_date}
+                        onChange={(date) => setFormData({ ...formData, end_date: date })}
+                        placeholder="Select end date"
                       />
                     </div>
                   </div>

@@ -362,8 +362,10 @@ export default function LicenseComplianceTracker({ properties = [] }: LicenseCom
 
                 <div>
                   <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Expiry Date <span className="text-red-400">*</span></label>
-                  <input type="date" value={formExpiry} onChange={e => setFormExpiry(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white outline-none focus:ring-2 focus:ring-indigo-500/40 text-sm font-medium [color-scheme:dark]" />
+                  <input type="date" value={formExpiry} 
+                    onClick={(e) => (e.target as any).showPicker?.()}
+                    onChange={e => setFormExpiry(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white outline-none focus:ring-2 focus:ring-indigo-500/40 text-sm font-medium [color-scheme:dark] cursor-pointer" />
                 </div>
 
                 {formExpiry && (

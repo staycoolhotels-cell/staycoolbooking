@@ -26,6 +26,8 @@ import {
     CheckCircle2,
     AlertCircle,
     Ban,
+    ChevronLeft,
+    ChevronRight,
     Building2,
     Landmark,
     Hash,
@@ -111,6 +113,16 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
         }
     };
 
+    const nextImage = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setCurrentImageIndex((prev) => (prev + 1) % displayImages.length);
+    };
+
+    const prevImage = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setCurrentImageIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length);
+    };
+
     // Tech Badge Component
     const TechBadge = ({ children, variant = 'default', icon: Icon }: { children: React.ReactNode, variant?: 'default' | 'success' | 'warning' | 'danger', icon?: any }) => {
         const colors = {
@@ -184,7 +196,7 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                 {/* Hero Grid */}
                 <div className="grid grid-cols-12 gap-6 md:h-[500px]">
                     {/* Main Image - Takes 8 cols */}
-                    <div className="col-span-12 md:col-span-8 min-h-[350px] md:min-h-0 relative group rounded-lg overflow-hidden border border-white/10 bg-[#050505]">
+                    <div suppressHydrationWarning className="col-span-12 md:col-span-8 min-h-[350px] md:min-h-0 relative group rounded-lg overflow-hidden border border-white/10 bg-[#050505]">
                         {currentImageUrl ? (
                             <Image
                                 src={currentImageUrl}
@@ -203,19 +215,34 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
 
                         {/* Image Gallery Controls */}
                         {displayImages.length > 1 && (
-                            <div className="absolute top-4 right-4 flex flex-wrap gap-1.5 z-20 bg-black/40 backdrop-blur-md p-1.5 rounded-full border border-white/10 max-w-[50%] justify-end">
-                                {displayImages.map((_, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => setCurrentImageIndex(idx)}
-                                        className={cn(
-                                            "h-2 rounded-full transition-all duration-300",
-                                            idx === currentImageIndex ? "bg-emerald-500 w-4" : "bg-white/40 hover:bg-white/80 w-2"
-                                        )}
-                                        aria-label={`View image ${idx + 1}`}
-                                    />
-                                ))}
-                            </div>
+                            <>
+                                <button
+                                    onClick={prevImage}
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-black/60 transition-all opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95"
+                                >
+                                    <ChevronLeft className="w-6 h-6" />
+                                </button>
+                                <button
+                                    onClick={nextImage}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-black/60 transition-all opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95"
+                                >
+                                    <ChevronRight className="w-6 h-6" />
+                                </button>
+
+                                <div className="absolute top-4 right-4 flex flex-wrap gap-1.5 z-20 bg-black/40 backdrop-blur-md p-1.5 rounded-full border border-white/10 max-w-[50%] justify-end">
+                                    {displayImages.map((_, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(idx); }}
+                                            className={cn(
+                                                "h-2 rounded-full transition-all duration-300",
+                                                idx === currentImageIndex ? "bg-emerald-500 w-4" : "bg-white/40 hover:bg-white/80 w-2"
+                                            )}
+                                            aria-label={`View image ${idx + 1}`}
+                                        />
+                                    ))}
+                                </div>
+                            </>
                         )}
 
                         <div className="absolute bottom-0 left-0 p-8 space-y-2 pointer-events-none">

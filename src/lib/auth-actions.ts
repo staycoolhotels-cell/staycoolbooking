@@ -236,13 +236,37 @@ async function ensureAdminUserExists() {
   const adminEmail = process.env.ADMIN_EMAIL;
   const adminPassword = process.env.ADMIN_PASSWORD;
 
+  // If credentials are not in .env, skip self-healing silently.
   if (!adminEmail || !adminPassword) {
-    throw new Error('ADMIN_EMAIL or ADMIN_PASSWORD not set in environment variables.');
+    return true;
   }
 
   const supabaseAdmin = await createSupabaseAdminClient();
 
-  // Check if admin exists by email
+  // 1. Check if ANY admin already exists in the public users table
+  const { data: existingAdminsInTable } = await supabaseAdmin
+    .from('users')
+    .select('id, email')
+    .eq('role', 'admin');
+
+  if (existingAdminsInTable && existingAdminsInTable.length > 0) {
+    // An admin already exists. If the email matches the one we are checking, we can sync the password.
+    const matchingAdmin = existingAdminsInTable.find(a => a.email?.toLowerCase() === adminEmail.toLowerCase());
+    
+    if (!matchingAdmin) {
+      console.log('An admin already exists with a different email. Skipping self-healing.');
+      return true;
+    }
+
+    // Sync password for the matching admin if needed
+    await supabaseAdmin.auth.admin.updateUserById(
+      matchingAdmin.id,
+      { password: adminPassword }
+    );
+    return true;
+  }
+
+  // 2. If no admin exists in the table, check Auth users
   const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
 
   if (error) {
@@ -250,11 +274,10 @@ async function ensureAdminUserExists() {
     return false;
   }
 
-  const existingAdmin = users.find(u => u.email === adminEmail);
+  const existingAdmin = users.find(u => u.email?.toLowerCase() === adminEmail.toLowerCase());
   let adminId: string;
 
   if (existingAdmin) {
-    // Admin exists, update password to ensure it matches ENV
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
       existingAdmin.id,
       { password: adminPassword, user_metadata: { role: 'admin', name: 'System Admin' } }
@@ -265,7 +288,6 @@ async function ensureAdminUserExists() {
     }
     adminId = existingAdmin.id;
   } else {
-    // Create new Admin
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: adminEmail,
       password: adminPassword,
@@ -276,38 +298,26 @@ async function ensureAdminUserExists() {
       console.error('Failed to create admin user:', createError);
       return false;
     }
-    if (!newUser) {
-      console.error('Failed to create admin user, no user data returned.');
-      return false;
-    }
+    if (!newUser) return false;
     adminId = newUser.user.id;
   }
 
   // Ensure public.users table reflects admin role and status
-  const { error: upsertPublicUserError } = await supabaseAdmin
+  await supabaseAdmin
     .from('users')
-    .upsert(
-      {
-        id: adminId,
-        email: adminEmail,
-        name: 'System Admin',
-        role: 'admin',
-        status: 'active',
-      },
-      { onConflict: 'id' } // Upsert based on the 'id'
-    );
-
-  if (upsertPublicUserError) {
-    console.error('Failed to upsert admin into public.users:', upsertPublicUserError);
-    return false;
-  }
+    .upsert({
+      id: adminId,
+      email: adminEmail,
+      name: 'System Admin',
+      role: 'admin',
+      status: 'active',
+    }, { onConflict: 'id' });
 
   return true;
 }
 
 /**
  * Unified Login Function enforcing Strict Role Access.
- * Admin is identified by role='admin' in the database, NOT by email matching env var.
  */
 export async function login(_prevState: string | undefined, formData: FormData) {
   const email = formData.get('email') as string;
@@ -317,7 +327,7 @@ export async function login(_prevState: string | undefined, formData: FormData) 
     return 'Email and password are required.';
   }
 
-  // 1. SELF-HEAL: If this is the admin email, ensure the user exists in Supabase first
+  // 1. SELF-HEAL: Only if .env credentials match
   const adminEmail = process.env.ADMIN_EMAIL;
   if (adminEmail && email.toLowerCase().trim() === adminEmail.toLowerCase().trim()) {
     console.log('Admin login attempt detected. Synchronizing auth user from .env...');

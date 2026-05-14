@@ -288,6 +288,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
   const handleCloseModal = () => {
     setSelectedUser(null);
+    setSelectedTransaction(null);
     setSelectedDispute(null);
   };
 

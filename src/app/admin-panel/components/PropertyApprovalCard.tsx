@@ -1,8 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Property } from '@/lib/types';
 import Icon from '@/components/ui/AppIcon';
+import { cn } from '@/lib/utils';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PropertyApprovalCardProps {
   property: Property;
@@ -11,19 +14,59 @@ interface PropertyApprovalCardProps {
 
 const PropertyApprovalCard = ({ property, onReview }: PropertyApprovalCardProps) => {
   const router = useRouter();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const displayImages = property.images && property.images.length > 0
+    ? property.images
+    : property.image_url ? [property.image_url] : [];
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev + 1) % displayImages.length);
+  };
+
+  const prevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length);
+  };
+
+  const currentImageUrl = displayImages[currentImageIndex] 
+    ? (typeof displayImages[currentImageIndex] === 'string' ? displayImages[currentImageIndex] : (displayImages[currentImageIndex] as any).url)
+    : null;
 
   return (
-    <div 
+    <div
       onClick={() => router.push(`/admin-panel/property-management/${property.id}`)}
       className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden flex flex-col hover:border-zinc-700 transition-all cursor-pointer group"
     >
-      <div className="relative h-48 w-full bg-zinc-800">
-        {(property.images?.[0] || property.image_url) ? (
-          <img
-            src={(property.images?.[0] as any)?.url || property.images?.[0] || property.image_url}
-            alt={property.title || 'Property'}
-            className="w-full h-full object-cover"
-          />
+      <div suppressHydrationWarning className="relative h-48 w-full bg-zinc-800">
+        {currentImageUrl ? (
+          <>
+            <img
+              src={currentImageUrl}
+              alt={property.title || 'Property'}
+              className="w-full h-full object-cover"
+            />
+            {displayImages.length > 1 && (
+              <>
+                <button
+                  onClick={prevImage}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-black/60"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  onClick={nextImage}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-black/60"
+                >
+                  <ChevronRight size={16} />
+                </button>
+                <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/40 backdrop-blur-md rounded text-[10px] font-mono text-white border border-white/10">
+                  {currentImageIndex + 1}/{displayImages.length}
+                </div>
+              </>
+            )}
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-zinc-600">
             <Icon name="PhotoIcon" size={32} />

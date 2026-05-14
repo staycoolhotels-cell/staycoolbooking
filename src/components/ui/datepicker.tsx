@@ -73,3 +73,38 @@ export function DateRangePicker({ className, onUpdate }: DateRangePickerProps) {
     </div>
   );
 }
+export function DatePicker({ value, onChange, placeholder = 'Pick a date', className }: { value?: string; onChange: (date: string) => void; placeholder?: string; className?: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const date = value ? new Date(value) : undefined;
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant={"outline"}
+          className={cn(
+            "w-full justify-start text-left font-medium bg-[#050505] border-white/10 rounded-xl py-6 hover:bg-white/5 transition-all",
+            !date && "text-zinc-500",
+            className
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4 text-indigo-400" />
+          {date ? format(date, "PPP") : <span>{placeholder}</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0 border border-white/10 bg-[#0a0a0a]/80 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden" align="start">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={(d) => {
+            if (d) {
+              onChange(format(d, 'yyyy-MM-dd'));
+              setIsOpen(false);
+            }
+          }}
+          initialFocus
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
