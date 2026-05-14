@@ -43,6 +43,7 @@ const DynamicAmenityUpsell: React.FC = () => {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [newAmenity, setNewAmenity] = useState({
     name: '',
     description: '',
@@ -194,6 +195,32 @@ const DynamicAmenityUpsell: React.FC = () => {
     }
   };
 
+  const triggerDelete = (id: string) => {
+    setItemToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    const id = itemToDelete;
+    setItemToDelete(null);
+    
+    // Optimistic update
+    const previousAmenities = [...amenities];
+    setAmenities((prev) => prev.filter((a) => a.id !== id));
+    setTrackingData((prev) => prev.filter((t) => t.amenity_id !== id));
+    
+    const { error } = await supabase
+      .from('amenities')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error("Failed to delete amenity", error);
+      alert("Failed to delete the offering. Please try again.");
+      setAmenities(previousAmenities); // Revert
+    }
+  };
+
   const totalRevenue = trackingData.reduce((sum, item) => sum + Number(item.revenue_generated), 0);
   const totalBookings = trackingData.reduce((sum, item) => sum + Number(item.booking_count), 0);
 
@@ -299,20 +326,29 @@ const DynamicAmenityUpsell: React.FC = () => {
                     </div>
 
                     <div className="shrink-0 flex flex-col items-end">
-                      <label className="inline-flex relative items-center cursor-pointer group/toggle">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={amenity.is_active}
-                          onChange={() => handleToggleActive(amenity.id, amenity.is_active)}
-                        />
-                        <div className={`w-14 h-8 bg-zinc-800 border border-zinc-700 peer-focus:outline-none rounded-full peer 
-                                                  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] 
-                                                  after:absolute after:top-[4px] after:left-[4px] after:bg-zinc-400 peer-checked:after:bg-white 
-                                                  after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-gradient-to-r 
-                                                  peer-checked:from-pink-500 peer-checked:to-purple-500 shadow-inner`}
-                        />
-                      </label>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => triggerDelete(amenity.id)}
+                          className="text-zinc-500 hover:text-red-500 transition-colors p-1"
+                          title="Delete Offering"
+                        >
+                          <Icon name="TrashIcon" size={18} />
+                        </button>
+                        <label className="inline-flex relative items-center cursor-pointer group/toggle">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={amenity.is_active}
+                            onChange={() => handleToggleActive(amenity.id, amenity.is_active)}
+                          />
+                          <div className={`w-14 h-8 bg-zinc-800 border border-zinc-700 peer-focus:outline-none rounded-full peer 
+                                                    peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] 
+                                                    after:absolute after:top-[4px] after:left-[4px] after:bg-zinc-400 peer-checked:after:bg-white 
+                                                    after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-gradient-to-r 
+                                                    peer-checked:from-pink-500 peer-checked:to-purple-500 shadow-inner`}
+                          />
+                        </label>
+                      </div>
                       <span className={`text-[9px] font-bold uppercase tracking-widest mt-2 ${amenity.is_active ? 'text-pink-400' : 'text-zinc-600'}`}>
                         {amenity.is_active ? 'Live Setup' : 'Archived'}
                       </span>
@@ -384,6 +420,50 @@ const DynamicAmenityUpsell: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {itemToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-xl z-[150] flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-[#0a0a0f] rounded-3xl w-full max-w-sm border border-red-500/20 shadow-[0_0_50px_rgba(239,68,68,0.2)] overflow-hidden relative text-center p-6 md:p-8"
+            >
+              <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-red-500/50 via-red-500 to-red-500/50" />
+              
+              <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center mb-6 text-red-500 shadow-inner mx-auto">
+                <Icon name="TrashIcon" size={32} />
+              </div>
+              
+              <h2 className="text-xl font-heading font-bold text-white mb-2">Delete Offering?</h2>
+              <p className="text-sm text-zinc-400 mb-8">This action cannot be undone. Are you sure you want to permanently remove this item?</p>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setItemToDelete(null)}
+                  className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold text-sm transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 py-3 px-4 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 4. Add Offering Modal - Ultra Premium */}
       <AnimatePresence>

@@ -668,59 +668,65 @@ const HostDashboardInteractive = ({
       } else {
         // Adding new property
         try {
-          const rpcParams = {
-            p_name: String(formData.name),
-            p_title: String(formData.name),
-            p_description: String(formData.description),
-            p_price_per_night: parseFloat(String(formData.price)) || 0,
-            p_weekend_price_per_night: parseFloat(String(formData.weekendPrice)) || 0,
-            p_tier: String(formData.type),
-            p_amenities: finalAmenities,
-            p_license_url: formData.license_url || '',
-            p_tax_bill_url: formData.tax_bill_url || '',
-            p_current_bill_url: formData.current_bill_url || '',
-            p_aadhar_url: formData.aadhar_url || '',
-            p_pan_url: formData.pan_url || '',
-            p_noc_url: formData.noc_url || '',
-            p_image_url: formData.photo_urls[0] || '',
-            p_images: formData.photo_urls.map((url, index) => ({ url, alt: `${formData.name} Photo ${index + 1}` })),
-            p_cancellation_policy: finalCancellationPolicy,
-            p_rules: finalRules,
-            p_safety_items: finalSafetyItems,
-            p_bedrooms: Number(formData.bedrooms) || 0,
-            p_beds: Number(formData.beds) || 0,
-            p_bathrooms: Number(formData.bathrooms) || 0,
-            p_max_guests: Number(formData.maxGuests) || 0,
-            p_area: Number(formData.area) || 0,
-            p_address_line1: formData.addressLine1 || '',
-            p_address_line2: formData.addressLine2 || '',
-            p_landmark: formData.landmark || '',
-            p_district: formData.district || '',
-            p_city: formData.city || '',
-            p_state: formData.state || '',
-            p_postal_code: formData.postalCode || '',
-            p_country: formData.country || '',
-            p_location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
-            p_total_rooms: Number(formData.totalRooms) || 0,
-            p_check_in_time: formData.checkInTime || '12:00 PM',
-            p_check_out_time: formData.checkOutTime || '11:00 AM',
-            p_latitude: formData.latitude || null,
-            p_longitude: formData.longitude || null,
-            p_show_specific_location: true,
+          const propertyPayload = {
+            title: String(formData.name),
+            description: String(formData.description),
+            price_per_night: parseFloat(String(formData.price)) || 0,
+            weekend_price_per_night: parseFloat(String(formData.weekendPrice)) || 0,
+            tier: String(formData.type),
+            amenities: finalAmenities,
+            license_url: formData.license_url || '',
+            tax_bill_url: formData.tax_bill_url || '',
+            current_bill_url: formData.current_bill_url || '',
+            aadhar_url: formData.aadhar_url || '',
+            pan_url: formData.pan_url || '',
+            noc_url: formData.noc_url || '',
+            image_url: formData.photo_urls[0] || '',
+            images: formData.photo_urls.map((url, index) => ({ url, alt: `${formData.name} Photo ${index + 1}` })),
+            cancellation_policy: finalCancellationPolicy,
+            rules: finalRules,
+            safety_items: finalSafetyItems,
+            bedrooms: Number(formData.bedrooms) || 0,
+            beds: Number(formData.beds) || 0,
+            bathrooms: Number(formData.bathrooms) || 0,
+            max_guests: Number(formData.maxGuests) || 0,
+            area: Number(formData.area) || 0,
+            address_line1: formData.addressLine1 || '',
+            address_line2: formData.addressLine2 || '',
+            landmark: formData.landmark || '',
+            district: formData.district || '',
+            city: formData.city || '',
+            state: formData.state || '',
+            postal_code: formData.postalCode || '',
+            country: formData.country || '',
+            location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
+            total_rooms: Number(formData.totalRooms) || 0,
+            check_in_time: formData.checkInTime || '12:00 PM',
+            check_out_time: formData.checkOutTime || '11:00 AM',
+            latitude: formData.latitude || null,
+            longitude: formData.longitude || null,
+            show_specific_location: true,
           };
 
-          console.log('Sending RPC create_property with params:', rpcParams);
-          const { data: newPropertyId, error } = await supabase.rpc('create_property', rpcParams);
+          console.log('Sending API request to create property:', propertyPayload);
+          const res = await fetch('/api/properties/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              hostId: hostData.id,
+              propertyPayload,
+            }),
+          });
 
-          if (error) {
-            console.error('Error creating property via RPC:', error);
-            // Handle both PostgrestError and standard Error objects
-            const errorStr = error.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
-            alert(`Error creating property: ${errorStr}`);
+          const json = await res.json();
+
+          if (!res.ok || json.error) {
+            console.error('Error creating property:', json.error);
+            alert(`Error creating property: ${json.error || 'Unknown error'}`);
             return;
           }
 
-          console.log('Property created successfully via RPC, ID:', newPropertyId);
+          console.log('Property created successfully via API, ID:', json.data.id);
           await fetchProperties();
         } catch (err) {
           console.error('Unexpected error creating property:', err);

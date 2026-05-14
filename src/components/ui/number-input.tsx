@@ -71,6 +71,7 @@ export const NumberInput = ({
                     step={step}
                     className="w-8 sm:w-16 min-width-[2rem] text-center text-sm sm:text-base bg-transparent border-none text-white font-semibold focus:ring-0 p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     disabled={disabled}
+                    readOnly
                 />
             </div>
             <button

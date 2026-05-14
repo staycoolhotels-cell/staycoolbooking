@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { format } from 'date-fns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'; // Assuming simple tabs or I'll use custom
 import ConfirmationModal from './ConfirmationModal';
@@ -196,8 +197,8 @@ const BookingCard = ({
       setCheckingAvailability(true);
       try {
         const { data, error } = await supabase.rpc('check_availability', {
-          p_check_in: checkIn.toISOString().split('T')[0], // Send YYYY-MM-DD
-          p_check_out: checkOut.toISOString().split('T')[0],
+          p_check_in: format(checkIn, 'yyyy-MM-dd'),
+          p_check_out: format(checkOut, 'yyyy-MM-dd'),
           p_property_id: propertyId,
         });
 
@@ -235,8 +236,8 @@ const BookingCard = ({
       try {
         const { data, error } = await supabase.rpc('get_available_rooms', {
           p_property_id: propertyId,
-          p_check_in: checkIn.toISOString().split('T')[0],
-          p_check_out: checkOut.toISOString().split('T')[0],
+          p_check_in: format(checkIn, 'yyyy-MM-dd'),
+          p_check_out: format(checkOut, 'yyyy-MM-dd'),
         });
 
         if (error) {
@@ -390,8 +391,8 @@ const BookingCard = ({
 
     const params = new URLSearchParams({
       propertyId,
-      checkIn: checkIn ? checkIn.toISOString() : '',
-      checkOut: checkOut ? checkOut.toISOString() : '',
+      checkIn: checkIn ? format(checkIn, 'yyyy-MM-dd') : '',
+      checkOut: checkOut ? format(checkOut, 'yyyy-MM-dd') : '',
       guests: guests.toString(),
       bookingType,
       roomCount: roomsToBook.toString(),

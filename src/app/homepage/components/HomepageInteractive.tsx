@@ -327,8 +327,10 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
 
     // 1. Filter by Search Location
     if (searchLocation && searchLocation.trim()) {
+      const q = searchLocation.trim().toLowerCase();
       filtered = filtered.filter((p) =>
-        p.location.toLowerCase().includes(searchLocation.trim().toLowerCase())
+        (p.location && p.location.toLowerCase().includes(q)) ||
+        (p.title && p.title.toLowerCase().includes(q))
       );
     }
 

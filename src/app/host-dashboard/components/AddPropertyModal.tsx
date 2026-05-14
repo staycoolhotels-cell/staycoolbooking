@@ -17,8 +17,8 @@ const BUCKETS = {
 export interface FormData {
   name: string;
   description: string;
-  price: number;
-  weekendPrice: number;
+  price: number | string;
+  weekendPrice: number | string;
   location: string;
   type: string;
   photos: File[];
@@ -77,8 +77,8 @@ const AddPropertyModal = ({
   const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
-    price: 0,
-    weekendPrice: 0,
+    price: '',
+    weekendPrice: '',
     location: '',
     type: '',
     photos: [],
@@ -183,8 +183,8 @@ const AddPropertyModal = ({
       setFormData({
         name: propertyToEdit.title || propertyToEdit.name || '',
         description: propertyToEdit.description || '',
-        price: propertyToEdit.price_per_night || propertyToEdit.price || 0,
-        weekendPrice: propertyToEdit.weekend_price_per_night || propertyToEdit.weekendPrice || 0,
+        price: propertyToEdit.price_per_night || propertyToEdit.price || '',
+        weekendPrice: propertyToEdit.weekend_price_per_night || propertyToEdit.weekendPrice || '',
         location: propertyToEdit.location || '',
         type: propertyToEdit.tier || '',
         photos: [], // Reset photos when editing
@@ -232,8 +232,8 @@ const AddPropertyModal = ({
       setFormData({
         name: '',
         description: '',
-        price: 0,
-        weekendPrice: 0,
+        price: '',
+        weekendPrice: '',
         location: '',
         type: '',
         photos: [],
@@ -367,12 +367,12 @@ const AddPropertyModal = ({
     e.preventDefault();
     if (isSubmitting) return;
     
-    if (formData.price <= 0) {
+    if (Number(formData.price) <= 0) {
       setErrorMessage("Please enter a valid price per night.");
       return;
     }
 
-    if (formData.weekendPrice <= 0) {
+    if (Number(formData.weekendPrice) <= 0) {
       setErrorMessage("Please enter a valid weekend price per night.");
       return;
     }

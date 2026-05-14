@@ -102,7 +102,8 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
       if (!onAddressSelect) return;
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&email=admin@staycoolbooking.com`,
+          { headers: { 'Accept-Language': 'en-US,en;q=0.9' } }
         );
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
@@ -185,7 +186,8 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
       if (onAddressSelect) {
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${newLat}&lon=${newLng}&zoom=18&addressdetails=1`
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${newLat}&lon=${newLng}&zoom=18&addressdetails=1&email=admin@staycoolbooking.com`,
+            { headers: { 'Accept-Language': 'en-US,en;q=0.9' } }
           );
           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
           const data = await response.json();
@@ -212,7 +214,8 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
       const searchStr = addressParts.slice(i).join(', ');
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchStr)}&limit=1`
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchStr)}&limit=1&email=admin@staycoolbooking.com`,
+          { headers: { 'Accept-Language': 'en-US,en;q=0.9' } }
         );
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
