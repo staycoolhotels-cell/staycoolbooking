@@ -100,7 +100,7 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {/* Dates */}
                             <div className="bg-zinc-900/50 p-3 rounded-xl border border-white/5">
                                 <h4 className="text-[10px] font-medium text-zinc-400 mb-2 uppercase tracking-wider">Dates</h4>
@@ -120,21 +120,21 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                             {/* Guests & Units */}
                             <div className="bg-zinc-900/50 p-3 rounded-xl border border-white/5">
                                 <h4 className="text-[10px] font-medium text-zinc-400 mb-2 uppercase tracking-wider">Booking Size</h4>
-                                <div className="flex items-center gap-4 text-white">
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-white">
                                     <div className="flex items-center gap-2">
-                                        <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400">
-                                            <Icon name="UserIcon" size={16} />
+                                        <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 shrink-0">
+                                            <Icon name="UserIcon" size={14} />
                                         </div>
                                         <div>
-                                            <p className="text-xs font-semibold">{booking.guests || 1} {(booking.guests || 1) === 1 ? 'Guest' : 'Guests'}</p>
+                                            <p className="text-xs font-semibold whitespace-nowrap">{booking.guests || 1} {(booking.guests || 1) === 1 ? 'Guest' : 'Guests'}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400">
-                                            <Icon name="HomeIcon" size={16} />
+                                        <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 shrink-0">
+                                            <Icon name="HomeIcon" size={14} />
                                         </div>
                                         <div>
-                                            <p className="text-xs font-semibold">{booking.total_rooms_booked || 1} {(booking.total_rooms_booked || 1) === 1 ? (booking.properties.type?.toLowerCase().includes('tent') ? 'Tent' : 'Room') : (booking.properties.type?.toLowerCase().includes('tent') ? 'Tents' : 'Rooms')}</p>
+                                            <p className="text-xs font-semibold whitespace-nowrap">{booking.total_rooms_booked || 1} {(booking.total_rooms_booked || 1) === 1 ? (booking.properties.type?.toLowerCase().includes('tent') ? 'Tent' : 'Room') : (booking.properties.type?.toLowerCase().includes('tent') ? 'Tents' : 'Rooms')}</p>
                                         </div>
                                     </div>
                                 </div>

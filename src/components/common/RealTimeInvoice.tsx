@@ -46,31 +46,31 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
             {transaction.guestAddress || 'Address not provided'}
           </div>
         </div>
-        <div className="w-[200px] text-right">
-             <div className="mb-4">
+        <div className="w-[280px] space-y-2">
+             <div className="grid grid-cols-[140px_1fr] items-center">
                 <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Invoice#</p>
                 <p className="text-white font-bold">{invoiceId}</p>
              </div>
-             <div className="mb-2">
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Invoice Date:</p>
+             <div className="grid grid-cols-[140px_1fr] items-center">
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Date:</p>
                 <p className="text-white font-bold">{date}</p>
              </div>
              {transaction.bookingDate && (
-               <div className="mb-2">
+               <div className="grid grid-cols-[140px_1fr] items-center pt-1 border-t border-white/5">
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Booking Date:</p>
                   <p className="text-white font-bold">{transaction.bookingDate}</p>
                </div>
              )}
              {transaction.cancellationDate && (
-               <div className="mb-2">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Cancellation Date:</p>
-                  <p className="text-white font-bold">{transaction.cancellationDate}</p>
+               <div className="grid grid-cols-[140px_1fr] items-center text-rose-400">
+                  <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest">Cancellation Date:</p>
+                  <p className="font-bold">{transaction.cancellationDate}</p>
                </div>
              )}
              {transaction.refundDate && (
-               <div className="mb-2">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Refund Date:</p>
-                  <p className="text-white font-bold">{transaction.refundDate}</p>
+               <div className="grid grid-cols-[140px_1fr] items-center text-emerald-400">
+                  <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest">Refund Date:</p>
+                  <p className="font-bold">{transaction.refundDate}</p>
                </div>
              )}
         </div>
@@ -117,18 +117,31 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
       </div>
 
       {/* 4. Footer */}
-      <div className="px-8 pb-12 flex justify-between items-start pt-4">
-        <div className="flex-1 space-y-8">
+      <div className="px-8 pb-12 flex justify-between items-start -mt-12">
+        <div className="flex-1 space-y-3">
            <div>
-              <p className="text-sm font-black text-zinc-800 italic uppercase">Thank you for choosing STAY COOL</p>
+              <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Thank you for choosing</p>
+              <p className="text-4xl font-black uppercase tracking-tight" style={{ color: '#0ea5e9', letterSpacing: '-0.03em' }}>STAY COOL</p>
            </div>
            
-           <div>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-2">Terms & Conditions</p>
-              <p className="text-[9px] leading-relaxed text-zinc-400 italic max-w-[300px]">
-                1. Guest is responsible for property condition. 2. Cancellations must be made 72 hours prior for full refund. 3. StayCool is a platform provider. 4. Luxury services subject to availability.
-              </p>
-           </div>
+           <div className="relative">
+               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-3">Terms & Conditions</p>
+               <div className="space-y-2 max-w-[300px]">
+                 <p className="text-[9px] leading-relaxed text-zinc-400">The guest is fully responsible for maintaining the property in good condition throughout the duration of their stay.</p>
+                 <p className="text-[9px] leading-relaxed text-zinc-400">All cancellations must be requested at least 72 hours prior to the check-in date to be eligible for a full refund.</p>
+                 <p className="text-[9px] leading-relaxed text-zinc-400">StayCool acts solely as a platform provider and is not a direct party to the accommodation contract between the guest and host.</p>
+                 <p className="text-[9px] leading-relaxed text-zinc-400">Availability of luxury services and amenities is subject to change without prior notice.</p>
+               </div>
+
+               {/* Stamp Badge */}
+               <div className="absolute left-[240px] top-0 select-none pointer-events-none">
+                  {isRefund ? (
+                    <img src="/assets/images/refund-stamp.png" alt="Refunded" className="w-[280px] h-[120px] object-contain -rotate-12 opacity-80" />
+                  ) : (
+                    <img src="/assets/images/paid-stamp.png" alt="Paid" className="w-[280px] h-[120px] object-contain -rotate-12 opacity-80" />
+                  )}
+               </div>
+            </div>
         </div>
 
         <div className="w-[300px]">

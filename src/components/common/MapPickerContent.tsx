@@ -169,10 +169,22 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
     }
   }, [lat, lng]);
 
+  const [isLocating, setIsLocating] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
+
   const handleLocateMe = () => {
     if (!mapRef.current) return;
+    if (!navigator.geolocation) {
+      setLocateError('GPS మీ browser లో support కాదు');
+      setTimeout(() => setLocateError(null), 4000);
+      return;
+    }
+
+    setIsLocating(true);
+    setLocateError(null);
     isMapClickUpdateRef.current = true;
     mapRef.current.locate({ setView: true, maxZoom: 17 });
+
     mapRef.current.once('locationfound', async (e) => {
       const { lat: newLat, lng: newLng } = e.latlng;
       if (markerRef.current) {
@@ -198,9 +210,24 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
           console.error("Reverse geocoding error:", error);
         }
       }
+      setIsLocating(false);
       setTimeout(() => {
         isMapClickUpdateRef.current = false;
       }, 1000);
+    });
+
+    mapRef.current.once('locationerror', (e) => {
+      setIsLocating(false);
+      isMapClickUpdateRef.current = false;
+      if (e.code === 1) {
+        // Permission denied
+        setLocateError('Location permission denied. Browser settings లో allow చేయండి.');
+      } else if (e.code === 2) {
+        setLocateError('GPS signal దొరకలేదు. మళ్ళీ try చేయండి.');
+      } else {
+        setLocateError('Location కనుగొనడం సాధ్యం కాలేదు.');
+      }
+      setTimeout(() => setLocateError(null), 5000);
     });
   };
 
@@ -278,11 +305,19 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
         <button
           type="button"
           onClick={handleLocateMe}
-          className="bg-black/60 backdrop-blur-xl border border-white/20 p-2.5 rounded-xl text-white hover:bg-white/10 transition-all shadow-2xl active:scale-95"
+          disabled={isLocating}
+          className={`bg-black/60 backdrop-blur-xl border border-white/20 p-2.5 rounded-xl text-white transition-all shadow-2xl active:scale-95 ${isLocating ? 'opacity-70 cursor-not-allowed' : 'hover:bg-white/10'}`}
           title="My Location"
         >
-          <LocateFixed size={18} />
+          <LocateFixed size={18} className={isLocating ? 'animate-spin text-sky-400' : ''} />
         </button>
+
+        {/* Error Toast for location failure */}
+        {locateError && (
+          <div className="bg-red-500/90 backdrop-blur-xl border border-red-400/30 px-3 py-2 rounded-xl text-white text-[11px] font-bold shadow-2xl max-w-[200px] leading-snug">
+            {locateError}
+          </div>
+        )}
       </div>
 
       {/* Address Sync Button */}

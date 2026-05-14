@@ -132,8 +132,9 @@ const BookingCard = ({
 
   const safePropertyType = propertyType || 'Room';
   const isTent = safePropertyType.toLowerCase().trim() === 'tent' || safePropertyType.toLowerCase().trim() === 'tents';
-  const unitName = isTent ? 'Tent' : 'Room';
-  const unitsName = isTent ? 'Tents' : 'Rooms';
+  const isDormitory = safePropertyType.toLowerCase().trim() === 'dormitory';
+  const unitName = isTent ? 'Tent' : isDormitory ? 'Bed' : 'Room';
+  const unitsName = isTent ? 'Tents' : isDormitory ? 'Beds' : 'Rooms';
 
   // Check if bulk booking is allowed for this property type
   const isBulkBookingAllowed = useMemo(() => {
@@ -277,7 +278,7 @@ const BookingCard = ({
     }
   }, [bookingType, availableRoomsList]);
 
-  // Auto-selection of units
+  // Auto-selection of units — always sync with selectedRooms count
   useEffect(() => {
     if (!availableRoomsList || availableRoomsList.length === 0) return;
 
@@ -285,14 +286,8 @@ const BookingCard = ({
     const requiredCount = bookingType === 'bulk' ? selectedRooms : 1;
 
     if (available.length > 0) {
-      setSelectedRoomIds(prev => {
-        const validSelected = prev.filter(id => available.some(a => a.id === id));
-        if (validSelected.length !== requiredCount) {
-          // Auto-select the first `requiredCount` available rooms
-          return available.slice(0, requiredCount).map(r => r.id);
-        }
-        return prev;
-      });
+      // Always force-select exactly requiredCount units from the available list
+      setSelectedRoomIds(available.slice(0, requiredCount).map(r => r.id));
     }
   }, [availableRoomsList, bookingType, selectedRooms]);
 
@@ -528,6 +523,8 @@ const BookingCard = ({
       fontWeight: '600',
       cursor: 'pointer',
       opacity: '1 !important',
+      userSelect: 'none',
+      pointerEvents: 'none',
       '&::placeholder': {
         color: '#ffffff !important',
         WebkitTextFillColor: '#ffffff !important',
@@ -640,7 +637,7 @@ const BookingCard = ({
               <div className="flex gap-1">
                 {/* Check-in */}
                 <div
-                  className="flex-1 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden cursor-pointer"
+                  className="flex-1 select-none bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!isCheckInOpen) {
@@ -649,7 +646,7 @@ const BookingCard = ({
                     }
                   }}
                 >
-                  <div className="px-1 pt-2 pb-1">
+                  <div className="px-1 pt-2 pb-1 relative">
                     <p className="text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">Check-in</p>
                     <DatePicker
                       value={checkIn}
@@ -687,12 +684,13 @@ const BookingCard = ({
                       }}
                       sx={datePickerSx}
                     />
+                    <div className="absolute inset-0 z-10" />
                   </div>
                 </div>
 
                 {/* Check-out */}
                 <div
-                  className="flex-1 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden cursor-pointer"
+                  className="flex-1 select-none bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors overflow-hidden cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!isCheckOutOpen) {
@@ -701,7 +699,7 @@ const BookingCard = ({
                     }
                   }}
                 >
-                  <div className="px-1 pt-2 pb-1">
+                  <div className="px-1 pt-2 pb-1 relative">
                     <p className="text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">Check-out</p>
                     <DatePicker
                       value={checkOut}
@@ -731,6 +729,7 @@ const BookingCard = ({
                       }}
                       sx={datePickerSx}
                     />
+                    <div className="absolute inset-0 z-10" />
                   </div>
                 </div>
               </div>
@@ -925,9 +924,9 @@ const BookingCard = ({
                     ))}
                   </div>
 
-                  {bookingType === 'bulk' && selectedRoomIds.length > 0 && (
+                  {selectedRoomIds.length > 0 && (
                     <p className="text-[10px] text-sky-400 font-semibold mt-1">
-                      {selectedRoomIds.length} units selected
+                      {selectedRoomIds.length} {selectedRoomIds.length === 1 ? unitName.toLowerCase() : unitsName.toLowerCase()} selected
                     </p>
                   )}
                 </div>

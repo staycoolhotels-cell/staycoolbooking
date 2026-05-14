@@ -153,6 +153,10 @@ const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistory
                                         <span className="opacity-40">→</span>
                                         <span>{format(new Date(booking.check_out), 'MMM dd, yyyy')}</span>
                                     </div>
+                                    {/* Booked on date */}
+                                    <p className="text-[9px] text-zinc-600 mt-0.5">
+                                        Booked on {format(new Date(booking.created_at), 'MMM dd, yyyy')}
+                                    </p>
                                 </div>
 
                                 {/* Price & Status Area */}

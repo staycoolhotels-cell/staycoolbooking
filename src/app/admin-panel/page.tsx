@@ -102,7 +102,14 @@ export default async function AdminPanelPage() {
         service_fee: serviceFee,
         taxes: 0 // Default for now
       },
-      date: b.created_at ? new Date(b.created_at).toLocaleDateString() : 'N/A',
+      date: b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A',
+      bookingDate: b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : undefined,
+      cancellationDate: b.cancelled_at
+        ? new Date(b.cancelled_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : undefined,
+      refundDate: b.status === 'refunded' && b.cancelled_at
+        ? new Date(b.cancelled_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : undefined,
       rawDate: b.created_at,
       status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
               (b.status === 'refunded' ? 'refunded' : 'pending'),

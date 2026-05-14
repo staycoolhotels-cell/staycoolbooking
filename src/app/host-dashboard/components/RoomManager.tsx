@@ -25,6 +25,7 @@ interface RoomManagerProps {
 
 export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
     const isSingleUnit = ['Home Stay', 'Apartment', 'Villa'].includes(property.tier || property.type || '');
+    const isTent = (property.tier || property.type || '') === 'Tent';
 
     const [rooms, setRooms] = useState<Room[]>([]);
     const [loading, setLoading] = useState(true);
@@ -146,7 +147,9 @@ export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
                         <Icon name="QueueListIcon" size={16} className="text-indigo-400" />
                     </div>
                     <div>
-                        <h3 className="text-base md:text-lg font-black text-white leading-tight">Active Sub-Units</h3>
+                        <h3 className="text-base md:text-lg font-black text-white leading-tight">
+                            {isTent ? 'Active Tents' : 'Active Sub-Units'}
+                        </h3>
                         <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest leading-tight">Total Count: {rooms.length}</p>
                     </div>
                 </div>
@@ -154,7 +157,7 @@ export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
                     onClick={() => setIsAdding(!isAdding)}
                     className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold uppercase tracking-widest text-white transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] border border-indigo-500/50 shrink-0"
                 >
-                    <Icon name={isAdding ? "XMarkIcon" : "PlusIcon"} size={14} /> <span className="hidden sm:inline">{isAdding ? 'Cancel' : 'Deploy Unit'}</span><span className="sm:hidden">{isAdding ? 'X' : 'Deploy'}</span>
+                    <Icon name={isAdding ? "XMarkIcon" : "PlusIcon"} size={14} /> <span className="hidden sm:inline">{isAdding ? 'Cancel' : (isTent ? 'Deploy Tent' : 'Deploy Unit')}</span><span className="sm:hidden">{isAdding ? 'X' : 'Deploy'}</span>
                 </button>
             </div>
 
@@ -168,7 +171,7 @@ export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
                             type="text"
                             value={newRoomName}
                             onChange={(e) => setNewRoomName(e.target.value)}
-                            placeholder="Unit Identifier (e.g. 101, Suite A)"
+                            placeholder={isTent ? 'Tent Identifier (e.g. Tent 1, Deluxe Tent A)' : 'Unit Identifier (e.g. 101, Suite A)'}
                             className="w-full bg-black/50 border border-white/10 hover:border-indigo-500/50 rounded-xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-medium placeholder:text-zinc-600"
                         />
                     </div>
@@ -192,8 +195,15 @@ export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
                     {rooms.length === 0 && !isAdding && (
                         <div className="flex flex-col items-center justify-center py-8 md:py-12 bg-white/[0.02] border border-dashed border-white/10 rounded-xl md:rounded-2xl mx-1 md:mx-0">
                             <Icon name="SquaresPlusIcon" size={24} className="text-zinc-600 mb-2 md:mb-3" />
-                            <p className="text-xs md:text-sm font-bold text-white mb-1">No Sub-Units Deployed</p>
-                            <p className="text-[10px] md:text-xs text-zinc-500 text-center max-w-[200px] md:max-w-sm px-4">This asset is currently functioning as a single integrated unit. Deploy sub-units to subdivide the property.</p>
+                            <p className="text-xs md:text-sm font-bold text-white mb-1">
+                                {isTent ? 'No Tents Deployed' : 'No Sub-Units Deployed'}
+                            </p>
+                            <p className="text-[10px] md:text-xs text-zinc-500 text-center max-w-[200px] md:max-w-sm px-4">
+                                {isTent
+                                    ? 'No tents deployed yet. Add individual tents to manage them separately.'
+                                    : 'This asset is currently functioning as a single integrated unit. Deploy sub-units to subdivide the property.'
+                                }
+                            </p>
                         </div>
                     )}
 

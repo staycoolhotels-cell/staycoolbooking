@@ -34,12 +34,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: propError?.message || 'Failed to create property' }, { status: 500 });
     }
 
-    // Automatically create rooms if total_rooms > 0
+    // Automatically create sub-units (rooms) based on total_rooms
+    // Skip for single-unit property types where sub-unit management is not applicable
+    const singleUnitTypes = ['Home Stay', 'Apartment', 'Villa', 'Dormitory'];
+    const isSingleUnit = singleUnitTypes.includes(property.tier || '');
+    const isTent = property.tier === 'Tent';
     const totalRooms = property.total_rooms || 1;
-    if (totalRooms > 0) {
+    const unitLabel = isTent ? 'Tent' : 'Room';
+
+    if (!isSingleUnit && totalRooms > 0) {
       const roomsToInsert = Array.from({ length: totalRooms }).map((_, i) => ({
         property_id: property.id,
-        name: `Room ${i + 1}`,
+        name: `${unitLabel} ${i + 1}`,
         status: 'available'
       }));
 

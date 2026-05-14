@@ -546,8 +546,8 @@ const HostDashboardInteractive = ({
           formData.pan_url,
           formData.noc_url,
         ].filter(Boolean).length;
-        if (tentDocsCount < 1) {
-          alert('Tent property కోసం కనీసం Aadhaar Card upload చేయాలి. Please upload Aadhaar, PAN, or NOC document.');
+        if (tentDocsCount < 2) {
+          alert('Tent property కోసం కనీసం 2 documents upload చేయాలి (Aadhaar, PAN, లేదా NOC లో ఏవైనా 2).');
           return;
         }
       } else {

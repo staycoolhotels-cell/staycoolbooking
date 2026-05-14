@@ -30,6 +30,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
     }
 
+    // Sync sub-units (rooms) when total_rooms changes during edit
+    // Skip for single-unit property types where sub-unit management is not applicable
+    const singleUnitTypes = ['Home Stay', 'Apartment', 'Villa', 'Dormitory'];
+    const propertyTier = updatePayload.tier || data?.tier || '';
+    const isSingleUnit = singleUnitTypes.includes(propertyTier);
+    const isTent = propertyTier === 'Tent';
+    const unitLabel = isTent ? 'Tent' : 'Room';
+
+    if (!isSingleUnit && updatePayload.total_rooms && updatePayload.total_rooms > 0) {
+      const newTotalRooms = updatePayload.total_rooms;
+
+      // Get existing rooms count for this property
+      const { data: existingRooms } = await supabaseAdmin
+        .from('rooms')
+        .select('id, name')
+        .eq('property_id', propertyId)
+        .order('created_at', { ascending: true });
+
+      const existingCount = existingRooms?.length || 0;
+
+      // If new total is greater than existing, add the missing rooms
+      if (newTotalRooms > existingCount) {
+        const roomsToAdd = Array.from({ length: newTotalRooms - existingCount }).map((_, i) => ({
+          property_id: propertyId,
+          name: `${unitLabel} ${existingCount + i + 1}`,
+          status: 'available',
+        }));
+
+        const { error: roomsError } = await supabaseAdmin
+          .from('rooms')
+          .insert(roomsToAdd);
+
+        if (roomsError) {
+          console.error('API: Error syncing rooms on update:', roomsError);
+          // Property update was successful, rooms sync failure is non-critical
+        }
+      }
+    }
+
     // Invalidate caches to ensure home page and other lists reflect the update
     revalidateTag(CACHE_TAGS.properties);
     revalidatePath('/homepage', 'page');

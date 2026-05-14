@@ -76,8 +76,8 @@ export const generateInvoicePDF = async (t: Transaction) => {
   doc.text('Invoice#', 140, 76);
   doc.text('Date:', 140, 83);
   doc.setFont('helvetica', 'normal');
-  doc.text(`${invoiceId}`, 158, 76);
-  doc.text(`${t.date || new Date().toLocaleDateString()}`, 158, 83);
+  doc.text(`${invoiceId}`, 170, 76);
+  doc.text(`${t.date || new Date().toLocaleDateString()}`, 170, 83);
 
   // Optional Dates
   let currentY = 88;
@@ -152,13 +152,17 @@ export const generateInvoicePDF = async (t: Transaction) => {
 
   const finalY = (doc as any).lastAutoTable.finalY + 15;
 
-  // 4. Footer Summary & Info
-  doc.setTextColor(31, 33, 40);
-  doc.setFontSize(10);
+  // 4. Footer - Thank you section
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
   doc.setFont('helvetica', 'bold');
-  doc.text('Thank you for choosing STAY COOL', 16, finalY);
+  doc.text('THANK YOU FOR CHOOSING', 16, finalY);
+  doc.setFontSize(22);
+  doc.setTextColor(14, 165, 233); // Sky Blue
+  doc.text('STAY COOL', 16, finalY + 10);
 
   // Financial Breakdown on Right
+  doc.setFontSize(10);
   doc.setTextColor(31, 33, 40);
   doc.setFont('helvetica', 'bold');
   doc.text('Sub Total:', 140, finalY);
@@ -181,12 +185,74 @@ export const generateInvoicePDF = async (t: Transaction) => {
   doc.setTextColor(31, 33, 40);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
-  doc.text('Terms & Conditions', 16, finalY + 45);
+  doc.text('Terms & Conditions', 16, finalY + 35);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100);
+  doc.setTextColor(120);
   doc.setFontSize(7);
-  const terms = "1. Guest is responsible for property condition. 2. Cancellations must be made 72 hours prior for full refund. 3. StayCool is a platform provider and not a party to the stay contract. 4. Luxury services subject to availability.";
-  doc.text(terms, 16, finalY + 50, { maxWidth: 80 });
+
+  const term1 = "The guest is fully responsible for maintaining the property in good condition throughout the duration of their stay.";
+  const term2 = "All cancellations must be requested at least 72 hours prior to the check-in date to be eligible for a full refund.";
+  const term3 = "StayCool acts solely as a platform provider and is not a direct party to the accommodation contract between the guest and host.";
+  const term4 = "Availability of luxury services and amenities is subject to change without prior notice.";
+
+  const maxW = 100;
+  let termY = finalY + 41;
+  [term1, term2, term3, term4].forEach((term) => {
+    const lines = doc.splitTextToSize(term, maxW);
+    doc.text(lines, 16, termY);
+    termY += lines.length * 4 + 2;
+  });
+
+  // Stamp Badge in PDF
+  const stampX = 130;
+  const stampY = finalY + 45;
+
+  if (isRefund) {
+    try {
+      const loadImage = (url: string) => new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; 
+        img.onload = () => resolve(img);
+        img.onerror = (err) => reject(err);
+        img.src = url;
+      });
+      const refundStamp = await loadImage('/assets/images/refund-stamp.png');
+      doc.addImage(refundStamp, 'PNG', stampX, stampY - 10, 60, 25, undefined, 'FAST', -10);
+    } catch (e) {
+      console.error('Failed to load refund stamp', e);
+      // Fallback to text
+      doc.setDrawColor(244, 63, 94);
+      doc.setTextColor(244, 63, 94);
+      doc.setLineWidth(1.5);
+      doc.setFontSize(30);
+      doc.setFont('helvetica', 'bold');
+      doc.rect(stampX, stampY, 50, 18);
+      doc.text('REFUND', stampX + 25, stampY + 13, { align: 'center', angle: -10 } as any);
+    }
+  } else {
+    // Stamp Badge for PAID
+    try {
+      const loadImage = (url: string) => new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; 
+        img.onload = () => resolve(img);
+        img.onerror = (err) => reject(err);
+        img.src = url;
+      });
+      const paidStamp = await loadImage('/assets/images/paid-stamp.png');
+      doc.addImage(paidStamp, 'PNG', stampX, stampY - 10, 60, 25, undefined, 'FAST', -10);
+    } catch (e) {
+      console.error('Failed to load paid stamp', e);
+      // Fallback to text
+      doc.setDrawColor(16, 185, 129);
+      doc.setTextColor(16, 185, 129);
+      doc.setLineWidth(1.5);
+      doc.setFontSize(30);
+      doc.setFont('helvetica', 'bold');
+      doc.rect(stampX, stampY, 50, 18);
+      doc.text('PAID', stampX + 25, stampY + 13, { align: 'center', angle: -10 } as any);
+    }
+  }
 
   doc.save(`STAYCOOL_INV_${invoiceId}.pdf`);
 };

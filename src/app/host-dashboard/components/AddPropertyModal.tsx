@@ -478,11 +478,13 @@ const AddPropertyModal = ({
       }
 
       if (formData.type === 'Tent') {
-        const hasAadhar = formData.aadhar.length > 0 || formData.aadhar_url;
-        const hasPan = formData.pan.length > 0 || formData.pan_url;
-        const hasNoc = formData.noc.length > 0 || formData.noc_url;
-        if (!hasAadhar || !hasPan || !hasNoc) {
-          setErrorMessage("Please upload Aadhaar, PAN, and NOC for the Tent listing.");
+        const tentDocsCount = [
+          formData.aadhar.length > 0 || formData.aadhar_url,
+          formData.pan.length > 0 || formData.pan_url,
+          formData.noc.length > 0 || formData.noc_url,
+        ].filter(Boolean).length;
+        if (tentDocsCount < 2) {
+          setErrorMessage("Tent property కోసం కనీసం 2 documents upload చేయాలి (Aadhaar, PAN, లేదా NOC లో ఏవైనా 2).");
           return;
         }
       } else {
@@ -749,31 +751,36 @@ const AddPropertyModal = ({
                 <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
 
                   {/* Total Rooms / Units Input */}
-                  <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${['Home Stay', 'Apartment', 'Villa'].includes(formData.type) ? 'opacity-40 pointer-events-none' : ''}`}>
+                  <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(formData.type) ? 'opacity-40 pointer-events-none' : ''}`}>
                     <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
                       <Building2 className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
-                      <label htmlFor="totalRooms" className="block text-xs md:text-sm font-medium text-zinc-300">Total Rooms/Units</label>
+                      <label htmlFor="totalRooms" className="block text-xs md:text-sm font-medium text-zinc-300">
+                        {formData.type === 'Tent' ? 'Total Tents/Units' : 'Total Rooms/Units'}
+                      </label>
+                      {['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(formData.type) && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
                     </div>
                     <div className="flex justify-center">
                       <NumberInput
                         value={formData.totalRooms}
                         onChange={(val) => setFormData(prev => ({ ...prev, totalRooms: val }))}
                         min={1}
-                        disabled={['Home Stay', 'Apartment', 'Villa'].includes(formData.type)}
+                        disabled={['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(formData.type)}
                       />
                     </div>
-                    <p className="text-[10px] md:text-xs text-zinc-500 mt-1 text-center">For bulk bookings.</p>
+                    <p className="text-[10px] md:text-xs text-zinc-500 mt-1 text-center">
+                      {formData.type === 'Tent' ? 'For tent bookings.' : 'For bulk bookings.'}
+                    </p>
                   </div>
-                  <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
+                  <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${['Tent', 'Dormitory'].includes(formData.type) ? 'opacity-40 pointer-events-none' : ''}`}>
                     <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
                       <Home className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
                       <label htmlFor="bedrooms" className="block text-xs md:text-sm font-medium text-zinc-300">Bedrooms</label>
-                      {formData.type === 'Tent' && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
+                      {['Tent', 'Dormitory'].includes(formData.type) && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
                     </div>
                     <div className="flex justify-center">
                       <NumberInput
                         value={formData.bedrooms}
-                        onChange={(val) => formData.type !== 'Tent' && setFormData(prev => ({ ...prev, bedrooms: val }))}
+                        onChange={(val) => !['Tent', 'Dormitory'].includes(formData.type) && setFormData(prev => ({ ...prev, bedrooms: val }))}
                         min={0}
                       />
                     </div>
@@ -828,7 +835,7 @@ const AddPropertyModal = ({
                   <div className="bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50">
                     <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
                       <Users className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
-                      <label htmlFor="maxGuests" className="block text-xs md:text-sm font-medium text-zinc-300">Max Guests/per unit</label>
+                      <label htmlFor="maxGuests" className="block text-xs md:text-sm font-medium text-zinc-300">{formData.type === 'Dormitory' ? 'Max Guests/per bed' : 'Max Guests/per unit'}</label>
                     </div>
                     <div className="flex justify-center">
                       <NumberInput
@@ -1017,7 +1024,7 @@ const AddPropertyModal = ({
                   <>
                     <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
                       <p className="text-sm font-semibold text-amber-400">🏕️ Tent Property — Identity Documents Required</p>
-                      <p className="text-xs text-zinc-400 mt-1">Please upload your Aadhaar Card, PAN Card, and a No Objection Certificate (NOC) for the land/site.</p>
+                      <p className="text-xs text-zinc-400 mt-1">కనీసం <span className="text-amber-400 font-bold">2 documents</span> upload చేయాలి — Aadhaar Card, PAN Card, లేదా NOC (No Objection Certificate) లో ఏవైనా రెండు.</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                       <FileUploadField label="Aadhaar Card" name="aadhar" onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'aadhar')} fileName={formData.aadhar[0]?.name} currentUrl={formData.aadhar_url} />
