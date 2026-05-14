@@ -143,6 +143,9 @@ const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistory
                                         {booking.properties.title}
                                     </h3>
                                     <p className="text-[10px] text-zinc-500 truncate">{booking.properties.location}</p>
+                                    <p className="text-[10px] text-sky-400 font-medium truncate mt-0.5">
+                                        {booking.guests || 1} {(booking.guests || 1) === 1 ? 'Guest' : 'Guests'} • {booking.total_rooms_booked || 1} {(booking.total_rooms_booked || 1) === 1 ? (booking.properties.type?.toLowerCase().includes('tent') ? 'Tent' : 'Room') : (booking.properties.type?.toLowerCase().includes('tent') ? 'Tents' : 'Rooms')}
+                                    </p>
                                     
                                     {/* Dates — hidden on small mobile, show on sm+ */}
                                     <div className="hidden sm:flex items-center gap-2 text-[10px] text-zinc-600 mt-1">

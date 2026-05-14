@@ -438,9 +438,16 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
         <h3 className="text-lg font-bold text-text-primary mb-3">Booking Summary</h3>
         <div className="space-y-2">
           {bookingCart.map((p) => (
-            <div key={p.id} className="flex justify-between text-sm text-text-primary">
-              <span>{p.name || p.title}</span>
-              <span>₹{(p.price_per_night || p.price || 0).toLocaleString('en-IN')}</span>
+            <div key={p.id} className="flex flex-col gap-1">
+              <div className="flex justify-between text-sm text-text-primary">
+                <span>{p.name || p.title}</span>
+                <span>₹{(p.price_per_night || p.price || 0).toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between text-xs text-text-secondary">
+                <span>
+                  {filters.guests} {filters.guests === 1 ? 'Guest' : 'Guests'} • {effectiveRooms} {effectiveRooms === 1 ? unitName : unitsName}
+                </span>
+              </div>
             </div>
           ))}
           {selectedRooms.length > 0 && (

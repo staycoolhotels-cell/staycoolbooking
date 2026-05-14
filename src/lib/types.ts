@@ -244,6 +244,7 @@ export interface Booking {
   total_price: number;
   status: 'confirmed' | 'completed' | 'cancelled' | 'pending' | 'pending_payment' | 'refunded';
   guests: number;
+  total_rooms_booked?: number;
   created_at: string;
   cancelled_at?: string;
   has_free_cancellation?: boolean;

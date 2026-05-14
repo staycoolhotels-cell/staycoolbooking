@@ -327,6 +327,32 @@ const DynamicAmenityUpsell: React.FC = () => {
 
                     <div className="shrink-0 flex flex-col items-end">
                       <div className="flex items-center gap-3">
+                        {(() => {
+                          const linkedProperty = amenity.property_id 
+                            ? properties.find(p => p.id === amenity.property_id) 
+                            : null;
+                            
+                          if (amenity.property_id && linkedProperty) {
+                             return (
+                               <div className="flex flex-col items-end mr-1 md:mr-2">
+                                 <span className="text-[10px] md:text-xs font-bold text-white truncate max-w-[100px] md:max-w-[150px]">
+                                   {linkedProperty.title || linkedProperty.name || 'Unnamed Property'}
+                                 </span>
+                                 <span className="text-[8px] md:text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
+                                   {linkedProperty.type || linkedProperty.room_type || linkedProperty.tier || (linkedProperty as any).property_type || 'Property'}
+                                 </span>
+                               </div>
+                             );
+                          } else if (!amenity.property_id) {
+                             return (
+                               <div className="flex flex-col items-end mr-1 md:mr-2">
+                                 <span className="text-[10px] md:text-xs font-bold text-white">Global</span>
+                                 <span className="text-[8px] md:text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">All Properties</span>
+                               </div>
+                             );
+                          }
+                          return null;
+                        })()}
                         <button
                           onClick={() => triggerDelete(amenity.id)}
                           className="text-zinc-500 hover:text-red-500 transition-colors p-1"

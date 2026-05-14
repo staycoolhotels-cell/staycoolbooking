@@ -117,15 +117,25 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                 </div>
                             </div>
 
-                            {/* Guests */}
+                            {/* Guests & Units */}
                             <div className="bg-zinc-900/50 p-3 rounded-xl border border-white/5">
-                                <h4 className="text-[10px] font-medium text-zinc-400 mb-2 uppercase tracking-wider">Guests</h4>
-                                <div className="flex items-center gap-2 text-white">
-                                    <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400">
-                                        <Icon name="UserIcon" size={16} />
+                                <h4 className="text-[10px] font-medium text-zinc-400 mb-2 uppercase tracking-wider">Booking Size</h4>
+                                <div className="flex items-center gap-4 text-white">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400">
+                                            <Icon name="UserIcon" size={16} />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-semibold">{booking.guests || 1} {(booking.guests || 1) === 1 ? 'Guest' : 'Guests'}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-xs font-semibold">{booking.guests} Guests</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400">
+                                            <Icon name="HomeIcon" size={16} />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-semibold">{booking.total_rooms_booked || 1} {(booking.total_rooms_booked || 1) === 1 ? (booking.properties.type?.toLowerCase().includes('tent') ? 'Tent' : 'Room') : (booking.properties.type?.toLowerCase().includes('tent') ? 'Tents' : 'Rooms')}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

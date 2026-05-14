@@ -34,6 +34,7 @@ interface BookingCardProps {
   rating?: number;
   reviewCount?: number;
   propertyType?: string;
+  maxGuests?: number;
 }
 
 const BookingCard = ({
@@ -49,6 +50,7 @@ const BookingCard = ({
   rating = 0,
   reviewCount = 0,
   propertyType = 'Room',
+  maxGuests = 2,
 }: BookingCardProps) => {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
@@ -293,6 +295,16 @@ const BookingCard = ({
       });
     }
   }, [availableRoomsList, bookingType, selectedRooms]);
+
+  // Auto-update guests when selected units change
+  useEffect(() => {
+    const requiredCount = bookingType === 'bulk' ? selectedRoomIds.length : 1;
+    // Update guests to the maximum allowed for the selected units
+    // or just multiply maxGuests by number of selected units.
+    if (requiredCount > 0) {
+      setGuests(maxGuests * requiredCount);
+    }
+  }, [selectedRoomIds.length, bookingType, maxGuests]);
 
   // Reset free cancellation if check-in is NOT today (same-day only feature)
   useEffect(() => {
@@ -668,6 +680,8 @@ const BookingCard = ({
                         textField: {
                           size: 'small',
                           placeholder: 'DD MM YYYY',
+                          onKeyDown: (e: React.KeyboardEvent) => e.preventDefault(),
+                          inputProps: { readOnly: true },
                         },
                         popper: { sx: popperSx }
                       }}
@@ -710,6 +724,8 @@ const BookingCard = ({
                         textField: {
                           size: 'small',
                           placeholder: 'DD MM YYYY',
+                          onKeyDown: (e: React.KeyboardEvent) => e.preventDefault(),
+                          inputProps: { readOnly: true },
                         },
                         popper: { sx: popperSx }
                       }}
@@ -755,8 +771,9 @@ const BookingCard = ({
                         </button>
                         <span className="w-4 text-center text-sm font-medium text-white">{guests}</span>
                         <button
-                          onClick={(e) => { e.stopPropagation(); setGuests(Math.min(10 + (selectedRooms * 2), guests + 1)); }}
-                          className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 transition-colors"
+                          onClick={(e) => { e.stopPropagation(); setGuests(Math.min(maxGuests * (bookingType === 'bulk' ? Math.max(selectedRooms, selectedRoomIds.length) : 1), guests + 1)); }}
+                          disabled={guests >= maxGuests * (bookingType === 'bulk' ? Math.max(selectedRooms, selectedRoomIds.length) : 1)}
+                          className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
                         >
                           <Icon name="PlusIcon" size={12} />
                         </button>
@@ -851,6 +868,7 @@ const BookingCard = ({
                       <div
                         key={room.id}
                         onClick={() => {
+                          if (bookingType === 'bulk') return;
                           if (!room.is_available) return;
                           if (bookingType === 'single') {
                             setSelectedRoomIds([room.id]);
@@ -865,9 +883,9 @@ const BookingCard = ({
                         className={`flex items-center justify-between p-3 rounded-xl border transition-all ${selectedRoomIds.includes(room.id)
                           ? 'bg-sky-500/15 border-sky-500 shadow-lg shadow-sky-900/20'
                           : room.is_available
-                            ? 'bg-gray-900/40 border-gray-700/50 hover:border-sky-500/30 hover:bg-gray-800/60 cursor-pointer'
+                            ? `bg-gray-900/40 border-gray-700/50 ${bookingType === 'single' ? 'hover:border-sky-500/30 hover:bg-gray-800/60 cursor-pointer' : ''}`
                             : 'bg-red-950/5 border-red-900/20 opacity-50 cursor-not-allowed pointer-events-none'
-                          }`}
+                          } ${bookingType === 'bulk' ? 'cursor-default pointer-events-none' : ''}`}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all ${selectedRoomIds.includes(room.id)
@@ -1007,7 +1025,7 @@ const BookingCard = ({
                   Offline
                 </div>
               ) : isBookable
-                ? (nights ? (bookingType === 'bulk' ? 'Request Bulk Booking' : 'Reserve') : 'Select dates')
+                ? (nights ? (bookingType === 'bulk' ? 'Bulk booking' : 'Reserve') : 'Select dates')
                 : unavailableMessage}
             </button>
 

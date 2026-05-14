@@ -108,8 +108,10 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
             type="date"
             value={checkIn}
             onChange={(e) => setCheckIn(e.target.value)}
+            onKeyDown={(e) => e.preventDefault()}
+            onClick={(e) => e.currentTarget.showPicker()}
             min={new Date().toISOString().split('T')[0]}
-            className="w-full px-4 py-3 bg-slate-800/80 rounded-full focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400 [color-scheme:dark]"
+            className="w-full px-4 py-3 bg-slate-800/80 rounded-full focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400 [color-scheme:dark] cursor-pointer"
           />
         </div>
         <div className="lg:col-span-2">
@@ -120,8 +122,10 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
             type="date"
             value={checkOut}
             onChange={(e) => setCheckOut(e.target.value)}
+            onKeyDown={(e) => e.preventDefault()}
+            onClick={(e) => e.currentTarget.showPicker()}
             min={checkIn || new Date().toISOString().split('T')[0]}
-            className="w-full px-4 py-3 bg-slate-800/80 rounded-full focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400 [color-scheme:dark]"
+            className="w-full px-4 py-3 bg-slate-800/80 rounded-full focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400 [color-scheme:dark] cursor-pointer"
           />
         </div>
         <div className="lg:col-span-2 relative">

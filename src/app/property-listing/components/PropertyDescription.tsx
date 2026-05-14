@@ -54,7 +54,7 @@ const PropertyDescription = ({
     { icon: 'Bed', label: 'Beds', value: beds },
     { icon: 'Bath', label: 'Bathrooms', value: bathrooms },
     { icon: 'Square3Stack3DIcon', label: 'Area', value: `${area} sq ft` },
-    { icon: 'UserGroupIcon', label: 'Guests', value: maxGuests },
+    { icon: 'UserGroupIcon', label: 'Guests/per unit', value: maxGuests },
     { icon: 'ArrowRightEndOnRectangleIcon', label: 'Check-in', value: checkInTime || '12:00 PM' },
     { icon: 'ArrowLeftStartOnRectangleIcon', label: 'Check-out', value: checkOutTime || '11:00 AM' },
   ];
@@ -88,9 +88,9 @@ const PropertyDescription = ({
             <div className="w-8 h-8 sm:w-12 sm:h-12 mb-1 sm:mb-2 rounded-full bg-white/[0.03] flex items-center justify-center group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300 border border-white/5 group-hover:border-primary/30">
               <Icon name={feature.icon as string} size={24} className="text-white/60 group-hover:text-primary transition-colors w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div className="text-center w-full">
-              <p className="text-[7px] sm:text-[8px] md:text-[9px] font-medium text-white/40 tracking-tight uppercase leading-tight px-0.5 whitespace-nowrap">{feature.label}</p>
-              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-white mt-0.5 sm:mt-1 px-0.5 whitespace-nowrap leading-tight">{feature.value}</p>
+            <div className="text-center w-full overflow-hidden">
+              <p className="text-[7px] sm:text-[8px] md:text-[9px] font-medium text-white/40 tracking-tight uppercase leading-tight px-0.5 break-words line-clamp-2">{feature.label}</p>
+              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-white mt-0.5 sm:mt-1 px-0.5 truncate leading-tight">{feature.value}</p>
             </div>
           </div>
         ))}

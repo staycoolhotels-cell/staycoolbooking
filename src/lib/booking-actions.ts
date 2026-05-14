@@ -271,6 +271,12 @@ export async function createBooking(bookingDetails: {
       return { error: `Booking Error: ${error.message}` };
     }
 
+    // Update guests separately since RPC doesn't take guests parameter
+    if (data && guests) {
+      const adminSupabase = createServiceClient();
+      await adminSupabase.from('bookings').update({ guests }).eq('id', data);
+    }
+
     // Process amenities for tracking
     if (amenities && amenities.length > 0) {
       const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });

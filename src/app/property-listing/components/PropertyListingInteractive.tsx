@@ -469,6 +469,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                   rating={propertyData.rating}
                   reviewCount={propertyData.reviewCount}
                   propertyType={propertyData.propertyType}
+                  maxGuests={propertyData.maxGuests}
                 />
               </div>
             </div>
@@ -514,6 +515,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                   rating={propertyData.rating}
                   reviewCount={propertyData.reviewCount}
                   propertyType={propertyData.propertyType}
+                  maxGuests={propertyData.maxGuests}
                 />
               </div>
             </div>

@@ -828,7 +828,7 @@ const AddPropertyModal = ({
                   <div className="bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50">
                     <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
                       <Users className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
-                      <label htmlFor="maxGuests" className="block text-xs md:text-sm font-medium text-zinc-300">Max Guests</label>
+                      <label htmlFor="maxGuests" className="block text-xs md:text-sm font-medium text-zinc-300">Max Guests/per unit</label>
                     </div>
                     <div className="flex justify-center">
                       <NumberInput
