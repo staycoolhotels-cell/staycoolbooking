@@ -358,16 +358,31 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
                            {booking.properties?.title || 'Property'}
                          </p>
                       </div>
-                      <div
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${
-                          booking.status === 'confirmed'
-                            ? 'bg-success/20 text-success border-success/30'
-                            : booking.status === 'pending_payment'
-                            ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
-                            : 'bg-warning/20 text-warning border-warning/30'
-                        }`}
-                      >
-                        {booking.status.replace('_', ' ')}
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 text-zinc-500">
+                          <Icon name="UsersIcon" size={10} className="text-zinc-500" />
+                          <span className="text-[9px] font-bold">{booking.guests}</span>
+                        </div>
+                        <div
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${
+                            booking.booking_type === 'bulk' 
+                              ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                              : 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
+                          }`}
+                        >
+                          {booking.booking_type === 'bulk' ? 'Bulk' : 'Normal'}
+                        </div>
+                        <div
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${
+                            booking.status === 'confirmed'
+                              ? 'bg-success/20 text-success border-success/30'
+                              : booking.status === 'pending_payment'
+                              ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                              : 'bg-warning/20 text-warning border-warning/30'
+                          }`}
+                        >
+                          {booking.status.replace('_', ' ')}
+                        </div>
                       </div>
                     </div>
                   </div>

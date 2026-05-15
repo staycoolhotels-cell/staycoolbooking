@@ -166,14 +166,14 @@ export default function AboutUsPage() {
           <p className="text-xs uppercase tracking-[0.3em] text-sky-400 font-bold mb-3 sm:mb-4">The People Behind Stay Cool</p>
           <h2 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold text-white">Meet the Team</h2>
         </motion.div>
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-5 sm:gap-10 max-w-2xl mx-auto">
+        <div className="flex justify-center max-w-2xl mx-auto">
           {/* Team Member 1 */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
             viewport={{ once: true }}
-            className="flex flex-col items-center text-center group"
+            className="flex flex-col items-center text-center group max-w-[280px] sm:max-w-xs"
           >
             <div className="relative w-full aspect-[4/5] rounded-2xl sm:rounded-3xl overflow-hidden mb-4 sm:mb-6 border border-zinc-800/50 shadow-2xl shadow-black/60 group-hover:border-sky-500/30 transition-all duration-500">
               <AppImage
@@ -188,30 +188,6 @@ export default function AboutUsPage() {
             <p className="text-sky-400 text-xs sm:text-sm font-medium tracking-wider uppercase mb-2 sm:mb-3">Founder</p>
             <p className="text-zinc-500 text-xs sm:text-sm leading-relaxed">
               Passionate about creating fair and transparent experiences for both hosts and guests.
-            </p>
-          </motion.div>
-
-          {/* Team Member 2 */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.15 }}
-            viewport={{ once: true }}
-            className="flex flex-col items-center text-center group"
-          >
-            <div className="relative w-full aspect-[4/5] rounded-2xl sm:rounded-3xl overflow-hidden mb-4 sm:mb-6 border border-zinc-800/50 shadow-2xl shadow-black/60 group-hover:border-sky-500/30 transition-all duration-500">
-              <AppImage
-                src="/assets/images/team-member-2.JPG"
-                alt="Co-founder"
-                fill={true}
-                objectFit="cover"
-                style={{ objectPosition: 'center top' }}
-              />
-            </div>
-            <h3 className="font-heading text-lg sm:text-2xl font-bold text-white mb-1">Mr. Suraj</h3>
-            <p className="text-sky-400 text-xs sm:text-sm font-medium tracking-wider uppercase mb-2 sm:mb-3">Founder</p>
-            <p className="text-zinc-500 text-xs sm:text-sm leading-relaxed">
-              Dedicated to building a platform that empowers hosts and delivers exceptional value to every traveller.
             </p>
           </motion.div>
         </div>

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import FinancialsList from './components/FinancialsList';
 import AdminPageHeader from '../components/AdminPageHeader';
 import { createAdminSupabaseClient } from '@/lib/admin-actions';
+import { getRefundPercentage } from '@/lib/refund-policy';
 
 const FinancialsPage = async () => {
   const cookieStore = await cookies();
@@ -74,6 +75,24 @@ const FinancialsPage = async () => {
     const guestLocation = locationMap[b.guest_id];
     const guestEmail = b.guest?.email;
     const guestAddress = [guestEmail, guestLocation].filter(Boolean).join('\n') || 'Address not provided';
+    
+    const isRefund = (b.status === 'cancelled' || b.status === 'refunded');
+    let cancellationLead = undefined;
+    let appliedPolicy = undefined;
+    let refundPercentage = undefined;
+
+    if (isRefund && b.cancelled_at && b.check_in) {
+      const policyResult = getRefundPercentage(
+        b.check_in,
+        b.cancelled_at,
+        b.created_at,
+        b.has_free_cancellation
+      );
+      cancellationLead = policyResult.daysBefore;
+      appliedPolicy = policyResult.policy;
+      refundPercentage = policyResult.percent;
+    }
+
     return {
       id: b.id,
       transactionId: `TXN-${b.id.slice(0, 8).toUpperCase()}`,
@@ -85,7 +104,11 @@ const FinancialsPage = async () => {
       date: b.created_at,
       status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
               (b.status === 'refunded' ? 'refunded' : 'pending'),
-      paymentMethod: 'Razorpay'
+      paymentMethod: 'Razorpay',
+      daysBeforeCheckIn: cancellationLead,
+      appliedPolicy: appliedPolicy,
+      refundPercentage: refundPercentage,
+      type: isRefund ? 'refund' : 'payment'
     };
   });
 

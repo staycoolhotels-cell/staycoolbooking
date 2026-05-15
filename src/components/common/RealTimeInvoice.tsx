@@ -28,7 +28,7 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
             <img src="/assets/images/logo.png" alt="StayCool Logo" className="h-10 w-auto object-contain" />
             <img src="/assets/Picsart_26-03-22_23-32-24-684.png" alt="Secondary Logo" className="h-10 w-auto object-contain" />
           </div>
-          <div className="text-right">
+          <div className="text-right pr-6">
             <h2 className="text-5xl font-black text-[#0ea5e9] tracking-tighter italic">
               {isRefund ? 'REFUND INVOICE' : 'INVOICE'}
             </h2>
@@ -72,6 +72,22 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
                   <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest">Refund Date:</p>
                   <p className="font-bold">{transaction.refundDate}</p>
                </div>
+             )}
+             {isRefund && (
+               <>
+                 {transaction.daysBeforeCheckIn !== undefined && (
+                   <div className="grid grid-cols-[140px_1fr] items-center text-amber-500 pt-1 border-t border-white/5">
+                      <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest">Cancellation Lead:</p>
+                      <p className="font-bold">{transaction.daysBeforeCheckIn} Days Before</p>
+                   </div>
+                 )}
+                 {transaction.appliedPolicy && (
+                   <div className="grid grid-cols-[140px_1fr] items-center text-sky-400">
+                      <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest">Applied Policy:</p>
+                      <p className="font-bold text-[10px] leading-tight">{transaction.appliedPolicy}</p>
+                   </div>
+                 )}
+               </>
              )}
         </div>
       </div>
@@ -128,7 +144,7 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-3">Terms & Conditions</p>
                <div className="space-y-2 max-w-[300px]">
                  <p className="text-[9px] leading-relaxed text-zinc-400">The guest is fully responsible for maintaining the property in good condition throughout the duration of their stay.</p>
-                 <p className="text-[9px] leading-relaxed text-zinc-400">All cancellations must be requested at least 72 hours prior to the check-in date to be eligible for a full refund.</p>
+                 <p className="text-[9px] leading-relaxed text-zinc-400">Refunds are processed according to the Tiered Refund Schedule based on cancellation timing relative to check-in.</p>
                  <p className="text-[9px] leading-relaxed text-zinc-400">StayCool acts solely as a platform provider and is not a direct party to the accommodation contract between the guest and host.</p>
                  <p className="text-[9px] leading-relaxed text-zinc-400">Availability of luxury services and amenities is subject to change without prior notice.</p>
                </div>

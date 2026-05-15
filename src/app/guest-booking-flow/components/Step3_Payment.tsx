@@ -134,14 +134,13 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
   const effectiveRooms = bookingType === 'bulk' ? roomCount : 1;
   const baseTotal = pricePerNight * nightCount * effectiveRooms;
 
-  // Calculate Bulk Discount
+  // Calculate Bulk Discount using property's custom discount
   let discount = 0;
+  const bulkDiscountPercentage = property?.bulk_booking_discount || 10; // Default to 10 if not set
+
   if (bookingType === 'bulk') {
-    if (effectiveRooms === totalRooms && totalRooms > 1) {
-      discount = baseTotal * 0.10; // 10%
-    } else if (effectiveRooms >= 5) {
-      discount = baseTotal * 0.05; // 5%
-    }
+    // If it's a bulk booking, apply the custom discount percentage
+    discount = baseTotal * (bulkDiscountPercentage / 100);
   }
 
   const discountedSubtotal = Math.max(0, baseTotal - discount);
@@ -182,6 +181,7 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
         guests: filters.guests,
         bookingType,
         roomCount: effectiveRooms,
+        bulkBookingDiscount: bookingType === 'bulk' ? bulkDiscountPercentage : 0,
         amenities: selectedAmenitiesList,
         selectedRoomIds: parsedRoomIds,
         hasFreeCancellation: filters.hasFreeCancellation,

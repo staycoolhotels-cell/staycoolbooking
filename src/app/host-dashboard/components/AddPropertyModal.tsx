@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Property } from '@/lib/types';
 import { AMENITIES, CATEGORIZED_AMENITIES, AmenityItem } from '@/lib/amenities';
-import { Plus, X, ChevronRight, ChevronLeft, Home, Sparkles, Layers, Users, Bed, Building2, CheckCircle, Bath, Clock, AlertCircle, ChevronDown, Palmtree, Tent, LayoutGrid, Castle, Trees, Building } from 'lucide-react';
+import { Plus, X, ChevronRight, ChevronLeft, Home, Sparkles, Layers, Users, Bed, Building2, CheckCircle, Bath, Clock, AlertCircle, ChevronDown, Palmtree, Tent, LayoutGrid, Castle, Trees, Building, BadgePercent } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient'; // Import supabase client
 import { NumberInput } from '@/components/ui/number-input';
@@ -59,6 +59,7 @@ export interface FormData {
   customAmenities: string[]; // New field for manually added amenities
   latitude?: number;
   longitude?: number;
+  bulkBookingDiscount: number | string;
 }
 
 interface AddPropertyModalProps {
@@ -118,6 +119,7 @@ const AddPropertyModal = ({
     customAmenities: [], // Initialize new field
     latitude: undefined,
     longitude: undefined,
+    bulkBookingDiscount: 10, // Default 10%
   });
   const [newCustomAmenity, setNewCustomAmenity] = useState('');
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
@@ -226,6 +228,7 @@ const AddPropertyModal = ({
           ?.map((a: any) => a.name) || [],
         latitude: propertyToEdit.latitude,
         longitude: propertyToEdit.longitude,
+        bulkBookingDiscount: propertyToEdit.bulk_booking_discount || 10,
       });
       setPhotoPreviews(initialPhotoUrls);
     } else {
@@ -273,6 +276,7 @@ const AddPropertyModal = ({
         customAmenities: [],
         latitude: undefined,
         longitude: undefined,
+        bulkBookingDiscount: 10,
       });
       setPhotoPreviews([]);
     }
@@ -1054,6 +1058,28 @@ const AddPropertyModal = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <InputField label="Price per Night (INR)" name="price" type="number" value={formData.price} onChange={handleInputChange} placeholder="e.g. 5000" />
                   <InputField label="Weekend Price per Night (INR)" name="weekendPrice" type="number" value={formData.weekendPrice} onChange={handleInputChange} placeholder="e.g. 7500" />
+                  
+                  {/* Bulk Booking Discount with +/- buttons */}
+                  <div className="bg-zinc-800 p-4 rounded-xl border border-zinc-700/50">
+                    <div className="flex items-center gap-2 mb-3">
+                      <BadgePercent className="w-4 h-4 text-sky-400" />
+                      <label className="block text-xs md:text-sm font-medium text-zinc-300">
+                        Bulk Booking Discount (%)
+                      </label>
+                      <span className="text-[10px] text-amber-400 font-bold uppercase tracking-tighter bg-amber-400/10 px-1.5 py-0.5 rounded">Max 10%</span>
+                    </div>
+                    <div className="flex justify-start">
+                      <NumberInput
+                        value={Number(formData.bulkBookingDiscount)}
+                        onChange={(val) => setFormData(prev => ({ ...prev, bulkBookingDiscount: val }))}
+                        min={1}
+                        max={10}
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mt-2">
+                      Discount applied when guests book multiple units.
+                    </p>
+                  </div>
                 </div>
                 <div className="p-6 bg-zinc-800 rounded-lg">
                   <p className="text-zinc-300">These are the prices guests will see for your property. You can adjust them at any time.</p>

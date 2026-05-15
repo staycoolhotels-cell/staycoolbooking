@@ -126,7 +126,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
 
       <div className="flex flex-col lg:flex-row lg:items-center justify-between p-5 md:p-8 gap-6 relative z-10">
         {/* Left: Guest & Property & Dates */}
-        <div className="flex flex-col sm:flex-row items-start gap-4 md:gap-6 flex-1 min-w-0">
+        <div className="flex flex-row flex-nowrap items-center sm:items-start gap-4 md:gap-6 flex-1 min-w-0">
           {/* Avatar Area */}
           <div className="relative shrink-0">
             <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/20 transition-all bg-zinc-900 shadow-2xl relative">
@@ -157,12 +157,34 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                 <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] rounded-lg border backdrop-blur-xl shrink-0 ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} ${statusStyles.shadow}`}>
                   {booking.status.replace('_', ' ')}
                 </span>
+                {booking.booking_type === 'bulk' ? (
+                  <span className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.15)]">
+                    Bulk {booking.bulk_booking_discount || booking.properties?.bulk_booking_discount ? `(${booking.bulk_booking_discount || booking.properties?.bulk_booking_discount}%)` : ''}
+                  </span>
+                ) : (
+                  <span className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
+                    Normal Booking
+                  </span>
+                )}
               </div>
               
-              <p className="text-xs md:text-sm text-zinc-400 font-bold truncate flex items-center gap-2">
-                <Icon name="HomeIcon" size={14} className="text-indigo-400/70 shrink-0" /> 
-                <span className="truncate opacity-80">{booking.properties?.title || booking.properties?.name || 'Property'}</span>
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                <p className="text-xs md:text-sm text-zinc-400 font-bold truncate flex items-center gap-2">
+                  <Icon name="HomeIcon" size={14} className="text-indigo-400/70 shrink-0" /> 
+                  <span className="truncate opacity-80">{booking.properties?.title || booking.properties?.name || 'Property'}</span>
+                </p>
+
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5 text-zinc-400">
+                    <Icon name="UsersIcon" size={14} className="text-indigo-400/70" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider">{booking.guests} {booking.guests === 1 ? 'Guest' : 'Guests'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-zinc-400">
+                    <Icon name="HomeModernIcon" size={14} className="text-indigo-400/70" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider">{booking.total_rooms_booked || 1} {(booking.total_rooms_booked || 1) === 1 ? 'Room' : 'Rooms'}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Date Container */}

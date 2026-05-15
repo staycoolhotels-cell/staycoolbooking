@@ -35,6 +35,7 @@ interface BookingCardProps {
   reviewCount?: number;
   propertyType?: string;
   maxGuests?: number;
+  bulkBookingDiscount?: number;
 }
 
 const BookingCard = ({
@@ -51,6 +52,7 @@ const BookingCard = ({
   reviewCount = 0,
   propertyType = 'Room',
   maxGuests = 2,
+  bulkBookingDiscount = 10,
 }: BookingCardProps) => {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
@@ -75,7 +77,6 @@ const BookingCard = ({
     }
     return 2;
   });
-  const [isGuestOpen, setIsGuestOpen] = useState(false);
 
   // Bulk Booking State
   const [bookingType, setBookingType] = useState<'single' | 'bulk'>(() => {
@@ -92,7 +93,6 @@ const BookingCard = ({
     }
     return 1;
   });
-  const [isRoomOpen, setIsRoomOpen] = useState(false);
   const [availableRooms, setAvailableRooms] = useState<number>(totalRooms);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -348,10 +348,14 @@ const BookingCard = ({
   // Discounts
   let discount = 0;
   if (bookingType === 'bulk') {
-    if (roomsToBook === totalRooms && totalRooms > 1) {
-      discount = baseTotal * 0.10; // 10% off for entire property
-    } else if (roomsToBook >= 5) {
-      discount = baseTotal * 0.05; // 5% off for 5+ rooms
+    if (bulkBookingDiscount !== undefined) {
+      discount = baseTotal * (bulkBookingDiscount / 100);
+    } else {
+      if (roomsToBook === totalRooms && totalRooms > 1) {
+        discount = baseTotal * 0.10; // 10% off for entire property
+      } else if (roomsToBook >= 5) {
+        discount = baseTotal * 0.05; // 5% off for 5+ rooms
+      }
     }
   }
 
@@ -735,69 +739,40 @@ const BookingCard = ({
               </div>
 
               {/* Guest Input */}
-              <div className="relative">
-                <div
-                  className="p-3 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors cursor-pointer flex justify-between items-center group"
-                  onClick={() => setIsGuestOpen(!isGuestOpen)}
-                >
-                  <div>
-                    <label className="block text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">
-                      Guests
-                    </label>
-                    <div className="text-sm font-medium text-white">
-                      {guests} {guests === 1 ? 'guest' : 'guests'}
-                    </div>
+              <div className="p-3 bg-gray-900/80 border border-gray-700/60 rounded-xl flex justify-between items-center group">
+                <div>
+                  <label className="block text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">
+                    Guests
+                  </label>
+                  <div className="text-sm font-medium text-white">
+                    {guests} {guests === 1 ? 'guest' : 'guests'}
                   </div>
-                  <Icon
-                    name="ChevronDownIcon"
-                    size={16}
-                    className={`text-gray-400 transition-transform duration-300 ${isGuestOpen ? 'rotate-180' : ''}`}
-                  />
                 </div>
-
-                {/* Dropdown */}
-                {isGuestOpen && (
-                  <div className="absolute top-full mt-2 left-0 right-0 bg-zinc-900 border border-sky-900/50 p-4 shadow-xl rounded-xl z-50">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-white">Guests</span>
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setGuests(Math.max(1, guests - 1)); }}
-                          disabled={guests <= 1}
-                          className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
-                        >
-                          <Icon name="MinusIcon" size={12} />
-                        </button>
-                        <span className="w-4 text-center text-sm font-medium text-white">{guests}</span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setGuests(Math.min(maxGuests * (bookingType === 'bulk' ? Math.max(selectedRooms, selectedRoomIds.length) : 1), guests + 1)); }}
-                          disabled={guests >= maxGuests * (bookingType === 'bulk' ? Math.max(selectedRooms, selectedRoomIds.length) : 1)}
-                          className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
-                        >
-                          <Icon name="PlusIcon" size={12} />
-                        </button>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setIsGuestOpen(false)}
-                      className="w-full mt-4 text-sm font-semibold underline text-right text-gray-400 hover:text-white"
-                    >
-                      Close
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setGuests(Math.max(1, guests - 1))}
+                    disabled={guests <= 1}
+                    className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
+                  >
+                    <Icon name="MinusIcon" size={12} />
+                  </button>
+                  <button
+                    onClick={() => setGuests(Math.min(maxGuests * (bookingType === 'bulk' ? Math.max(selectedRooms, selectedRoomIds.length) : 1), guests + 1))}
+                    disabled={guests >= maxGuests * (bookingType === 'bulk' ? Math.max(selectedRooms, selectedRoomIds.length) : 1)}
+                    className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
+                  >
+                    <Icon name="PlusIcon" size={12} />
+                  </button>
+                </div>
               </div>
 
               {/* Rooms Input (Only for Bulk) */}
               {bookingType === 'bulk' && (
-                <div className="relative">
-                  <div
-                    className="p-3 bg-gray-900/80 border border-gray-700/60 rounded-xl hover:border-sky-500/40 transition-colors cursor-pointer flex justify-between items-center group"
-                    onClick={() => setIsRoomOpen(!isRoomOpen)}
-                  >
+                <div className="space-y-2">
+                  <div className="p-3 bg-gray-900/80 border border-gray-700/60 rounded-xl flex justify-between items-center group">
                     <div>
                       <label className="block text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">
-                        {unitsName}
+                        {unitsName} to Book
                       </label>
                       <div className="text-sm font-medium text-white">
                         {selectedRooms} {selectedRooms === 1 ? unitName.toLowerCase() : unitsName.toLowerCase()}
@@ -808,50 +783,31 @@ const BookingCard = ({
                         )}
                       </div>
                     </div>
-                    <Icon
-                      name="ChevronDownIcon"
-                      size={16}
-                      className={`text-gray-400 transition-transform duration-300 ${isRoomOpen ? 'rotate-180' : ''}`}
-                    />
-                  </div>
-
-                  {isRoomOpen && (
-                    <div className="absolute top-full mt-2 left-0 right-0 bg-zinc-900 border border-sky-900/50 p-4 shadow-xl rounded-xl z-50">
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-sm font-medium text-white">{unitsName} to Book</span>
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setSelectedRooms(Math.max(1, selectedRooms - 1)); }}
-                            disabled={selectedRooms <= 1}
-                            className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
-                          >
-                            <Icon name="MinusIcon" size={12} />
-                          </button>
-                          <span className="w-4 text-center text-sm font-medium text-white">{selectedRooms}</span>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setSelectedRooms(Math.min(availableRooms, selectedRooms + 1)); }}
-                            disabled={selectedRooms >= availableRooms}
-                            className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
-                          >
-                            <Icon name="PlusIcon" size={12} />
-                          </button>
-                        </div>
-                      </div>
-
+                    <div className="flex items-center gap-3">
                       <button
-                        onClick={() => { setSelectedRooms(availableRooms); setIsRoomOpen(false); }}
-                        className="w-full py-2 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 hover:text-sky-300 rounded-lg text-sm font-semibold transition-colors mb-2"
+                        onClick={() => setSelectedRooms(Math.max(1, selectedRooms - 1))}
+                        disabled={selectedRooms <= 1}
+                        className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
                       >
-                        Book All Available Units ({availableRooms} {unitsName.toLowerCase()})
+                        <Icon name="MinusIcon" size={12} />
                       </button>
-
                       <button
-                        onClick={() => setIsRoomOpen(false)}
-                        className="w-full mt-2 text-sm font-semibold underline text-right text-gray-400 hover:text-white"
+                        onClick={() => setSelectedRooms(Math.min(availableRooms, selectedRooms + 1))}
+                        disabled={selectedRooms >= availableRooms}
+                        className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
                       >
-                        Close
+                        <Icon name="PlusIcon" size={12} />
                       </button>
                     </div>
+                  </div>
+                  
+                  {availableRooms > 1 && selectedRooms < availableRooms && (
+                    <button
+                      onClick={() => setSelectedRooms(availableRooms)}
+                      className="w-full py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 hover:text-sky-300 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all border border-sky-500/20"
+                    >
+                      Book All Available {unitsName} ({availableRooms})
+                    </button>
                   )}
                 </div>
               )}

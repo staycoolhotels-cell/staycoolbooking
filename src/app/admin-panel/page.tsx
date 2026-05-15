@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { getUsersData, syncAndFetchUsers, getAdminThreads } from '@/lib/admin-actions';
 import { createAdminSupabaseClient } from '@/lib/admin-actions';
 import { Suspense } from 'react';
+import { getRefundPercentage } from '@/lib/refund-policy';
 
 export const metadata: Metadata = {
   title: 'Admin Panel - StayCool',
@@ -85,6 +86,23 @@ export default async function AdminPanelPage() {
     const guestEmail = b.guest?.email;
     const guestAddress = [guestEmail, guestLocation].filter(Boolean).join('\n') || 'Address not provided';
     
+    const isRefund = (b.status === 'cancelled' || b.status === 'refunded');
+    let cancellationLead = undefined;
+    let appliedPolicy = undefined;
+    let refundPercentage = undefined;
+
+    if (isRefund && b.cancelled_at && b.check_in) {
+      const policyResult = getRefundPercentage(
+        b.check_in,
+        b.cancelled_at,
+        b.created_at,
+        b.has_free_cancellation
+      );
+      cancellationLead = policyResult.daysBefore;
+      appliedPolicy = policyResult.policy;
+      refundPercentage = policyResult.percent;
+    }
+
     return {
       id: b.id,
       transactionId: `TXN-${b.id.slice(0, 8).toUpperCase()}`,
@@ -95,8 +113,7 @@ export default async function AdminPanelPage() {
       amount: amount,
       serviceFee: serviceFee,
       netRevenue: netRevenue,
-      type: (b.status === 'confirmed' || b.status === 'completed') ? 'payment' : 
-            (b.status === 'cancelled' || b.status === 'refunded') ? 'refund' : 'other',
+      type: isRefund ? 'refund' : 'payment',
       breakdown: {
         accommodation: amount - serviceFee,
         service_fee: serviceFee,
@@ -110,6 +127,9 @@ export default async function AdminPanelPage() {
       refundDate: b.status === 'refunded' && b.cancelled_at
         ? new Date(b.cancelled_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })
         : undefined,
+      daysBeforeCheckIn: cancellationLead,
+      appliedPolicy: appliedPolicy,
+      refundPercentage: refundPercentage,
       rawDate: b.created_at,
       status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
               (b.status === 'refunded' ? 'refunded' : 'pending'),

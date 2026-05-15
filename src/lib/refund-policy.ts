@@ -18,12 +18,14 @@ export function getRefundPercentage(
   cancellationDate: string | Date, 
   bookingDate?: string | Date,
   hasFreeCancellation: any = false
-): number {
+): { percent: number; policy: string; daysBefore: number } {
   const cancellation = new Date(cancellationDate);
   const checkIn = new Date(checkInDate);
   const booking = bookingDate ? new Date(bookingDate) : null;
   
   const isFreeCancellationActive = hasFreeCancellation === true || hasFreeCancellation === 1 || hasFreeCancellation === 'true' || hasFreeCancellation === '1';
+
+  const daysBefore = differenceInDays(startOfDay(checkIn), startOfDay(cancellation));
 
   // 1. If Free Cancellation is Active
   if (isFreeCancellationActive) {
@@ -32,7 +34,7 @@ export function getRefundPercentage(
       const msSinceBooking = cancellation.getTime() - booking.getTime();
       const hoursSinceBooking = msSinceBooking / (1000 * 60 * 60);
       if (hoursSinceBooking >= 0 && hoursSinceBooking <= 6) {
-          return 100;
+          return { percent: 100, policy: 'Free Cancellation (Grace Period)', daysBefore };
       }
     }
 
@@ -40,20 +42,21 @@ export function getRefundPercentage(
     const msUntilCheckIn = checkIn.getTime() - cancellation.getTime();
     const hoursUntilCheckIn = msUntilCheckIn / (1000 * 60 * 60);
     if (hoursUntilCheckIn >= 6) {
-        return 100;
+        return { percent: 100, policy: 'Free Cancellation (Window Period)', daysBefore };
     }
 
     // C. Fallback for Free Cancellation users: If they miss the window, they follow the tiered policy
-    const daysUntilCheckIn = Math.floor((checkIn.getTime() - cancellation.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysUntilCheckIn >= 10) return 100;
-    if (daysUntilCheckIn >= 5) return 70;
-    if (daysUntilCheckIn >= 2) return 50;
-    return 30;
+    if (daysBefore >= 10) return { percent: 100, policy: 'Tiered Policy (10+ Days)', daysBefore };
+    if (daysBefore >= 5) return { percent: 70, policy: 'Tiered Policy (5-10 Days)', daysBefore };
+    if (daysBefore >= 2) return { percent: 50, policy: 'Tiered Policy (2-5 Days)', daysBefore };
+    return { percent: 30, policy: 'Tiered Policy (< 2 Days)', daysBefore };
   }
 
-  // 2. Normal Booking (No Free Cancellation)
-  // ALWAYS 50% Refund, regardless of timing.
-  return 50;
+  // 2. Normal Booking (No Free Cancellation) - Follows Tiered Schedule
+  if (daysBefore >= 10) return { percent: 100, policy: 'Standard (10+ Days Before)', daysBefore };
+  if (daysBefore >= 5) return { percent: 70, policy: 'Standard (5-10 Days Before)', daysBefore };
+  if (daysBefore >= 2) return { percent: 50, policy: 'Standard (2-5 Days Before)', daysBefore };
+  return { percent: 30, policy: 'Standard (< 2 Days Before)', daysBefore };
 }
 
 
@@ -86,7 +89,7 @@ export function calculateRefundDistribution(
   // 3. The amount available after platform fee and commission
   const netRefundablePool = basePrice - commissionAmount;
 
-  const guestRefundPercent = getRefundPercentage(checkInDate, cancellationDate, bookingDate, hasFreeCancellation);
+  const { percent: guestRefundPercent, policy: appliedPolicy, daysBefore: daysBeforeCheckIn } = getRefundPercentage(checkInDate, cancellationDate, bookingDate, hasFreeCancellation);
   
   // Guest gets their percentage out of the net refundable pool
   const guestRefundAmount = (netRefundablePool * guestRefundPercent) / 100;
@@ -103,6 +106,8 @@ export function calculateRefundDistribution(
     adminShare: adminShareFromPenalty + commissionAmount + actualPlatformFee,
     totalRetained: totalPrice - guestRefundAmount,
     guestRefundPercent,
+    appliedPolicy,
+    daysBeforeCheckIn,
     basePrice,
     platformFee: actualPlatformFee,
     commissionAmount,
@@ -131,5 +136,9 @@ export function calculateRefundAmount(
   );
   return result.guestRefundAmount;
 }
+
+
+
+
 
 

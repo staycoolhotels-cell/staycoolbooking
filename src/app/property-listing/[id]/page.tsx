@@ -302,7 +302,8 @@ export default async function PropertyListingPage({ params }: { params: Promise<
             { name: 'Location', score: calculateAverage(reviews || [], 'location_rating'), icon: 'MapIcon' },
             { name: 'Value', score: calculateAverage(reviews || [], 'value_rating'), icon: 'TagIcon' }
         ],
-        badges: ['Great hospitality', 'Clean', 'Great communication', 'Quiet area', 'Value for money']
+        badges: ['Great hospitality', 'Clean', 'Great communication', 'Quiet area', 'Value for money'],
+        bulkBookingDiscount: property.bulk_booking_discount || 10
     };
 
     const jsonLd = {

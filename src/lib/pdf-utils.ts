@@ -50,7 +50,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
   doc.setFontSize(32);
   doc.setFont('helvetica', 'bold');
   const title = isRefund ? 'REFUND INVOICE' : 'INVOICE';
-  doc.text(title, isRefund ? 115 : 145, 30);
+  doc.text(title, 194, 30, { align: 'right' });
 
   // 2. Info Section (Dark background continued for labels)
   doc.setFillColor(31, 33, 40);
@@ -103,6 +103,29 @@ export const generateInvoicePDF = async (t: Transaction) => {
     doc.text(`${t.refundDate}`, 170, currentY);
     currentY += 5;
   }
+  
+  if (isRefund) {
+    if (t.daysBeforeCheckIn !== undefined) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(245, 158, 11); // Amber-500 equivalent
+      doc.text('Cancellation Lead:', 140, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${t.daysBeforeCheckIn} Days Before`, 170, currentY);
+      currentY += 5;
+    }
+    if (t.appliedPolicy) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(14, 165, 233); // Sky-400 equivalent
+      doc.text('Applied Policy:', 140, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      const policyLines = doc.splitTextToSize(t.appliedPolicy, 35);
+      doc.text(policyLines, 170, currentY);
+      doc.setFontSize(9);
+    }
+  }
+
+  doc.setTextColor(255, 255, 255); // Reset color for later use if needed
 
   // 3. Table - Matches requested clean modern style
   const breakdown = t.breakdown || {
@@ -191,7 +214,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
   doc.setFontSize(7);
 
   const term1 = "The guest is fully responsible for maintaining the property in good condition throughout the duration of their stay.";
-  const term2 = "All cancellations must be requested at least 72 hours prior to the check-in date to be eligible for a full refund.";
+  const term2 = "Refunds are processed according to the Tiered Refund Schedule based on cancellation timing relative to check-in.";
   const term3 = "StayCool acts solely as a platform provider and is not a direct party to the accommodation contract between the guest and host.";
   const term4 = "Availability of luxury services and amenities is subject to change without prior notice.";
 

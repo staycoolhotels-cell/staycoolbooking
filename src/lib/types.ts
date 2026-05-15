@@ -70,6 +70,9 @@ export interface Transaction {
   bookingDate?: string;
   cancellationDate?: string;
   refundDate?: string;
+  daysBeforeCheckIn?: number;
+  appliedPolicy?: string;
+  refundPercentage?: number;
 }
 
 export interface User {
@@ -185,6 +188,7 @@ export interface Property {
   check_out_time?: string;
   latitude?: number;
   longitude?: number;
+  bulk_booking_discount?: number;
 }
 
 export interface Review {
@@ -245,6 +249,8 @@ export interface Booking {
   status: 'confirmed' | 'completed' | 'cancelled' | 'pending' | 'pending_payment' | 'refunded';
   guests: number;
   total_rooms_booked?: number;
+  booking_type?: 'single' | 'bulk';
+  bulk_booking_discount?: number;
   created_at: string;
   cancelled_at?: string;
   has_free_cancellation?: boolean;

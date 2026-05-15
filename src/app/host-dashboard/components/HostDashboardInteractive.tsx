@@ -635,6 +635,7 @@ const HostDashboardInteractive = ({
           latitude: formData.latitude,
           longitude: formData.longitude,
           show_specific_location: true,
+          bulk_booking_discount: Number(formData.bulkBookingDiscount) || 0,
           updated_at: new Date().toISOString(),
         };
 
@@ -706,6 +707,7 @@ const HostDashboardInteractive = ({
             latitude: formData.latitude || null,
             longitude: formData.longitude || null,
             show_specific_location: true,
+            bulk_booking_discount: Number(formData.bulkBookingDiscount) || 0,
           };
 
           console.log('Sending API request to create property:', propertyPayload);

@@ -144,6 +144,7 @@ interface PropertyData {
   checkOutTime?: string;
   categoryRatings?: { name: string; score: number; icon: string }[];
   badges?: string[];
+  bulkBookingDiscount?: number;
 }
 
 interface PropertyListingInteractiveProps {
@@ -470,6 +471,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                   reviewCount={propertyData.reviewCount}
                   propertyType={propertyData.propertyType}
                   maxGuests={propertyData.maxGuests}
+                  bulkBookingDiscount={propertyData.bulkBookingDiscount}
                 />
               </div>
             </div>
@@ -516,6 +518,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                   reviewCount={propertyData.reviewCount}
                   propertyType={propertyData.propertyType}
                   maxGuests={propertyData.maxGuests}
+                  bulkBookingDiscount={propertyData.bulkBookingDiscount}
                 />
               </div>
             </div>

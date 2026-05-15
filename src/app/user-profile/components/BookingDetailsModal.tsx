@@ -198,6 +198,20 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                     <span className={`capitalize ${booking.status === 'cancelled' ? 'text-red-400' : 'text-white'}`}>{booking.status}</span>
                                 </div>
 
+                                <div className="flex justify-between items-center text-sm pt-2 mt-2 border-t border-white/5">
+                                    <span className="text-zinc-400">Booking Type</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${booking.booking_type === 'bulk' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'}`}>
+                                            {booking.booking_type === 'bulk' ? 'Bulk Booking' : 'Normal Booking'}
+                                        </span>
+                                        {booking.booking_type === 'bulk' && (booking.bulk_booking_discount || booking.properties?.bulk_booking_discount) && (
+                                            <span className="text-emerald-400 text-xs font-bold">
+                                                ({booking.bulk_booking_discount || booking.properties?.bulk_booking_discount}% Off)
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
                                 {booking.status === 'cancelled' && (
                                     <div className="pt-3 mt-3 border-t border-white/5 space-y-3">
                                         <div className="flex justify-between items-center text-sm">

@@ -198,6 +198,7 @@ export async function createBooking(bookingDetails: {
   guests: number;
   bookingType?: 'single' | 'bulk';
   roomCount?: number;
+  bulkBookingDiscount?: number;
   selectedRoomIds?: string[];
   amenities?: Array<{ id: string; count: number; price: number; name: string }>;
   hasFreeCancellation?: boolean;
@@ -231,6 +232,7 @@ export async function createBooking(bookingDetails: {
       guests, 
       bookingType = 'single', 
       roomCount = 1, 
+      bulkBookingDiscount = 0,
       amenities = [], 
       selectedRoomIds = [],
       hasFreeCancellation = false,
@@ -251,6 +253,7 @@ export async function createBooking(bookingDetails: {
       p_total_price: totalPrice,
       p_has_free_cancellation: hasFreeCancellation,
       p_free_cancellation_fee: freeCancellationFee,
+      p_bulk_booking_discount: bulkBookingDiscount,
     };
 
     const rpcParams = (selectedRoomIds && selectedRoomIds.length > 0)
