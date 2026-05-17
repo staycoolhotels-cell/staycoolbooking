@@ -103,7 +103,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
           initial={{ scale: 1 }}
           animate={{ scale: 1.05 }}
           transition={{ duration: 20, ease: 'linear', repeat: Infinity, repeatType: 'reverse' }}
-          className="w-full h-full"
+          className="w-full h-full relative"
         >
           <AppImage
             src="https://images.unsplash.com/photo-1763478958711-dd84b33cfe16?q=70&w=1200&auto=format&fit=crop"
@@ -210,7 +210,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                   </div>
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-3 border border-white/10 bg-black/50 backdrop-blur-2xl rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.5)] mt-4 relative z-50 overflow-visible" align="center">
+              <PopoverContent className="w-auto p-1 border border-white/10 bg-black/50 backdrop-blur-2xl rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.5)] mt-4 relative z-50 overflow-visible" align="center">
                 <Calendar
                   initialFocus
                   mode="range"
@@ -234,7 +234,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                     }
                   }}
                   numberOfMonths={1}
-                  className="p-5 text-zinc-100 bg-transparent relative z-10"
+                  className="p-3 text-zinc-100 bg-transparent relative z-10"
                 />
               </PopoverContent>
             </Popover>
@@ -256,8 +256,8 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                   </span>
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 p-2 border border-white/10 bg-black/70 backdrop-blur-2xl rounded-[1.5rem] shadow-[0_8px_32px_rgba(0,0,0,0.5)] mt-4 relative z-50" align="center">
-                <div className="grid grid-cols-1 gap-1">
+              <PopoverContent className="w-52 p-1.5 border border-white/10 bg-black/70 backdrop-blur-2xl rounded-[1.5rem] shadow-[0_8px_32px_rgba(0,0,0,0.5)] mt-4 relative z-50" align="center">
+                <div className="grid grid-cols-1 gap-0.5">
                   {stayTypes.map((type) => (
                     <button
                       key={type.id}
@@ -266,10 +266,10 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                         setStayType(type.id);
                         setIsStayTypeOpen(false);
                       }}
-                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 ${stayType === type.id ? 'bg-sky-500/20 text-sky-400' : 'hover:bg-white/10 text-zinc-300 hover:text-white'}`}
+                      className={`flex items-center gap-3 px-3 py-1.5 rounded-xl transition-all duration-200 ${stayType === type.id ? 'bg-sky-500/20 text-sky-400' : 'hover:bg-white/10 text-zinc-300 hover:text-white'}`}
                     >
-                      <type.icon className={`w-4 h-4 ${stayType === type.id ? 'text-sky-400' : 'text-zinc-500'}`} />
-                      <span className="text-sm font-semibold">{type.name}</span>
+                      <type.icon className={`w-3.5 h-3.5 ${stayType === type.id ? 'text-sky-400' : 'text-zinc-500'}`} />
+                      <span className="text-[13px] font-semibold">{type.name}</span>
                     </button>
                   ))}
                 </div>

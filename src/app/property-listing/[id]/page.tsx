@@ -303,7 +303,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
             { name: 'Value', score: calculateAverage(reviews || [], 'value_rating'), icon: 'TagIcon' }
         ],
         badges: ['Great hospitality', 'Clean', 'Great communication', 'Quiet area', 'Value for money'],
-        bulkBookingDiscount: property.bulk_booking_discount || 10
+        bulkBookingDiscount: property.bulk_booking_discount !== undefined && property.bulk_booking_discount !== null ? property.bulk_booking_discount : 10
     };
 
     const jsonLd = {

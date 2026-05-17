@@ -68,18 +68,24 @@ const UnifiedInbox: React.FC<UnifiedInboxProps> = ({ inboxContext }) => {
         ...msg,
         sender_name: msg.sender?.name || 'User',
         sender_avatar: msg.sender?.avatar_url || null,
-        property_name: msg.property?.title || 'General Inquiry'
+        property_name: msg.property?.name || 'General Inquiry'
       }));
 
       // Basic grouping by sender to show latest message per other user
       const uniqueThreads = new Map();
       formattedMessages.forEach((msg: any) => {
         const otherUserId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+        const otherUser = msg.sender_id === userId ? msg.receiver : msg.sender;
+
+        // Skip admin conversations in Unified Inbox (only show guest/host conversations)
+        // If either party is an admin, it belongs in Support Chat, not Unified Inbox
+        if (msg.sender?.role === 'admin' || msg.receiver?.role === 'admin' || otherUser?.role === 'admin') {
+          return;
+        }
+
         const threadKey = `${otherUserId}-${msg.property_id || 'none'}`;
         
         if (!uniqueThreads.has(threadKey)) {
-          // Determine the "display name" based on who the other person is
-          const otherUser = msg.sender_id === userId ? msg.receiver : msg.sender;
           uniqueThreads.set(threadKey, {
             ...msg,
             sender_id: otherUserId, // For grouping and selection

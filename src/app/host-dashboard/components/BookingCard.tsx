@@ -188,13 +188,19 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
             </div>
 
             {/* Date Container */}
-            <div className="flex items-center gap-3 bg-white/[0.03] border border-white/5 py-2.5 px-4 rounded-xl w-fit shadow-inner group-hover:bg-white/[0.05] transition-colors">
-              <Icon name="CalendarDaysIcon" size={16} className="text-indigo-400/80 shrink-0" />
-              <div suppressHydrationWarning className="text-[11px] md:text-[13px] text-white font-bold uppercase tracking-widest leading-none flex items-center gap-2">
-                <span className="text-zinc-100">{new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                <span className="text-zinc-600 font-normal">/</span>
-                <span className="text-zinc-100">{new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                <span className="text-indigo-400/60 font-black ml-1 text-[10px] md:text-[11px]">{new Date(booking.check_out).getFullYear()}</span>
+            <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 py-2 px-3 rounded-xl w-fit shadow-inner group-hover:bg-white/[0.05] transition-colors">
+              <Icon name="CalendarDaysIcon" size={14} className="text-indigo-400/80 shrink-0" />
+              <div suppressHydrationWarning className="flex items-center gap-2.5 text-white font-bold uppercase tracking-widest leading-none">
+                <div className="flex flex-col items-center">
+                  <span className="text-[8px] md:text-[9px] text-zinc-500 font-black mb-0.5">{new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</span>
+                  <span className="text-sm md:text-base text-white font-black">{new Date(booking.check_in).getDate()}</span>
+                </div>
+                <span className="text-zinc-700 font-light mx-0.5">/</span>
+                <div className="flex flex-col items-center">
+                  <span className="text-[8px] md:text-[9px] text-zinc-500 font-black mb-0.5">{new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</span>
+                  <span className="text-sm md:text-base text-white font-black">{new Date(booking.check_out).getDate()}</span>
+                </div>
+                <span className="text-indigo-400/40 font-black ml-1.5 text-[10px] md:text-[11px] self-end mb-0.5">{new Date(booking.check_out).getFullYear()}</span>
               </div>
             </div>
           </div>

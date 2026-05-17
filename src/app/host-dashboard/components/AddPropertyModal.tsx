@@ -129,6 +129,24 @@ const AddPropertyModal = ({
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const categoryRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const [isBulkDiscountEnabled, setIsBulkDiscountEnabled] = useState(true);
+  const lastNonZeroDiscount = useRef<number>(10);
+
+  const handleBulkDiscountToggle = (enabled: boolean) => {
+    setIsBulkDiscountEnabled(enabled);
+    if (enabled) {
+      setFormData(prev => ({ ...prev, bulkBookingDiscount: lastNonZeroDiscount.current }));
+    } else {
+      setFormData(prev => ({ ...prev, bulkBookingDiscount: 0 }));
+    }
+  };
+
+  useEffect(() => {
+    const discountNum = Number(formData.bulkBookingDiscount);
+    if (discountNum > 0) {
+      lastNonZeroDiscount.current = discountNum;
+    }
+  }, [formData.bulkBookingDiscount]);
 
   const propertyCategories = [
     { id: 'Hotel', name: 'Hotel', icon: Building2 },
@@ -228,8 +246,12 @@ const AddPropertyModal = ({
           ?.map((a: any) => a.name) || [],
         latitude: propertyToEdit.latitude,
         longitude: propertyToEdit.longitude,
-        bulkBookingDiscount: propertyToEdit.bulk_booking_discount || 10,
+        bulkBookingDiscount: ['Home Stay', 'Apartment', 'Villa'].includes(propertyToEdit.tier || '') ? 0 : (propertyToEdit.bulk_booking_discount !== undefined && propertyToEdit.bulk_booking_discount !== null ? propertyToEdit.bulk_booking_discount : 10),
       });
+      const isSingleUnitType = ['Home Stay', 'Apartment', 'Villa'].includes(propertyToEdit.tier || '');
+      const discountVal = isSingleUnitType ? 0 : (propertyToEdit.bulk_booking_discount !== undefined && propertyToEdit.bulk_booking_discount !== null ? propertyToEdit.bulk_booking_discount : 10);
+      setIsBulkDiscountEnabled(discountVal > 0);
+      lastNonZeroDiscount.current = discountVal > 0 ? discountVal : 10;
       setPhotoPreviews(initialPhotoUrls);
     } else {
       setFormData({
@@ -278,6 +300,8 @@ const AddPropertyModal = ({
         longitude: undefined,
         bulkBookingDiscount: 10,
       });
+      setIsBulkDiscountEnabled(true);
+      lastNonZeroDiscount.current = 10;
       setPhotoPreviews([]);
     }
   }, [propertyToEdit]);
@@ -297,8 +321,12 @@ const AddPropertyModal = ({
       setFormData((prev) => ({
         ...prev,
         [name]: value,
-        totalRooms: isSingleUnitType ? 1 : prev.totalRooms
+        totalRooms: isSingleUnitType ? 1 : prev.totalRooms,
+        bulkBookingDiscount: isSingleUnitType ? 0 : prev.bulkBookingDiscount
       }));
+      if (isSingleUnitType) {
+        setIsBulkDiscountEnabled(false);
+      }
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
@@ -804,16 +832,15 @@ const AddPropertyModal = ({
                     </div>
                   </div>
 
-                  <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
+                  <div className="bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50">
                     <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
                       <Bath className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
                       <label htmlFor="bathrooms" className="block text-xs md:text-sm font-medium text-zinc-300">Bathrooms</label>
-                      {formData.type === 'Tent' && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
                     </div>
                     <div className="flex justify-center">
                       <NumberInput
                         value={formData.bathrooms}
-                        onChange={(val) => formData.type !== 'Tent' && setFormData(prev => ({ ...prev, bathrooms: val }))}
+                        onChange={(val) => setFormData(prev => ({ ...prev, bathrooms: val }))}
                         min={0}
                       />
                     </div>
@@ -1059,27 +1086,92 @@ const AddPropertyModal = ({
                   <InputField label="Price per Night (INR)" name="price" type="number" value={formData.price} onChange={handleInputChange} placeholder="e.g. 5000" />
                   <InputField label="Weekend Price per Night (INR)" name="weekendPrice" type="number" value={formData.weekendPrice} onChange={handleInputChange} placeholder="e.g. 7500" />
                   
-                  {/* Bulk Booking Discount with +/- buttons */}
-                  <div className="bg-zinc-800 p-4 rounded-xl border border-zinc-700/50">
-                    <div className="flex items-center gap-2 mb-3">
-                      <BadgePercent className="w-4 h-4 text-sky-400" />
-                      <label className="block text-xs md:text-sm font-medium text-zinc-300">
-                        Bulk Booking Discount (%)
-                      </label>
-                      <span className="text-[10px] text-amber-400 font-bold uppercase tracking-tighter bg-amber-400/10 px-1.5 py-0.5 rounded">Max 10%</span>
+                  {/* Bulk Booking Discount with toggle and +/- buttons */}
+                  {['Home Stay', 'Apartment', 'Villa'].includes(formData.type) ? (
+                    <div className="bg-zinc-800/40 p-4 rounded-xl border border-zinc-700/30 flex items-start gap-3 relative overflow-hidden group">
+                      {/* Background sheen effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/3 to-amber-500/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                      <div className="p-2 bg-amber-500/10 rounded-lg text-amber-400 shrink-0">
+                        <BadgePercent className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs md:text-sm font-semibold text-zinc-300">
+                          Bulk Booking Discount
+                        </h4>
+                        <p className="text-[10px] text-zinc-500 mt-1 leading-relaxed">
+                          Bulk discounts are only applicable to multi-unit listings (Hotels and Resorts). Since this listing is categorized as a {formData.type || 'single unit'}, bulk discounts are disabled.
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex justify-start">
-                      <NumberInput
-                        value={Number(formData.bulkBookingDiscount)}
-                        onChange={(val) => setFormData(prev => ({ ...prev, bulkBookingDiscount: val }))}
-                        min={1}
-                        max={10}
-                      />
+                  ) : (
+                    <div className="bg-zinc-800 p-4 rounded-xl border border-zinc-700/50 relative overflow-hidden group">
+                      {/* Background sheen effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-sky-500/0 via-sky-500/5 to-sky-500/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+                      <div className="relative z-10 flex justify-between items-center mb-4">
+                        <div className="flex items-center gap-2">
+                          <BadgePercent className={`w-4 h-4 transition-colors ${isBulkDiscountEnabled ? 'text-sky-400' : 'text-zinc-500'}`} />
+                          <label className="block text-xs md:text-sm font-semibold text-zinc-200">
+                            Bulk Booking Discount
+                          </label>
+                          {isBulkDiscountEnabled && (
+                            <span className="text-[10px] text-amber-400 font-black uppercase tracking-widest bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
+                              Max 10%
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Premium Toggle Switch */}
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={isBulkDiscountEnabled}
+                            onChange={(e) => handleBulkDiscountToggle(e.target.checked)}
+                          />
+                          <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500 peer-checked:after:bg-white peer-checked:after:border-white"></div>
+                        </label>
+                      </div>
+
+                      <AnimatePresence initial={false}>
+                        {isBulkDiscountEnabled ? (
+                          <motion.div
+                            key="discount-selector"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25, ease: 'easeInOut' }}
+                            className="overflow-hidden space-y-3"
+                          >
+                            <div className="flex justify-start">
+                              <NumberInput
+                                value={Number(formData.bulkBookingDiscount)}
+                                onChange={(val) => setFormData(prev => ({ ...prev, bulkBookingDiscount: val }))}
+                                min={1}
+                                max={10}
+                              />
+                            </div>
+                            <p className="text-[10px] text-zinc-400 font-medium leading-relaxed">
+                              Discount applied when guests book multiple units at once.
+                            </p>
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key="discount-disabled"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                          >
+                            <p className="text-[10px] text-zinc-500 font-medium leading-relaxed">
+                              Bulk booking discount is currently disabled. Guests will pay regular room rates when booking multiple units.
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    <p className="text-[10px] text-zinc-500 mt-2">
-                      Discount applied when guests book multiple units.
-                    </p>
-                  </div>
+                  )}
                 </div>
                 <div className="p-6 bg-zinc-800 rounded-lg">
                   <p className="text-zinc-300">These are the prices guests will see for your property. You can adjust them at any time.</p>

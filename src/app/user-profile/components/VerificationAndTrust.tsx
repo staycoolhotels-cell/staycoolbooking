@@ -29,6 +29,11 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate, onContac
 
   // Extract unique hosts from bookings
   const uniqueHosts = bookings.reduce<Array<{ id: string; name: string; avatar: string; location?: string }>>((acc, booking) => {
+    // Only display hosts of bookings that are actually confirmed or completed (paid stays)
+    if (booking.status !== 'confirmed' && booking.status !== 'completed') {
+      return acc;
+    }
+
     // Some bookings might have host info nested or it might be missing
     const host = booking.properties?.host;
     const hostId = booking.properties?.host_id;

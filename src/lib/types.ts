@@ -260,6 +260,7 @@ export interface Booking {
     avatar_url: string;
   };
   properties?: Property;
+  referral_discount_applied?: boolean;
 }
 
 export interface Earning {

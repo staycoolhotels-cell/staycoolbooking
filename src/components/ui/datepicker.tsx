@@ -66,7 +66,7 @@ export function DateRangePicker({ className, onUpdate }: DateRangePickerProps) {
             selected={date}
             onSelect={handleDateChange}
             numberOfMonths={1}
-            className="p-3 sm:p-5"
+            className="p-2 sm:p-3"
           />
         </PopoverContent>
       </Popover>
@@ -102,6 +102,7 @@ export function DatePicker({ value, onChange, placeholder = 'Pick a date', class
               setIsOpen(false);
             }
           }}
+          className="p-2 sm:p-3"
           initialFocus
         />
       </PopoverContent>

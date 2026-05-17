@@ -61,7 +61,7 @@ const AppImage = (props: AppImageProps) => {
     ...(fill
       ? {
           fill: true,
-          sizes: sizes || '100vw',
+          sizes: sizes || '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw',
           style: { ...style, objectFit: objectFit || 'cover' },
         }
       : { width: imageWidthProp || 400, height: imageHeightProp || 300 }),

@@ -46,6 +46,8 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [dynamicSuggestions, setDynamicSuggestions] = useState<PriceSuggestion[]>([]);
   const [loadingAI, setLoadingAI] = useState(false);
+  const [standardPrices, setStandardPrices] = useState<Record<string, number>>({});
+  const [applyingPriceIds, setApplyingPriceIds] = useState<Set<string>>(new Set());
 
   const propertyMap = useMemo(() => {
     return properties.reduce((acc, prop) => {
@@ -64,6 +66,41 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
       };
     });
   }, [marketComparisons, dynamicSuggestions]);
+
+  useEffect(() => {
+    if (properties.length > 0) {
+      const prices: Record<string, number> = { ...standardPrices };
+      let changed = false;
+      properties.forEach(p => {
+        const storedKey = `standard-price-${p.id}`;
+        const dbPrice = p.price_per_night || p.price || 5000;
+        
+        let stdPrice = dbPrice;
+        if (typeof window !== 'undefined') {
+          const stored = localStorage.getItem(storedKey);
+          if (stored) {
+            // If the price changed in DB, but it was NOT due to AI apply, we update standard price!
+            if (dbPrice !== parseInt(stored, 10) && !applyingPriceIds.has(p.id)) {
+              stdPrice = dbPrice;
+              localStorage.setItem(storedKey, dbPrice.toString());
+            } else {
+              stdPrice = parseInt(stored, 10);
+            }
+          } else {
+            localStorage.setItem(storedKey, dbPrice.toString());
+          }
+        }
+        
+        if (prices[p.id] !== stdPrice) {
+          prices[p.id] = stdPrice;
+          changed = true;
+        }
+      });
+      if (changed || Object.keys(standardPrices).length === 0) {
+        setStandardPrices(prices);
+      }
+    }
+  }, [properties, applyingPriceIds]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -154,7 +191,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
           }
 
           // More realistic mock data generation
-          const nameHash = propName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          const nameHash = propName.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
           const variance = (nameHash % 20) - 10; // -10% to +10%
           const marketAvgFactor = 1.1 + (variance / 100);
           const avgPrice = currentPrice * marketAvgFactor;
@@ -203,18 +240,36 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
     fetchAI();
   }, [properties]);
 
-  const handleApplyPrice = async (propertyId: string, suggestedPrice: number) => {
+  const handleApplyPrice = async (propertyId: string, targetPrice: number, isAI: boolean = true) => {
     try {
-      const result = await updatePropertyPrice(propertyId, suggestedPrice);
+      if (isAI) {
+        setApplyingPriceIds(prev => {
+          const next = new Set(prev);
+          next.add(propertyId);
+          return next;
+        });
+      } else {
+        setApplyingPriceIds(prev => {
+          const next = new Set(prev);
+          next.delete(propertyId);
+          return next;
+        });
+        // Also update standard price in localStorage just in case, but keeping it synced
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`standard-price-${propertyId}`, targetPrice.toString());
+        }
+      }
+
+      const result = await updatePropertyPrice(propertyId, targetPrice);
 
       if (!result.success) throw new Error('Failed to update price');
 
       // Update local state
       setMarketComparisons(prev => prev.map(m => 
-        m.property_id === propertyId ? { ...m, your_price: suggestedPrice } : m
+        m.property_id === propertyId ? { ...m, your_price: targetPrice } : m
       ));
 
-      toast.success('Optimal price applied successfully! Your property listing has been updated.');
+      toast.success(isAI ? 'Optimal price applied successfully! Your property listing has been updated.' : 'Standard price restored successfully!');
     } catch (error: any) {
       console.error('Error updating price:', error);
       const errorMessage = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
@@ -411,7 +466,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-[#0a0a0f]/60 border border-white/10 flex items-center justify-between shadow-2xl">
+                  <div className="p-4 rounded-2xl bg-[#0a0a0f]/60 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xl">
                     <div>
                       <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-1">
                         <Icon name="LightBulbIcon" size={11} className="text-success" />
@@ -421,13 +476,38 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
                         ₹{item.suggested_price?.toLocaleString('en-IN')}
                       </p>
                     </div>
-                    <button 
-                      onClick={() => handleApplyPrice(item.property_id, item.suggested_price)}
-                      className="group/apply relative px-6 py-2.5 bg-success/10 hover:bg-success/20 text-success border border-success/30 hover:border-success/50 transition-all uppercase tracking-[0.1em] text-[10px] font-black rounded-xl overflow-hidden shadow-lg"
-                    >
-                      <span className="relative z-10">Apply</span>
-                      <div className="absolute inset-0 bg-success/10 translate-y-full group-hover/apply:translate-y-0 transition-transform duration-300" />
-                    </button>
+                    
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleApplyPrice(item.property_id, standardPrices[item.property_id] || 5000, false)}
+                        disabled={item.your_price === (standardPrices[item.property_id] || 5000)}
+                        className={`group/standard relative overflow-hidden px-4 py-2 text-[10px] uppercase font-black tracking-wider rounded-xl border transition-all duration-300 ${
+                          item.your_price === (standardPrices[item.property_id] || 5000)
+                            ? 'bg-white/5 text-zinc-500 border-white/5 cursor-not-allowed'
+                            : 'bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border-sky-500/20 hover:border-sky-500/40 shadow-[0_0_15px_rgba(14,165,233,0.1)] hover:shadow-[0_0_20px_rgba(14,165,233,0.25)]'
+                        }`}
+                      >
+                        <span className="relative z-10">Standard Price</span>
+                        {item.your_price !== (standardPrices[item.property_id] || 5000) && (
+                          <div className="absolute inset-0 bg-sky-500/10 translate-y-full group-hover/standard:translate-y-0 transition-transform duration-300" />
+                        )}
+                      </button>
+
+                      <button 
+                        onClick={() => handleApplyPrice(item.property_id, item.suggested_price, true)}
+                        disabled={item.your_price === item.suggested_price}
+                        className={`group/apply relative overflow-hidden px-4 py-2 text-[10px] uppercase font-black tracking-wider rounded-xl border transition-all duration-300 ${
+                          item.your_price === item.suggested_price
+                            ? 'bg-white/5 text-zinc-500 border-white/5 cursor-not-allowed'
+                            : 'bg-success/10 hover:bg-success/20 text-success border-success/20 hover:border-success/40 shadow-[0_0_15px_rgba(34,197,94,0.1)] hover:shadow-[0_0_20px_rgba(34,197,94,0.25)]'
+                        }`}
+                      >
+                        <span className="relative z-10">Apply Optimal</span>
+                        {item.your_price !== item.suggested_price && (
+                          <div className="absolute inset-0 bg-success/10 translate-y-full group-hover/apply:translate-y-0 transition-transform duration-300" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               ))

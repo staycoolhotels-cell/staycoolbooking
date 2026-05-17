@@ -29,6 +29,7 @@ import { resetCancellationPenalty } from '@/lib/booking-actions';
 import { createHostSignupOrder } from '@/lib/payment-actions';
 import { approveHost } from '@/lib/admin-actions';
 import { updateHostProfile } from '@/lib/host-actions';
+import { getUnreadCounts } from '@/lib/chat-actions';
 import Overview from './Overview';
 import Properties from './Properties';
 import Bookings from './Bookings';
@@ -45,6 +46,7 @@ import DisputesList from './DisputesList';
 import BankingDetails from './BankingDetails';
 
 import PayoutHistory from './PayoutHistory';
+import SupportInbox from './SupportInbox';
 import AddPropertyModal, { FormData } from './AddPropertyModal';
 import { deleteProperty } from '@/lib/property-actions';
 
@@ -123,6 +125,7 @@ const HostDashboardInteractive = ({
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [isLoadingDisputes, setIsLoadingDisputes] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [adminUnreadMessages, setAdminUnreadMessages] = useState(0);
 
   type InboxContext = {
     guest_id: string;
@@ -345,12 +348,9 @@ const HostDashboardInteractive = ({
   // Real-time unread message count
   useEffect(() => {
     const fetchUnread = async () => {
-      const { count } = await supabase
-        .from('messages')
-        .select('id', { count: 'exact', head: true })
-        .eq('receiver_id', hostData.id)
-        .eq('is_read', false);
-      setUnreadMessages(count ?? 0);
+      const { guestUnreadCount, adminUnreadCount } = await getUnreadCounts(hostData.id);
+      setUnreadMessages(guestUnreadCount);
+      setAdminUnreadMessages(adminUnreadCount);
     };
 
     fetchUnread();
@@ -372,6 +372,9 @@ const HostDashboardInteractive = ({
   useEffect(() => {
     if (activeTab === 'unified-inbox') {
       const t = setTimeout(() => setUnreadMessages(0), 800);
+      return () => clearTimeout(t);
+    } else if (activeTab === 'support-chat') {
+      const t = setTimeout(() => setAdminUnreadMessages(0), 800);
       return () => clearTimeout(t);
     }
   }, [activeTab]);
@@ -765,73 +768,6 @@ const HostDashboardInteractive = ({
     { id: 'profile', label: 'Identify', icon: UserCircle },
   ];
 
-    function SupportChatSection({ currentUser }: { currentUser: { id: string; name: string } }) {
-    const [adminUser, setAdminUser] = useState<{ id: string; name: string } | null>(hostData.supportAdmin);
-
-    useEffect(() => {
-      if (hostData.supportAdmin) return;
-      const fetchAdmin = async () => {
-        const { data } = await supabase.from('users').select('id, name').eq('role', 'admin').limit(1).single();
-        if (data) {
-          setAdminUser({ id: data.id, name: data.name || 'Admin Support' });
-        } else {
-          setAdminUser({ id: '00000000-0000-0000-0000-000000000000', name: 'Admin Support' });
-        }
-      };
-      fetchAdmin();
-    }, [supabase, hostData.supportAdmin]);
-
-    return (
-      <div className="w-full space-y-3 md:space-y-8 h-[calc(100vh-140px)] flex flex-col relative">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 md:gap-6 bg-[#0a0a0f]/80 p-3 md:p-8 rounded-xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden flex-shrink-0">
-          <div className="absolute top-0 right-0 bottom-0 w-80 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
-
-          <div className="relative z-10 flex items-center gap-3 md:gap-5 w-full lg:w-auto">
-            <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)] shrink-0">
-              <LifeBuoy size={20} className="text-indigo-400 drop-shadow-md md:hidden" />
-              <LifeBuoy size={32} className="text-indigo-400 drop-shadow-md hidden md:block" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg">Priority Support</h1>
-              <p className="text-[9px] md:text-sm font-bold text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest flex items-center gap-2">
-                Direct Admin Communication
-              </p>
-            </div>
-          </div>
-
-          <div className="relative z-10 hidden sm:flex items-center gap-4">
-            <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 shadow-inner">
-              <div className="px-4 py-2 bg-indigo-500/20 text-indigo-400 rounded-lg text-[10px] font-bold uppercase tracking-widest">Live Connect</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1 min-h-0 bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden group flex flex-col">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none group-hover:bg-indigo-500/10 transition-colors duration-1000" />
-
-          <div className="flex-1 relative z-10 flex flex-col p-2 md:p-6 overflow-hidden">
-            {adminUser ? (
-              <div className="flex-1 rounded-2xl md:rounded-[2rem] overflow-hidden border border-white/10 shadow-inner bg-black/40 relative">
-                <RealTimeChat
-                  currentUser={currentUser}
-                  otherUser={adminUser}
-                  contextTitle="StayCool Platform Support"
-                />
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4">
-                  <LifeBuoy size={32} className="text-indigo-500 animate-pulse" />
-                </div>
-                <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest animate-pulse">Connecting to Admin Network...</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative min-h-[calc(100vh-100px)] w-full bg-[#080808] flex text-zinc-100">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
@@ -928,6 +864,13 @@ const HostDashboardInteractive = ({
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
                   </span>
                 )}
+                {/* Unread dot for support chat */}
+                {item.id === 'support-chat' && adminUnreadMessages > 0 && activeTab !== 'support-chat' && (
+                  <span className="relative flex h-2.5 w-2.5 ml-1 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+                  </span>
+                )}
                 {isActive && (
                   <motion.div
                     layoutId="activeTabIndicator"
@@ -975,6 +918,7 @@ const HostDashboardInteractive = ({
                       reviews={hostData.reviews}
                       disputes={disputes}
                       onAction={handleAction}
+                      hostData={hostData}
                     />
                   )}
                   {activeTab === 'properties' && (
@@ -1046,7 +990,7 @@ const HostDashboardInteractive = ({
                   {activeTab === 'banking-details' && <BankingDetails />}
                   {activeTab === 'payout-history' && <PayoutHistory hostId={hostData.id} />}
                   {activeTab === 'support-chat' && (
-                    <SupportChatSection currentUser={{ id: hostData.id, name: hostData.name }} />
+                    <SupportInbox currentUser={{ id: hostData.id, name: hostData.name }} />
                   )}
                   {activeTab === 'profile' && (
                     <Profile

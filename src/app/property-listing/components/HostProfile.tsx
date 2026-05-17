@@ -86,7 +86,7 @@ const HostProfile = ({
       <div className="flex items-center gap-3 md:gap-5 mb-4 md:mb-6 pb-4 md:pb-6 border-b border-white/[0.07]">
         {/* Avatar */}
         <div className="relative flex-shrink-0">
-          <div className="w-14 h-14 md:w-20 md:h-20 rounded-2xl overflow-hidden border border-white/10 shadow-lg shadow-black/40">
+          <div className="relative w-14 h-14 md:w-20 md:h-20 rounded-2xl overflow-hidden border border-white/10 shadow-lg shadow-black/40">
             <AppImage
               src={avatar || defaultAvatar}
               fallbackSrc={defaultAvatar}

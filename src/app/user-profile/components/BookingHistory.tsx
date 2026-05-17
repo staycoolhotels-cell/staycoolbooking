@@ -143,11 +143,11 @@ const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistory
                                         {booking.properties.title}
                                     </h3>
                                     <p className="text-[10px] text-zinc-500 truncate">{booking.properties.location}</p>
-                                    <div className="flex items-center gap-2 mt-0.5 truncate">
-                                        <p className="text-[10px] text-sky-400 font-medium truncate">
+                                    <div className="flex flex-wrap items-center gap-1.5 xs:gap-2 mt-0.5 min-w-0">
+                                        <p className="text-[10px] text-sky-400 font-medium truncate shrink-0">
                                             {booking.guests || 1} {(booking.guests || 1) === 1 ? 'Guest' : 'Guests'} • {booking.total_rooms_booked || 1} {(booking.total_rooms_booked || 1) === 1 ? (booking.properties.type?.toLowerCase().includes('tent') ? 'Tent' : 'Room') : (booking.properties.type?.toLowerCase().includes('tent') ? 'Tents' : 'Rooms')}
                                         </p>
-                                        <span className={`px-1.5 py-0 rounded-[4px] text-[7px] font-black uppercase tracking-wider border ${booking.booking_type === 'bulk' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-zinc-800/60 text-zinc-500 border-zinc-700/50'}`}>
+                                        <span className={`px-1.5 py-0 rounded-[4px] text-[7px] font-black uppercase tracking-wider border shrink-0 ${booking.booking_type === 'bulk' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-zinc-800/60 text-zinc-500 border-zinc-700/50'}`}>
                                             {booking.booking_type === 'bulk' 
                                                 ? `Bulk ${booking.bulk_booking_discount || booking.properties?.bulk_booking_discount ? `(${booking.bulk_booking_discount || booking.properties?.bulk_booking_discount}%)` : ''}` 
                                                 : 'Normal'}

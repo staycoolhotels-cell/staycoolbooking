@@ -10,7 +10,7 @@ export async function getUserMessages(userId: string) {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from('messages')
-    .select('*, sender:users!sender_id(id, name), receiver:users!receiver_id(id, name)')
+    .select('*, sender:users!sender_id(id, name, role, avatar_url), receiver:users!receiver_id(id, name, role, avatar_url), property:properties(id, name)')
     .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
     .order('created_at', { ascending: false });
 
@@ -19,4 +19,34 @@ export async function getUserMessages(userId: string) {
     return [];
   }
   return data;
+}
+
+/**
+ * Fetches the count of unread messages categorized by whether the sender is an admin or guest/host.
+ */
+export async function getUnreadCounts(userId: string) {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from('messages')
+    .select('id, sender:users!sender_id(role)')
+    .eq('receiver_id', userId)
+    .eq('is_read', false);
+
+  if (error) {
+    console.error('Error fetching unread counts:', error);
+    return { guestUnreadCount: 0, adminUnreadCount: 0 };
+  }
+
+  let guestUnreadCount = 0;
+  let adminUnreadCount = 0;
+
+  data?.forEach((msg: any) => {
+    if (msg.sender?.role === 'admin') {
+      adminUnreadCount++;
+    } else {
+      guestUnreadCount++;
+    }
+  });
+
+  return { guestUnreadCount, adminUnreadCount };
 }

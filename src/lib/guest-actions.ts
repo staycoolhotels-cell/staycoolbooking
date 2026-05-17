@@ -180,7 +180,6 @@ export async function updateUserProfile(userId: string, userData: any, personalI
       .update({ 
         name: userData.name, 
         avatar_url: userData.avatar_url,
-        phone: userData.phone 
       })
       .eq('id', userId);
 
@@ -196,9 +195,10 @@ export async function updateUserProfile(userId: string, userData: any, personalI
           languages: personalInfo.languages || [],
           location: personalInfo.location || null,
           occupation: personalInfo.occupation || null,
-          date_of_birth: personalInfo.date_of_birth || personalInfo.dateOfBirth || null,
+          dateOfBirth: personalInfo.dateOfBirth || personalInfo.date_of_birth || null,
           nationality: personalInfo.nationality || null,
           gender: personalInfo.gender || null,
+          phone: personalInfo.phone || userData.phone || null,
         }, { onConflict: 'user_id' });
 
       if (infoError) throw infoError;

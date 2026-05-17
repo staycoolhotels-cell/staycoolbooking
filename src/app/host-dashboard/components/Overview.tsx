@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import StatsCard from './StatsCard';
 import EarningsChart from './EarningsChart';
 import Icon from '@/components/ui/AppIcon';
@@ -15,10 +15,15 @@ interface OverviewProps {
   reviews: Review[];
   disputes?: any[];
   onAction?: (tabId: string, data?: any) => void;
+  hostData?: any;
 }
 
-const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [], disputes = [], onAction }: OverviewProps) => {
+const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [], disputes = [], onAction, hostData }: OverviewProps) => {
   const [showAllActivities, setShowAllActivities] = useState(false);
+  const remainingBenefits = hostData?.referral_benefit_count || 0;
+  const usedBenefits = bookings.filter(b => b.referral_discount_applied === true).length;
+  const totalBenefits = remainingBenefits + usedBenefits;
+
   const averageRating = reviews && reviews.length > 0
     ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(2)
     : 'New';
@@ -131,7 +136,7 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
     return new Date(date).toLocaleDateString();
   };
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -139,7 +144,7 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
     },
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 30, filter: 'blur(15px)' },
     show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
   };
@@ -260,8 +265,8 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
         </div>
       </motion.div>
 
-      {/* 2. TOP METRICS (4 Columns) */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+      {/* 2. TOP METRICS (5 Columns) */}
+      <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-6">
         <StatsCard title="Active Listings" value={properties?.length || 0} icon="HomeIcon" onClick={() => onAction?.('properties')} />
         <StatsCard title="Pending Bookings" value={bookings?.filter(b => b.status === 'pending').length || 0} icon="CalendarDaysIcon" onClick={() => onAction?.('bookings')} />
         <StatsCard
@@ -271,7 +276,72 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
           onClick={() => onAction?.('revenue-velocity')}
         />
         <StatsCard title="Guest Rating" value={averageRating} icon="StarIcon" onClick={() => onAction?.('aura-quality')} />
+        <div className="col-span-2 lg:col-span-1">
+          <StatsCard 
+            title="Referral Benefits" 
+            value={totalBenefits > 0 ? `${remainingBenefits} / ${totalBenefits} Left` : '0 Bookings'} 
+            icon="GiftIcon" 
+            onClick={() => onAction?.('profile')} 
+          />
+        </div>
       </motion.div>
+
+      {/* 2.5 REFERRAL HIGHLIGHT BANNER */}
+      {totalBenefits > 0 ? (
+        <motion.div 
+          variants={itemVariants}
+          className="p-5 rounded-3xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg shadow-amber-950/5 relative overflow-hidden group animate-in fade-in slide-in-from-top-4 duration-500"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-[40px] pointer-events-none" />
+          <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 shadow-inner">
+              <Icon name="GiftIcon" size={24} />
+            </div>
+            <div>
+              <p className="text-sm font-black text-white uppercase tracking-wider flex items-center justify-center sm:justify-start gap-1.5">
+                🎁 Host-to-Host Referral Benefit Active
+              </p>
+              <p className="text-xs text-zinc-400 mt-1 font-medium leading-relaxed">
+                You have referred hosts! <span className="text-amber-400 font-extrabold">{usedBenefits} of {totalBenefits} bookings completed</span>, and <span className="text-amber-400 font-extrabold">remaining {remainingBenefits} bookings</span> are eligible for a <span className="text-amber-400 font-extrabold">reduced 5% platform commission</span>!
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => onAction?.('profile')}
+            className="w-full md:w-auto relative overflow-hidden group/btn px-5 py-2.5 text-[10px] uppercase font-black tracking-widest text-amber-400 border border-amber-500/30 rounded-xl hover:border-amber-500/60 transition-all duration-300 shadow-md shadow-amber-950/20 bg-amber-500/10 hover:bg-amber-500/20 shrink-0"
+          >
+            <span className="relative z-10">Invite Another Host</span>
+            <div className="absolute inset-0 bg-amber-500/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
+          </button>
+        </motion.div>
+      ) : (
+        <motion.div 
+          variants={itemVariants}
+          className="p-5 rounded-3xl bg-gradient-to-r from-purple-500/10 via-purple-500/5 to-transparent border border-purple-500/20 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg shadow-purple-950/5 relative overflow-hidden group animate-in fade-in slide-in-from-top-4 duration-500"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-[40px] pointer-events-none" />
+          <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0 shadow-inner">
+              <Icon name="UserGroupIcon" size={24} />
+            </div>
+            <div>
+              <p className="text-sm font-black text-white uppercase tracking-wider flex items-center justify-center sm:justify-start gap-1.5">
+                🤝 Grow Your Earnings with Host Referrals
+              </p>
+              <p className="text-xs text-zinc-400 mt-1 font-medium leading-relaxed">
+                Refer a host to StayCool Booking. When they sign up, you get <span className="text-purple-400 font-extrabold">5 commission-discounted bookings</span> (5% fee instead of 15%)!
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => onAction?.('profile')}
+            className="w-full md:w-auto relative overflow-hidden group/btn px-5 py-2.5 text-[10px] uppercase font-black tracking-widest text-purple-400 border border-purple-500/30 rounded-xl hover:border-purple-500/60 transition-all duration-300 shadow-md shadow-purple-950/20 bg-purple-500/10 hover:bg-purple-500/20 shrink-0"
+          >
+            <span className="relative z-10">Get Invite Code</span>
+            <div className="absolute inset-0 bg-purple-500/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
+          </button>
+        </motion.div>
+      )}
 
       {/* 3. MIDDLE ROW: ANALYTICS & RECENT ACTIVITY */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -303,7 +373,7 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
         {/* Recent Activity */}
         <motion.div
           variants={itemVariants}
-          className="lg:col-span-1 bg-[#0a0a0f]/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-6 md:p-8 shadow-2xl flex flex-col relative overflow-hidden group"
+          className="lg:col-span-1 bg-[#0a0a0f]/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-4 xs:p-5 sm:p-6 md:p-8 shadow-2xl flex flex-col relative overflow-hidden group"
         >
           <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-[80px] pointer-events-none transition-opacity duration-1000 opacity-50 group-hover:opacity-100" />
           <div className="flex items-center justify-between mb-8 relative z-10">
@@ -328,7 +398,7 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
                   <div
                     key={booking.id}
                     onClick={() => onAction?.('bookings')}
-                    className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/40 hover:bg-white/10 transition-all cursor-pointer group/item shadow-sm"
+                    className="p-3 xs:p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/40 hover:bg-white/10 transition-all cursor-pointer group/item shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
@@ -351,20 +421,20 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
                       </div>
                     </div>
                     
-                    <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
-                      <div className="flex items-center gap-2">
-                         <Icon name="HomeIcon" size={10} className="text-zinc-500" />
-                         <p className="text-[9px] text-zinc-500 font-bold truncate max-w-[120px] sm:max-w-none">
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2.5 border-t border-white/5 pt-3">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                         <Icon name="HomeIcon" size={10} className="text-zinc-500 shrink-0" />
+                         <p className="text-[9px] text-zinc-500 font-bold truncate max-w-[100px] xs:max-w-[120px] sm:max-w-none">
                            {booking.properties?.title || 'Property'}
                          </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 text-zinc-500">
-                          <Icon name="UsersIcon" size={10} className="text-zinc-500" />
+                      <div className="flex flex-wrap items-center gap-1.5 xs:gap-2 min-w-0">
+                        <div className="flex items-center gap-1 text-zinc-500 shrink-0">
+                          <Icon name="UsersIcon" size={10} className="text-zinc-500 shrink-0" />
                           <span className="text-[9px] font-bold">{booking.guests}</span>
                         </div>
                         <div
-                          className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border shrink-0 ${
                             booking.booking_type === 'bulk' 
                               ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
                               : 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
@@ -373,7 +443,7 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
                           {booking.booking_type === 'bulk' ? 'Bulk' : 'Normal'}
                         </div>
                         <div
-                          className={`inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border shrink-0 ${
                             booking.status === 'confirmed'
                               ? 'bg-success/20 text-success border-success/30'
                               : booking.status === 'pending_payment'

@@ -64,11 +64,11 @@ const ReviewsSection = ({ reviews, averageRating, totalReviews, categoryRatings,
         {/* Big rating */}
         <div className="flex flex-col items-center flex-shrink-0">
           <div className="relative flex items-center justify-center">
-            <img src="/assets/laurel-left.png" alt="" className="w-8 md:w-12 opacity-70 mr-2" />
+            <Icon name="Award" size={32} className="text-yellow-500/40 mr-2 -scale-x-100" />
             <span className="text-5xl md:text-7xl font-extrabold text-white leading-none">
               {averageRating.toFixed(2)}
             </span>
-            <img src="/assets/laurel-right.png" alt="" className="w-8 md:w-12 opacity-70 ml-2" />
+            <Icon name="Award" size={32} className="text-yellow-500/40 ml-2" />
           </div>
           <div className="flex items-center gap-1 mt-2">
             {[...Array(5)].map((_, i) => (

@@ -136,7 +136,7 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
 
   // Calculate Bulk Discount using property's custom discount
   let discount = 0;
-  const bulkDiscountPercentage = property?.bulk_booking_discount || 10; // Default to 10 if not set
+  const bulkDiscountPercentage = property?.bulk_booking_discount !== undefined && property?.bulk_booking_discount !== null ? property.bulk_booking_discount : 10;
 
   if (bookingType === 'bulk') {
     // If it's a bulk booking, apply the custom discount percentage
