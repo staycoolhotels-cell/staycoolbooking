@@ -1,5 +1,5 @@
 
-import { razorpay } from '../src/lib/razorpay';
+import { razorpay } from '../../src/lib/razorpay';
 
 async function test() {
     console.log('Testing Razorpay keys...');
