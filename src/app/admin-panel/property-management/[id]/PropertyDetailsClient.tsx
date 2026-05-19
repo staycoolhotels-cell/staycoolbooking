@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { Property } from '@/lib/types';
 import { approveProperty, rejectProperty } from '@/lib/admin-actions';
 import { Button } from '@/components/ui/button';
@@ -84,7 +85,16 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
         try {
             const result = await approveProperty(currentProperty.id);
             if (result) {
-                setCurrentProperty({ ...currentProperty, status: 'active' });
+                const newStatus = typeof result === 'object' && result && 'status' in result ? (result as any).status : 'active';
+                const kycPending = typeof result === 'object' && result && (result as any).kycPending;
+                
+                setCurrentProperty({ ...currentProperty, status: newStatus });
+                
+                if (kycPending) {
+                    toast.success('Property approved successfully! (Placed Offline pending host KYC)');
+                } else {
+                    toast.success('Property approved successfully and is now active!');
+                }
             } else {
                 alert('Failed to approve property');
             }
@@ -192,6 +202,28 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                         </div>
                     </div>
                 </div>
+
+                {/* KYC Offline Reason Notification Banner */}
+                {currentProperty.status === 'offline' && (
+                    <div className="bg-[#0f0f15] border border-amber-500/20 rounded-lg p-4 relative overflow-hidden flex items-start gap-4">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-amber-500/50" />
+                        <div className="p-2 rounded bg-amber-500/10 text-amber-500 shrink-0">
+                            <Shield className="w-5 h-5" />
+                        </div>
+                        <div className="space-y-1 text-left">
+                            <h4 className="text-sm font-semibold text-zinc-100 font-mono uppercase tracking-wider">
+                                Property Status: Offline
+                            </h4>
+                            <p className="text-xs text-zinc-400 leading-relaxed">
+                                {kycRecord && kycRecord.kyc_status === 'activated' ? (
+                                    "This property has been approved by the admin, but is currently set to Offline (Maintenance Mode) manually by the host."
+                                ) : (
+                                    "This property has been approved by the admin, but is currently Offline because the host's Banking & KYC verification is pending or incomplete. It will automatically go Live once the host completes the setup in their Banking & KYC tab."
+                                )}
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 {/* Hero Grid */}
                 <div className="grid grid-cols-12 gap-6 md:h-[500px]">
@@ -305,7 +337,7 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                         <div className="row-span-1 bg-[#050505] border border-white/10 rounded-lg p-6 flex flex-col justify-center">
                             <span className="text-xs text-zinc-500 font-mono uppercase tracking-wider mb-3">System Actions</span>
                             <div className="flex gap-3">
-                                {currentProperty.status !== 'active' && (
+                                {currentProperty.status !== 'active' && currentProperty.status !== 'offline' && (
                                     <Button onClick={handleApprove} disabled={actionLoading} className="flex-1 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-500 border border-emerald-500/20 h-10 rounded text-xs uppercase font-mono tracking-wide">
                                         Approve
                                     </Button>

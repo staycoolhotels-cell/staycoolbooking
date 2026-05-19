@@ -8,7 +8,6 @@ const supabase = createClient(
 );
 
 async function testWishlist() {
-    // First get a user and property to test with
     const { data: users } = await supabase.from('users').select('id').limit(1);
     const { data: props } = await supabase.from('properties').select('id').limit(1);
 

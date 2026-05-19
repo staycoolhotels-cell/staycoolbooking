@@ -234,7 +234,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                     }
                   }}
                   numberOfMonths={1}
-                  className="p-3 text-zinc-100 bg-transparent relative z-10"
+                  className="p-2 text-zinc-100 bg-transparent relative z-10"
                 />
               </PopoverContent>
             </Popover>

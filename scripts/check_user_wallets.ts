@@ -20,8 +20,6 @@ async function check() {
         result += 'Creating RLS policies sql string to execute manually if needed.\n';
     }
 
-
-
     fs.writeFileSync('wallets_test_output.txt', result);
 }
 

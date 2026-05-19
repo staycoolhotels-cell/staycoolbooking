@@ -16,8 +16,6 @@ async function checkSchema() {
 
     fs.writeFileSync('wishlist-schema.json', JSON.stringify(cols, null, 2));
     console.log("Schema written to wishlist-schema.json");
-
-    // Also get foreign keys
     const { data: fks } = await supabase.rpc('execute_sql', {
         sql_string: `
         SELECT

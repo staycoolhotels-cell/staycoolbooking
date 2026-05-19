@@ -24,8 +24,7 @@ async function testInsert() {
                 status: 'open',
                 createdDate: new Date().toISOString(),
                 lastUpdate: new Date().toISOString(),
-                // These are the new columns I added
-                booking_id: '8177a311-486b-42e1-9aca-65198affb71f', // dummy UUID
+                booking_id: '8177a311-486b-42e1-9aca-65198affb71f',
                 guest_id: '8177a311-486b-42e1-9aca-65198affb71f',
                 host_id: '8177a311-486b-42e1-9aca-65198affb71f',
                 property_id: '8177a311-486b-42e1-9aca-65198affb71f',

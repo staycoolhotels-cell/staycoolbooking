@@ -47,8 +47,6 @@ async function testVerificationInsert() {
             } else {
                 console.log('✅ Test insert successful! RLS policies are working correctly.');
                 console.log('   Data:', data);
-
-                // Clean up test data
                 await supabase
                     .from('verifications')
                     .delete()

@@ -513,10 +513,26 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         throw new Error(`Failed to ${action === 'active' ? 'approve' : 'reject'} property`);
       }
 
+      const newStatus = (action === 'active' && typeof result === 'object' && result && 'status' in result)
+        ? (result as any).status
+        : action;
+      const kycPending = (action === 'active' && typeof result === 'object' && result && (result as any).kycPending);
+
       setProperties((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, status: action } : item))
+        prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item))
       );
-      await logActivity('property_review', `Property ${id} has been ${action}`, undefined, `Property ${action === 'active' ? 'Approved' : 'Rejected'}`, action === 'active' ? 'success' : 'error');
+
+      if (action === 'active') {
+        if (kycPending) {
+          toast.success('Property approved successfully! (Placed Offline pending host KYC)');
+        } else {
+          toast.success('Property approved successfully and is now active!');
+        }
+      } else {
+        toast.success('Property rejected successfully.');
+      }
+
+      await logActivity('property_review', `Property ${id} has been ${action}. Actual status set to ${newStatus}`, undefined, `Property ${newStatus === 'active' ? 'Approved & Active' : newStatus === 'offline' ? 'Approved & Offline (KYC Pending)' : 'Rejected'}`, newStatus === 'active' ? 'success' : newStatus === 'offline' ? 'warning' : 'error');
     } catch (error) {
       console.error('Error updating property:', error);
       alert(`Failed to ${action === 'active' ? 'approve' : 'reject'} property`);

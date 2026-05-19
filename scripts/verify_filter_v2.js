@@ -9,8 +9,6 @@ const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 async function verifyFilter() {
     try {
         console.log('--- STARTING NON-DESTRUCTIVE VERIFICATION ---');
-
-        // 1. Get an existing ACTIVE property
         const { data: props, error: fetchError } = await adminClient
             .from('properties')
             .select('id, title, status')
@@ -24,8 +22,6 @@ async function verifyFilter() {
 
         const testProp = props[0];
         console.log(`Using Property: ${testProp.id} (${testProp.title}) - Current Status: ${testProp.status}`);
-
-        // 2. Set to PENDING
         console.log('Setting status to PENDING...');
         const { error: updateError } = await adminClient
             .from('properties')
@@ -36,8 +32,6 @@ async function verifyFilter() {
             console.error('Failed to update status:', updateError.message);
             return;
         }
-
-        // 3. Verify it is GONE from "Active Only" query
         console.log('Simulating Guest Homepage Query (Status = Active)...');
         const { data: visibleProps, error: queryError } = await adminClient
             .from('properties')
@@ -56,8 +50,6 @@ async function verifyFilter() {
                 console.log(`Visible Active Properties Count: ${visibleProps.length}`);
             }
         }
-
-        // 4. Restore Status
         console.log('Restoring status to ACTIVE...');
         await adminClient
             .from('properties')

@@ -129,6 +129,7 @@ const AddPropertyModal = ({
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const categoryRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isBulkDiscountEnabled, setIsBulkDiscountEnabled] = useState(true);
   const lastNonZeroDiscount = useRef<number>(10);
 
@@ -158,6 +159,13 @@ const AddPropertyModal = ({
     { id: 'Tent', name: 'Tent', icon: Tent },
     { id: 'Dormitory', name: 'Dormitory', icon: Users },
   ];
+
+  // Scroll to top of step container when step changes
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [currentStep]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -549,7 +557,7 @@ const AddPropertyModal = ({
           </button>
         </div>
 
-        <div className="p-3 md:p-8 overflow-y-auto">
+        <div ref={scrollContainerRef} className="p-3 md:p-8 overflow-y-auto">
           <div className="mb-4 md:mb-8">
             <div className="flex items-center justify-between">
               {steps.map((step, index) => (

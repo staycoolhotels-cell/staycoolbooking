@@ -5,6 +5,7 @@ import { Property } from '@/lib/types';
 import { supabase } from '@/lib/supabaseClient';
 import { approveProperty, rejectProperty } from '@/lib/admin-actions';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, MapPin, Tag, Eye, Home, Clock, Ban } from 'lucide-react';
 
@@ -93,8 +94,17 @@ const PropertyList = ({ initialProperties }: PropertyListProps) => {
       const result = await approveProperty(propertyId);
       if (!result) throw new Error('Failed to approve property');
       
+      const newStatus = typeof result === 'object' && result && 'status' in result ? (result as any).status : 'active';
+      const kycPending = typeof result === 'object' && result && (result as any).kycPending;
+      
       // Update store state instantly
-      updateProperty({ id: propertyId, status: 'active' });
+      updateProperty({ id: propertyId, status: newStatus });
+      
+      if (kycPending) {
+        toast.success('Property approved successfully! (Placed Offline pending host KYC)');
+      } else {
+        toast.success('Property approved successfully and is now active!');
+      }
     } catch (error) {
       console.error('Error approving property:', error);
       alert('Failed to approve property');

@@ -296,10 +296,37 @@ export async function autoApproveGuest(userId: string) {
 export async function updatePropertyStatusAsAdmin(propertyId: string, status: 'pending' | 'active' | 'rejected') {
   const supabase = await createAdminSupabaseClient();
 
+  let targetStatus: string = status;
+  let isKycActive = true;
+  if (status === 'active') {
+    // 1. Fetch host_id
+    const { data: prop } = await supabase
+      .from('properties')
+      .select('host_id')
+      .eq('id', propertyId)
+      .single();
+
+    if (prop) {
+      // 2. Fetch KYC status
+      const { data: kycDetails } = await supabase
+        .from('host_kyc_details')
+        .select('kyc_status')
+        .eq('user_id', prop.host_id)
+        .maybeSingle();
+
+      isKycActive = !!(kycDetails && kycDetails.kyc_status === 'activated');
+      if (!isKycActive) {
+        targetStatus = 'offline';
+      }
+    }
+  }
+
   const { data, error } = await supabase
     .from('properties')
-    .update({ status: status, updated_at: new Date().toISOString() }) // updated_at column exists
-    .eq('id', propertyId);
+    .update({ status: targetStatus, updated_at: new Date().toISOString() }) // updated_at column exists
+    .eq('id', propertyId)
+    .select()
+    .single();
 
   if (error) {
     console.error('Error updating property status as admin:', error);
@@ -307,7 +334,7 @@ export async function updatePropertyStatusAsAdmin(propertyId: string, status: 'p
   }
 
   // Log activity
-  await logActivity('property_review', `Property ${propertyId} status changed to ${status}`, undefined, `Property ${status === 'active' ? 'Activated' : status === 'rejected' ? 'Rejected' : 'Updated'}`, status === 'active' ? 'success' : status === 'rejected' ? 'error' : 'info');
+  await logActivity('property_review', `Property ${propertyId} status changed to ${targetStatus}`, undefined, `Property ${targetStatus === 'active' ? 'Activated' : targetStatus === 'offline' ? 'Placed Offline (Pending KYC)' : 'Rejected'}`, targetStatus === 'active' ? 'success' : targetStatus === 'offline' ? 'warning' : 'error');
 
   // Invalidate caches
   revalidateTag(CACHE_TAGS.properties);
@@ -315,16 +342,40 @@ export async function updatePropertyStatusAsAdmin(propertyId: string, status: 'p
   revalidatePath('/', 'layout');
   revalidatePath('/property-listing/[id]', 'page');
 
-  return { success: true, data };
+  return { success: true, data: data ? { ...data, kycPending: !isKycActive } : null };
 }
 
 export const approveProperty = async (propertyId: string) => {
   const supabase = await createAdminSupabaseClient();
 
+  // 1. Fetch host_id
+  const { data: prop, error: fetchError } = await supabase
+    .from('properties')
+    .select('host_id')
+    .eq('id', propertyId)
+    .single();
+
+  if (fetchError || !prop) {
+    console.error('Error fetching property to approve:', fetchError);
+    return null;
+  }
+
+  // 2. Fetch KYC status
+  const { data: kycDetails } = await supabase
+    .from('host_kyc_details')
+    .select('kyc_status')
+    .eq('user_id', prop.host_id)
+    .maybeSingle();
+
+  const isKycActive = kycDetails && kycDetails.kyc_status === 'activated';
+  const targetStatus = isKycActive ? 'active' : 'offline';
+
   const { data, error } = await supabase
     .from('properties')
-    .update({ status: 'active', updated_at: new Date().toISOString() })
-    .eq('id', propertyId);
+    .update({ status: targetStatus, updated_at: new Date().toISOString() })
+    .eq('id', propertyId)
+    .select()
+    .single();
 
   if (error) {
     console.error('Error approving property:', error);
@@ -332,7 +383,13 @@ export const approveProperty = async (propertyId: string) => {
   }
 
   // Log activity
-  await logActivity('property_review', `Property ${propertyId} has been approved`, undefined, 'Property Approved', 'success');
+  await logActivity(
+    'property_review', 
+    `Property ${propertyId} has been approved. Target status set to: ${targetStatus}`, 
+    undefined, 
+    targetStatus === 'active' ? 'Property Approved & Active' : 'Property Approved & Offline (KYC Pending)', 
+    targetStatus === 'active' ? 'success' : 'warning'
+  );
 
   // Invalidate caches
   revalidateTag(CACHE_TAGS.properties);
@@ -340,7 +397,7 @@ export const approveProperty = async (propertyId: string) => {
   revalidatePath('/', 'layout');
   revalidatePath('/property-listing/[id]', 'page');
 
-  return data || true;
+  return data ? { ...data, kycPending: !isKycActive } : null;
 };
 
 

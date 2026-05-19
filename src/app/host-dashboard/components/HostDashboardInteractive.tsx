@@ -121,6 +121,27 @@ const HostDashboardInteractive = ({
     }
   }, [cachedProperties]);
 
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
+
+  // Fetch host KYC status whenever tab changes to ensure fresh data
+  useEffect(() => {
+    async function fetchKycStatus() {
+      try {
+        const res = await fetch('/api/razorpay/linked-account/status');
+        if (res.ok) {
+          const data = await res.json();
+          setKycStatus(data.kyc_status);
+        } else if (res.status === 404) {
+          setKycStatus('pending');
+        }
+      } catch (err) {
+        console.error('Failed to fetch host KYC status:', err);
+        setKycStatus('pending');
+      }
+    }
+    fetchKycStatus();
+  }, [activeTab]);
+
   const [propertyToEdit, setPropertyToEdit] = useState<Property | null>(null);
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [isLoadingDisputes, setIsLoadingDisputes] = useState(false);
@@ -951,6 +972,28 @@ const HostDashboardInteractive = ({
                       }}
 
                       onToggleStatus={async (id: string, newStatus: 'active' | 'pending' | 'rejected' | 'offline') => {
+                        if (newStatus === 'active') {
+                          if (!kycStatus || kycStatus !== 'activated') {
+                            toast.error(
+                              <div className="flex flex-col gap-1.5 text-zinc-100">
+                                <span className="font-bold text-red-400 text-sm md:text-base">
+                                  Banking & KYC వెరిఫికేషన్ అవసరం!
+                                </span>
+                                <span className="text-xs md:text-sm text-zinc-300">
+                                  మీ బ్యాంకింగ్ & KYC వెరిఫికేషన్ పూర్తయిన తర్వాతే ప్రాపర్టీని లైవ్ చేయగలరు.
+                                </span>
+                                <span className="text-[10px] md:text-xs text-zinc-400 mt-0.5 italic">
+                                  Please complete and activate your account in the "Banking & KYC" tab before making this property Live.
+                                </span>
+                              </div>,
+                              {
+                                duration: 8000,
+                                className: 'bg-[#0f0f15] border border-red-500/30 rounded-2xl shadow-2xl p-4',
+                              }
+                            );
+                            return;
+                          }
+                        }
                         try {
                           const { error } = await supabase.rpc('toggle_property_status', {
                             p_id: id,
@@ -959,7 +1002,7 @@ const HostDashboardInteractive = ({
 
                           if (error) {
                             console.error('Error toggling status:', error);
-                            alert('An unexpected error occurred. Please try again later.');
+                            toast.error(error.message || 'An unexpected error occurred. Please try again later.');
                             return;
                           }
 
@@ -967,6 +1010,7 @@ const HostDashboardInteractive = ({
                           setProperties((p) =>
                             p.map((x) => (x.id === id ? ({ ...x, status: newStatus } as Property) : x))
                           );
+                          toast.success(newStatus === 'active' ? 'Property is now Live!' : 'Property is now Offline.');
                         } catch (err) {
                           console.error('Unexpected error toggling status:', err);
                           alert('An unexpected error occurred');

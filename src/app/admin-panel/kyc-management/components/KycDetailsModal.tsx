@@ -117,6 +117,37 @@ const KycDetailsModal = ({ record, onClose }: KycDetailsModalProps) => {
               </div>
             )}
 
+            {/* Razorpay Permissions Automation Alert */}
+            {record.kyc_status === 'activated' && record.razorpay_account_id && (
+              <div className="relative overflow-hidden rounded-xl border border-brand-default/30 bg-[#0d0d14] p-5 shadow-[0_4px_20px_rgba(212,175,55,0.15)] group">
+                {/* Glow accent */}
+                <div className="absolute inset-0 bg-gradient-to-br from-brand-deep/5 to-transparent opacity-50 pointer-events-none" />
+                
+                <div className="relative z-10 space-y-3">
+                  <div className="flex items-center gap-2.5 text-brand-default">
+                    <Icon name="CpuChipIcon" size={18} className="text-brand-default animate-pulse" />
+                    <h4 className="font-heading font-black text-xs uppercase tracking-wider">
+                      Razorpay Route Permissions Automation
+                    </h4>
+                  </div>
+                  <p className="text-xs text-zinc-400 leading-relaxed max-w-xl">
+                    Host KYC has been fully approved by Razorpay. To finalize onboarding, you must enable **Dashboard Access** and **Allow Refunds** on the Razorpay dashboard. Click below to go directly to this merchant's settings page.
+                  </p>
+                  <div className="pt-2">
+                    <a
+                      href={`https://dashboard.razorpay.com/app/route/accounts/${record.razorpay_account_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-brand-deep hover:bg-brand-default text-brand-deep-foreground text-xs font-heading font-bold uppercase tracking-wider rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(212,175,55,0.25)] hover:shadow-[0_0_25px_rgba(212,175,55,0.45)] hover:-translate-y-0.5 border border-brand-default/50"
+                    >
+                      <Icon name="ArrowUpRightIcon" size={14} className="text-brand-deep-foreground" />
+                      Configure Permissions on Razorpay
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Business Info */}
             <Section title="Business Information">
               <Field label="Legal Business Name" value={record.legal_business_name} />
