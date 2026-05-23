@@ -173,7 +173,7 @@ const ProfileHeader = ({
             </AnimatePresence>
 
             <p className="text-xs md:text-base text-sky-300/70 font-medium mt-1 tracking-wide truncate">
-              {user.email}
+              {user.email?.endsWith('@staycool.mobile') ? (user.phone || user.email.split('@')[0]) : user.email}
             </p>
 
             {/* Meta badges row */}

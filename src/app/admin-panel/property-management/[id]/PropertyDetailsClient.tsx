@@ -226,9 +226,9 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                 )}
 
                 {/* Hero Grid */}
-                <div className="grid grid-cols-12 gap-6 md:h-[500px]">
+                <div className="grid grid-cols-12 gap-6 lg:h-[500px]">
                     {/* Main Image - Takes 8 cols */}
-                    <div suppressHydrationWarning className="col-span-12 md:col-span-8 min-h-[350px] md:min-h-0 relative group rounded-lg overflow-hidden border border-white/10 bg-[#050505]">
+                    <div suppressHydrationWarning className="col-span-12 lg:col-span-8 min-h-[350px] lg:min-h-0 relative group rounded-lg overflow-hidden border border-white/10 bg-[#050505]">
                         {currentImageUrl ? (
                             <Image
                                 src={currentImageUrl}
@@ -278,7 +278,7 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                         )}
 
                         <div className="absolute bottom-0 left-0 p-8 space-y-2 pointer-events-none">
-                            <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">{currentProperty.title || currentProperty.name}</h1>
+                            <h1 className="text-3xl lg:text-5xl font-bold text-white tracking-tight">{currentProperty.title || currentProperty.name}</h1>
                             <div className="flex items-center gap-4 text-zinc-400 font-mono text-xs pointer-events-auto">
                                 <span className="flex items-center gap-1.5"><MapPin className="w-3 h-3" /> {currentProperty.location}</span>
                                 {currentProperty.tier && <span className="flex items-center gap-1.5"><Star className="w-3 h-3" /> {currentProperty.tier} TIER</span>}
@@ -287,7 +287,7 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                     </div>
 
                     {/* Stats Grid - Takes 4 cols */}
-                    <div className="col-span-12 md:col-span-4 flex flex-col md:grid md:grid-rows-3 gap-6">
+                    <div className="col-span-12 lg:col-span-4 flex flex-col lg:grid lg:grid-rows-3 gap-6">
                         {/* Price Card */}
                         <div className="row-span-1 bg-[#050505] border border-white/10 rounded-lg p-6 flex flex-col justify-center hover:border-white/20 transition-colors relative overflow-hidden group">
                             <div className="absolute top-0 right-0 p-3 opacity-20"><IndianRupee className="w-6 h-6 text-emerald-500" /></div>
@@ -353,9 +353,9 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                 </div>
 
                 {/* Info Grid (Bento) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Description - 2 Cols */}
-                    <div className="md:col-span-2 bg-[#050505] border border-white/10 rounded-lg p-8 relative overflow-hidden group">
+                    <div className="lg:col-span-2 bg-[#050505] border border-white/10 rounded-lg p-8 relative overflow-hidden group">
                         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-zinc-700 to-transparent opacity-20" />
                         <div className="flex items-center gap-3 mb-6">
                             <Layers className="w-5 h-5 text-zinc-600" />
@@ -367,7 +367,7 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                     </div>
 
                     {/* Metadata - 1 Col */}
-                    <div className="md:col-span-1 space-y-6">
+                    <div className="lg:col-span-1 space-y-6">
                         <div className="bg-[#050505] border border-white/10 rounded-lg p-6">
                             <div className="flex items-center gap-3 mb-4">
                                 <Cpu className="w-4 h-4 text-zinc-600" />
@@ -439,7 +439,7 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                             )}
 
                             {/* Grid of KYC info cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                 {/* Business Info */}
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-2 pb-2 border-b border-white/8">
@@ -546,7 +546,7 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {(() => {
                             const pType = String(currentProperty.type || currentProperty.tier || currentProperty.room_type || (currentProperty as any).property_type || '').toLowerCase();
                             const isTent = pType === 'tent';
@@ -610,7 +610,7 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                 </div>
 
                 {/* Features & Rules Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Amenities */}
                     <div className="bg-[#050505] border border-white/10 rounded-lg p-6 min-h-[300px]">
                         <div className="flex items-center gap-3 mb-6">

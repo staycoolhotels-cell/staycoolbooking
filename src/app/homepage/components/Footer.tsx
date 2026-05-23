@@ -18,7 +18,6 @@ const Footer = () => {
     ],
     hosting: [
       { name: 'Become a Host', href: '/host-dashboard' },
-      { name: 'Host Resources', href: '/host-resources' },
       { name: 'Community Forum', href: '/community' },
     ],
   };

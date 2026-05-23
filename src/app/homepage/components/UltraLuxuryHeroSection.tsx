@@ -153,7 +153,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
           <form onSubmit={handleSubmit} className="flex flex-col md:flex-row items-stretch w-full relative">
             
             {/* Where To */}
-            <div className="w-full md:w-[30%] flex flex-col justify-center px-6 md:px-7 py-3.5 text-left hover:bg-white/20 md:rounded-full rounded-t-[2rem] transition-all duration-300 cursor-text group">
+            <div className="w-full md:w-[30%] flex flex-col justify-center px-6 md:px-4 lg:px-7 py-3.5 text-left hover:bg-white/20 md:rounded-full rounded-t-[2rem] transition-all duration-300 cursor-text group">
               <label htmlFor="where-to-input" className="text-[11px] font-extrabold text-white uppercase tracking-wider cursor-default mb-0.5 whitespace-nowrap select-none" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Where to?</label>
               <div className="flex items-center gap-2">
                 <input
@@ -191,7 +191,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                   aria-label="Select check-in and check-out dates"
                   className="w-full md:w-auto flex-grow flex flex-row items-stretch border-t border-white/20 md:border-t-0 bg-transparent text-left p-0 focus:outline-none focus:ring-2 focus:ring-sky-500 md:focus:rounded-full"
                 >
-                  <div className="flex-1 flex flex-col justify-center px-5 md:px-7 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group border-r border-white/20 md:border-r-0">
+                  <div className="flex-1 flex flex-col justify-center px-5 md:px-4 lg:px-7 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group border-r border-white/20 md:border-r-0">
                     <span className="text-[11px] font-extrabold text-white uppercase tracking-wider mb-0.5 whitespace-nowrap" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Check in</span>
                     <span className="text-[14px] md:text-[15px] font-medium text-zinc-100 truncate transition-colors" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
                       {dateRange?.from ? <span className="text-white">{format(dateRange.from, 'MMM dd, yyyy')}</span> : 'Add dates'}
@@ -202,7 +202,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                     <div className="w-px h-10 bg-white/30 drop-shadow-md" />
                   </div>
 
-                  <div className="flex-1 flex flex-col justify-center px-5 md:px-7 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group">
+                  <div className="flex-1 flex flex-col justify-center px-5 md:px-4 lg:px-7 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group">
                     <span className="text-[11px] font-extrabold text-white uppercase tracking-wider mb-0.5 whitespace-nowrap" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Check out</span>
                     <span className="text-[14px] md:text-[15px] font-medium text-zinc-100 truncate transition-colors" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
                       {dateRange?.to ? <span className="text-white">{format(dateRange.to, 'MMM dd, yyyy')}</span> : 'Add dates'}
@@ -248,7 +248,7 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="w-full md:w-auto flex flex-col items-center justify-center px-5 md:px-7 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group border-t border-white/20 md:border-t-0 text-center"
+                  className="w-full md:w-auto flex flex-col items-center justify-center px-5 md:px-4 lg:px-7 py-3.5 hover:bg-white/20 md:rounded-full transition-all duration-300 cursor-pointer group border-t border-white/20 md:border-t-0 text-center"
                 >
                   <span className="text-[11px] font-extrabold text-white uppercase tracking-wider mb-0.5 whitespace-nowrap" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>Stay Type</span>
                   <span className="text-[14px] md:text-[15px] font-medium text-zinc-100 truncate transition-colors" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
@@ -282,20 +282,20 @@ const UltraLuxuryHeroSection = ({ onSearch }: UltraLuxuryHeroSectionProps) => {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/20 text-white font-semibold py-3.5 px-5 md:py-4 rounded-[1.5rem] md:rounded-full border border-white/20 hover:border-white/40 transition-all duration-300"
+                  className="flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/20 text-white font-semibold py-3.5 px-5 md:p-4 lg:py-4 lg:px-5 rounded-[1.5rem] md:rounded-full border border-white/20 hover:border-white/40 transition-all duration-300"
                   aria-label="Clear current filters"
                 >
                   <X className="w-4 h-4 flex-shrink-0" />
-                  <span className="text-[14px] tracking-wide">Cancel</span>
+                  <span className="text-[14px] tracking-wide hidden lg:inline">Cancel</span>
                 </button>
               )}
               <button
                 type="submit"
                 aria-label="Submit search for properties"
-                className="flex items-center justify-center gap-2 bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-white font-bold py-3.5 px-6 md:px-7 md:py-4 rounded-[1.5rem] md:rounded-full shadow-[0_4px_20px_rgba(14,165,233,0.4)] hover:shadow-[0_8px_25px_rgba(14,165,233,0.6)] hover:scale-[1.02] transition-all duration-300 w-full md:w-auto"
+                className="flex items-center justify-center gap-2 bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-white font-bold py-3.5 px-6 md:p-4 lg:py-4 lg:px-7 rounded-[1.5rem] md:rounded-full shadow-[0_4px_20px_rgba(14,165,233,0.4)] hover:shadow-[0_8px_25px_rgba(14,165,233,0.6)] hover:scale-[1.02] transition-all duration-300 w-full md:w-auto"
               >
                 <Search className="w-5 h-5 flex-shrink-0" />
-                <span className="text-[15px] tracking-wide">Search</span>
+                <span className="text-[15px] tracking-wide hidden lg:inline">Search</span>
               </button>
             </div>
 

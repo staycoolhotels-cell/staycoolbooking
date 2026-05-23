@@ -96,10 +96,42 @@ export default async function ProfilePage() {
     guestName: rev.reviewer?.name || 'Host',
   })) || [];
 
-  const { data: bookings, error: bookingsError } = await supabase
+  const { data: rawBookings, error: bookingsError } = await supabase
     .from('bookings')
     .select('*, properties!inner(*, host:users!host_id(name, avatar:avatar_url))')
     .eq('guest_id', user.id);
+
+  // Fetch amenities log from activities table to load selected amenities
+  const { data: bookingActivities } = await supabase
+    .from('activities')
+    .select('*')
+    .eq('type', 'booking_amenities')
+    .eq('user_id', user.id);
+
+  const bookings = (rawBookings || []).map((b: any) => {
+    const activity = (bookingActivities || []).find((a: any) => {
+      try {
+        const payload = JSON.parse(a.description);
+        return payload.bookingId === b.id;
+      } catch {
+        return false;
+      }
+    });
+
+    let selectedAmenities = [];
+    if (activity) {
+      try {
+        selectedAmenities = JSON.parse(activity.description).amenities || [];
+      } catch (err) {
+        // Ignore JSON parse errors for robust parsing
+      }
+    }
+
+    return {
+      ...b,
+      amenities: selectedAmenities,
+    };
+  });
 
   const { data: achievements, error: achievementsError } = await supabase
     .from('user_achievements')

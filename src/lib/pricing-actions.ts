@@ -51,7 +51,8 @@ export async function generatePricingAI(propertyIds: string[]): Promise<PriceSug
       CURRENT DATE: ${new Date().toISOString().split('T')[0]}
 
       INSTRUCTIONS:
-      - Provide exactly 3 diverse and actionable "PriceSuggestion" items.
+      INSTRUCTIONS:
+      - Provide exactly 1 highly targeted and actionable "PriceSuggestion" item for EACH property in the list (total: ${properties.length} suggestions).
       - Each suggestion should recommend a specific action (increase, decrease, or maintain with a strategy).
       - "suggestion" should be a concise action like "Increase price by 15% for upcoming weekends".
       - "impact" should explain the rationale based on data (e.g., "High occupancy in Mar and early Apr suggests strong demand").
@@ -78,7 +79,7 @@ export async function generatePricingAI(propertyIds: string[]): Promise<PriceSug
       result = generatePricingFallback(properties, bookings || []);
     }
 
-    return result.slice(0, 3);
+    return result;
 
   } catch (error) {
     console.error('generatePricingAI error:', error);
@@ -123,5 +124,5 @@ function generatePricingFallback(properties: any[], bookings: any[]): PriceSugge
     });
   });
 
-  return suggestions.slice(0, 3);
+  return suggestions;
 }

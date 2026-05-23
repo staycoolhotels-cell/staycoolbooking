@@ -290,7 +290,7 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
       {totalBenefits > 0 ? (
         <motion.div 
           variants={itemVariants}
-          className="p-5 rounded-3xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg shadow-amber-950/5 relative overflow-hidden group animate-in fade-in slide-in-from-top-4 duration-500"
+          className="p-5 rounded-3xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 flex flex-col lg:flex-row items-center justify-between gap-4 shadow-lg shadow-amber-950/5 relative overflow-hidden group animate-in fade-in slide-in-from-top-4 duration-500"
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-[40px] pointer-events-none" />
           <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
@@ -308,7 +308,7 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
           </div>
           <button 
             onClick={() => onAction?.('profile')}
-            className="w-full md:w-auto relative overflow-hidden group/btn px-5 py-2.5 text-[10px] uppercase font-black tracking-widest text-amber-400 border border-amber-500/30 rounded-xl hover:border-amber-500/60 transition-all duration-300 shadow-md shadow-amber-950/20 bg-amber-500/10 hover:bg-amber-500/20 shrink-0"
+            className="w-full lg:w-auto relative overflow-hidden group/btn px-5 py-2.5 text-[10px] uppercase font-black tracking-widest text-amber-400 border border-amber-500/30 rounded-xl hover:border-amber-500/60 transition-all duration-300 shadow-md shadow-amber-950/20 bg-amber-500/10 hover:bg-amber-500/20 shrink-0"
           >
             <span className="relative z-10">Invite Another Host</span>
             <div className="absolute inset-0 bg-amber-500/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
@@ -317,7 +317,7 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
       ) : (
         <motion.div 
           variants={itemVariants}
-          className="p-5 rounded-3xl bg-gradient-to-r from-purple-500/10 via-purple-500/5 to-transparent border border-purple-500/20 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg shadow-purple-950/5 relative overflow-hidden group animate-in fade-in slide-in-from-top-4 duration-500"
+          className="p-5 rounded-3xl bg-gradient-to-r from-purple-500/10 via-purple-500/5 to-transparent border border-purple-500/20 flex flex-col lg:flex-row items-center justify-between gap-4 shadow-lg shadow-purple-950/5 relative overflow-hidden group animate-in fade-in slide-in-from-top-4 duration-500"
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-[40px] pointer-events-none" />
           <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
@@ -335,7 +335,7 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
           </div>
           <button 
             onClick={() => onAction?.('profile')}
-            className="w-full md:w-auto relative overflow-hidden group/btn px-5 py-2.5 text-[10px] uppercase font-black tracking-widest text-purple-400 border border-purple-500/30 rounded-xl hover:border-purple-500/60 transition-all duration-300 shadow-md shadow-purple-950/20 bg-purple-500/10 hover:bg-purple-500/20 shrink-0"
+            className="w-full lg:w-auto relative overflow-hidden group/btn px-5 py-2.5 text-[10px] uppercase font-black tracking-widest text-purple-400 border border-purple-500/30 rounded-xl hover:border-purple-500/60 transition-all duration-300 shadow-md shadow-purple-950/20 bg-purple-500/10 hover:bg-purple-500/20 shrink-0"
           >
             <span className="relative z-10">Get Invite Code</span>
             <div className="absolute inset-0 bg-purple-500/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
@@ -442,6 +442,13 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
                         >
                           {booking.booking_type === 'bulk' ? 'Bulk' : 'Normal'}
                         </div>
+                        {booking.properties?.type && (
+                          <div
+                            className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border shrink-0 bg-sky-500/10 text-sky-400 border-sky-500/20"
+                          >
+                            {booking.properties.type.split('-').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                          </div>
+                        )}
                         <div
                           className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border shrink-0 ${
                             booking.status === 'confirmed'

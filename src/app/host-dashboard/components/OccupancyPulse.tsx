@@ -159,21 +159,21 @@ const OccupancyPulse: React.FC<OccupancyPulseProps> = ({ bookings = [] }) => {
 
   return (
     <div className="w-full">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5 bg-[#0a0a0f]/80 p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-5 bg-[#0a0a0f]/80 p-4 lg:p-6 rounded-2xl lg:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 w-64 bg-gradient-to-l from-primary/10 to-transparent pointer-events-none" />
-        <div className="flex items-center gap-3 relative z-10">
-          <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/20 flex items-center justify-center shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.3)]">
-            <Icon name="HeartIcon" size={20} className="text-primary animate-pulse sm:hidden" />
-            <Icon name="HeartIcon" size={28} className="text-primary animate-pulse hidden sm:block" />
+        <div className="flex items-center gap-3 relative z-10 flex-1 min-w-0 w-full">
+          <div className="w-10 h-10 lg:w-14 lg:h-14 rounded-xl lg:rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/20 flex items-center justify-center shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.3)] shrink-0">
+            <Icon name="HeartIcon" size={20} className="text-primary animate-pulse lg:hidden" />
+            <Icon name="HeartIcon" size={28} className="text-primary animate-pulse hidden lg:block" />
           </div>
-          <div>
-            <h1 className="text-xl sm:text-3xl font-heading font-black text-white tracking-tight drop-shadow-md">Occupancy Pulse</h1>
-            <p className="text-xs sm:text-sm font-medium text-zinc-400 mt-0.5">Real-time tracking of guest movements</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl lg:text-3xl font-heading font-black text-white tracking-tight drop-shadow-md">Occupancy Pulse</h1>
+            <p className="text-xs lg:text-sm font-medium text-zinc-400 mt-0.5 truncate">Real-time tracking of guest movements</p>
           </div>
         </div>
-        <div className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#12121a] border border-white/10 rounded-xl flex items-center gap-2 shadow-inner relative z-10 w-full sm:w-auto justify-center">
-          <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-success shadow-[0_0_10px_rgba(34,197,94,0.6)] animate-pulse"></div>
-          <span className="text-[10px] sm:text-xs font-bold text-zinc-200 uppercase tracking-widest">Live Updates</span>
+        <div className="px-3 lg:px-4 py-1.5 lg:py-2 bg-[#12121a] border border-white/10 rounded-xl flex items-center gap-2 shadow-inner relative z-10 w-full lg:w-auto justify-center mt-2 lg:mt-0 shrink-0">
+          <div className="w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full bg-success shadow-[0_0_10px_rgba(34,197,94,0.6)] animate-pulse"></div>
+          <span className="text-[10px] lg:text-xs font-bold text-zinc-200 uppercase tracking-widest">Live Updates</span>
         </div>
       </div>
 

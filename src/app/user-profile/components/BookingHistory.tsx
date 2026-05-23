@@ -51,6 +51,14 @@ const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistory
         (a, b) => new Date(b.check_in).getTime() - new Date(a.check_in).getTime()
     );
 
+    const formatStayType = (type?: string) => {
+        if (!type) return 'Stay';
+        return type
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    };
+
     const displayedBookings = showAll ? sortedBookings : sortedBookings.slice(0, 2);
 
     const totalBookings = bookings.length;
@@ -152,6 +160,11 @@ const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistory
                                                 ? `Bulk ${booking.bulk_booking_discount || booking.properties?.bulk_booking_discount ? `(${booking.bulk_booking_discount || booking.properties?.bulk_booking_discount}%)` : ''}` 
                                                 : 'Normal'}
                                         </span>
+                                        {booking.properties?.type && (
+                                            <span className="px-1.5 py-0 rounded-[4px] text-[7px] font-black uppercase tracking-wider border shrink-0 bg-sky-500/10 text-sky-400 border-sky-500/20">
+                                                {formatStayType(booking.properties.type)}
+                                            </span>
+                                        )}
                                     </div>
                                     
                                     {/* Dates — hidden on small mobile, show on sm+ */}

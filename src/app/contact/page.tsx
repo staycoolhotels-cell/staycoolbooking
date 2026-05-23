@@ -152,16 +152,16 @@ const ContactPage = () => {
           </form>
 
           {/* Contact Info Icons */}
-          <div className="mt-12 pt-8 border-t border-primary/20 flex justify-around items-center">
+          <div className="mt-12 pt-8 border-t border-primary/20 flex flex-col sm:flex-row justify-around items-center gap-6 sm:gap-0">
             <a
               href="mailto:staycoolhotels@gmail.com"
-              className="flex flex-col items-center gap-2 text-text-secondary hover:text-primary transition-colors"
+              className="flex flex-col items-center gap-2 text-text-secondary hover:text-primary transition-colors text-center"
             >
               <Icon name="Mail" size={24} />
               <span className="text-xs">staycoolhotels@gmail.com</span>
             </a>
 
-            <div className="flex flex-col items-center gap-2 text-text-secondary">
+            <div className="flex flex-col items-center gap-2 text-text-secondary text-center">
               <Icon name="MapPin" size={24} />
               <span className="text-xs">Rasoolpet, Phirangipuram</span>
             </div>

@@ -5,6 +5,10 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { logActivity } from './activity-actions';
 import { verifyPaymentSignature } from './payment-actions';
+import { sendMsg91OTP, verifyMsg91OTP } from './msg91';
+import crypto from 'crypto';
+
+
 
 // --- Supabase Client Helpers ---
 
@@ -480,10 +484,25 @@ export async function signInWithMobile(_prevState: string | undefined, formData:
     return 'Phone number is required.';
   }
 
+  // MOCK OTP Mode: Allow testing with any phone number using '123456'
+  if (process.env.MOCK_OTP === 'true') {
+    console.log(`[MOCK OTP] MOCK OTP '123456' generated for ${phone}`);
+    return { success: true, message: 'OTP sent successfully (MOCK MODE)' };
+  }
+
   // DEVELOPMENT BYPASS: Allow testing without a working SMS provider
   if (phone === '+911111111111' || phone === '1111111111') {
     console.log('--- DEVELOPMENT BYPASS TRIGGERED for signInWithMobile ---');
     return { success: true, message: 'OTP sent successfully (DEVELOPMENT MOCK)' };
+  }
+
+  // MSG91 INTEGRATION:
+  if (process.env.MSG91_AUTH_KEY) {
+    const { success, error } = await sendMsg91OTP(phone);
+    if (!success) {
+      return `SMS Error: ${error || 'Failed to send OTP via MSG91'}`;
+    }
+    return { success: true, message: 'OTP sent successfully via MSG91' };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -503,7 +522,8 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
   const phone = formData.get('phone') as string;
   const token = formData.get('otp') as string;
   const name = formData.get('name') as string; // Optional context for new users
-  const role = (formData.get('role') as string)?.toLowerCase() || 'guest'; // Default to guest
+  const role = formData.get('role') as string; // Check if role is present (only on signup)
+  const isSignupFlow = !!role;
 
   // Payment Details
   const razorpayPaymentId = formData.get('razorpay_payment_id') as string;
@@ -514,8 +534,10 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
     return 'Phone number and OTP are required.';
   }
 
+  const userRole = role?.toLowerCase() === 'host' ? 'host' : 'guest';
+
   // Payment Verification for Host
-  if (role === 'host') {
+  if (isSignupFlow && userRole === 'host') {
     if (!razorpayPaymentId || !razorpayOrderId || !razorpaySignature) {
       return 'Payment verification failed: Details missing.';
     }
@@ -543,78 +565,132 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
     
     return {
       success: true,
-      message: 'Account created successfully. Please log in.',
+      message: isSignupFlow ? 'Account created successfully. Please log in.' : 'Logged in successfully.',
       role: 'host'
     };
   }
 
-  const { data, error } = await supabase.auth.verifyOtp({
-    phone,
-    token,
-    type: 'sms',
-  });
+  let finalUserId: string | undefined;
+  let finalUserRole = userRole;
 
-  if (error) {
-    console.error('OTP Verification Error:', error.message);
-    return 'Invalid OTP code.';
-  }
-
-    if (data.user) {
-    const userId = data.user.id;
-    const supabaseAdmin = await createSupabaseAdminClient();
-    const userRole = role === 'host' ? 'host' : 'guest';
-
-    // Check if user profile exists
-    // We MUST fetch the role from public.users to be secure
-    const profileResponse = await supabaseAdmin
-      .from('users')
-      .select('role, status')
-      .eq('id', userId)
-      .single();
-    
-    let userProfile = profileResponse.data;
-    const profileError = profileResponse.error;
-
-    // --- Referral Logic ---
-    let referrerId = null;
-    const referralCode = formData.get('referralCode') as string;
-
-    if (referralCode) {
-      console.log('🔍 Checking (Mobile) referral code:', referralCode);
-      const { data: referrer } = await supabaseAdmin
-        .from('users')
-        .select('id, referral_benefit_count')
-        .eq('referral_code', referralCode)
-        .single();
-
-      if (referrer) {
-        console.log('✅ Found (Mobile) referrer:', referrer.id);
-        referrerId = referrer.id;
-
-        // Reward the referrer if the new user is signing up as a HOST
-        if (userRole === 'host') {
-          console.log('🎁 Rewarding referrer with 5 bookings benefit');
-          await supabaseAdmin
-            .from('users')
-            .update({ referral_benefit_count: (referrer.referral_benefit_count || 0) + 5 })
-            .eq('id', referrer.id);
-        }
+  // MSG91 INTEGRATION / MOCK OTP:
+  if (process.env.MSG91_AUTH_KEY || process.env.MOCK_OTP === 'true') {
+    let verified = false;
+    if (process.env.MOCK_OTP === 'true' && token === '123456') {
+      verified = true;
+      console.log(`[MOCK OTP] MOCK OTP verification successful for ${phone}`);
+    } else if (process.env.MSG91_AUTH_KEY) {
+      const { success, error: msg91Error } = await verifyMsg91OTP(phone, token);
+      if (success) {
+        verified = true;
       } else {
-        console.warn('⚠️ Mobile referral code not found:', referralCode);
+        return `OTP Verification Error: ${msg91Error || 'Invalid OTP code.'}`;
       }
     }
 
-    if (profileError || !userProfile) {
-      // Create new profile for mobile user
-      console.log('Mobile user profile not found, creating...');
+    if (verified) {
+      const supabaseAdmin = await createSupabaseAdminClient();
+    const normalizedPhone = phone.replace(/\D/g, '');
+    const mobileEmail = `${normalizedPhone}@staycool.mobile`;
+    
+    // Deterministic password using SUPABASE_SERVICE_ROLE_KEY
+    const deterministicPassword = crypto.createHmac('sha256', process.env.SUPABASE_SERVICE_ROLE_KEY!)
+      .update(normalizedPhone)
+      .digest('hex');
 
-      const userStatus = userRole === 'host' ? 'active' : 'active'; // Hosts are auto-approved now
+    // Check if user profile already exists
+    const { data: existingProfiles } = await supabaseAdmin
+      .from('users')
+      .select('id, role, status')
+      .eq('phone', phone);
+
+    let userProfile = existingProfiles && existingProfiles.length > 0 ? existingProfiles[0] : null;
+    let userId = userProfile?.id;
+
+    if (!userId) {
+      // Try to sign in first to check if they exist in auth
+      const { data: signInData } = await supabase.auth.signInWithPassword({
+        email: mobileEmail,
+        password: deterministicPassword,
+      });
+
+      if (signInData?.user) {
+        userId = signInData.user.id;
+      } else {
+        // User does not exist in Auth, create them!
+        const { data: newAuthUser, error: authCreateError } = await supabaseAdmin.auth.admin.createUser({
+          email: mobileEmail,
+          password: deterministicPassword,
+          email_confirm: true,
+          user_metadata: {
+            role: finalUserRole,
+            name: name || 'Mobile User',
+            phone: phone,
+          }
+        });
+
+        if (authCreateError) {
+          console.error('Failed to create auth user for mobile:', authCreateError.message);
+          return `Signup Error: ${authCreateError.message}`;
+        }
+        userId = newAuthUser.user.id;
+
+        // Since we created them, now log them in to establish the session
+        await supabase.auth.signInWithPassword({
+          email: mobileEmail,
+          password: deterministicPassword,
+        });
+      }
+    } else {
+      // User exists in profile and auth, just log them in to establish session
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: mobileEmail,
+        password: deterministicPassword,
+      });
+      if (signInError) {
+        console.error('Mobile signin session establishment failed:', signInError.message);
+        return `Login failed after OTP verification: ${signInError.message}`;
+      }
+    }
+
+    finalUserId = userId;
+
+    if (!userProfile) {
+      console.log('Mobile user profile not found, creating...');
+      const userStatus = 'active'; // Hosts are auto-approved now after payment
       const userName = name || 'Mobile User';
       const newReferralCode = `SC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-      // Calculate subscription expiry (1 year from now)
-      const subscriptionExpiry = userRole === 'host' ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() : null;
-      const subscriptionStatus = userRole === 'host' ? 'active' : 'inactive';
+      // --- Referral Logic ---
+      let referrerId = null;
+      const referralCode = formData.get('referralCode') as string;
+
+      if (referralCode) {
+        console.log('🔍 Checking (Mobile) referral code:', referralCode);
+        const { data: referrer } = await supabaseAdmin
+          .from('users')
+          .select('id, referral_benefit_count')
+          .eq('referral_code', referralCode)
+          .single();
+
+        if (referrer) {
+          console.log('✅ Found (Mobile) referrer:', referrer.id);
+          referrerId = referrer.id;
+
+          // Reward the referrer if the new user is signing up as a HOST
+          if (finalUserRole === 'host') {
+            console.log('🎁 Rewarding referrer with 5 bookings benefit');
+            await supabaseAdmin
+              .from('users')
+              .update({ referral_benefit_count: (referrer.referral_benefit_count || 0) + 5 })
+              .eq('id', referrer.id);
+          }
+        }
+      }
+
+      // Calculate subscription expiry
+      const subscriptionExpiry = finalUserRole === 'host' ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() : null;
+      const subscriptionStatus = finalUserRole === 'host' ? 'active' : 'inactive';
 
       const { data: newProfile, error: createError } = await supabaseAdmin
         .from('users')
@@ -622,49 +698,173 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
           id: userId,
           name: userName,
           phone: phone,
-          role: userRole,
+          email: mobileEmail,
+          role: finalUserRole,
           status: userStatus,
           referred_by: referrerId,
           referral_code: newReferralCode,
-          referral_commissions_remaining: (referrerId && userRole === 'host') ? 5 : 0,
+          referral_commissions_remaining: (referrerId && finalUserRole === 'host') ? 5 : 0,
           subscription_status: subscriptionStatus,
           subscription_expiry: subscriptionExpiry,
         })
-        .select('role, status')
+        .select('id, role, status')
         .single();
 
       if (createError) {
         console.error('Failed to create mobile user profile:', createError);
-        await supabase.auth.signOut();
-        return 'Failed to create user profile. Please contact support.';
+        return `Failed to create user profile: ${createError.message} (${createError.details || createError.code || ''})`;
       }
       userProfile = newProfile;
 
       // Log new user
       await logActivity(
         'new_user',
-        `New ${userRole} signed up via Mobile (Referral: ${referralCode || 'None'}): ${userName}`,
+        `New ${finalUserRole} signed up via Mobile (Referral: ${referralCode || 'None'}): ${userName}`,
         userId
       );
     }
 
-    if (!userProfile) {
-      await supabase.auth.signOut();
-      return 'User profile error.';
+    if (userProfile) {
+      finalUserRole = userProfile.role?.toLowerCase() === 'host' ? 'host' : 'guest';
     }
 
-    // Role Specific Redirects
-    // UPDATE: We do NOT redirect anymore. We sign out and let client show success modal.
+    // Now log the user in to establish a session cookie!
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: mobileEmail,
+      password: deterministicPassword,
+    });
 
-    const normalizedRole = userProfile.role?.toLowerCase() || '';
+    if (signInError) {
+      console.error('Mobile signin session establishment failed:', signInError.message);
+      return `Login failed after OTP verification: ${signInError.message}`;
+    }
+    }
 
-    console.log('✅ MOBILE SIGNUP COMPLETE. Signing out to enforce manual login.');
-    await supabase.auth.signOut();
+  } else {
+    // Standard Supabase Phone Auth Flow
+    const { data, error } = await supabase.auth.verifyOtp({
+      phone,
+      token,
+      type: 'sms',
+    });
 
-    return {
-      success: true,
-      message: 'Account created successfully. Please log in.',
-      role: normalizedRole
-    };
+    if (error) {
+      console.error('OTP Verification Error:', error.message);
+      return 'Invalid OTP code.';
+    }
+
+    if (data.user) {
+      const userId = data.user.id;
+      finalUserId = userId;
+      const supabaseAdmin = await createSupabaseAdminClient();
+
+      // Check if user profile exists
+      const { data: existingProfiles } = await supabaseAdmin
+        .from('users')
+        .select('role, status')
+        .eq('id', userId);
+      
+      let userProfile = existingProfiles && existingProfiles.length > 0 ? existingProfiles[0] : null;
+
+      // --- Referral Logic ---
+      let referrerId = null;
+      const referralCode = formData.get('referralCode') as string;
+
+      if (referralCode) {
+        console.log('🔍 Checking (Mobile) referral code:', referralCode);
+        const { data: referrer } = await supabaseAdmin
+          .from('users')
+          .select('id, referral_benefit_count')
+          .eq('referral_code', referralCode)
+          .single();
+
+        if (referrer) {
+          console.log('✅ Found (Mobile) referrer:', referrer.id);
+          referrerId = referrer.id;
+
+          // Reward the referrer if the new user is signing up as a HOST
+          if (finalUserRole === 'host') {
+            console.log('🎁 Rewarding referrer with 5 bookings benefit');
+            await supabaseAdmin
+              .from('users')
+              .update({ referral_benefit_count: (referrer.referral_benefit_count || 0) + 5 })
+              .eq('id', referrer.id);
+          }
+        } else {
+          console.warn('⚠️ Mobile referral code not found:', referralCode);
+        }
+      }
+
+      if (!userProfile) {
+        // Create new profile for mobile user
+        console.log('Mobile user profile not found, creating...');
+
+        const userStatus = finalUserRole === 'host' ? 'active' : 'active'; // Hosts are auto-approved now
+        const userName = name || 'Mobile User';
+        const newReferralCode = `SC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+        // Calculate subscription expiry (1 year from now)
+        const subscriptionExpiry = finalUserRole === 'host' ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() : null;
+        const subscriptionStatus = finalUserRole === 'host' ? 'active' : 'inactive';
+
+        const { data: newProfile, error: createError } = await supabaseAdmin
+          .from('users')
+          .insert({
+            id: userId,
+            name: userName,
+            phone: phone,
+            role: finalUserRole,
+            status: userStatus,
+            referred_by: referrerId,
+            referral_code: newReferralCode,
+            referral_commissions_remaining: (referrerId && finalUserRole === 'host') ? 5 : 0,
+            subscription_status: subscriptionStatus,
+            subscription_expiry: subscriptionExpiry,
+          })
+          .select('role, status')
+          .single();
+
+        if (createError) {
+          console.error('Failed to create mobile user profile:', createError);
+          await supabase.auth.signOut();
+          return `Failed to create user profile: ${createError.message} (${createError.details || createError.code || ''})`;
+        }
+        userProfile = newProfile;
+
+        // Log new user
+        await logActivity(
+          'new_user',
+          `New ${finalUserRole} signed up via Mobile (Referral: ${referralCode || 'None'}): ${userName}`,
+          userId
+        );
+      }
+
+      if (userProfile) {
+        finalUserRole = userProfile.role?.toLowerCase() === 'host' ? 'host' : 'guest';
+      }
+    }
   }
+
+  // Common response handling
+  if (finalUserId) {
+    if (isSignupFlow) {
+      console.log('✅ MOBILE SIGNUP COMPLETE. Signing out to enforce manual login.');
+      await supabase.auth.signOut();
+
+      return {
+        success: true,
+        message: 'Account created successfully. Please log in.',
+        role: finalUserRole
+      };
+    } else {
+      console.log('✅ MOBILE LOGIN COMPLETE. Session established.');
+      return {
+        success: true,
+        message: 'Logged in successfully.',
+        role: finalUserRole
+      };
+    }
+  }
+
+  return 'OTP Verification failed.';
 }

@@ -28,7 +28,136 @@ export interface MarketComparisonData {
   average_local_price: number;
   suggested_price: number;
   currency?: string;
+  season?: string;
+  seasonalPreference?: string;
+  property_tier?: string;
 }
+
+const getSeasonalDemandDetails = (tier: string, propName: string) => {
+  const currentMonth = new Date().getMonth(); // 0 = Jan, 4 = May, etc.
+  const norm = (tier || '').toLowerCase().trim();
+  const nameNorm = (propName || '').toLowerCase();
+  
+  let season = 'Summer';
+  let seasonalPreference = '';
+  let multiplier = 1.0;
+
+  const isTent = norm.includes('tent') || nameNorm.includes('tent');
+  const isResort = norm.includes('resort') || nameNorm.includes('resort');
+  const isVilla = norm.includes('villa') || nameNorm.includes('villa');
+  const isHomeStay = norm.includes('home') || norm.includes('stay') || nameNorm.includes('home') || nameNorm.includes('stay');
+  const isApartment = norm.includes('apartment') || nameNorm.includes('apartment') || norm.includes('flat') || nameNorm.includes('flat');
+  const isHotel = norm.includes('hotel') || nameNorm.includes('hotel');
+
+  let detectedType = 'Resort';
+  if (isTent) detectedType = 'Tent';
+  else if (isVilla) detectedType = 'Villa';
+  else if (isResort) detectedType = 'Resort';
+  else if (isHomeStay) detectedType = 'Home Stay';
+  else if (isApartment) detectedType = 'Apartment';
+  else if (isHotel) detectedType = 'Hotel';
+  else detectedType = tier || 'Resort';
+
+  if (currentMonth >= 11 || currentMonth <= 1) {
+    season = 'Winter';
+    if (isTent) {
+      multiplier = 1.25;
+      seasonalPreference = 'Tents have extremely high demand for camping, bonfires, and clear winter skies (+25% yield opportunity).';
+    } else if (isVilla) {
+      multiplier = 1.20;
+      seasonalPreference = 'Villas are highly booked for family winter vacations (+20% yield opportunity).';
+    } else if (isResort) {
+      multiplier = 1.15;
+      seasonalPreference = 'Resorts see steady weekend winter holiday bookings (+15% yield opportunity).';
+    } else if (isHomeStay) {
+      multiplier = 1.10;
+      seasonalPreference = 'Home stays see great weekend travelers seeking local winter experiences (+10% yield opportunity).';
+    } else if (isApartment) {
+      multiplier = 1.10;
+      seasonalPreference = 'Apartments see popular bookings for winter city breaks and cozy long-term winter stays (+10% yield opportunity).';
+    } else if (isHotel) {
+      multiplier = 1.05;
+      seasonalPreference = 'Hotels experience a steady stream of winter business and holiday travelers (+5% yield opportunity).';
+    } else {
+      multiplier = 1.05;
+      seasonalPreference = 'Properties see steady seasonal winter occupancy (+5% yield opportunity).';
+    }
+  } else if (currentMonth >= 2 && currentMonth <= 4) {
+    season = 'Summer';
+    if (isResort) {
+      multiplier = 1.20;
+      seasonalPreference = 'Resorts with pools/AC have peak summer demand for cooling staycations (+20% yield opportunity).';
+    } else if (isVilla) {
+      multiplier = 1.15;
+      seasonalPreference = 'Villas are highly preferred for summer group getaways (+15% yield opportunity).';
+    } else if (isTent) {
+      multiplier = 0.85;
+      seasonalPreference = 'Tents see lower bookings due to summer heat. Competitive pricing recommended (-15% discount suggested).';
+    } else if (isHomeStay) {
+      multiplier = 1.05;
+      seasonalPreference = 'Home stays see steady demand from budget summer travelers looking for homely comfort (+5% yield opportunity).';
+    } else if (isApartment) {
+      multiplier = 1.10;
+      seasonalPreference = 'Apartments see higher demand from families and business travelers seeking longer summer stays with kitchen facilities (+10% yield opportunity).';
+    } else if (isHotel) {
+      multiplier = 1.10;
+      seasonalPreference = 'Hotels with air conditioning see strong bookings from summer holidaymakers (+10% yield opportunity).';
+    } else {
+      multiplier = 1.05;
+      seasonalPreference = 'Properties see steady local summer travel demand (+5% yield opportunity).';
+    }
+  } else if (currentMonth >= 5 && currentMonth <= 8) {
+    season = 'Monsoon';
+    if (isTent) {
+      multiplier = 1.20;
+      seasonalPreference = 'Tents in hill stations/nature spots have peak monsoon trekking demand (+20% yield opportunity).';
+    } else if (isResort) {
+      multiplier = 1.05;
+      seasonalPreference = 'Resorts see moderate monsoon weekend getaway bookings (+5% yield opportunity).';
+    } else if (isHomeStay) {
+      multiplier = 1.10;
+      seasonalPreference = 'Home stays in nature destinations attract rain lovers (+10% yield opportunity).';
+    } else if (isVilla) {
+      multiplier = 1.0;
+      seasonalPreference = 'Villas see stable demand during the monsoon season (+0% adjustment).';
+    } else if (isApartment) {
+      multiplier = 1.05;
+      seasonalPreference = 'Apartments see high occupancy for indoor-focused stays and work-from-home traveler getaways (+5% yield opportunity).';
+    } else if (isHotel) {
+      multiplier = 1.0;
+      seasonalPreference = 'Hotels maintain stable occupancy with business stays (+0% adjustment).';
+    } else {
+      multiplier = 1.0;
+      seasonalPreference = 'Properties maintain steady monsoon seasonal rates (+0% adjustment).';
+    }
+  } else {
+    season = 'Autumn';
+    if (isTent) {
+      multiplier = 1.15;
+      seasonalPreference = 'Tents are highly booked for post-monsoon outdoor activities and pleasant weather (+15% yield opportunity).';
+    } else if (isVilla) {
+      multiplier = 1.10;
+      seasonalPreference = 'Villas see increased bookings for autumn festivals and family gatherings (+10% yield opportunity).';
+    } else if (isResort) {
+      multiplier = 1.10;
+      seasonalPreference = 'Resorts see strong weekend bookings in pleasant autumn weather (+10% yield opportunity).';
+    } else if (isHomeStay) {
+      multiplier = 1.10;
+      seasonalPreference = 'Home stays see high interest from travelers exploring local autumn harvests (+10% yield opportunity).';
+    } else if (isApartment) {
+      multiplier = 1.10;
+      seasonalPreference = 'Apartments are favored for pleasant city weekend breaks and autumn staycations (+10% yield opportunity).';
+    } else if (isHotel) {
+      multiplier = 1.05;
+      seasonalPreference = 'Hotels experience stable autumn holiday travel demand (+5% yield opportunity).';
+    } else {
+      multiplier = 1.05;
+      seasonalPreference = 'Properties see reliable post-monsoon bookings (+5% yield opportunity).';
+    }
+  }
+
+  return { season, multiplier, seasonalPreference, detectedType };
+};
 
 interface AuraQualityScoreProps {
   properties?: Property[];
@@ -181,12 +310,20 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
           const dbData = fetchedMarket.find((item: any) => item.property_id === prop.id);
           const currentPrice = prop.price_per_night || prop.price || 5000;
           const propName = prop.name || prop.title || 'Unknown Property';
+
+          // Get seasonal demand multiplier
+          const { season, multiplier, seasonalPreference, detectedType } = getSeasonalDemandDetails(prop.tier || 'Resort', propName);
+
           if (dbData) {
             return {
               ...dbData,
               property_name: propName,
               your_price: currentPrice,
-              currency: 'INR'
+              suggested_price: Math.round(dbData.suggested_price * multiplier),
+              currency: 'INR',
+              season,
+              seasonalPreference,
+              property_tier: detectedType
             };
           }
 
@@ -198,7 +335,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
           
           // Suggested price is usually a bit lower than market average to be competitive, or higher if it's premium
           const suggestedFactor = (nameHash % 5 === 0) ? 1.05 : 0.92;
-          const suggestedPrice = avgPrice * suggestedFactor;
+          const suggestedPrice = avgPrice * suggestedFactor * multiplier;
 
           return {
             id: `market-mock-${prop.id}`,
@@ -207,7 +344,10 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
             your_price: currentPrice,
             average_local_price: Math.round(avgPrice),
             suggested_price: Math.round(suggestedPrice),
-            currency: 'INR'
+            currency: 'INR',
+            season,
+            seasonalPreference,
+            property_tier: detectedType
           };
         });
         setMarketComparisons(enrichedMarket);
@@ -291,24 +431,24 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
   return (
     <div className="w-full space-y-4 md:space-y-8">
       {/* 1. Header */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-4 md:p-8 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 lg:gap-6 bg-[#0a0a0f]/80 p-4 lg:p-8 rounded-2xl lg:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 left-0 bottom-0 w-64 bg-gradient-to-r from-amber-500/10 to-transparent pointer-events-none" />
 
-        <div className="relative z-10 flex items-center gap-3 md:gap-5 w-full lg:w-auto">
-          <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)] shrink-0">
-            <Icon name="StarIcon" size={20} className="text-amber-400 drop-shadow-md md:hidden" />
-            <Icon name="StarIcon" size={32} className="text-amber-400 drop-shadow-md hidden md:block" />
+        <div className="relative z-10 flex items-center gap-3 lg:gap-5 w-full lg:w-auto">
+          <div className="w-10 h-10 lg:w-16 lg:h-16 rounded-xl lg:rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)] shrink-0">
+            <Icon name="StarIcon" size={20} className="text-amber-400 drop-shadow-md lg:hidden" />
+            <Icon name="StarIcon" size={32} className="text-amber-400 drop-shadow-md hidden lg:block" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Property <span className="text-amber-400/70 text-base md:text-3xl font-semibold">Insights</span></h1>
-            <p className="text-[10px] md:text-sm font-bold text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap">
+            <h1 className="text-xl lg:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Property <span className="text-amber-400/70 text-base lg:text-3xl font-semibold">Insights</span></h1>
+            <p className="text-[10px] lg:text-sm font-bold text-zinc-400 mt-0.5 lg:mt-1 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap">
               Deep Property Analysis
             </p>
           </div>
         </div>
 
-        <div className="relative z-10 flex gap-3 md:gap-4 w-full lg:w-auto mt-2 lg:mt-0">
-          <div className="flex-1 lg:flex-none bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-5 md:px-8 py-3 md:py-4 flex flex-col items-center justify-center shadow-inner relative overflow-hidden min-w-[140px]">
+        <div className="relative z-10 flex gap-3 lg:gap-4 w-full lg:w-auto mt-2 lg:mt-0">
+          <div className="flex-1 lg:flex-none bg-white/5 border border-white/10 rounded-xl lg:rounded-2xl px-5 lg:px-8 py-3 lg:py-4 flex flex-col items-center justify-center shadow-inner relative overflow-hidden min-w-[140px]">
             <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 whitespace-nowrap">Total Signals</p>
             <p className="text-xl md:text-3xl font-heading font-black text-white drop-shadow-sm">{guestReviews.length}</p>
           </div>
@@ -445,9 +585,41 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
 
                   {item.aiSuggestion && (
                     <div className="mb-6">
-                      <p className="text-base md:text-lg font-bold text-white mb-2 leading-tight group-hover/card:text-purple-200 transition-colors">
-                        {item.aiSuggestion}
-                      </p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <p className="text-base md:text-lg font-bold text-white leading-tight group-hover/card:text-purple-200 transition-colors">
+                          {item.aiSuggestion}
+                        </p>
+                        {item.suggested_price > (item.your_price || 0) && (
+                          <motion.span
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1, y: [0, -3, 0] }}
+                            transition={{ 
+                              y: { repeat: Infinity, duration: 2, ease: "easeInOut" },
+                              opacity: { duration: 0.3 },
+                              scale: { duration: 0.3 }
+                            }}
+                            className="flex items-center text-emerald-400 bg-emerald-500/10 p-1 rounded-full shadow-[0_0_10px_rgba(52,211,153,0.2)] flex-shrink-0"
+                            title="Suggested optimal price is higher than your current price"
+                          >
+                            <Icon name="ArrowTrendingUpIcon" size={14} className="stroke-[3]" />
+                          </motion.span>
+                        )}
+                        {item.suggested_price < (item.your_price || 0) && (
+                          <motion.span
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1, y: [0, 3, 0] }}
+                            transition={{ 
+                              y: { repeat: Infinity, duration: 2, ease: "easeInOut" },
+                              opacity: { duration: 0.3 },
+                              scale: { duration: 0.3 }
+                            }}
+                            className="flex items-center text-rose-400 bg-rose-500/10 p-1 rounded-full shadow-[0_0_10px_rgba(251,113,133,0.2)] flex-shrink-0"
+                            title="Suggested optimal price is lower than your current price"
+                          >
+                            <Icon name="ArrowTrendingDownIcon" size={14} className="stroke-[3]" />
+                          </motion.span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 w-fit">
                         <Icon name="BoltIcon" size={14} className="text-amber-500" />
                         <p className="text-[10px] md:text-xs text-zinc-400 font-medium">{item.aiImpact}</p>
@@ -466,7 +638,7 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-[#0a0a0f]/60 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xl">
+                  <div className="p-4 rounded-2xl bg-[#0a0a0f]/60 border border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-2xl">
                     <div>
                       <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-1">
                         <Icon name="LightBulbIcon" size={11} className="text-success" />
@@ -509,6 +681,24 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
                       </button>
                     </div>
                   </div>
+
+                  {item.season && item.seasonalPreference && (
+                    <div className="mt-4 p-3.5 rounded-2xl bg-purple-500/5 border border-purple-500/10 flex items-start gap-2.5 shadow-inner">
+                      <div className="p-1.5 bg-purple-500/10 rounded-lg border border-purple-500/25 shrink-0">
+                        <Icon name="CalendarDaysIcon" size={14} className="text-purple-400" />
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-bold text-purple-400 uppercase tracking-widest leading-none flex items-center gap-1.5">
+                          <span>{item.season} Demand Indicator</span>
+                          <span className="w-1 h-1 rounded-full bg-purple-500/40" />
+                          <span>{item.property_tier}</span>
+                        </p>
+                        <p className="text-[10px] text-zinc-400 leading-relaxed mt-1">
+                          {item.seasonalPreference}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               ))
             ) : (

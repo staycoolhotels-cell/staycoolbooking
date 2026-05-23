@@ -94,8 +94,15 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                     <Icon name="MapPinIcon" size={14} className="text-sky-400" />
                                     <span>{booking.properties.location}</span>
                                 </div>
-                                <div className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(booking.status)}`}>
-                                    {booking.status}
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <div className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(booking.status)}`}>
+                                        {booking.status}
+                                    </div>
+                                    {booking.properties.type && (
+                                        <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-sky-500/10 text-sky-400 border-sky-500/20">
+                                            {booking.properties.type.split('-').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -184,6 +191,34 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                 <Icon name="ArrowDownTrayIcon" size={24} />
                             </button>
                         </div>
+
+                        {/* Selected Upsell Amenities */}
+                        {(booking as any).amenities && (booking as any).amenities.length > 0 && (
+                            <div className="bg-zinc-900/50 p-4 rounded-xl border border-sky-500/10 shadow-lg shadow-sky-500/5">
+                                <h4 className="text-xs font-bold text-sky-400 mb-3 uppercase tracking-wider flex items-center gap-2">
+                                    <Icon name="SparklesIcon" size={14} className="text-sky-400" />
+                                    Selected Premium Services
+                                </h4>
+                                <div className="space-y-2.5">
+                                    {(booking as any).amenities.map((amenity: any, idx: number) => (
+                                        <div key={idx} className="flex justify-between items-center text-xs">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0" />
+                                                <span className="text-zinc-300 font-medium">
+                                                    {amenity.name}
+                                                </span>
+                                                <span className="text-[10px] text-zinc-500 bg-white/5 px-1.5 py-0.5 rounded">
+                                                    Qty: {amenity.count}
+                                                </span>
+                                            </div>
+                                            <span className="text-zinc-300 font-semibold">
+                                                ₹{(amenity.price * amenity.count).toLocaleString('en-IN')}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Payment Details */}
                         <div className="bg-zinc-900/50 p-4 rounded-xl border border-white/5">

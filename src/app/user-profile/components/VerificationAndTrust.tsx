@@ -205,12 +205,12 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate, onContac
             <button 
               onClick={handleUploadClick}
               disabled={isUploading}
-              className="w-full bg-sky-600/30 text-sky-300 border border-sky-500/50 rounded-lg py-3 font-semibold flex items-center justify-center gap-2 hover:bg-sky-600/40 transition disabled:opacity-50"
+              className="w-full bg-sky-600/10 hover:bg-sky-600/20 text-sky-400 border border-sky-500/30 rounded-xl py-3.5 px-2 text-[10px] sm:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 shadow-md shadow-sky-950/20 shrink-0"
             >
               {isUploading ? (
-                <div className="w-5 h-5 border-2 border-sky-300 border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
               ) : (
-                <Icon name="CloudArrowUpIcon" size={16} />
+                <Icon name="CloudArrowUpIcon" size={14} className="shrink-0" />
               )}
               {isUploading ? 'Uploading...' : 'Upload Passport/ID'}
             </button>

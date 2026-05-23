@@ -114,26 +114,26 @@ const SupportInbox: React.FC<SupportInboxProps> = ({ currentUser }) => {
   return (
     <div className="w-full space-y-4 md:space-y-8 h-auto lg:h-[calc(100vh-140px)] lg:min-h-[700px] flex flex-col">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-4 md:p-6 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden flex-none">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 lg:gap-6 bg-[#0a0a0f]/80 p-4 lg:p-6 rounded-2xl lg:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden flex-none">
         <div className="absolute top-0 right-0 bottom-0 w-64 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
 
-        <div className="relative z-10 flex items-center gap-3 md:gap-5 w-full lg:w-auto">
-          <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)] shrink-0">
+        <div className="relative z-10 flex items-center gap-3 lg:gap-5 w-full lg:w-auto">
+          <div className="w-10 h-10 lg:w-16 lg:h-16 rounded-xl lg:rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.3)] shrink-0">
             <Icon name="LifebuoyIcon" size={32} className="text-indigo-400 drop-shadow-md" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Support Chat</h1>
-            <p className="text-[10px] md:text-sm font-bold text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap">
+            <h1 className="text-xl lg:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Support Chat</h1>
+            <p className="text-[9px] lg:text-sm font-bold text-zinc-400 mt-0.5 lg:mt-1 uppercase tracking-widest flex items-center gap-2 flex-wrap">
               <Icon name="ShieldCheckIcon" size={12} className="text-indigo-400" />
               Direct Admin Communication
             </p>
           </div>
         </div>
 
-        <div className="relative z-10 flex gap-3 md:gap-4 w-full lg:w-auto mt-2 lg:mt-0">
-          <div className="flex-1 lg:flex-none bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-5 md:px-8 py-3 md:py-4 flex flex-col items-center justify-center shadow-inner relative overflow-hidden min-w-[140px]">
-            <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 whitespace-nowrap">Status</p>
-            <p className="text-xl md:text-2xl font-heading font-black text-success">Online</p>
+        <div className="relative z-10 flex gap-3 lg:gap-4 w-full lg:w-auto mt-2 lg:mt-0">
+          <div className="flex-1 lg:flex-none bg-white/5 border border-white/10 rounded-xl lg:rounded-2xl px-5 lg:px-8 py-3 lg:py-4 flex flex-col items-center justify-center shadow-inner relative overflow-hidden min-w-[140px]">
+            <p className="text-[9px] lg:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 whitespace-nowrap">Status</p>
+            <p className="text-xl lg:text-2xl font-heading font-black text-success">Online</p>
           </div>
         </div>
       </div>

@@ -34,10 +34,10 @@ function SignupContent() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Email Signup State
-  const [emailState, emailAction] = useActionState<unknown, FormData>(signUpUser, undefined);
+  const [emailState, emailAction] = useActionState<any, any>(signUpUser, undefined);
 
   // Mobile Signup State
-  const [mobileState, mobileDispatch] = useActionState<unknown, FormData>(async (prevState: unknown, formData: FormData) => {
+  const [mobileState, mobileDispatch] = useActionState<any, any>(async (prevState: any, formData: FormData) => {
     if (!otpSent) {
       // Send OTP
       const result = await signInWithMobile(prevState, formData);

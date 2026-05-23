@@ -5,7 +5,7 @@ import { PayoutData, PayoutStatus } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Transaction } from '@/lib/types';
 import Icon from '@/components/ui/AppIcon';
-import { exportTransactionsToCSV } from '@/lib/pdf-utils';
+import { exportTransactionsToPDF } from '@/lib/pdf-utils';
 import { motion } from 'framer-motion';
 
 const COLORS = ['#10b981', '#3b82f6']; // Emerald for Net Profit, Blue for Platform Fee
@@ -178,10 +178,12 @@ const FinancialTreasury: React.FC<FinancialTreasuryProps> = ({ transactions = []
               </h2>
             </div>
             <button 
-              onClick={() => exportTransactionsToCSV(transactions)}
+              onClick={async () => {
+                await exportTransactionsToPDF(transactions);
+              }}
               className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest hover:text-white transition-colors bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg"
             >
-              Export CSV
+              Export PDF
             </button>
           </div>
 

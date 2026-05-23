@@ -183,9 +183,34 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                     <Icon name="HomeModernIcon" size={14} className="text-indigo-400/70" />
                     <span className="text-[11px] font-bold uppercase tracking-wider">{booking.total_rooms_booked || 1} {(booking.total_rooms_booked || 1) === 1 ? 'Room' : 'Rooms'}</span>
                   </div>
+                  {booking.properties?.type && (
+                    <div className="flex items-center gap-1.5 text-zinc-400">
+                      <Icon name="TagIcon" size={14} className="text-indigo-400/70" />
+                      <span className="text-[11px] font-bold uppercase tracking-wider">
+                        {booking.properties.type.split('-').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
+
+            {/* Selected Premium Amenities */}
+            {(booking as any).amenities && (booking as any).amenities.length > 0 && (
+              <div className="mt-3 py-2 px-3 bg-white/[0.02] border border-white/5 rounded-xl space-y-1.5 w-fit max-w-full">
+                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Icon name="SparklesIcon" size={11} className="text-indigo-400 shrink-0" />
+                  Selected Premium Services
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(booking as any).amenities.map((amenity: any, idx: number) => (
+                    <span key={idx} className="inline-flex items-center gap-1 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[9px] font-bold px-2 py-0.5 rounded-md">
+                      {amenity.name} (Qty: {amenity.count})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Date Container */}
             <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 py-2 px-3 rounded-xl w-fit shadow-inner group-hover:bg-white/[0.05] transition-colors">
@@ -243,7 +268,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
             </div>
           )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:flex lg:items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
             <button
               onClick={() => onAction('unified-inbox', {
                 guest_id: booking.guest_id,
@@ -252,7 +277,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                 property_id: booking.property_id,
                 property_name: booking.properties?.title || booking.properties?.name || 'Property'
               })}
-              className="px-4 py-3 bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
+              className="flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 sm:py-3 bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2 transition-all"
             >
               <Icon name="ChatBubbleLeftRightIcon" size={14} /> <span>Message</span>
             </button>
@@ -264,7 +289,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                   setConfirmModal({ isOpen: true, type: 'cancel' });
                 }}
 
-                className="px-4 py-3 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
+                className="flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 sm:py-3 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2 transition-all"
               >
                 <Icon name="NoSymbolIcon" size={14} /> <span>Cancel</span>
               </button>
@@ -272,7 +297,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
 
             <button
               onClick={() => setIsDisputeModalOpen(true)}
-              className="px-4 py-3 bg-zinc-800/50 hover:bg-zinc-800 border border-white/5 text-zinc-500 hover:text-red-400 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
+              className="flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 sm:py-3 bg-zinc-800/50 hover:bg-zinc-800 border border-white/5 text-zinc-500 hover:text-red-400 rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2 transition-all"
             >
               <Icon name="ScaleIcon" size={14} /> <span>Dispute</span>
             </button>
@@ -282,7 +307,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                 if (guestIdDoc) setIsIdModalOpen(true);
                 else toast.error('ID not uploaded.');
               }}
-              className={`px-4 py-3 rounded-xl border font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
+              className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border font-bold text-[9px] sm:text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2 transition-all ${
                 guestIdDoc ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-900/50 border-white/5 text-zinc-700 cursor-not-allowed'
               }`}
             >

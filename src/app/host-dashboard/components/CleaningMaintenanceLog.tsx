@@ -407,35 +407,35 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
   return (
     <div className="w-full space-y-6 md:space-y-8 relative">
       {/* 1. Ultra-Premium Header */}
-      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-4 md:p-8 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 lg:gap-6 bg-[#0a0a0f]/80 p-4 lg:p-8 rounded-2xl lg:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 bottom-0 w-80 bg-gradient-to-l from-amber-500/10 to-transparent pointer-events-none" />
 
-        <div className="relative z-10 flex items-center gap-3 md:gap-5 w-full xl:w-auto">
-          <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)] shrink-0">
-            <Icon name="WrenchScrewdriverIcon" size={20} className="text-amber-400 drop-shadow-md md:hidden" />
-            <Icon name="WrenchScrewdriverIcon" size={32} className="text-amber-400 drop-shadow-md hidden md:block" />
+        <div className="relative z-10 flex items-center gap-3 lg:gap-5 w-full lg:w-auto">
+          <div className="w-10 h-10 lg:w-16 lg:h-16 rounded-xl lg:rounded-2xl bg-gradient-to-br from-amber-500/30 to-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)] shrink-0">
+            <Icon name="WrenchScrewdriverIcon" size={20} className="text-amber-400 drop-shadow-md lg:hidden" />
+            <Icon name="WrenchScrewdriverIcon" size={32} className="text-amber-400 drop-shadow-md hidden lg:block" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Facility Ops</h1>
-            <p className="text-[10px] md:text-sm font-bold text-zinc-400 mt-0.5 md:mt-1 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap">
+            <h1 className="text-xl lg:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg truncate">Facility Ops</h1>
+            <p className="text-[10px] lg:text-sm font-bold text-zinc-400 mt-0.5 lg:mt-1 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap">
               Cleaning & Maintenance Core
             </p>
           </div>        </div>
 
-        <div className="relative z-10 flex flex-col md:flex-row flex-wrap lg:flex-nowrap gap-3 md:gap-4 w-full xl:w-auto mt-2 xl:mt-0">
-          <div className="flex gap-3 md:gap-4 flex-1 w-full md:w-auto">
-            <div className="bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-2.5 md:py-4 flex flex-col items-center justify-center shadow-inner flex-1 min-w-[120px]">
-              <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-1 whitespace-nowrap"><Icon name="ExclamationTriangleIcon" size={11} className="text-amber-500" /> Action Required</p>
-              <p className="text-xl md:text-2xl font-heading font-black text-white">{pendingAlertsCount}</p>
+        <div className="relative z-10 flex flex-col lg:flex-row gap-3 lg:gap-4 w-full lg:w-auto mt-2 lg:mt-0">
+          <div className="flex gap-3 lg:gap-4 flex-1 w-full lg:w-auto">
+            <div className="bg-white/5 border border-white/10 rounded-xl lg:rounded-2xl px-4 lg:px-6 py-2.5 lg:py-4 flex flex-col items-center justify-center shadow-inner flex-1 min-w-[120px]">
+              <p className="text-[9px] lg:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-1 whitespace-nowrap"><Icon name="ExclamationTriangleIcon" size={11} className="text-amber-500" /> Action Required</p>
+              <p className="text-xl lg:text-2xl font-heading font-black text-white">{pendingAlertsCount}</p>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-2.5 md:py-4 flex flex-col items-center justify-center shadow-inner flex-1 min-w-[120px]">
-              <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-1 whitespace-nowrap"><Icon name="ArrowPathIcon" size={11} className="text-cyan-500" /> Ongoing Cleans</p>
-              <p className="text-xl md:text-2xl font-heading font-black text-white">{inProgressCleanings}</p>
+            <div className="bg-white/5 border border-white/10 rounded-xl lg:rounded-2xl px-4 lg:px-6 py-2.5 lg:py-4 flex flex-col items-center justify-center shadow-inner flex-1 min-w-[120px]">
+              <p className="text-[9px] lg:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-1 whitespace-nowrap"><Icon name="ArrowPathIcon" size={11} className="text-cyan-500" /> Ongoing Cleans</p>
+              <p className="text-xl lg:text-2xl font-heading font-black text-white">{inProgressCleanings}</p>
             </div>
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-amber-600 hover:bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] border border-amber-400/50 transition-all rounded-xl md:rounded-2xl px-5 md:px-8 py-3 md:py-4 flex items-center justify-center gap-2 md:gap-3 font-bold text-xs md:text-base whitespace-nowrap shrink-0 w-full md:w-auto"
+            className="bg-amber-600 hover:bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] border border-amber-400/50 transition-all rounded-xl lg:rounded-2xl px-5 lg:px-8 py-3 lg:py-4 flex items-center justify-center gap-2 lg:gap-3 font-bold text-xs lg:text-base whitespace-nowrap shrink-0 w-full lg:w-auto"
           >
             <Icon name="ClipboardDocumentListIcon" size={18} />
             Dispatch Team

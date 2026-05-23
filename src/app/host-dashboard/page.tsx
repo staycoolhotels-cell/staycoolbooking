@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getHostProperties, getHostBookings, getCachedUser, getSupportAdmin } from '@/lib/data-service';
 import { createServerClient } from '@supabase/ssr';
+import { createServiceClient } from '@/lib/supabase-server';
 import { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import HostDashboardInteractive from './components/HostDashboardInteractive';
@@ -85,11 +86,43 @@ export default async function HostDashboardPage() {
   const propertiesPromise = getHostProperties(user.id);
   const bookingsPromise = getHostBookings(user.id);
 
-  const [properties, bookings, supportAdmin] = await Promise.all([
+  const [properties, rawBookings, supportAdmin] = await Promise.all([
     propertiesPromise, 
     bookingsPromise,
     getSupportAdmin()
   ]);
+
+  // Fetch amenities log from activities table to load selected amenities for host bookings
+  const adminSupabase = createServiceClient();
+  const { data: bookingActivities } = await adminSupabase
+    .from('activities')
+    .select('*')
+    .eq('type', 'booking_amenities');
+
+  const bookings = (rawBookings || []).map((b: any) => {
+    const activity = (bookingActivities || []).find((a: any) => {
+      try {
+        const payload = JSON.parse(a.description);
+        return payload.bookingId === b.id;
+      } catch {
+        return false;
+      }
+    });
+
+    let selectedAmenities = [];
+    if (activity) {
+      try {
+        selectedAmenities = JSON.parse(activity.description).amenities || [];
+      } catch (err) {
+        // Ignore JSON parse errors for robust parsing
+      }
+    }
+
+    return {
+      ...b,
+      amenities: selectedAmenities,
+    };
+  });
 
   const { data: reviews, error: reviewsError } = await supabase
     .from('reviews')

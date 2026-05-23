@@ -278,6 +278,13 @@ export async function createBooking(bookingDetails: {
     if (data && guests) {
       const adminSupabase = createServiceClient();
       await adminSupabase.from('bookings').update({ guests }).eq('id', data);
+      if (data && amenities && amenities.length > 0) {
+        await supabase.from('activities').insert({
+          type: 'booking_amenities',
+          description: JSON.stringify({ bookingId: data, amenities }),
+          user_id: user.id
+        });
+      }
     }
 
     // Process amenities for tracking

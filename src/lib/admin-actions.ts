@@ -79,18 +79,76 @@ export async function updateUserStatusAndRoleAsAdmin(
 
 /**
  * Deletes a user from the auth schema using service_role privileges.
- * WARNING: This performs a hard delete and will cascade to the users table.
+ * Performs a comprehensive cascade delete of all user-related data in public tables
+ * to prevent database constraint violations.
  */
 export async function deleteUserAsAdmin(userId: string) {
   const supabase = await createAdminSupabaseClient();
-  const { error } = await supabase.auth.admin.deleteUser(userId);
 
-  if (error) {
-    console.error('Error deleting user as admin:', error);
-    return { success: false, error: `Auth Error: ${error.message}` };
+  try {
+    // 1. Fetch properties owned by the user (if host) to clean up properties & rooms & blocks
+    const { data: userProperties } = await supabase
+      .from('properties')
+      .select('id')
+      .eq('host_id', userId);
+    
+    const propertyIds = userProperties?.map(p => p.id) || [];
+
+    // 2. Clean up child references first to avoid FK constraints violations
+    if (propertyIds.length > 0) {
+      // Clean up reviews on these properties
+      await supabase.from('reviews').delete().in('property_id', propertyIds);
+      
+      // Clean up booking rooms & bookings on these properties
+      const { data: bookings } = await supabase.from('bookings').select('id').in('property_id', propertyIds);
+      const bookingIds = bookings?.map(b => b.id) || [];
+      if (bookingIds.length > 0) {
+        await supabase.from('booking_rooms').delete().in('booking_id', bookingIds);
+      }
+      await supabase.from('bookings').delete().in('property_id', propertyIds);
+      
+      // Clean up blocked dates & rooms & properties
+      await supabase.from('blocked_dates').delete().in('property_id', propertyIds);
+      await supabase.from('rooms').delete().in('property_id', propertyIds);
+      await supabase.from('properties').delete().in('id', propertyIds);
+    }
+
+    // 3. Clean up user's own bookings & personal records
+    await supabase.from('bookings').delete().eq('guest_id', userId);
+    await supabase.from('user_personal_info').delete().eq('user_id', userId);
+    await supabase.from('host_kyc_details').delete().eq('user_id', userId);
+    await supabase.from('verifications').delete().eq('user_id', userId);
+    await supabase.from('reviews').delete().eq('guest_id', userId);
+    await supabase.from('activities').delete().eq('user_id', userId);
+    
+    // Attempt deleting notifications if table exists
+    const { error: notifError } = await supabase.from('notifications').delete().eq('user_id', userId);
+    if (notifError) {
+      // Fallback in case columns differ
+      await supabase.from('notifications').delete().eq('recipient_id', userId);
+    }
+
+    // 4. Delete the profile from public.users table
+    const { error: dbError } = await supabase.from('users').delete().eq('id', userId);
+    if (dbError) {
+      console.warn('DB delete public.users warning:', dbError.message);
+    }
+
+    // 5. Finally, delete the Auth User
+    const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+    if (authError) {
+      const isNotFound = authError.message?.toLowerCase().includes('not found') || authError.status === 404;
+      if (!isNotFound) {
+        console.error('Error deleting user from Auth:', authError);
+        return { success: false, error: `Auth Error: ${authError.message}` };
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('Unexpected error in deleteUserAsAdmin:', err);
+    return { success: false, error: err.message || 'Unexpected delete error' };
   }
-  await logActivity('user_action', `User ${userId} has been deleted.`, userId, 'User Deleted', 'error');
-  return { success: true };
 }
 
 /**

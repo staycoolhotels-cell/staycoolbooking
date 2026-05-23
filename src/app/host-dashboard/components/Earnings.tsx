@@ -52,22 +52,22 @@ const Earnings = ({ earnings }: EarningsProps) => {
     <div className="w-full space-y-6 md:space-y-8 relative">
 
       {/* 1. Header Module */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 md:gap-6 bg-[#0a0a0f]/80 p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 lg:gap-6 bg-[#0a0a0f]/80 p-5 lg:p-8 rounded-[1.5rem] lg:rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 bottom-0 w-96 bg-gradient-to-l from-emerald-500/10 to-transparent pointer-events-none" />
 
-        <div className="relative z-10 flex items-center gap-3 md:gap-5 w-full lg:w-auto">
-          <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] shrink-0">
+        <div className="relative z-10 flex items-center gap-3 lg:gap-5 w-full lg:w-auto">
+          <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-xl lg:rounded-2xl bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] shrink-0">
             <Icon name="BanknotesIcon" size={24} className="text-emerald-400 drop-shadow-md sm:w-8 sm:h-8" />
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl md:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg leading-tight">Financial Treasury</h1>
-            <p className="text-[10px] md:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
+            <h1 className="text-2xl lg:text-4xl font-heading font-black text-white tracking-tight drop-shadow-lg leading-tight">Financial Treasury</h1>
+            <p className="text-[10px] lg:text-sm font-bold text-zinc-400 mt-1 uppercase tracking-widest flex items-center gap-2">
               Revenue & Payout Management
             </p>
           </div>
         </div>
 
-        <div className="relative z-10 w-full lg:w-auto shrink-0 mt-2 md:mt-0">
+        <div className="relative z-10 w-full lg:w-auto shrink-0 mt-2 lg:mt-0">
           <button
             onClick={async () => {
               setIsExporting(true);
@@ -78,9 +78,9 @@ const Earnings = ({ earnings }: EarningsProps) => {
               }
             }}
             disabled={isExporting}
-            className={`w-full lg:w-auto px-4 md:px-6 py-3 md:py-4 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 font-bold uppercase tracking-widest text-[10px] md:text-xs rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.15)] hover:shadow-[0_0_30px_rgba(16,185,129,0.25)] transition-all flex items-center justify-center gap-2 md:gap-3 border border-emerald-500/30 ${isExporting ? 'opacity-70 cursor-not-allowed' : ''}`}
+            className={`w-full lg:w-auto px-4 lg:px-6 py-3 lg:py-4 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 font-bold uppercase tracking-widest text-[10px] lg:text-xs rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.15)] hover:shadow-[0_0_30px_rgba(16,185,129,0.25)] transition-all flex items-center justify-center gap-2 lg:gap-3 border border-emerald-500/30 ${isExporting ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            <Icon name="ArrowDownTrayIcon" size={16} className={`md:w-[18px] md:h-[18px] ${isExporting ? 'animate-bounce' : ''}`} />
+            <Icon name="ArrowDownTrayIcon" size={16} className={`lg:w-[18px] lg:h-[18px] ${isExporting ? 'animate-bounce' : ''}`} />
             {isExporting ? 'Generating PDF...' : 'Export Finance Log'}
           </button>
         </div>
@@ -113,7 +113,7 @@ const Earnings = ({ earnings }: EarningsProps) => {
 
       {/* 3. Analytics Chart Section */}
       <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl p-6 md:p-8 relative">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 relative z-10">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8 relative z-10">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-500/20 rounded-lg">
               <Icon name="PresentationChartLineIcon" size={20} className="text-purple-400" />
@@ -124,7 +124,7 @@ const Earnings = ({ earnings }: EarningsProps) => {
             </div>
           </div>
 
-          <div className="relative w-full sm:w-48 shrink-0">
+          <div className="relative w-full lg:w-48 shrink-0">
             <select
               value={selectedPeriod}
               onChange={(e) => setSelectedPeriod(e.target.value)}

@@ -14,8 +14,16 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { approveHost, suspendUserAsAdmin, autoApproveGuest } from '@/lib/admin-actions';
+import { approveHost, suspendUserAsAdmin, autoApproveGuest, deleteUserAsAdmin } from '@/lib/admin-actions';
 import { Search, X, Star, Users, ShieldCheck, Clock, UserX } from 'lucide-react';
 import { DateRangePicker } from '@/components/ui/datepicker';
 import { toast } from 'sonner';
@@ -88,6 +96,7 @@ interface UserListProps {
 }
 
 const UserList = ({ initialUsers }: UserListProps) => {
+  const [mounted, setMounted] = useState(false);
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState('all');
@@ -98,12 +107,38 @@ const UserList = ({ initialUsers }: UserListProps) => {
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [selectedUserForReject, setSelectedUserForReject] = useState<{ id: string; name: string } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    isOpen: boolean;
+    type: 'approve_guest' | 'approve_host' | 'suspend' | 'delete';
+    userId: string;
+    userName: string;
+  } | null>(null);
+
+  const handleConfirmSubmit = async () => {
+    if (!confirmAction) return;
+    const { type, userId } = confirmAction;
+    
+    // Close modal first
+    setConfirmAction(null);
+    setEditingUserId(null);
+
+    if (type === 'approve_host') {
+      await handleApproveHost(userId);
+    } else if (type === 'approve_guest') {
+      await handleAutoApproveGuest(userId);
+    } else if (type === 'suspend') {
+      await handleSuspendUser(userId);
+    } else if (type === 'delete') {
+      await handleDeleteUser(userId);
+    }
+  };
 
   useEffect(() => {
     setUsers(initialUsers);
   }, [initialUsers]);
 
   useEffect(() => {
+    setMounted(true);
     const channel = supabase
       .channel('realtime-users')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
@@ -131,6 +166,9 @@ const UserList = ({ initialUsers }: UserListProps) => {
       return;
     }
     if (success) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, status: 'active' } : u))
+      );
       toast.success('Host approved successfully.');
     }
   };
@@ -142,16 +180,20 @@ const UserList = ({ initialUsers }: UserListProps) => {
       return;
     }
     if (success) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, status: 'suspended' } : u))
+      );
       toast.success('User suspended successfully.');
     }
   };
 
   const handleDeleteUser = async (userId: string) => {
-    const { error } = await supabase.from('users').delete().eq('id', userId);
-    if (error) {
-      toast.error('Failed to delete user.');
+    const { success, error } = await deleteUserAsAdmin(userId);
+    if (error || !success) {
+      toast.error(error || 'Failed to delete user.');
       return;
     }
+    setUsers((prev) => prev.filter((u) => u.id !== userId));
     toast.success('User deleted successfully.');
   };
 
@@ -165,6 +207,11 @@ const UserList = ({ initialUsers }: UserListProps) => {
   };
 
   const handleRejectSuccess = () => {
+    if (selectedUserForReject) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === selectedUserForReject.id ? { ...u, status: 'rejected' } : u))
+      );
+    }
     setEditingUserId(null);
   };
 
@@ -175,6 +222,9 @@ const UserList = ({ initialUsers }: UserListProps) => {
       return;
     }
     if (success) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, status: 'active' } : u))
+      );
       toast.success('Guest auto-approved successfully.');
     }
   };
@@ -293,6 +343,15 @@ const UserList = ({ initialUsers }: UserListProps) => {
       )
     );
   };
+
+  if (!mounted) {
+    return (
+      <div className="w-full bg-[#08080c] border border-white/5 rounded-2xl p-16 flex flex-col items-center justify-center min-h-[400px] backdrop-blur-xl">
+        <div className="w-10 h-10 rounded-full border-2 border-emerald-500/20 border-t-emerald-500 animate-spin mb-4" />
+        <p className="text-xs text-zinc-500 font-mono uppercase tracking-widest animate-pulse">Loading User Management Database...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -469,7 +528,7 @@ const UserList = ({ initialUsers }: UserListProps) => {
                               <Button
                                 variant="default"
                                 size="sm"
-                                onClick={() => handleApproveHost(user.id)}
+                                onClick={() => setConfirmAction({ isOpen: true, type: 'approve_host', userId: user.id, userName: user.name })}
                                 disabled={user.status === 'approved_host' || user.status === 'active'}
                                 className="h-7 bg-emerald-600 hover:bg-emerald-700 text-[9px] font-bold uppercase tracking-wider"
                               >
@@ -490,7 +549,7 @@ const UserList = ({ initialUsers }: UserListProps) => {
                             <Button
                               variant="default"
                               size="sm"
-                              onClick={() => handleAutoApproveGuest(user.id)}
+                              onClick={() => setConfirmAction({ isOpen: true, type: 'approve_guest', userId: user.id, userName: user.name })}
                               disabled={user.status === 'active'}
                               className="h-7 bg-emerald-600 hover:bg-emerald-700 text-[9px] font-bold uppercase tracking-wider"
                             >
@@ -500,7 +559,7 @@ const UserList = ({ initialUsers }: UserListProps) => {
                           <Button
                             variant="secondary"
                             size="sm"
-                            onClick={() => handleSuspendUser(user.id)}
+                            onClick={() => setConfirmAction({ isOpen: true, type: 'suspend', userId: user.id, userName: user.name })}
                             disabled={user.status === 'suspended'}
                             className="h-7 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-[9px] font-bold uppercase tracking-wider"
                           >
@@ -509,7 +568,7 @@ const UserList = ({ initialUsers }: UserListProps) => {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleDeleteUser(user.id)}
+                            onClick={() => setConfirmAction({ isOpen: true, type: 'delete', userId: user.id, userName: user.name })}
                             className="h-7 text-[9px] font-bold uppercase tracking-wider"
                           >
                             Delete
@@ -618,7 +677,7 @@ const UserList = ({ initialUsers }: UserListProps) => {
                                     <Button
                                       variant="default"
                                       size="sm"
-                                      onClick={() => handleApproveHost(user.id)}
+                                      onClick={() => setConfirmAction({ isOpen: true, type: 'approve_host', userId: user.id, userName: user.name })}
                                       disabled={user.status === 'approved_host' || user.status === 'active'}
                                       className="h-8 bg-emerald-600 hover:bg-emerald-700 text-[10px] font-bold uppercase tracking-wider"
                                     >
@@ -639,7 +698,7 @@ const UserList = ({ initialUsers }: UserListProps) => {
                                   <Button
                                     variant="default"
                                     size="sm"
-                                    onClick={() => handleAutoApproveGuest(user.id)}
+                                    onClick={() => setConfirmAction({ isOpen: true, type: 'approve_guest', userId: user.id, userName: user.name })}
                                     disabled={user.status === 'active'}
                                     className="h-8 bg-emerald-600 hover:bg-emerald-700 text-[10px] font-bold uppercase tracking-wider"
                                   >
@@ -649,7 +708,7 @@ const UserList = ({ initialUsers }: UserListProps) => {
                                 <Button
                                   variant="secondary"
                                   size="sm"
-                                  onClick={() => handleSuspendUser(user.id)}
+                                  onClick={() => setConfirmAction({ isOpen: true, type: 'suspend', userId: user.id, userName: user.name })}
                                   disabled={user.status === 'suspended'}
                                   className="h-8 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-[10px] font-bold uppercase tracking-wider"
                                 >
@@ -658,7 +717,7 @@ const UserList = ({ initialUsers }: UserListProps) => {
                                 <Button
                                   variant="destructive"
                                   size="sm"
-                                  onClick={() => handleDeleteUser(user.id)}
+                                  onClick={() => setConfirmAction({ isOpen: true, type: 'delete', userId: user.id, userName: user.name })}
                                   className="h-8 text-[10px] font-bold uppercase tracking-wider"
                                 >
                                   Delete
@@ -713,6 +772,85 @@ const UserList = ({ initialUsers }: UserListProps) => {
           onSuccess={handleRejectSuccess}
         />
       )}
+
+      {/* Action Confirmation Dialog */}
+      <Dialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
+        <DialogContent className="sm:max-w-[480px] bg-[#0c0c12]/95 border border-white/10 text-white backdrop-blur-xl rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+          
+          <DialogHeader className="space-y-3">
+            <DialogTitle className="text-xl font-heading font-black tracking-tight flex items-center gap-2">
+              {confirmAction?.type === 'approve_host' || confirmAction?.type === 'approve_guest' ? (
+                <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+              ) : confirmAction?.type === 'suspend' ? (
+                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                  <UserX className="w-5 h-5" />
+                </div>
+              ) : (
+                <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                  <X className="w-5 h-5" />
+                </div>
+              )}
+              <span>
+                {confirmAction?.type === 'approve_host' && 'Approve Host Account'}
+                {confirmAction?.type === 'approve_guest' && 'Approve Guest Account'}
+                {confirmAction?.type === 'suspend' && 'Suspend User Account'}
+                {confirmAction?.type === 'delete' && 'Delete User Permanently'}
+              </span>
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 leading-relaxed text-sm pt-2">
+              {confirmAction?.type === 'approve_host' && (
+                <>
+                  Are you sure you want to approve <strong className="text-zinc-200">{confirmAction?.userName}</strong> as a verified Host on StayCoolBooking? They will be granted full hosting access and privileges.
+                </>
+              )}
+              {confirmAction?.type === 'approve_guest' && (
+                <>
+                  Are you sure you want to approve <strong className="text-zinc-200">{confirmAction?.userName}</strong>'s guest account? This will activate their status on the platform.
+                </>
+              )}
+              {confirmAction?.type === 'suspend' && (
+                <>
+                  Are you sure you want to suspend <strong className="text-zinc-200">{confirmAction?.userName}</strong>? They will be blocked from logging into the platform and all active reservations will be frozen.
+                </>
+              )}
+              {confirmAction?.type === 'delete' && (
+                <>
+                  Are you sure you want to permanently delete <strong className="text-zinc-200">{confirmAction?.userName}</strong>? This action <strong className="text-rose-400 font-bold uppercase">cannot be undone</strong> and will erase all profile information, transactions, and settings from the database.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="mt-6 flex flex-row items-center justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmAction(null)}
+              className="bg-transparent border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 font-mono text-xs uppercase tracking-wider rounded-xl py-5"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant={confirmAction?.type === 'delete' ? 'destructive' : 'default'}
+              onClick={handleConfirmSubmit}
+              className={`font-mono text-xs uppercase tracking-wider rounded-xl py-5 px-6 font-bold shadow-lg ${
+                confirmAction?.type === 'approve_host' || confirmAction?.type === 'approve_guest'
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-950/20'
+                  : confirmAction?.type === 'suspend'
+                  ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-950/20'
+                  : 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-950/20'
+              }`}
+            >
+              {confirmAction?.type === 'approve_host' && 'Confirm Approval'}
+              {confirmAction?.type === 'approve_guest' && 'Confirm Approval'}
+              {confirmAction?.type === 'suspend' && 'Confirm Suspension'}
+              {confirmAction?.type === 'delete' && 'Permanently Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

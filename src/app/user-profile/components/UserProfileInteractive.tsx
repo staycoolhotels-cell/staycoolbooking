@@ -338,10 +338,6 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
                   <GuestInbox guestId={user.id} initialThreadId={activeThreadId} />
                 </motion.div>
               ),
-
-              <motion.div key="reviews" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.55 }}>
-                <ReviewHistory reviews={reviews} userRole={user?.role || 'guest'} />
-              </motion.div>,
             ]}
           </div>
 
