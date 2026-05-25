@@ -152,6 +152,23 @@ export default function RootLayout({
   return (
     <html suppressHydrationWarning lang="en" className={`${lora.variable} ${montserrat.variable} scroll-smooth`}>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var handler = function(event) {
+                  var msg = event.message || (event.reason && (event.reason.message || String(event.reason))) || '';
+                  if (msg && msg.indexOf('message channel closed before a response was received') !== -1) {
+                    event.preventDefault();
+                    if (event.stopPropagation) event.stopPropagation();
+                  }
+                };
+                window.addEventListener('unhandledrejection', handler, true);
+                window.addEventListener('error', handler, true);
+              })();
+            `
+          }}
+        />
         <link rel="icon" href="/assets/images/logo-round.png" type="image/png" sizes="512x512" />
         <link rel="apple-touch-icon" href="/assets/images/logo-round.png" />
         <script
