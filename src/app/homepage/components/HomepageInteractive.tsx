@@ -131,7 +131,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
 
   // Sync initial properties to store on mount
   useEffect(() => {
-    if (initialProperties && initialProperties.length > 0) {
+    if (initialProperties) {
       setProperties(initialProperties);
     }
   }, [initialProperties, setProperties]);
