@@ -706,7 +706,7 @@ const CleaningMaintenanceLog: React.FC<CleaningMaintenanceLogProps> = ({ propert
                       <div 
                         className="relative cursor-pointer"
                         onClick={() => {
-                          const dateInput = document.getElementById('execution_date_input') as HTMLInputElement;
+                          const dateInput = document.getElementById('execution_date_input') as any;
                           if (dateInput) {
                             if ('showPicker' in dateInput) {
                               dateInput.showPicker();

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import PropertyApprovalCard from './PropertyApprovalCard';
 import { Property } from '@/lib/types';
 
@@ -19,8 +19,10 @@ describe('PropertyApprovalCard', () => {
   };
 
   it('should render the Approve button', () => {
-    render(<PropertyApprovalCard property={property} onReview={() => {}} />);
-    const approveButton = screen.getByText('Approve');
-    expect(approveButton).toBeInTheDocument();
+    const { getByText } = render(<PropertyApprovalCard property={property} onReview={() => {}} />);
+    const approveButton = getByText('Approve');
+    if (!approveButton) {
+      throw new Error('Approve button not found');
+    }
   });
 });

@@ -102,13 +102,13 @@ const FinancialsPage = async () => {
       hostName: b.property?.host?.name || 'Unknown Host',
       amount: Number(b.total_price),
       date: b.created_at,
-      status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
-              (b.status === 'refunded' ? 'refunded' : 'pending'),
+      status: ((b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
+              (b.status === 'refunded' ? 'refunded' : 'pending')) as 'pending' | 'completed' | 'failed' | 'refunded',
       paymentMethod: 'Razorpay',
       daysBeforeCheckIn: cancellationLead,
       appliedPolicy: appliedPolicy,
       refundPercentage: refundPercentage,
-      type: isRefund ? 'refund' : 'payment'
+      type: (isRefund ? 'refund' : 'payment') as 'payment' | 'refund'
     };
   });
 
