@@ -848,12 +848,11 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
   // Common response handling
   if (finalUserId) {
     if (isSignupFlow) {
-      console.log('✅ MOBILE SIGNUP COMPLETE. Signing out to enforce manual login.');
-      await supabase.auth.signOut();
+      console.log('✅ MOBILE SIGNUP COMPLETE. Session established.');
 
       return {
         success: true,
-        message: 'Account created successfully. Please log in.',
+        message: 'Account created and logged in successfully.',
         role: finalUserRole
       };
     } else {

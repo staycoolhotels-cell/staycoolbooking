@@ -71,8 +71,8 @@ function SignupContent() {
       if (role === 'host') {
         setShowSuccessModal(true);
       } else {
-        // Guests redirect immediately
-        router.push('/auth');
+        // Guests redirect immediately to home page since they are already logged in
+        router.push('/');
       }
     }
   }, [emailState, mobileState, router]);
@@ -716,14 +716,16 @@ function SignupContent() {
 
               <h2 className="text-2xl font-bold text-white mb-2">Payment Successful!</h2>
               <p className="text-zinc-400 mb-8">
-                Your account has been created successfully. Please log in to continue to your dashboard.
+                {authMethod === 'phone'
+                  ? "Your account has been created successfully. Click below to continue to your dashboard."
+                  : "Your account has been created successfully. Please log in to continue to your dashboard."}
               </p>
 
               <button
-                onClick={() => router.push('/auth')}
+                onClick={() => router.push(authMethod === 'phone' ? '/host-dashboard' : '/auth')}
                 className="w-full py-3.5 px-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold shadow-lg shadow-green-600/20 transition-all transform active:scale-95"
               >
-                Okay, Go to Login
+                {authMethod === 'phone' ? "Okay, Go to Dashboard" : "Okay, Go to Login"}
               </button>
             </motion.div>
           </div>
