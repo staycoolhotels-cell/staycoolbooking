@@ -19,6 +19,8 @@ export async function POST(request: NextRequest) {
 
     const payloadWithHost = {
       ...propertyPayload,
+      name: propertyPayload.name || propertyPayload.title || '',
+      title: propertyPayload.title || propertyPayload.name || '',
       host_id: hostId,
     };
 

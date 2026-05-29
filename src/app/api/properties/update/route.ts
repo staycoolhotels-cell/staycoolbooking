@@ -17,9 +17,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const finalUpdatePayload = { ...updatePayload };
+    if (updatePayload.title && !updatePayload.name) {
+      finalUpdatePayload.name = updatePayload.title;
+    } else if (updatePayload.name && !updatePayload.title) {
+      finalUpdatePayload.title = updatePayload.name;
+    }
+
     const { data, error } = await supabaseAdmin
       .from('properties')
-      .update(updatePayload)
+      .update(finalUpdatePayload)
       .eq('id', propertyId)
       .eq('host_id', hostId)
       .select()

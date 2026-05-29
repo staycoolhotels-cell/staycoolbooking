@@ -53,16 +53,15 @@ export async function addProperty(prevState: unknown, formData: FormData) {
   // Extract property data from FormData
   const name = formData.get('name') as string;
   const location = formData.get('location') as string;
-  const tier = formData.get('tier') as string;
+  const tier = (formData.get('tier') || formData.get('type')) as string;
   const description = formData.get('description') as string;
-  const price_per_night = parseFloat(formData.get('price_per_night') as string);
-  const weekendPrice = parseFloat(formData.get('weekendPrice') as string);
-  const type = formData.get('type') as string;
-  const capacity = parseInt(formData.get('capacity') as string);
-  const bedrooms = parseInt(formData.get('bedrooms') as string);
-  const bathrooms = parseInt(formData.get('bathrooms') as string);
-  const max_guests = parseInt(formData.get('max_guests') as string);
-  const cancellationPolicy = formData.get('cancellationPolicy') as string;
+  const price_per_night = parseFloat(formData.get('price_per_night') as string || formData.get('price') as string) || 0;
+  const weekend_price_per_night = parseFloat(formData.get('weekendPrice') as string) || parseFloat(formData.get('weekend_price_per_night') as string) || 0;
+  const room_type = (formData.get('room_type') || formData.get('type')) as string || '';
+  const bedrooms = parseInt(formData.get('bedrooms') as string) || 0;
+  const bathrooms = parseFloat(formData.get('bathrooms') as string) || 0;
+  const max_guests = parseInt(formData.get('max_guests') as string) || parseInt(formData.get('capacity') as string) || 0;
+  const cancellation_policy = (formData.get('cancellation_policy') || formData.get('cancellationPolicy')) as string || 'Flexible';
   const amenities = JSON.parse(formData.get('amenities') as string || '[]'); // Assuming amenities come as a JSON string
   const rules = JSON.parse(formData.get('rules') as string || '[]'); // Assuming rules come as a JSON string
 
@@ -99,10 +98,16 @@ export async function addProperty(prevState: unknown, formData: FormData) {
   const licenseFile = formData.get('license_file') as File;
   const taxBillFile = formData.get('tax_bill_file') as File;
   const currentBillFile = formData.get('current_bill_file') as File;
+  const aadharFile = formData.get('aadhar') as File;
+  const panFile = formData.get('pan') as File;
+  const nocFile = formData.get('noc') as File;
 
   let license_url = '';
   let tax_bill_url = '';
   let current_bill_url = '';
+  let aadhar_url = '';
+  let pan_url = '';
+  let noc_url = '';
   const documentUploadErrors: string[] = [];
 
   const uploadDocument = async (file: File, folder: string): Promise<string> => {
@@ -134,6 +139,9 @@ export async function addProperty(prevState: unknown, formData: FormData) {
   license_url = await uploadDocument(licenseFile, 'license');
   tax_bill_url = await uploadDocument(taxBillFile, 'tax_bill');
   current_bill_url = await uploadDocument(currentBillFile, 'current_bill');
+  aadhar_url = await uploadDocument(aadharFile, 'aadhar');
+  pan_url = await uploadDocument(panFile, 'pan');
+  noc_url = await uploadDocument(nocFile, 'noc');
 
 
   if (imageUploadErrors.length > 0 || documentUploadErrors.length > 0) {
@@ -146,22 +154,25 @@ export async function addProperty(prevState: unknown, formData: FormData) {
       {
         host_id,
         name,
+        title: name,
         location,
         tier,
         description,
         price_per_night,
-        weekendPrice,
-        type,
-        capacity,
+        weekend_price_per_night,
+        room_type,
         bedrooms,
         bathrooms,
         max_guests,
-        cancellationPolicy,
+        cancellation_policy,
         amenities,
         rules,
         license_url,
         tax_bill_url,
         current_bill_url,
+        aadhar_url,
+        pan_url,
+        noc_url,
         images: imageUrls,
         status: 'pending' // New properties start as pending
       },
