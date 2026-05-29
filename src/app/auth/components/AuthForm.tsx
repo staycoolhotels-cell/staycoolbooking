@@ -135,7 +135,14 @@ const ModernAuthForm: React.FC = () => {
 
             {!otpSent ? (
               <>
-                <input type="text" name="fullName" placeholder="Name" required />
+                <input
+                  type="text"
+                  name="fullName"
+                  placeholder="Name"
+                  value={mobileName}
+                  onChange={(e) => setMobileName(e.target.value)}
+                  required
+                />
                 <input
                   type="tel"
                   name="phone"

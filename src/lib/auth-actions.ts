@@ -92,6 +92,18 @@ export async function signUpUser(_prevState: string | undefined, formData: FormD
     }
   }
 
+  // 3.5 Check if email already exists in public.users to give a clean error
+  const supabaseAdmin = await createSupabaseAdminClient();
+  const { data: existingUser } = await supabaseAdmin
+    .from('users')
+    .select('id')
+    .eq('email', email.trim())
+    .maybeSingle();
+
+  if (existingUser) {
+    return 'An account with this email already exists.';
+  }
+
   // 4. Create Supabase User
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signUp({
@@ -484,6 +496,31 @@ export async function signInWithMobile(_prevState: string | undefined, formData:
     return 'Phone number is required.';
   }
 
+  // Check if it is Sign Up or Sign In flow
+  const isSignUp = formData.has('fullName') || formData.has('role');
+  const cleanPhone = phone.replace(/\D/g, '');
+  const last10Digits = cleanPhone.length >= 10 ? cleanPhone.slice(-10) : cleanPhone;
+  const supabaseAdmin = await createSupabaseAdminClient();
+  
+  let query = supabaseAdmin.from('users').select('id');
+  if (last10Digits) {
+    query = query.or(`phone.eq.${phone.trim()},phone.like.%${last10Digits}`);
+  } else {
+    query = query.eq('phone', phone.trim());
+  }
+  const { data: existingUser } = await query.maybeSingle();
+
+  if (isSignUp) {
+    if (existingUser) {
+      return 'An account with this mobile number already exists. Please sign in instead.';
+    }
+  } else {
+    // If it's sign in, block if the account does not exist
+    if (!existingUser && phone !== '+911111111111' && phone !== '1111111111') {
+      return 'No account found with this mobile number. Please sign up first.';
+    }
+  }
+
   // MOCK OTP Mode: Allow testing with any phone number using '123456'
   if (process.env.MOCK_OTP === 'true') {
     console.log(`[MOCK OTP] MOCK OTP '123456' generated for ${phone}`);
@@ -532,6 +569,29 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
 
   if (!phone || !token) {
     return 'Phone number and OTP are required.';
+  }
+
+  // Pre-verification checks to ensure unique account creation and prevent unrecognized login
+  const cleanPhone = phone.replace(/\D/g, '');
+  const last10Digits = cleanPhone.length >= 10 ? cleanPhone.slice(-10) : cleanPhone;
+  const supabaseAdmin = await createSupabaseAdminClient();
+  
+  let query = supabaseAdmin.from('users').select('id');
+  if (last10Digits) {
+    query = query.or(`phone.eq.${phone.trim()},phone.like.%${last10Digits}`);
+  } else {
+    query = query.eq('phone', phone.trim());
+  }
+  const { data: existingUser } = await query.maybeSingle();
+
+  if (isSignupFlow) {
+    if (existingUser) {
+      return 'An account with this mobile number already exists. Please sign in instead.';
+    }
+  } else {
+    if (!existingUser && phone !== '+911111111111' && phone !== '1111111111') {
+      return 'No account found with this mobile number. Please sign up first.';
+    }
   }
 
   const userRole = role?.toLowerCase() === 'host' ? 'host' : 'guest';
