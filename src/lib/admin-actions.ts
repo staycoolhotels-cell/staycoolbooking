@@ -74,7 +74,17 @@ export async function updateUserStatusAndRoleAsAdmin(
   }
 
   await logActivity('user_action', `User ${userId} status changed to ${status} and role to ${role}`, userId, 'User Updated', 'info');
+
+  // Sync-heal Auth Metadata: Keep auth metadata in sync so the UI/middleware reflects the new role/status instantly
+  const { error: authError } = await supabase.auth.admin.updateUserById(userId, {
+    user_metadata: { role, status }
+  });
+  if (authError) {
+    console.warn('updateUserStatusAndRoleAsAdmin: Failed to update auth metadata:', authError.message);
+  }
+
   return { success: true, data };
+
 }
 
 /**
@@ -163,7 +173,19 @@ export async function updateUserDetailsAsAdmin(userId: string, updatedFields: Pa
     return { success: false, error: `Database Error: ${error.message}` };
   }
   await logActivity('user_action', `User ${userId} details have been updated.`, userId, 'User Updated', 'info');
+
+  // Sync auth metadata if role or status is updated
+  if (updatedFields.role || updatedFields.status) {
+    const metaUpdate: Record<string, any> = {};
+    if (updatedFields.role) metaUpdate.role = updatedFields.role;
+    if (updatedFields.status) metaUpdate.status = updatedFields.status;
+    await supabase.auth.admin.updateUserById(userId, {
+      user_metadata: metaUpdate
+    });
+  }
+
   return { success: true, data };
+
 }
 
 /**
@@ -210,7 +232,7 @@ export async function approveHost(userId: string) {
 
   // LAYER 3: Update auth metadata — so login sync-heal also works as backup
   const { error: metaError } = await supabase.auth.admin.updateUserById(userId, {
-    user_metadata: { status: 'active' }
+    user_metadata: { status: 'active', role: 'host' }
   });
   if (metaError) {
     console.warn('approveHost: Failed to update auth metadata (non-fatal):', metaError.message);

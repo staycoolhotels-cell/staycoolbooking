@@ -413,6 +413,20 @@ export async function login(_prevState: string | undefined, formData: FormData) 
   const { role, status } = userProfile;
   const normalizedRole = role?.toLowerCase() || '';
 
+  // Sync-heal Auth Metadata: If the Auth metadata role/status does not match public.users, update it!
+  const authUserMeta = data.user.user_metadata || {};
+  if (authUserMeta.role !== normalizedRole || authUserMeta.status !== status) {
+    console.log(`⚠️ SYNC HEAL: Auth metadata role/status does not match database. Syncing...`);
+    await supabaseAdmin.auth.admin.updateUserById(userId, {
+      user_metadata: {
+        ...authUserMeta,
+        role: normalizedRole,
+        status: status
+      }
+    });
+  }
+
+
   // 1. ADMIN FLOW
   if (normalizedRole === 'admin') {
     redirect('/admin-panel');
@@ -786,6 +800,21 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
 
     if (userProfile) {
       finalUserRole = userProfile.role?.toLowerCase() === 'host' ? 'host' : 'guest';
+      
+      // Update auth metadata to ensure role and status are synced
+      const { error: syncMetaError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        user_metadata: {
+          role: finalUserRole,
+          status: userProfile.status,
+          phone: phone,
+          name: name || 'Mobile User'
+        }
+      });
+      if (syncMetaError) {
+        console.error('Failed to sync auth metadata for mobile user:', syncMetaError.message);
+      } else {
+        console.log(`✅ Synced Auth Metadata for user ${userId} to role=${finalUserRole}, status=${userProfile.status}`);
+      }
     }
 
     // Now log the user in to establish a session cookie!
@@ -901,6 +930,19 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
 
       if (userProfile) {
         finalUserRole = userProfile.role?.toLowerCase() === 'host' ? 'host' : 'guest';
+        
+        // Update auth metadata to ensure role and status are synced
+        const authUserMeta = data.user.user_metadata || {};
+        if (authUserMeta.role !== finalUserRole || authUserMeta.status !== userProfile.status) {
+          console.log(`⚠️ Syncing Auth User Metadata to match profile role=${finalUserRole}, status=${userProfile.status}`);
+          await supabaseAdmin.auth.admin.updateUserById(userId, {
+            user_metadata: {
+              ...authUserMeta,
+              role: finalUserRole,
+              status: userProfile.status
+            }
+          });
+        }
       }
     }
   }
