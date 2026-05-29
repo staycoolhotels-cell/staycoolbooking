@@ -15,21 +15,25 @@ CREATE TABLE IF NOT EXISTS public.community_posts (
 ALTER TABLE public.community_posts ENABLE ROW LEVEL SECURITY;
 
 -- Policies for community_posts
+DROP POLICY IF EXISTS "Anyone can view community posts" ON public.community_posts;
 CREATE POLICY "Anyone can view community posts"
 ON public.community_posts FOR SELECT
 TO anon, authenticated
 USING (true);
 
+DROP POLICY IF EXISTS "Users can create community posts" ON public.community_posts;
 CREATE POLICY "Users can create community posts"
 ON public.community_posts FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid() = author_id);
 
+DROP POLICY IF EXISTS "Users can update their own community posts" ON public.community_posts;
 CREATE POLICY "Users can update their own community posts"
 ON public.community_posts FOR UPDATE
 TO authenticated
 USING (auth.uid() = author_id);
 
+DROP POLICY IF EXISTS "Users can delete their own community posts" ON public.community_posts;
 CREATE POLICY "Users can delete their own community posts"
 ON public.community_posts FOR DELETE
 TO authenticated
@@ -48,16 +52,19 @@ CREATE TABLE IF NOT EXISTS public.community_likes (
 ALTER TABLE public.community_likes ENABLE ROW LEVEL SECURITY;
 
 -- Policies for community_likes
+DROP POLICY IF EXISTS "Anyone can view likes" ON public.community_likes;
 CREATE POLICY "Anyone can view likes"
 ON public.community_likes FOR SELECT
 TO anon, authenticated
 USING (true);
 
+DROP POLICY IF EXISTS "Users can like posts" ON public.community_likes;
 CREATE POLICY "Users can like posts"
 ON public.community_likes FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can unlike posts" ON public.community_likes;
 CREATE POLICY "Users can unlike posts"
 ON public.community_likes FOR DELETE
 TO authenticated
@@ -80,16 +87,31 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_post_likes_count_trigger ON public.community_likes;
 CREATE OR REPLACE TRIGGER update_post_likes_count_trigger
 AFTER INSERT OR DELETE ON public.community_likes
 FOR EACH ROW EXECUTE FUNCTION public.update_post_likes_count();
 
--- Enable Realtime for community_posts
--- Check if the publication exists first, or just try to add the table
+-- Enable Realtime for community_posts safely
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
-        ALTER PUBLICATION supabase_realtime ADD TABLE public.community_posts;
-        ALTER PUBLICATION supabase_realtime ADD TABLE public.community_likes;
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_publication_rel pr 
+            JOIN pg_publication p ON p.oid = pr.prpubid 
+            JOIN pg_class c ON c.oid = pr.prrelid 
+            WHERE p.pubname = 'supabase_realtime' AND c.relname = 'community_posts'
+        ) THEN
+            ALTER PUBLICATION supabase_realtime ADD TABLE public.community_posts;
+        END IF;
+
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_publication_rel pr 
+            JOIN pg_publication p ON p.oid = pr.prpubid 
+            JOIN pg_class c ON c.oid = pr.prrelid 
+            WHERE p.pubname = 'supabase_realtime' AND c.relname = 'community_likes'
+        ) THEN
+            ALTER PUBLICATION supabase_realtime ADD TABLE public.community_likes;
+        END IF;
     END IF;
 END $$;
