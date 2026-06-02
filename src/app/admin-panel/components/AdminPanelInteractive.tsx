@@ -4,6 +4,7 @@ import AdminPageHeader from './AdminPageHeader';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
+import { jsPDF } from 'jspdf';
 import StatsCard from './StatsCard';
 import DisputeCard from './DisputeCard';
 import TransactionRow from './TransactionRow';
@@ -630,22 +631,239 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   };
 
   const handleExportReport = () => {
-    toast.info('Generating report...');
-    const csvRows = [
-      ['Date', 'Total Revenue', 'Total Bookings', 'Total Users'],
-      [new Date().toLocaleDateString(), stats[0]?.value || '0', stats[1]?.value || '0', users.length.toString()]
-    ];
+    toast.info('Generating report PDF...');
 
-    const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `platform_report_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
 
-    toast.success('Report exported successfully!');
+      // Page background
+      doc.setFillColor(252, 253, 254);
+      doc.rect(0, 0, 210, 297, 'F');
+
+      // Title header band (slate-900 dark theme header band)
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 0, 210, 45, 'F');
+
+      // Logo/Brand
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.text('StayCool', 15, 20);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(148, 163, 184); // slate-400
+      doc.text('ENTERPRISE PLATFORM REPORT', 15, 26);
+
+      // Report Timestamp
+      const reportDate = new Date().toLocaleString();
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(99, 102, 241); // indigo-500
+      doc.text('GENERATED ON:', 140, 20);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(255, 255, 255);
+      doc.text(reportDate, 140, 25);
+
+      // Horizontal line accent
+      doc.setDrawColor(99, 102, 241);
+      doc.setLineWidth(1.5);
+      doc.line(0, 45, 210, 45);
+
+      // Section 1: Overview Title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(15, 23, 42);
+      doc.text('Platform Metrics Overview', 15, 60);
+
+      // Sub-title
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139);
+      doc.text('Key performance metrics and aggregate totals', 15, 65);
+
+      // Grid stats boxes (2x2 layout)
+      const statsList = [
+        { label: 'Total Revenue', val: stats[0]?.value || '₹0', desc: 'Net revenue capture' },
+        { label: 'Total Bookings', val: stats[1]?.value || '0', desc: 'Bookings successfully scheduled' },
+        { label: 'Total Registered Users', val: users.length.toString(), desc: 'Active platform participants' },
+        { label: 'Active Listings', val: properties.filter((p: Property) => p.status === 'active').length.toString(), desc: 'Properties live online' },
+      ];
+
+      let boxX = 15;
+      let boxY = 72;
+      const boxW = 85;
+      const boxH = 28;
+
+      statsList.forEach((stat, idx) => {
+        const col = idx % 2;
+        const row = Math.floor(idx / 2);
+        const curX = boxX + (col * (boxW + 10));
+        const curY = boxY + (row * (boxH + 8));
+
+        // Draw stat box
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(226, 232, 240); // slate-200
+        doc.setLineWidth(0.5);
+        doc.roundedRect(curX, curY, boxW, boxH, 3, 3, 'FD');
+
+        // Draw left boundary highlight stripe (indigo)
+        doc.setFillColor(99, 102, 241);
+        doc.rect(curX, curY, 2.5, boxH, 'F');
+
+        // Text inside boxes
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(100, 116, 139); // slate-500
+        doc.text(stat.label.toUpperCase(), curX + 7, curY + 8);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(15);
+        doc.setTextColor(15, 23, 42); // slate-900
+        doc.text(stat.val, curX + 7, curY + 16);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(148, 163, 184); // slate-400
+        doc.text(stat.desc, curX + 7, curY + 23);
+      });
+
+      // Section 2: Financial Transactions Breakdown Title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(15, 23, 42);
+      doc.text('Recent Financial Activity Ledger', 15, 142);
+
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139);
+      doc.text('Summary of last 5 financial transactions handled on the platform', 15, 147);
+
+      // Financial breakdown table
+      const headers = ['Transaction ID', 'Guest', 'Host', 'Property', 'Amount', 'Status'];
+      const tableY = 153;
+      const colWidths = [30, 30, 30, 45, 25, 20];
+      const startX = 15;
+
+      // Table Header Row
+      doc.setFillColor(241, 245, 249); // slate-100
+      doc.rect(startX, tableY, 180, 8, 'F');
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(51, 65, 85); // slate-700
+      
+      let curColX = startX;
+      headers.forEach((h, hIdx) => {
+        doc.text(h, curColX + 2, tableY + 5.5);
+        curColX += colWidths[hIdx];
+      });
+
+      // Table Data Rows
+      const recentTxns = transactions.slice(0, 5);
+      let rowY = tableY + 8;
+
+      if (recentTxns.length === 0) {
+        doc.setFillColor(255, 255, 255);
+        doc.rect(startX, rowY, 180, 20, 'F');
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(9);
+        doc.setTextColor(148, 163, 184);
+        doc.text('No transaction logs available', startX + 65, rowY + 12);
+        rowY += 20;
+      } else {
+        recentTxns.forEach((txn, rIdx) => {
+          if (rIdx % 2 === 1) {
+            doc.setFillColor(248, 250, 252); // slate-50
+          } else {
+            doc.setFillColor(255, 255, 255);
+          }
+          doc.rect(startX, rowY, 180, 10, 'F');
+
+          // Cell text
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(71, 85, 105); // slate-600
+
+          const txnId = txn.transactionId || `TXN-${txn.id.slice(0, 6).toUpperCase()}`;
+          const guest = txn.guestName || 'N/A';
+          const host = txn.hostName || 'N/A';
+          const propName = txn.propertyName || 'N/A';
+          const amt = `INR ${txn.amount?.toLocaleString() || '0'}`;
+          const status = txn.status?.toUpperCase() || 'COMPLETED';
+
+          let cellX = startX;
+          
+          const drawTruncatedText = (text: string, width: number, x: number, y: number) => {
+            const lines = doc.splitTextToSize(text, width - 4);
+            const truncated = lines[0] || '';
+            const finalTxt = lines.length > 1 ? truncated.substring(0, truncated.length - 2) + '…' : truncated;
+            doc.text(finalTxt, x + 2, y + 6);
+          };
+
+          drawTruncatedText(txnId, colWidths[0], cellX, rowY);
+          cellX += colWidths[0];
+
+          drawTruncatedText(guest, colWidths[1], cellX, rowY);
+          cellX += colWidths[1];
+
+          drawTruncatedText(host, colWidths[2], cellX, rowY);
+          cellX += colWidths[2];
+
+          drawTruncatedText(propName, colWidths[3], cellX, rowY);
+          cellX += colWidths[3];
+
+          doc.setFont('helvetica', 'bold');
+          doc.text(amt, cellX + 2, rowY + 6);
+          doc.setFont('helvetica', 'normal');
+          cellX += colWidths[4];
+
+          if (status === 'COMPLETED' || status === 'SUCCESS') {
+            doc.setTextColor(16, 185, 129); // emerald-500
+          } else if (status === 'REFUNDED') {
+            doc.setTextColor(245, 158, 11); // amber-500
+          } else {
+            doc.setTextColor(239, 68, 68); // red-500
+          }
+          doc.setFont('helvetica', 'bold');
+          doc.text(status, cellX + 2, rowY + 6);
+          doc.setTextColor(71, 85, 105);
+
+          rowY += 10;
+        });
+      }
+
+      // Add border line below table
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.5);
+      doc.line(startX, rowY, startX + 180, rowY);
+
+      // Section 3: Footer security and branding
+      const footerY = 275;
+      doc.setFillColor(241, 245, 249);
+      doc.rect(0, footerY - 5, 210, 297 - footerY + 5, 'F');
+
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.25);
+      doc.line(0, footerY - 5, 210, footerY - 5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184); // slate-400
+      doc.text('StayCool Booking Enterprise Management Platform © 2026', 15, footerY + 5);
+      doc.text('Confidential System Report. Internal Use Only.', 150, footerY + 5);
+
+      // Save PDF file
+      doc.save(`StayCool_ControlCenter_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success('Report PDF exported successfully!');
+    } catch (err: any) {
+      console.error('PDF Generation Error:', err);
+      toast.error(`PDF generation failed: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const filteredTransactions = transactions.filter((t) => {

@@ -38,8 +38,30 @@ export async function GET(req: Request) {
         // Fetch live status from Razorpay
         let liveStatus = kyc.kyc_status;
         try {
-            const account: any = await (razorpay as any).accounts.fetch(kyc.razorpay_account_id);
-            liveStatus = account?.profile?.kyc_details?.status || account?.status || kyc.kyc_status;
+            if (kyc.razorpay_product_id) {
+                // Fetch product configuration to get actual activation status of Route payouts product
+                const authString = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString('base64');
+                const prodRes = await fetch(`https://api.razorpay.com/v2/accounts/${kyc.razorpay_account_id}/products/${kyc.razorpay_product_id}`, {
+                    headers: {
+                        'Authorization': `Basic ${authString}`
+                    }
+                });
+                if (prodRes.ok) {
+                    const prodData = await prodRes.json();
+                    if (prodData && prodData.activation_status) {
+                        liveStatus = prodData.activation_status;
+                    } else {
+                        const account: any = await (razorpay as any).accounts.fetch(kyc.razorpay_account_id);
+                        liveStatus = account?.profile?.kyc_details?.status || account?.status || kyc.kyc_status;
+                    }
+                } else {
+                    const account: any = await (razorpay as any).accounts.fetch(kyc.razorpay_account_id);
+                    liveStatus = account?.profile?.kyc_details?.status || account?.status || kyc.kyc_status;
+                }
+            } else {
+                const account: any = await (razorpay as any).accounts.fetch(kyc.razorpay_account_id);
+                liveStatus = account?.profile?.kyc_details?.status || account?.status || kyc.kyc_status;
+            }
 
             // In test mode, Razorpay accounts stay in 'created' state unless manually approved in their dashboard.
             // For a smoother testing experience, we automatically map 'created' to 'activated' when using test keys.
@@ -49,6 +71,7 @@ export async function GET(req: Request) {
                 // Map Razorpay statuses to our statuses
                 const statusMap: Record<string, string> = {
                     'created': 'under_review',
+                    'requested': 'under_review',
                     'under_review': 'under_review',
                     'activated': 'activated',
                     'needs_clarification': 'needs_clarification',
