@@ -694,8 +694,8 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         { label: 'Active Listings', val: properties.filter((p: Property) => p.status === 'active').length.toString(), desc: 'Properties live online' },
       ];
 
-      let boxX = 15;
-      let boxY = 72;
+      const boxX = 15;
+      const boxY = 72;
       const boxW = 85;
       const boxH = 28;
 
