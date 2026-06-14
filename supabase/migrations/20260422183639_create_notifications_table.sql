@@ -10,10 +10,8 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT notifications_pkey PRIMARY KEY (id)
 );
-
 -- Enable RLS
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
-
 -- Policy for admins to manage notifications
 -- Check if user is admin
 DROP POLICY IF EXISTS "Allow admins to manage notifications" ON public.notifications;
@@ -25,7 +23,6 @@ USING (
 WITH CHECK (
   (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin'
 );
-
 -- Enable Realtime
 -- This is usually done by adding the table to the supabase_realtime publication
 -- First check if the publication exists, if not create it
@@ -35,7 +32,6 @@ BEGIN
     CREATE PUBLICATION supabase_realtime;
   END IF;
 END $$;
-
 -- Add table to publication safely
 DO $$
 BEGIN

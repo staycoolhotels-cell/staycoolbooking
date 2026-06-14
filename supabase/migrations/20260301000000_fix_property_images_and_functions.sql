@@ -1,7 +1,6 @@
 -- Add images column to properties table
 ALTER TABLE public.properties 
 ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'::jsonb;
-
 -- Update create_property function
 CREATE OR REPLACE FUNCTION public.create_property(
     p_name text,
@@ -139,7 +138,6 @@ BEGIN
     RETURN new_property_id;
 END;
 $$;
-
 -- Update update_property function
 CREATE OR REPLACE FUNCTION public.update_property(
     p_id uuid,

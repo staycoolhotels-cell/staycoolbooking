@@ -634,6 +634,8 @@ function SignupContent() {
                               </button>
                             ))}
                           </div>
+                          <input type="hidden" name="role" value={selectedRole} />
+                          <input type="hidden" name="flow" value="signup" />
                         </div>
 
                         <SubmitButton>Send verification code</SubmitButton>

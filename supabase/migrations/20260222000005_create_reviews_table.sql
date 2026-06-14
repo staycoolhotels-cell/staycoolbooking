@@ -1,7 +1,6 @@
 -- Migration to create reviews table
 
 DROP TABLE IF EXISTS public.reviews CASCADE;
-
 CREATE TABLE public.reviews (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     booking_id UUID NOT NULL REFERENCES public.bookings(id) ON DELETE CASCADE,
@@ -12,16 +11,13 @@ CREATE TABLE public.reviews (
     comment TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
 -- Enable RLS for reviews
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
-
 -- Policies for reviews
 CREATE POLICY "Public can view reviews"
 ON public.reviews FOR SELECT
 TO anon, authenticated
 USING (true);
-
 CREATE POLICY "Users can create reviews for their bookings"
 ON public.reviews FOR INSERT
 TO authenticated
@@ -32,7 +28,6 @@ WITH CHECK (
         AND b.guest_id = auth.uid()
     )
 );
-
 CREATE POLICY "Users can update their own reviews"
 ON public.reviews FOR UPDATE
 TO authenticated

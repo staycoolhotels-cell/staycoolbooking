@@ -1,6 +1,5 @@
 -- Add cancelled_at column to bookings table
 ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP WITH TIME ZONE;
-
 -- Migration: Set cancelled_at for already cancelled bookings (fallback to updated_at if available, otherwise created_at)
 -- We check for updated_at column first
 DO $$
@@ -21,6 +20,5 @@ BEGIN
         WHERE status = 'cancelled' AND cancelled_at IS NULL;
     END IF;
 END $$;
-
 -- Notify PostgREST to reload schema
 NOTIFY pgrst, 'reload schema';

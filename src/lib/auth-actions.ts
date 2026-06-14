@@ -511,7 +511,7 @@ export async function signInWithMobile(_prevState: string | undefined, formData:
   }
 
   // Check if it is Sign Up or Sign In flow
-  const isSignUp = formData.has('fullName') || formData.has('role');
+  const isSignUp = formData.has('fullName') || formData.has('name') || formData.has('role') || formData.get('flow') === 'signup';
   const cleanPhone = phone.replace(/\D/g, '');
   const last10Digits = cleanPhone.length >= 10 ? cleanPhone.slice(-10) : cleanPhone;
   const supabaseAdmin = await createSupabaseAdminClient();
@@ -522,7 +522,8 @@ export async function signInWithMobile(_prevState: string | undefined, formData:
   } else {
     query = query.eq('phone', phone.trim());
   }
-  const { data: existingUser } = await query.maybeSingle();
+  const { data: existingUsers } = await query.limit(1);
+  const existingUser = existingUsers && existingUsers.length > 0 ? existingUsers[0] : null;
 
   if (isSignUp) {
     if (existingUser) {
@@ -574,7 +575,7 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
   const token = formData.get('otp') as string;
   const name = formData.get('name') as string; // Optional context for new users
   const role = formData.get('role') as string; // Check if role is present (only on signup)
-  const isSignupFlow = !!role;
+  const isSignupFlow = !!role || formData.get('flow') === 'signup';
 
   // Payment Details
   const razorpayPaymentId = formData.get('razorpay_payment_id') as string;
@@ -596,7 +597,8 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
   } else {
     query = query.eq('phone', phone.trim());
   }
-  const { data: existingUser } = await query.maybeSingle();
+  const { data: existingUsers } = await query.limit(1);
+  const existingUser = existingUsers && existingUsers.length > 0 ? existingUsers[0] : null;
 
   if (isSignupFlow) {
     if (existingUser) {

@@ -14,9 +14,12 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
   const date = transaction.date || new Date().toLocaleDateString();
 
   const breakdown = transaction.breakdown || {
-    accommodation: (transaction.amount || 0) * 0.78,
-    service_fee: (transaction.amount || 0) * 0.20,
-    taxes: (transaction.amount || 0) * 0.02
+    accommodation: Math.round((transaction.amount || 0) / 1.1),
+    service_fee: Math.round((transaction.amount || 0) * 0.1 / 1.1),
+    taxes: 0,
+    discount: 0,
+    upgrades: 0,
+    cancellation_fee: 0
   };
 
   return (
@@ -106,27 +109,35 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
               </tr>
             </thead>
             <tbody className="text-sm">
-              <tr className="border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors">
-                <td className="px-3 py-4 text-center font-bold text-zinc-400">1</td>
-                <td className="px-4 py-4 font-semibold">Accommodation Charges</td>
-                <td className="px-4 py-4 text-center">₹{breakdown.accommodation.toLocaleString('en-IN')}</td>
-                <td className="px-4 py-4 text-center">1</td>
-                <td className="px-4 py-4 text-right font-bold text-sky-600">₹{breakdown.accommodation.toLocaleString('en-IN')}</td>
-              </tr>
-              <tr className="border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors">
-                <td className="px-3 py-4 text-center font-bold text-zinc-400">2</td>
-                <td className="px-4 py-4 font-semibold">Platform Service</td>
-                <td className="px-4 py-4 text-center">₹{breakdown.service_fee.toLocaleString('en-IN')}</td>
-                <td className="px-4 py-4 text-center">1</td>
-                <td className="px-4 py-4 text-right font-bold text-sky-600">₹{breakdown.service_fee.toLocaleString('en-IN')}</td>
-              </tr>
-              <tr className="border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors">
-                <td className="px-3 py-4 text-center font-bold text-zinc-400">3</td>
-                <td className="px-4 py-4 font-semibold">Applicable Taxes (GST/Stay Tax)</td>
-                <td className="px-4 py-4 text-center">₹{breakdown.taxes.toLocaleString('en-IN')}</td>
-                <td className="px-4 py-4 text-center">1</td>
-                <td className="px-4 py-4 text-right font-bold text-sky-600">₹{breakdown.taxes.toLocaleString('en-IN')}</td>
-              </tr>
+              {(() => {
+                const rows = [
+                  { name: 'Accommodation Charges', price: breakdown.accommodation, isDiscount: false },
+                  { name: 'Platform Service Fee (10%)', price: breakdown.service_fee, isDiscount: false }
+                ];
+                if (breakdown.discount && breakdown.discount > 0) {
+                  rows.push({ name: 'Bulk Discount Savings', price: breakdown.discount, isDiscount: true });
+                }
+                if (breakdown.upgrades && breakdown.upgrades > 0) {
+                  rows.push({ name: 'Exclusive Upgrades', price: breakdown.upgrades, isDiscount: false });
+                }
+                if (breakdown.cancellation_fee && breakdown.cancellation_fee > 0) {
+                  rows.push({ name: 'Cancellation Protection', price: breakdown.cancellation_fee, isDiscount: false });
+                }
+                
+                return rows.map((item, idx) => (
+                  <tr key={idx} className="border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors">
+                    <td className="px-3 py-4 text-center font-bold text-zinc-400">{idx + 1}</td>
+                    <td className="px-4 py-4 font-semibold">{item.name}</td>
+                    <td className="px-4 py-4 text-center">
+                      {item.isDiscount ? '-' : ''}Rs.{item.price.toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-4 py-4 text-center">1</td>
+                    <td className={`px-4 py-4 text-right font-bold ${item.isDiscount ? 'text-emerald-600' : 'text-sky-600'}`}>
+                      {item.isDiscount ? '-' : ''}Rs.{item.price.toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                ));
+              })()}
             </tbody>
           </table>
         </div>
@@ -164,16 +175,12 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
             <div className="space-y-3 mb-10">
                 <div className="flex justify-between items-center text-sm">
                     <p className="font-bold text-zinc-400 uppercase tracking-widest text-[10px]">Sub Total:</p>
-                    <p className="font-bold text-zinc-800">₹{transaction.amount.toLocaleString('en-IN')}</p>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                    <p className="font-bold text-zinc-400 uppercase tracking-widest text-[10px]">Tax:</p>
-                    <p className="font-bold text-zinc-800">0.00%</p>
+                    <p className="font-bold text-zinc-800">Rs.{transaction.amount.toLocaleString('en-IN')}</p>
                 </div>
                 <div className="h-px bg-zinc-100" />
                 <div className="flex justify-between items-center text-sm">
-                    <p className="font-bold text-zinc-400 uppercase tracking-widest text-[10px]">{isRefund ? 'Total Refunded:' : 'Total Amount Paid:'}</p>
-                    <p className="text-2xl font-black text-[#0ea5e9] tracking-tighter">₹{transaction.amount.toLocaleString('en-IN')}</p>
+                    <p className="font-bold text-zinc-400 uppercase tracking-widest text-[10px]">{isRefund ? 'Total Refunded:' : 'Grand Total:'}</p>
+                    <p className="text-2xl font-black text-[#0ea5e9] tracking-tighter">Rs.{transaction.amount.toLocaleString('en-IN')}</p>
                 </div>
             </div>
 

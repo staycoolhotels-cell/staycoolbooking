@@ -1,7 +1,6 @@
 -- Add missing phone column to public.users table
 ALTER TABLE public.users 
 ADD COLUMN IF NOT EXISTS phone TEXT;
-
 -- Update the handle_new_user trigger function to populate phone from auth metadata if present
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS trigger 
@@ -44,7 +43,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- Update handle_user_update trigger function to keep phone in sync
 CREATE OR REPLACE FUNCTION public.handle_user_update() 
 RETURNS trigger 
@@ -96,6 +94,5 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- Force reload schema cache for PostgREST to immediately recognize the new column
 NOTIFY pgrst, 'reload schema';

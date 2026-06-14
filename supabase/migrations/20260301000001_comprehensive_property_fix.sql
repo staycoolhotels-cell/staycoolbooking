@@ -24,11 +24,9 @@ ADD COLUMN IF NOT EXISTS area NUMERIC DEFAULT 500,
 ADD COLUMN IF NOT EXISTS total_rooms INTEGER DEFAULT 1,
 ADD COLUMN IF NOT EXISTS room_type TEXT,
 ADD COLUMN IF NOT EXISTS host_id UUID REFERENCES auth.users(id);
-
 -- 2. Synchronize name and title (some parts of the app use name, others use title)
 UPDATE public.properties SET name = title WHERE name IS NULL AND title IS NOT NULL;
 UPDATE public.properties SET title = name WHERE title IS NULL AND name IS NOT NULL;
-
 -- 3. Update create_property function
 CREATE OR REPLACE FUNCTION public.create_property(
     p_name text,
@@ -166,7 +164,6 @@ BEGIN
     RETURN new_property_id;
 END;
 $$;
-
 -- 4. Update update_property function
 CREATE OR REPLACE FUNCTION public.update_property(
     p_id uuid,
@@ -275,6 +272,5 @@ BEGIN
     RETURN QUERY SELECT * FROM public.properties WHERE id = p_id;
 END;
 $$;
-
 -- 5. Diagnostic Query (Run this to verify table structure)
--- SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'properties';
+-- SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'properties';;

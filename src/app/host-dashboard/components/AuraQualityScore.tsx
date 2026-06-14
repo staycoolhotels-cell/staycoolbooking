@@ -6,7 +6,7 @@ import { Property, PriceSuggestion } from '@/lib/types';
 import Icon from '@/components/ui/AppIcon';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { updatePropertyPrice } from '@/lib/property-actions';
+import { updatePropertyPrice, updatePropertyRoomTypePrice } from '@/lib/property-actions';
 import { generatePricingAI } from '@/lib/pricing-actions';
 
 interface GuestReview {
@@ -33,130 +33,212 @@ export interface MarketComparisonData {
   property_tier?: string;
 }
 
+const ROOM_TYPE_SEASONAL_PROFILES: Record<string, Record<string, { multiplier: number; text: string }>> = {
+  'Suite Room': {
+    Winter: { multiplier: 1.25, text: 'Suites and deluxe rooms experience peak winter bookings for families seeking premium holiday comfort (+25% yield opportunity).' },
+    Summer: { multiplier: 1.20, text: 'Luxury suites and deluxe rooms with air conditioning see strong peak summer demand (+20% yield opportunity).' },
+    Monsoon: { multiplier: 1.15, text: 'Suites and deluxe rooms see luxury staycation demand during heavy rain weekends (+15% yield opportunity).' },
+    Autumn: { multiplier: 1.18, text: 'Suites and deluxe rooms see steady bookings for autumn family holidays and festive stays (+18% yield opportunity).' }
+  },
+  'Deluxe Room': {
+    Winter: { multiplier: 1.25, text: 'Suites and deluxe rooms experience peak winter bookings for families seeking premium holiday comfort (+25% yield opportunity).' },
+    Summer: { multiplier: 1.20, text: 'Luxury suites and deluxe rooms with air conditioning see strong peak summer demand (+20% yield opportunity).' },
+    Monsoon: { multiplier: 1.15, text: 'Suites and deluxe rooms see luxury staycation demand during heavy rain weekends (+15% yield opportunity).' },
+    Autumn: { multiplier: 1.18, text: 'Suites and deluxe rooms see steady bookings for autumn family holidays and festive stays (+18% yield opportunity).' }
+  },
+  'Deluxe Wooden Cabin': {
+    Winter: { multiplier: 1.25, text: 'Deluxe wooden cabins see exceptionally high demand for cozy winter fireside getaways (+25% yield opportunity).' },
+    Summer: { multiplier: 1.15, text: 'Deluxe wooden cabins in cool hill stations see high demand for summer escapes (+15% yield opportunity).' },
+    Monsoon: { multiplier: 1.18, text: 'Deluxe wooden cabins offer a cozy luxury experience amidst monsoon rains (+18% yield opportunity).' },
+    Autumn: { multiplier: 1.18, text: 'Deluxe wooden cabins are highly favored for autumn foliage and cool weather getaways (+18% yield opportunity).' }
+  },
+  'Standard Wooden Room': {
+    Winter: { multiplier: 1.15, text: 'Standard wooden rooms are popular for rustic winter nature stays (+15% yield opportunity).' },
+    Summer: { multiplier: 1.10, text: 'Standard wooden rooms see good demand from summer nature holidaymakers (+10% yield opportunity).' },
+    Monsoon: { multiplier: 1.10, text: 'Standard wooden rooms attract travelers seeking rustic nature stays during monsoon (+10% yield opportunity).' },
+    Autumn: { multiplier: 1.12, text: 'Standard wooden rooms attract nature lovers exploring autumn harvests (+12% yield opportunity).' }
+  },
+  'Cottage': {
+    Winter: { multiplier: 1.20, text: 'Cottages see great demand from families seeking cozy winter holiday retreats (+20% yield opportunity).' },
+    Summer: { multiplier: 1.15, text: 'Cottages in cool regions attract families looking for summer vacation stays (+15% yield opportunity).' },
+    Monsoon: { multiplier: 1.12, text: 'Cottages see higher demand from families wanting cozy nature retreats during rains (+12% yield opportunity).' },
+    Autumn: { multiplier: 1.15, text: 'Cottages see strong weekend bookings in pleasant autumn weather (+15% yield opportunity).' }
+  },
+  'Entire Villa': {
+    Winter: { multiplier: 1.20, text: 'Villas are highly booked for family winter vacations and group celebrations (+20% yield opportunity).' },
+    Summer: { multiplier: 1.15, text: 'Villas are highly preferred for summer group getaways (+15% yield opportunity).' },
+    Monsoon: { multiplier: 1.10, text: 'Villas see stable demand from group staycationers during the monsoon season (+10% yield opportunity).' },
+    Autumn: { multiplier: 1.10, text: 'Villas see increased bookings for autumn festivals and family gatherings (+10% yield opportunity).' }
+  },
+  'Entire Home': {
+    Winter: { multiplier: 1.10, text: 'Home stays see great weekend travelers seeking local winter experiences (+10% yield opportunity).' },
+    Summer: { multiplier: 1.05, text: 'Home stays see steady demand from budget summer travelers looking for homely comfort (+5% yield opportunity).' },
+    Monsoon: { multiplier: 1.10, text: 'Home stays in nature destinations attract rain lovers seeking comfort (+10% yield opportunity).' },
+    Autumn: { multiplier: 1.10, text: 'Home stays see high interest from travelers exploring local autumn harvests (+10% yield opportunity).' }
+  },
+  'Entire Apartment': {
+    Winter: { multiplier: 1.10, text: 'Apartments see popular bookings for winter city breaks and cozy long-term stays (+10% yield opportunity).' },
+    Summer: { multiplier: 1.10, text: 'Apartments see higher demand from families and business travelers seeking longer summer stays (+10% yield opportunity).' },
+    Monsoon: { multiplier: 1.05, text: 'Apartments see high occupancy for indoor-focused stays and work-from-home traveler getaways (+5% yield opportunity).' },
+    Autumn: { multiplier: 1.10, text: 'Apartments are favored for pleasant city weekend breaks and autumn staycations (+10% yield opportunity).' }
+  },
+  'Standard Tent': {
+    Winter: { multiplier: 1.20, text: 'Standard tents have high demand for winter camping and bonfire getaways (+20% yield opportunity).' },
+    Summer: { multiplier: 0.80, text: 'Standard tents see lower bookings due to summer heat. Competitive pricing recommended (-20% discount suggested).' },
+    Monsoon: { multiplier: 1.05, text: 'Standard tents see moderate demand from monsoon trekking enthusiasts (+5% yield opportunity).' },
+    Autumn: { multiplier: 1.12, text: 'Standard tents see good bookings for post-monsoon outdoor activities and pleasant weather (+12% yield opportunity).' }
+  },
+  'Luxury Tent': {
+    Winter: { multiplier: 1.25, text: 'Luxury glamping tents have extremely high demand for scenic winter camping (+25% yield opportunity).' },
+    Summer: { multiplier: 0.90, text: 'Luxury tents see moderate summer interest. Promotional offers are recommended (-10% adjustment).' },
+    Monsoon: { multiplier: 1.15, text: 'Luxury glamping tents in nature spots have peak monsoon trekking and nature demand (+15% yield opportunity).' },
+    Autumn: { multiplier: 1.15, text: 'Luxury glamping tents are highly booked for pleasant autumn outdoor getaways (+15% yield opportunity).' }
+  },
+  'AC Room': {
+    Winter: { multiplier: 1.05, text: 'AC rooms see steady occupancy from winter travelers (+5% yield opportunity).' },
+    Summer: { multiplier: 1.20, text: 'AC rooms have peak summer demand for cooling staycations (+20% yield opportunity).' },
+    Monsoon: { multiplier: 1.08, text: 'AC rooms see reliable bookings for comfortable indoor stays during humid rain intervals (+8% yield opportunity).' },
+    Autumn: { multiplier: 1.05, text: 'AC rooms see stable occupancy with business and city travelers (+5% yield opportunity).' }
+  },
+  'AC Bed': {
+    Winter: { multiplier: 1.05, text: 'AC dorm beds see stable bookings from budget winter travelers (+5% yield opportunity).' },
+    Summer: { multiplier: 1.15, text: 'AC dorm beds see surging demand from budget travelers seeking cooling comfort (+15% yield opportunity).' },
+    Monsoon: { multiplier: 1.08, text: 'AC dorm beds see steady demand from budget travelers looking for climate-controlled comfort (+8% yield opportunity).' },
+    Autumn: { multiplier: 1.05, text: 'AC dorm beds maintain stable bookings during the autumn season (+5% yield opportunity).' }
+  },
+  'Dorm Bed': {
+    Winter: { multiplier: 1.15, text: 'Dorm beds are highly popular with winter group backpackers and solo travelers (+15% yield opportunity).' },
+    Summer: { multiplier: 1.12, text: 'Dorm beds see surging demand from student groups on summer vacation (+12% yield opportunity).' },
+    Monsoon: { multiplier: 1.10, text: 'Dorm beds see high solo adventure and budget backpacker demand during monsoon seasons (+10% yield opportunity).' },
+    Autumn: { multiplier: 1.10, text: 'Dorm beds see stable bookings from backpackers during autumn harvest and festival season (+10% yield opportunity).' }
+  },
+  'Single Bed': {
+    Winter: { multiplier: 1.08, text: 'Single dorm beds see reliable solo winter travelers seeking budget city stays (+8% yield opportunity).' },
+    Summer: { multiplier: 1.05, text: 'Single dorm beds maintain steady occupancy from budget summer solo travelers (+5% yield opportunity).' },
+    Monsoon: { multiplier: 1.08, text: 'Single dorm beds attract budget backpackers and solo travelers seeking cheap monsoon stays (+8% yield opportunity).' },
+    Autumn: { multiplier: 1.06, text: 'Single dorm beds see reliable demand from budget solo autumn travelers (+6% yield opportunity).' }
+  },
+  'Double Bed': {
+    Winter: { multiplier: 1.15, text: 'Double dorm beds see great demand for cozy winter couple and group backpacker getaways (+15% yield opportunity).' },
+    Summer: { multiplier: 1.12, text: 'Double dorm beds see strong backpacker couple bookings for summer getaways (+12% yield opportunity).' },
+    Monsoon: { multiplier: 1.10, text: 'Double dorm beds see great demand for couples and group backpackers during rains (+10% yield opportunity).' },
+    Autumn: { multiplier: 1.10, text: 'Double dorm beds see increased bookings for autumn getaways (+10% yield opportunity).' }
+  },
+  'Single Room': {
+    Winter: { multiplier: 1.08, text: 'Single rooms see reliable solo winter travelers seeking city explorations (+8% yield opportunity).' },
+    Summer: { multiplier: 1.05, text: 'Single rooms maintain steady occupancy from budget summer solo travelers (+5% yield opportunity).' },
+    Monsoon: { multiplier: 1.05, text: 'Single rooms attract steady budget business travelers looking for dry transits (+5% yield opportunity).' },
+    Autumn: { multiplier: 1.06, text: 'Single rooms see reliable demand from business transits and solo autumn leaf peepers (+6% yield opportunity).' }
+  },
+  'Double Room': {
+    Winter: { multiplier: 1.15, text: 'Double rooms see great demand for cozy winter couple getaways (+15% yield opportunity).' },
+    Summer: { multiplier: 1.12, text: 'Double rooms see strong couple bookings for summer weekend getaways (+12% yield opportunity).' },
+    Monsoon: { multiplier: 1.10, text: 'Double rooms see stable weekend couples getaway demand (+10% yield opportunity).' },
+    Autumn: { multiplier: 1.10, text: 'Double rooms see increased bookings for autumn couple getaways (+10% yield opportunity).' }
+  },
+  'Twin Room': {
+    Winter: { multiplier: 1.15, text: 'Twin rooms see great demand for cozy winter couple getaways (+15% yield opportunity).' },
+    Summer: { multiplier: 1.12, text: 'Twin rooms see strong couple bookings for summer weekend getaways (+12% yield opportunity).' },
+    Monsoon: { multiplier: 1.10, text: 'Twin rooms see stable weekend couples getaway demand (+10% yield opportunity).' },
+    Autumn: { multiplier: 1.10, text: 'Twin rooms see increased bookings for autumn couple getaways (+10% yield opportunity).' }
+  },
+  'Standard Room': {
+    Winter: { multiplier: 1.05, text: 'Standard rooms maintain steady occupancy from winter holidaymakers (+5% yield opportunity).' },
+    Summer: { multiplier: 1.05, text: 'Standard rooms see steady summer business and transit traveler bookings (+5% yield opportunity).' },
+    Monsoon: { multiplier: 1.05, text: 'Standard rooms maintain stable budget traveler occupancy during the monsoon (+5% yield opportunity).' },
+    Autumn: { multiplier: 1.05, text: 'Standard rooms experience stable autumn holiday travel demand (+5% yield opportunity).' }
+  },
+  'Fallback': {
+    Winter: { multiplier: 1.05, text: 'Properties see steady seasonal winter occupancy (+5% yield opportunity).' },
+    Summer: { multiplier: 1.05, text: 'Properties see steady local summer travel demand (+5% yield opportunity).' },
+    Monsoon: { multiplier: 1.00, text: 'Properties maintain steady monsoon seasonal rates (+0% adjustment).' },
+    Autumn: { multiplier: 1.05, text: 'Properties see reliable post-monsoon bookings (+5% yield opportunity).' }
+  }
+};
+
 const getSeasonalDemandDetails = (tier: string, propName: string) => {
   const currentMonth = new Date().getMonth(); // 0 = Jan, 4 = May, etc.
   const norm = (tier || '').toLowerCase().trim();
   const nameNorm = (propName || '').toLowerCase();
   
   let season = 'Summer';
-  let seasonalPreference = '';
-  let multiplier = 1.0;
-
-  const isTent = norm.includes('tent') || nameNorm.includes('tent');
-  const isResort = norm.includes('resort') || nameNorm.includes('resort');
-  const isVilla = norm.includes('villa') || nameNorm.includes('villa');
-  const isHomeStay = norm.includes('home') || norm.includes('stay') || nameNorm.includes('home') || nameNorm.includes('stay');
-  const isApartment = norm.includes('apartment') || nameNorm.includes('apartment') || norm.includes('flat') || nameNorm.includes('flat');
-  const isHotel = norm.includes('hotel') || nameNorm.includes('hotel');
-
-  let detectedType = 'Resort';
-  if (isTent) detectedType = 'Tent';
-  else if (isVilla) detectedType = 'Villa';
-  else if (isResort) detectedType = 'Resort';
-  else if (isHomeStay) detectedType = 'Home Stay';
-  else if (isApartment) detectedType = 'Apartment';
-  else if (isHotel) detectedType = 'Hotel';
-  else detectedType = tier || 'Resort';
-
   if (currentMonth >= 11 || currentMonth <= 1) {
     season = 'Winter';
-    if (isTent) {
-      multiplier = 1.25;
-      seasonalPreference = 'Tents have extremely high demand for camping, bonfires, and clear winter skies (+25% yield opportunity).';
-    } else if (isVilla) {
-      multiplier = 1.20;
-      seasonalPreference = 'Villas are highly booked for family winter vacations (+20% yield opportunity).';
-    } else if (isResort) {
-      multiplier = 1.15;
-      seasonalPreference = 'Resorts see steady weekend winter holiday bookings (+15% yield opportunity).';
-    } else if (isHomeStay) {
-      multiplier = 1.10;
-      seasonalPreference = 'Home stays see great weekend travelers seeking local winter experiences (+10% yield opportunity).';
-    } else if (isApartment) {
-      multiplier = 1.10;
-      seasonalPreference = 'Apartments see popular bookings for winter city breaks and cozy long-term winter stays (+10% yield opportunity).';
-    } else if (isHotel) {
-      multiplier = 1.05;
-      seasonalPreference = 'Hotels experience a steady stream of winter business and holiday travelers (+5% yield opportunity).';
-    } else {
-      multiplier = 1.05;
-      seasonalPreference = 'Properties see steady seasonal winter occupancy (+5% yield opportunity).';
-    }
   } else if (currentMonth >= 2 && currentMonth <= 4) {
     season = 'Summer';
-    if (isResort) {
-      multiplier = 1.20;
-      seasonalPreference = 'Resorts with pools/AC have peak summer demand for cooling staycations (+20% yield opportunity).';
-    } else if (isVilla) {
-      multiplier = 1.15;
-      seasonalPreference = 'Villas are highly preferred for summer group getaways (+15% yield opportunity).';
-    } else if (isTent) {
-      multiplier = 0.85;
-      seasonalPreference = 'Tents see lower bookings due to summer heat. Competitive pricing recommended (-15% discount suggested).';
-    } else if (isHomeStay) {
-      multiplier = 1.05;
-      seasonalPreference = 'Home stays see steady demand from budget summer travelers looking for homely comfort (+5% yield opportunity).';
-    } else if (isApartment) {
-      multiplier = 1.10;
-      seasonalPreference = 'Apartments see higher demand from families and business travelers seeking longer summer stays with kitchen facilities (+10% yield opportunity).';
-    } else if (isHotel) {
-      multiplier = 1.10;
-      seasonalPreference = 'Hotels with air conditioning see strong bookings from summer holidaymakers (+10% yield opportunity).';
-    } else {
-      multiplier = 1.05;
-      seasonalPreference = 'Properties see steady local summer travel demand (+5% yield opportunity).';
-    }
   } else if (currentMonth >= 5 && currentMonth <= 8) {
     season = 'Monsoon';
-    if (isTent) {
-      multiplier = 1.20;
-      seasonalPreference = 'Tents in hill stations/nature spots have peak monsoon trekking demand (+20% yield opportunity).';
-    } else if (isResort) {
-      multiplier = 1.05;
-      seasonalPreference = 'Resorts see moderate monsoon weekend getaway bookings (+5% yield opportunity).';
-    } else if (isHomeStay) {
-      multiplier = 1.10;
-      seasonalPreference = 'Home stays in nature destinations attract rain lovers (+10% yield opportunity).';
-    } else if (isVilla) {
-      multiplier = 1.0;
-      seasonalPreference = 'Villas see stable demand during the monsoon season (+0% adjustment).';
-    } else if (isApartment) {
-      multiplier = 1.05;
-      seasonalPreference = 'Apartments see high occupancy for indoor-focused stays and work-from-home traveler getaways (+5% yield opportunity).';
-    } else if (isHotel) {
-      multiplier = 1.0;
-      seasonalPreference = 'Hotels maintain stable occupancy with business stays (+0% adjustment).';
-    } else {
-      multiplier = 1.0;
-      seasonalPreference = 'Properties maintain steady monsoon seasonal rates (+0% adjustment).';
-    }
   } else {
     season = 'Autumn';
-    if (isTent) {
-      multiplier = 1.15;
-      seasonalPreference = 'Tents are highly booked for post-monsoon outdoor activities and pleasant weather (+15% yield opportunity).';
-    } else if (isVilla) {
-      multiplier = 1.10;
-      seasonalPreference = 'Villas see increased bookings for autumn festivals and family gatherings (+10% yield opportunity).';
-    } else if (isResort) {
-      multiplier = 1.10;
-      seasonalPreference = 'Resorts see strong weekend bookings in pleasant autumn weather (+10% yield opportunity).';
-    } else if (isHomeStay) {
-      multiplier = 1.10;
-      seasonalPreference = 'Home stays see high interest from travelers exploring local autumn harvests (+10% yield opportunity).';
-    } else if (isApartment) {
-      multiplier = 1.10;
-      seasonalPreference = 'Apartments are favored for pleasant city weekend breaks and autumn staycations (+10% yield opportunity).';
-    } else if (isHotel) {
-      multiplier = 1.05;
-      seasonalPreference = 'Hotels experience stable autumn holiday travel demand (+5% yield opportunity).';
-    } else {
-      multiplier = 1.05;
-      seasonalPreference = 'Properties see reliable post-monsoon bookings (+5% yield opportunity).';
-    }
   }
 
-  return { season, multiplier, seasonalPreference, detectedType };
+  let detectedType = 'Standard Room';
+  if (norm === 'standard room') detectedType = 'Standard Room';
+  else if (norm === 'ac room') detectedType = 'AC Room';
+  else if (norm === 'single room') detectedType = 'Single Room';
+  else if (norm === 'double room') detectedType = 'Double Room';
+  else if (norm === 'twin room') detectedType = 'Twin Room';
+  else if (norm === 'deluxe room') detectedType = 'Deluxe Room';
+  else if (norm === 'suite' || norm === 'suite room') detectedType = 'Suite Room';
+  else if (norm === 'cottage') detectedType = 'Cottage';
+  else if (norm === 'entire home') detectedType = 'Entire Home';
+  else if (norm === 'entire apartment') detectedType = 'Entire Apartment';
+  else if (norm === 'entire villa') detectedType = 'Entire Villa';
+  else if (norm === 'dorm bed') detectedType = 'Dorm Bed';
+  else if (norm === 'single bed') detectedType = 'Single Bed';
+  else if (norm === 'double bed') detectedType = 'Double Bed';
+  else if (norm === 'ac bed') detectedType = 'AC Bed';
+  else if (norm === 'standard tent') detectedType = 'Standard Tent';
+  else if (norm === 'luxury tent') detectedType = 'Luxury Tent';
+  else if (norm === 'standard wooden room') detectedType = 'Standard Wooden Room';
+  else if (norm === 'deluxe wooden cabin') detectedType = 'Deluxe Wooden Cabin';
+  else {
+    // Fallback classification logic
+    const isTent = norm.includes('tent') || nameNorm.includes('tent');
+    const isResort = norm.includes('resort') || nameNorm.includes('resort');
+    const isVilla = norm.includes('villa') || nameNorm.includes('villa');
+    const isHomeStay = norm.includes('home') || norm.includes('stay') || nameNorm.includes('home') || nameNorm.includes('stay');
+    const isApartment = norm.includes('apartment') || nameNorm.includes('apartment') || norm.includes('flat') || nameNorm.includes('flat');
+    const isHotel = norm.includes('hotel') || nameNorm.includes('hotel');
+    const isDorm = (norm.includes('dorm') || norm.includes('sharing') || norm.includes('bed')) && !norm.includes('single') && !norm.includes('double') && !norm.includes('twin');
+    const isSuite = norm.includes('suite') || norm.includes('deluxe') || norm.includes('premium') || norm.includes('luxury');
+    const isSingle = norm.includes('single') || norm.includes('standard');
+    const isDouble = norm.includes('double') || norm.includes('twin');
+
+    if (isSuite) detectedType = 'Suite Room';
+    else if (isDorm) detectedType = 'Dorm Bed';
+    else if (isDouble) detectedType = 'Double Room';
+    else if (isSingle) detectedType = 'Single Room';
+    else if (isTent) detectedType = 'Standard Tent';
+    else if (isVilla) detectedType = 'Entire Villa';
+    else if (isHomeStay) detectedType = 'Entire Home';
+    else if (isApartment) detectedType = 'Entire Apartment';
+    else detectedType = 'Fallback';
+  }
+
+  const profile = ROOM_TYPE_SEASONAL_PROFILES[detectedType] || ROOM_TYPE_SEASONAL_PROFILES['Fallback'];
+  const seasonalData = profile[season] || ROOM_TYPE_SEASONAL_PROFILES['Fallback'][season];
+  
+  return {
+    season,
+    multiplier: seasonalData.multiplier,
+    seasonalPreference: seasonalData.text,
+    detectedType
+  };
+};
+
+const formatDynamicPreference = (text: string, yourPrice: number, suggestedPrice: number) => {
+  if (!text || yourPrice <= 0) return text;
+  const diffPercent = Math.round(((suggestedPrice - yourPrice) / yourPrice) * 100);
+  let replacement = '';
+  if (diffPercent > 0) {
+    replacement = `(+${diffPercent}% yield opportunity)`;
+  } else if (diffPercent < 0) {
+    replacement = `(${diffPercent}% discount suggested)`;
+  } else {
+    replacement = `(+0% adjustment)`;
+  }
+  return text.replace(/\([\+-]?\d+%\s*(yield opportunity|discount suggested|adjustment)\)/gi, replacement);
 };
 
 interface AuraQualityScoreProps {
@@ -188,10 +270,36 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
   const combinedPricingData = useMemo(() => {
     return marketComparisons.map(market => {
       const aiSuggestion = dynamicSuggestions.find(s => s.propertyId === market.property_id);
+      
+      const roomTypesData = ((market as any).room_types || []).map((rt: string) => {
+        const currentPrices = (market as any).room_type_prices || {};
+        const rtCurrentPrice = parseFloat(String(currentPrices[rt] || market.your_price || 1000));
+        
+        const rtHash = (market.property_name + '_' + rt).split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
+        const rtVariance = (rtHash % 20) - 10; // -10% to +10%
+        const rtMarketAvgFactor = 1.1 + (rtVariance / 100);
+        const rtAvgPrice = Math.round(rtCurrentPrice * rtMarketAvgFactor);
+        
+        const rtSuggestedFactor = (rtHash % 5 === 0) ? 1.05 : 0.92;
+        const { season: rtSeason, multiplier: rtMultiplier, seasonalPreference: rtSeasonalPreference, detectedType: rtDetectedType } = getSeasonalDemandDetails(rt, market.property_name || '');
+        const rtSuggestedPrice = Math.round(rtAvgPrice * rtSuggestedFactor * rtMultiplier);
+
+        return {
+          roomType: rt,
+          your_price: rtCurrentPrice,
+          average_local_price: rtAvgPrice,
+          suggested_price: rtSuggestedPrice,
+          season: rtSeason,
+          seasonalPreference: rtSeasonalPreference,
+          property_tier: rtDetectedType
+        };
+      });
+
       return {
         ...market,
         aiSuggestion: aiSuggestion?.suggestion,
-        aiImpact: aiSuggestion?.impact
+        aiImpact: aiSuggestion?.impact,
+        roomTypesData
       };
     });
   }, [marketComparisons, dynamicSuggestions]);
@@ -204,11 +312,19 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
         const storedKey = `standard-price-${p.id}`;
         const dbPrice = p.price_per_night || p.price || 5000;
         
-        let stdPrice = dbPrice;
+        // Prioritize standard_price from database
+        let stdPrice = p.standard_price || dbPrice;
+
         if (typeof window !== 'undefined') {
           const stored = localStorage.getItem(storedKey);
-          if (stored) {
-            // If the price changed in DB, but it was NOT due to AI apply, we update standard price!
+          
+          if (p.standard_price) {
+            stdPrice = p.standard_price;
+            if (stored !== p.standard_price.toString()) {
+              localStorage.setItem(storedKey, p.standard_price.toString());
+            }
+          } else if (stored) {
+            // Fallback for older properties without standard_price in DB
             if (dbPrice !== parseInt(stored, 10) && !applyingPriceIds.has(p.id)) {
               stdPrice = dbPrice;
               localStorage.setItem(storedKey, dbPrice.toString());
@@ -223,6 +339,36 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
         if (prices[p.id] !== stdPrice) {
           prices[p.id] = stdPrice;
           changed = true;
+        }
+
+        // Room types standard prices initialization
+        if (p.room_types && p.room_types.length > 0) {
+          p.room_types.forEach(rt => {
+            const rtStoredKey = `standard-price-${p.id}-${rt}`;
+            const dbRtPrice = parseFloat(String(p.room_type_prices?.[rt] || p.price_per_night || 1000));
+            let stdRtPrice = dbRtPrice;
+
+            if (typeof window !== 'undefined') {
+              const storedRt = localStorage.getItem(rtStoredKey);
+              if (storedRt) {
+                const key = `${p.id}_${rt}`;
+                if (dbRtPrice !== parseFloat(storedRt) && !applyingPriceIds.has(key)) {
+                  stdRtPrice = dbRtPrice;
+                  localStorage.setItem(rtStoredKey, dbRtPrice.toString());
+                } else {
+                  stdRtPrice = parseFloat(storedRt);
+                }
+              } else {
+                localStorage.setItem(rtStoredKey, dbRtPrice.toString());
+              }
+            }
+
+            const key = `${p.id}_${rt}`;
+            if (prices[key] !== stdRtPrice) {
+              prices[key] = stdRtPrice;
+              changed = true;
+            }
+          });
         }
       });
       if (changed || Object.keys(standardPrices).length === 0) {
@@ -323,7 +469,10 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
               currency: 'INR',
               season,
               seasonalPreference,
-              property_tier: detectedType
+              property_tier: detectedType,
+              room_types: prop.room_types || [],
+              room_type_prices: prop.room_type_prices || {},
+              room_type_weekend_prices: prop.room_type_weekend_prices || {}
             };
           }
 
@@ -347,7 +496,10 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
             currency: 'INR',
             season,
             seasonalPreference,
-            property_tier: detectedType
+            property_tier: detectedType,
+            room_types: prop.room_types || [],
+            room_type_prices: prop.room_type_prices || {},
+            room_type_weekend_prices: prop.room_type_weekend_prices || {}
           };
         });
         setMarketComparisons(enrichedMarket);
@@ -414,6 +566,63 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
       console.error('Error updating price:', error);
       const errorMessage = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
       toast.error('Failed to update price: ' + errorMessage);
+    } finally {
+      setApplyingPriceIds(prev => {
+        const next = new Set(prev);
+        next.delete(propertyId);
+        return next;
+      });
+    }
+  };
+
+  const handleApplyRoomTypePrice = async (propertyId: string, roomType: string, targetPrice: number, isAI: boolean = true) => {
+    try {
+      const key = `${propertyId}_${roomType}`;
+      if (isAI) {
+        setApplyingPriceIds(prev => {
+          const next = new Set(prev);
+          next.add(key);
+          return next;
+        });
+      } else {
+        setApplyingPriceIds(prev => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`standard-price-${propertyId}-${roomType}`, targetPrice.toString());
+        }
+      }
+
+      const result = await updatePropertyRoomTypePrice(propertyId, roomType, targetPrice);
+
+      if (!result.success) throw new Error('Failed to update room type price');
+
+      // Update local state
+      setMarketComparisons(prev => prev.map(m => {
+        if (m.property_id === propertyId) {
+          const updatedPrices = {
+            ...((m as any).room_type_prices || {}),
+            [roomType]: targetPrice.toString()
+          };
+          return { ...m, room_type_prices: updatedPrices };
+        }
+        return m;
+      }));
+
+      toast.success(isAI ? `Optimal price applied for ${roomType} successfully!` : `Standard price restored for ${roomType} successfully!`);
+    } catch (error: any) {
+      console.error('Error updating room type price:', error);
+      const errorMessage = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+      toast.error(`Failed to update room type price: ${errorMessage}`);
+    } finally {
+      const key = `${propertyId}_${roomType}`;
+      setApplyingPriceIds(prev => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
     }
   };
 
@@ -627,77 +836,167 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4 mb-6 border-t border-white/5 pt-6">
-                    <div>
-                      <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Your Price</p>
-                      <p className="text-lg font-heading font-black text-white font-mono tracking-tighter">₹{item.your_price?.toLocaleString('en-IN')}</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Local Average</p>
-                      <p className="text-lg font-heading font-black text-zinc-400 font-mono tracking-tighter">₹{item.average_local_price?.toLocaleString('en-IN')}</p>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-[#0a0a0f]/60 border border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-2xl">
-                    <div>
-                      <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-1">
-                        <Icon name="LightBulbIcon" size={11} className="text-success" />
-                        Suggested Optimal
+                  {item.roomTypesData && item.roomTypesData.length > 0 ? (
+                    <div className="space-y-5 border-t border-white/5 pt-5">
+                      <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <Icon name="QueueListIcon" size={12} />
+                        Room Types Pricing Profiles
                       </p>
-                      <p className="text-xl md:text-2xl font-heading font-black text-success font-mono tracking-tight drop-shadow-sm">
-                        ₹{item.suggested_price?.toLocaleString('en-IN')}
-                      </p>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => handleApplyPrice(item.property_id, standardPrices[item.property_id] || 5000, false)}
-                        disabled={item.your_price === (standardPrices[item.property_id] || 5000)}
-                        className={`group/standard relative overflow-hidden px-4 py-2 text-[10px] uppercase font-black tracking-wider rounded-xl border transition-all duration-300 ${
-                          item.your_price === (standardPrices[item.property_id] || 5000)
-                            ? 'bg-white/5 text-zinc-500 border-white/5 cursor-not-allowed'
-                            : 'bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border-sky-500/20 hover:border-sky-500/40 shadow-[0_0_15px_rgba(14,165,233,0.1)] hover:shadow-[0_0_20px_rgba(14,165,233,0.25)]'
-                        }`}
-                      >
-                        <span className="relative z-10">Standard Price</span>
-                        {item.your_price !== (standardPrices[item.property_id] || 5000) && (
-                          <div className="absolute inset-0 bg-sky-500/10 translate-y-full group-hover/standard:translate-y-0 transition-transform duration-300" />
-                        )}
-                      </button>
+                      
+                      <div className="space-y-4">
+                        {item.roomTypesData.map((rtItem: any) => {
+                          const standardPriceKey = `${item.property_id}_${rtItem.roomType}`;
+                          const isStandardDisabled = rtItem.your_price === standardPrices[standardPriceKey];
+                          const isOptimalDisabled = rtItem.your_price === rtItem.suggested_price;
+                          const applyingKey = `${item.property_id}_${rtItem.roomType}`;
+                          const isApplying = applyingPriceIds.has(applyingKey);
 
-                      <button 
-                        onClick={() => handleApplyPrice(item.property_id, item.suggested_price, true)}
-                        disabled={item.your_price === item.suggested_price}
-                        className={`group/apply relative overflow-hidden px-4 py-2 text-[10px] uppercase font-black tracking-wider rounded-xl border transition-all duration-300 ${
-                          item.your_price === item.suggested_price
-                            ? 'bg-white/5 text-zinc-500 border-white/5 cursor-not-allowed'
-                            : 'bg-success/10 hover:bg-success/20 text-success border-success/20 hover:border-success/40 shadow-[0_0_15px_rgba(34,197,94,0.1)] hover:shadow-[0_0_20px_rgba(34,197,94,0.25)]'
-                        }`}
-                      >
-                        <span className="relative z-10">Apply Optimal</span>
-                        {item.your_price !== item.suggested_price && (
-                          <div className="absolute inset-0 bg-success/10 translate-y-full group-hover/apply:translate-y-0 transition-transform duration-300" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
+                          return (
+                            <div key={rtItem.roomType} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-purple-500/20 transition-all relative overflow-hidden group/rt">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-purple-500/40" />
+                                  <span className="text-xs font-bold text-white uppercase tracking-wider">{rtItem.roomType}</span>
+                                </div>
+                                
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleApplyRoomTypePrice(item.property_id, rtItem.roomType, standardPrices[standardPriceKey] || rtItem.your_price, false)}
+                                    disabled={isStandardDisabled || isApplying}
+                                    className={`px-3 py-1.5 text-[9px] uppercase font-black tracking-wider rounded-lg border transition-all duration-300 ${
+                                      isStandardDisabled
+                                        ? 'bg-white/5 text-zinc-600 border-white/5 cursor-not-allowed'
+                                        : 'bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border-sky-500/20 hover:border-sky-500/40'
+                                    }`}
+                                  >
+                                    Standard Price
+                                  </button>
+                                  <button
+                                    onClick={() => handleApplyRoomTypePrice(item.property_id, rtItem.roomType, rtItem.suggested_price, true)}
+                                    disabled={isOptimalDisabled || isApplying}
+                                    className={`px-3 py-1.5 text-[9px] uppercase font-black tracking-wider rounded-lg border transition-all duration-300 ${
+                                      isOptimalDisabled
+                                        ? 'bg-white/5 text-zinc-600 border-white/5 cursor-not-allowed'
+                                        : 'bg-success/10 hover:bg-success/20 text-success border-success/20 hover:border-success/40'
+                                    }`}
+                                  >
+                                    Apply Optimal
+                                  </button>
+                                </div>
+                              </div>
 
-                  {item.season && item.seasonalPreference && (
-                    <div className="mt-4 p-3.5 rounded-2xl bg-purple-500/5 border border-purple-500/10 flex items-start gap-2.5 shadow-inner">
-                      <div className="p-1.5 bg-purple-500/10 rounded-lg border border-purple-500/25 shrink-0">
-                        <Icon name="CalendarDaysIcon" size={14} className="text-purple-400" />
-                      </div>
-                      <div>
-                        <p className="text-[9px] font-bold text-purple-400 uppercase tracking-widest leading-none flex items-center gap-1.5">
-                          <span>{item.season} Demand Indicator</span>
-                          <span className="w-1 h-1 rounded-full bg-purple-500/40" />
-                          <span>{item.property_tier}</span>
-                        </p>
-                        <p className="text-[10px] text-zinc-400 leading-relaxed mt-1">
-                          {item.seasonalPreference}
-                        </p>
+                              <div className="grid grid-cols-3 gap-3 mb-4">
+                                <div className="bg-[#0a0a0f]/40 p-2.5 rounded-xl border border-white/5 text-center">
+                                  <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Your Price</p>
+                                  <p className="text-sm font-heading font-black text-white font-mono">₹{rtItem.your_price?.toLocaleString('en-IN')}</p>
+                                </div>
+                                <div className="bg-[#0a0a0f]/40 p-2.5 rounded-xl border border-white/5 text-center">
+                                  <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Local Average</p>
+                                  <p className="text-sm font-heading font-black text-zinc-400 font-mono">₹{rtItem.average_local_price?.toLocaleString('en-IN')}</p>
+                                </div>
+                                <div className="bg-[#0a0a0f]/40 p-2.5 rounded-xl border border-white/5 text-center">
+                                  <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Suggested</p>
+                                  <p className="text-sm font-heading font-black text-success font-mono">₹{rtItem.suggested_price?.toLocaleString('en-IN')}</p>
+                                </div>
+                              </div>
+
+                              {rtItem.season && rtItem.seasonalPreference && (
+                                <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/10 flex items-start gap-2 shadow-inner">
+                                  <div className="p-1 bg-purple-500/10 rounded border border-purple-500/20 shrink-0 mt-0.5">
+                                    <Icon name="CalendarDaysIcon" size={10} className="text-purple-400" />
+                                  </div>
+                                  <div>
+                                    <p className="text-[8px] font-bold text-purple-400 uppercase tracking-wider leading-none flex items-center gap-1.5">
+                                      <span>{rtItem.season} Demand Indicator</span>
+                                      <span className="w-1 h-1 rounded-full bg-purple-500/30" />
+                                      <span>{rtItem.property_tier}</span>
+                                    </p>
+                                    <p className="text-[10px] text-zinc-400 leading-relaxed mt-1">
+                                      {formatDynamicPreference(rtItem.seasonalPreference, rtItem.your_price, rtItem.suggested_price)}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-4 mb-6 border-t border-white/5 pt-6">
+                        <div>
+                          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Your Price</p>
+                          <p className="text-lg font-heading font-black text-white font-mono tracking-tighter">₹{item.your_price?.toLocaleString('en-IN')}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Local Average</p>
+                          <p className="text-lg font-heading font-black text-zinc-400 font-mono tracking-tighter">₹{item.average_local_price?.toLocaleString('en-IN')}</p>
+                        </div>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-[#0a0a0f]/60 border border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-2xl">
+                        <div>
+                          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-1">
+                            <Icon name="LightBulbIcon" size={11} className="text-success" />
+                            Suggested Optimal
+                          </p>
+                          <p className="text-xl md:text-2xl font-heading font-black text-success font-mono tracking-tight drop-shadow-sm">
+                            ₹{item.suggested_price?.toLocaleString('en-IN')}
+                          </p>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => handleApplyPrice(item.property_id, standardPrices[item.property_id] || item.your_price || 0, false)}
+                            disabled={item.your_price === standardPrices[item.property_id]}
+                            className={`group/standard relative overflow-hidden px-4 py-2 text-[10px] uppercase font-black tracking-wider rounded-xl border transition-all duration-300 ${
+                              item.your_price === standardPrices[item.property_id]
+                                ? 'bg-white/5 text-zinc-500 border-white/5 cursor-not-allowed'
+                                : 'bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border-sky-500/20 hover:border-sky-500/40 shadow-[0_0_15px_rgba(14,165,233,0.1)] hover:shadow-[0_0_20px_rgba(14,165,233,0.25)]'
+                            }`}
+                          >
+                            <span className="relative z-10">Standard Price</span>
+                            {item.your_price !== standardPrices[item.property_id] && (
+                              <div className="absolute inset-0 bg-sky-500/10 translate-y-full group-hover/standard:translate-y-0 transition-transform duration-300" />
+                            )}
+                          </button>
+
+                          <button 
+                            onClick={() => handleApplyPrice(item.property_id, item.suggested_price || 0, true)}
+                            disabled={item.your_price === item.suggested_price}
+                            className={`group/apply relative overflow-hidden px-4 py-2 text-[10px] uppercase font-black tracking-wider rounded-xl border transition-all duration-300 ${
+                              item.your_price === item.suggested_price
+                                ? 'bg-white/5 text-zinc-500 border-white/5 cursor-not-allowed'
+                                : 'bg-success/10 hover:bg-success/20 text-success border-success/20 hover:border-success/40 shadow-[0_0_15px_rgba(34,197,94,0.1)] hover:shadow-[0_0_20px_rgba(34,197,94,0.25)]'
+                            }`}
+                          >
+                            <span className="relative z-10">Apply Optimal</span>
+                            {item.your_price !== item.suggested_price && (
+                              <div className="absolute inset-0 bg-success/10 translate-y-full group-hover/apply:translate-y-0 transition-transform duration-300" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {item.season && item.seasonalPreference && (
+                        <div className="mt-4 p-3.5 rounded-2xl bg-purple-500/5 border border-purple-500/10 flex items-start gap-2.5 shadow-inner">
+                          <div className="p-1.5 bg-purple-500/10 rounded-lg border border-purple-500/25 shrink-0">
+                            <Icon name="CalendarDaysIcon" size={14} className="text-purple-400" />
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-bold text-purple-400 uppercase tracking-widest leading-none flex items-center gap-1.5">
+                              <span>{item.season} Demand Indicator</span>
+                              <span className="w-1 h-1 rounded-full bg-purple-500/40" />
+                              <span>{item.property_tier}</span>
+                            </p>
+                            <p className="text-[10px] text-zinc-400 leading-relaxed mt-1">
+                              {formatDynamicPreference(item.seasonalPreference, item.your_price || 0, item.suggested_price || 0)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </motion.div>
               ))

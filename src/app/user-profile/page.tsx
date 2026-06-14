@@ -98,8 +98,9 @@ export default async function ProfilePage() {
 
   const { data: rawBookings, error: bookingsError } = await supabase
     .from('bookings')
-    .select('*, properties!inner(*, host:users!host_id(name, avatar:avatar_url))')
-    .eq('guest_id', user.id);
+    .select('*, properties!inner(*, host:users!host_id(name, avatar:avatar_url)), booking_rooms(rooms(room_type))')
+    .eq('guest_id', user.id)
+    .order('created_at', { ascending: false });
 
   // Fetch amenities log from activities table to load selected amenities
   const { data: bookingActivities } = await supabase
@@ -127,9 +128,25 @@ export default async function ProfilePage() {
       }
     }
 
+    const roomTypePrices = b.properties?.room_type_prices || {};
+    const roomTypeCounts = (b.booking_rooms || []).reduce((acc: Record<string, number>, br: any) => {
+      const type = br.rooms?.room_type || br.room?.room_type;
+      if (type) {
+        acc[type] = (acc[type] || 0) + 1;
+      }
+      return acc;
+    }, {});
+    const roomType = Object.keys(roomTypeCounts).length > 0 
+      ? Object.entries(roomTypeCounts).map(([type, count]) => {
+          const price = roomTypePrices[type];
+          return `${type} (${count})${price ? ` ₹${Number(price).toLocaleString('en-IN')}` : ''}`;
+        }).join(', ') 
+      : null;
+
     return {
       ...b,
       amenities: selectedAmenities,
+      room_type: roomType,
     };
   });
 
@@ -164,6 +181,7 @@ export default async function ProfilePage() {
       status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
               (b.status === 'refunded' ? 'refunded' : 'pending'),
       paymentMethod: 'Razorpay',
+      room_type: b.room_type,
       breakdown: {
         accommodation: Number(b.total_price) * 0.9,
         service_fee: Number(b.total_price) * 0.1,

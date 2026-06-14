@@ -9,7 +9,6 @@ CREATE TABLE IF NOT EXISTS public.user_wallets (
     updated_at timestamp with time zone DEFAULT now(),
     CONSTRAINT user_wallets_pkey PRIMARY KEY (user_id)
 );
-
 -- 2. Add razorpay_account_id column if it does not exist
 DO $$
 BEGIN
@@ -23,10 +22,8 @@ BEGIN
         ALTER TABLE public.user_wallets ADD COLUMN razorpay_account_id TEXT;
     END IF;
 END $$;
-
 -- 3. Enable RLS
 ALTER TABLE public.user_wallets ENABLE ROW LEVEL SECURITY;
-
 -- 4. Create Policies
 -- Allow users to view their own wallet
 DROP POLICY IF EXISTS "Users can view own wallet" ON public.user_wallets;
@@ -34,17 +31,14 @@ CREATE POLICY "Users can view own wallet"
 ON public.user_wallets
 FOR SELECT
 USING (auth.uid() = user_id);
-
 -- Allow users to update their own wallet (needed for onboarding)
 DROP POLICY IF EXISTS "Users can update own wallet" ON public.user_wallets;
 CREATE POLICY "Users can update own wallet"
 ON public.user_wallets
 FOR UPDATE
 USING (auth.uid() = user_id);
-
 -- 5. Grant permissions
 GRANT ALL ON TABLE public.user_wallets TO authenticated;
 GRANT ALL ON TABLE public.user_wallets TO service_role;
-
 -- 6. Reload schema cache dynamically
 NOTIFY pgrst, 'reload schema';

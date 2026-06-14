@@ -63,6 +63,9 @@ export interface Transaction {
     accommodation: number;
     service_fee: number;
     taxes: number;
+    discount?: number;
+    upgrades?: number;
+    cancellation_fee?: number;
   };
   invoice_id?: string;
   booking_id?: string;
@@ -73,6 +76,7 @@ export interface Transaction {
   daysBeforeCheckIn?: number;
   appliedPolicy?: string;
   refundPercentage?: number;
+  room_type?: string | null;
 }
 
 export interface User {
@@ -155,6 +159,7 @@ export interface Property {
   isActive?: boolean;
   type?: string;
   price?: number;
+  standard_price?: number;
   weekendPrice?: number;
   documents?: Record<string, string>;
   weekend_price_per_night?: number;
@@ -184,11 +189,16 @@ export interface Property {
   beds?: number;
   total_rooms?: number;
   room_type?: string;
+  room_types?: string[];
   check_in_time?: string;
   check_out_time?: string;
   latitude?: number;
   longitude?: number;
   bulk_booking_discount?: number;
+  room_type_counts?: Record<string, number>;
+  room_type_prices?: Record<string, number>;
+  room_type_weekend_prices?: Record<string, number>;
+  room_type_amenities?: Record<string, number[]>;
 }
 
 export interface Review {
@@ -261,6 +271,8 @@ export interface Booking {
   };
   properties?: Property;
   referral_discount_applied?: boolean;
+  room_type?: string | null;
+  booking_rooms?: any[];
 }
 
 export interface Earning {

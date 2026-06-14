@@ -7,7 +7,6 @@ ADD COLUMN IF NOT EXISTS latitude NUMERIC,
 ADD COLUMN IF NOT EXISTS longitude NUMERIC,
 ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'::jsonb,
 ADD COLUMN IF NOT EXISTS show_specific_location BOOLEAN DEFAULT false;
-
 -- 2. Update create_property function to include all modern fields
 CREATE OR REPLACE FUNCTION public.create_property(
     p_name text,
@@ -149,7 +148,6 @@ BEGIN
     RETURN new_property_id;
 END;
 $$;
-
 -- 3. Update update_property function to include all modern fields
 CREATE OR REPLACE FUNCTION public.update_property(
     p_id uuid,

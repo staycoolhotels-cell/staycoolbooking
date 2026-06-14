@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: false,
   productionBrowserSourceMaps: true,
   distDir: process.env.DIST_DIR || '.next',
   turbopack: {},

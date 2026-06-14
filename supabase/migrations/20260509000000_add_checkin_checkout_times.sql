@@ -2,7 +2,6 @@
 ALTER TABLE public.properties
 ADD COLUMN IF NOT EXISTS check_in_time TEXT,
 ADD COLUMN IF NOT EXISTS check_out_time TEXT;
-
 -- Update create_property function to include check-in and check-out times
 -- and remove p_room_type if the user wants it gone, but let's keep it in the function 
 -- for compatibility but default it to null.
@@ -145,7 +144,6 @@ BEGIN
     RETURN new_property_id;
 END;
 $$;
-
 -- Update update_property function to include check-in and check-out times
 CREATE OR REPLACE FUNCTION public.update_property(
     p_id uuid,

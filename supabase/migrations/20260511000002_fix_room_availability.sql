@@ -2,11 +2,9 @@
 ALTER TABLE public.properties 
 ADD COLUMN IF NOT EXISTS check_in_time TEXT DEFAULT '02:00 PM',
 ADD COLUMN IF NOT EXISTS check_out_time TEXT DEFAULT '11:00 AM';
-
 -- Drop existing functions to avoid conflicts
 DROP FUNCTION IF EXISTS public.get_available_rooms(uuid, date, date);
 DROP FUNCTION IF EXISTS public.check_availability(uuid, date, date);
-
 -- 1. Create a function to get available rooms with time-awareness
 CREATE OR REPLACE FUNCTION public.get_available_rooms(
     p_property_id UUID,
@@ -83,7 +81,6 @@ BEGIN
     WHERE r.property_id = p_property_id;
 END;
 $$;
-
 -- 2. Update check_availability to use the same logic
 CREATE OR REPLACE FUNCTION public.check_availability(
     p_property_id UUID,
@@ -104,7 +101,6 @@ BEGIN
     RETURN v_available_count;
 END;
 $$;
-
 -- 3. Create a function for the Host Dashboard to see real-time room status
 CREATE OR REPLACE FUNCTION public.get_rooms_realtime_status(p_property_id UUID)
 RETURNS TABLE (
@@ -188,7 +184,6 @@ BEGIN
     WHERE r.property_id = p_property_id;
 END;
 $$;
-
 -- Grant permissions
 GRANT EXECUTE ON FUNCTION public.get_available_rooms(uuid, date, date) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.check_availability(uuid, date, date) TO anon, authenticated;

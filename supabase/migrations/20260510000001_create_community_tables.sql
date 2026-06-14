@@ -10,35 +10,29 @@ CREATE TABLE IF NOT EXISTS public.community_posts (
     is_trending BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
 -- Enable RLS
 ALTER TABLE public.community_posts ENABLE ROW LEVEL SECURITY;
-
 -- Policies for community_posts
 DROP POLICY IF EXISTS "Anyone can view community posts" ON public.community_posts;
 CREATE POLICY "Anyone can view community posts"
 ON public.community_posts FOR SELECT
 TO anon, authenticated
 USING (true);
-
 DROP POLICY IF EXISTS "Users can create community posts" ON public.community_posts;
 CREATE POLICY "Users can create community posts"
 ON public.community_posts FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid() = author_id);
-
 DROP POLICY IF EXISTS "Users can update their own community posts" ON public.community_posts;
 CREATE POLICY "Users can update their own community posts"
 ON public.community_posts FOR UPDATE
 TO authenticated
 USING (auth.uid() = author_id);
-
 DROP POLICY IF EXISTS "Users can delete their own community posts" ON public.community_posts;
 CREATE POLICY "Users can delete their own community posts"
 ON public.community_posts FOR DELETE
 TO authenticated
 USING (auth.uid() = author_id);
-
 -- Create community_likes table
 CREATE TABLE IF NOT EXISTS public.community_likes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -47,29 +41,24 @@ CREATE TABLE IF NOT EXISTS public.community_likes (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     UNIQUE(post_id, user_id)
 );
-
 -- Enable RLS
 ALTER TABLE public.community_likes ENABLE ROW LEVEL SECURITY;
-
 -- Policies for community_likes
 DROP POLICY IF EXISTS "Anyone can view likes" ON public.community_likes;
 CREATE POLICY "Anyone can view likes"
 ON public.community_likes FOR SELECT
 TO anon, authenticated
 USING (true);
-
 DROP POLICY IF EXISTS "Users can like posts" ON public.community_likes;
 CREATE POLICY "Users can like posts"
 ON public.community_likes FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid() = user_id);
-
 DROP POLICY IF EXISTS "Users can unlike posts" ON public.community_likes;
 CREATE POLICY "Users can unlike posts"
 ON public.community_likes FOR DELETE
 TO authenticated
 USING (auth.uid() = user_id);
-
 -- Trigger to update likes_count on community_posts
 CREATE OR REPLACE FUNCTION public.update_post_likes_count()
 RETURNS TRIGGER AS $$
@@ -86,12 +75,10 @@ BEGIN
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
-
 DROP TRIGGER IF EXISTS update_post_likes_count_trigger ON public.community_likes;
 CREATE OR REPLACE TRIGGER update_post_likes_count_trigger
 AFTER INSERT OR DELETE ON public.community_likes
 FOR EACH ROW EXECUTE FUNCTION public.update_post_likes_count();
-
 -- Enable Realtime for community_posts safely
 DO $$
 BEGIN

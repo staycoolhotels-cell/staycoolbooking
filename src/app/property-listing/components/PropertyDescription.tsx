@@ -14,6 +14,7 @@ interface PropertyDescriptionProps {
   highlights: string[];
   checkInTime?: string;
   checkOutTime?: string;
+  roomTypeCounts?: Record<string, number>;
 }
 
 const PropertyDescription = ({
@@ -28,6 +29,7 @@ const PropertyDescription = ({
   highlights,
   checkInTime,
   checkOutTime,
+  roomTypeCounts = {},
 }: PropertyDescriptionProps) => {
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -48,16 +50,48 @@ const PropertyDescription = ({
     },
   };
 
-  const features = [
+  // Icon map for known room type keywords
+  const getRoomTypeIcon = (type: string): string => {
+    const t = type.toLowerCase();
+    if (/\bac\b/.test(t) || t.includes('air conditioning') || t.includes('air-conditioning')) return 'Snowflake';
+    if (t.includes('single')) return 'UserIcon';
+    if (t.includes('double')) return 'UsersIcon';
+    if (t.includes('twin')) return 'BedDouble';
+    if (t.includes('suite')) return 'Sofa';
+    if (t.includes('deluxe') || t.includes('delux') || t.includes('luxury')) return 'Crown';
+    if (t.includes('dorm') || t.includes('bed')) return 'Bed';
+    if (t.includes('cottage')) return 'HomeIcon';
+    if (t.includes('private')) return 'LockClosedIcon';
+    if (t.includes('shared')) return 'UserGroupIcon';
+    if (t.includes('entire') || t.includes('villa') || t.includes('apartment')) return 'BuildingOfficeIcon';
+    if (t.includes('standard')) return 'Bed';
+    return 'BuildingStorefrontIcon';
+  };
+
+  const baseFeatures = [
     { icon: 'BuildingOfficeIcon', label: 'Total Units', value: totalRooms },
     { icon: 'HomeIcon', label: 'Bedrooms', value: bedrooms },
     { icon: 'Bed', label: 'Beds', value: beds },
     { icon: 'Bath', label: 'Bathrooms', value: bathrooms },
     { icon: 'Square3Stack3DIcon', label: 'Area', value: `${area} sq ft` },
     { icon: 'UserGroupIcon', label: 'Guests/per unit', value: maxGuests },
+  ];
+
+  // Dynamically create a card for every room type that has count > 0
+  const roomTypeFeatures = Object.entries(roomTypeCounts)
+    .filter(([, count]) => count > 0)
+    .map(([type, count]) => ({
+      icon: getRoomTypeIcon(type),
+      label: type,
+      value: count,
+    }));
+
+  const checkTimings = [
     { icon: 'ArrowRightEndOnRectangleIcon', label: 'Check-in', value: checkInTime || '12:00 PM' },
     { icon: 'ArrowLeftStartOnRectangleIcon', label: 'Check-out', value: checkOutTime || '11:00 AM' },
   ];
+
+  const features = [...baseFeatures, ...roomTypeFeatures, ...checkTimings];
 
   return (
     <motion.div
@@ -79,11 +113,11 @@ const PropertyDescription = ({
         </h2>
       </motion.div>
 
-      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-2 md:gap-3 mb-10">
+      <motion.div variants={itemVariants} className="flex flex-wrap gap-2 md:gap-3 mb-10">
         {features.map((feature, idx) => (
           <div
             key={idx}
-            className="group flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-2 bg-white/[0.02] border border-white/5 rounded-2xl md:rounded-3xl hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/20 transition-all duration-300 min-h-[90px] sm:min-h-[120px]"
+            className="group flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-2 bg-white/[0.02] border border-white/5 rounded-2xl md:rounded-3xl hover:bg-white/[0.05] hover:border-white/10 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/20 transition-all duration-300 min-h-[90px] sm:min-h-[120px] min-w-[72px] sm:min-w-[90px] flex-1 basis-[72px] sm:basis-[90px] max-w-[130px]"
           >
             <div className="w-8 h-8 sm:w-12 sm:h-12 mb-1 sm:mb-2 rounded-full bg-white/[0.03] flex items-center justify-center group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300 border border-white/5 group-hover:border-primary/30">
               <Icon name={feature.icon as string} size={24} className="text-white/60 group-hover:text-primary transition-colors w-4 h-4 sm:w-5 sm:h-5" />

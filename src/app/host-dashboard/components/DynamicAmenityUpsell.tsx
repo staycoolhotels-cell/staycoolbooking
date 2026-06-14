@@ -44,6 +44,7 @@ const DynamicAmenityUpsell: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [editingAmenityId, setEditingAmenityId] = useState<string | null>(null);
   const [newAmenity, setNewAmenity] = useState({
     name: '',
     description: '',
@@ -52,49 +53,102 @@ const DynamicAmenityUpsell: React.FC = () => {
     property_id: ''
   });
 
-  const handleAddSubmit = async (e: React.FormEvent) => {
+  const handleAddClick = () => {
+    setEditingAmenityId(null);
+    setNewAmenity({ name: '', description: '', price: '', type: 'Service', property_id: '' });
+    setShowAddModal(true);
+  };
+
+  const handleEditClick = (amenity: AmenityData) => {
+    setEditingAmenityId(amenity.id);
+    setNewAmenity({
+      name: amenity.name,
+      description: amenity.description,
+      price: amenity.price.toString(),
+      type: amenity.type,
+      property_id: amenity.property_id || ''
+    });
+    setShowAddModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowAddModal(false);
+    setEditingAmenityId(null);
+    setNewAmenity({ name: '', description: '', price: '', type: 'Service', property_id: '' });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setIsAdding(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated.");
 
-      const newAmenityData = {
-        host_id: user.id,
-        name: newAmenity.name,
-        description: newAmenity.description,
-        price: parseFloat(newAmenity.price) || 0,
-        currency: 'INR',
-        type: newAmenity.type,
-        is_active: true,
-        property_id: newAmenity.property_id || null
-      };
-
-      const { data: insertedAmenity, error: insertError } = await supabase
-        .from('amenities')
-        .insert([newAmenityData])
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error("DB Insert Error:", insertError);
-        const fallbackAmenity: AmenityData = {
-          ...newAmenityData,
-          id: `temp-${Date.now()}`,
-          created_at: new Date().toISOString()
+      if (editingAmenityId) {
+        // Edit logic
+        const updatedAmenityData = {
+          name: newAmenity.name,
+          description: newAmenity.description,
+          price: parseFloat(newAmenity.price) || 0,
+          type: newAmenity.type,
+          property_id: newAmenity.property_id || null
         };
-        setAmenities(prev => [...prev, fallbackAmenity].sort((a, b) => a.name.localeCompare(b.name)));
-        throw new Error(`Database insert failed: ${insertError.message}`);
+
+        const { data: updatedAmenity, error: updateError } = await supabase
+          .from('amenities')
+          .update(updatedAmenityData)
+          .eq('id', editingAmenityId)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error("DB Update Error:", updateError);
+          // Fallback state update
+          setAmenities(prev => prev.map(a => a.id === editingAmenityId ? { ...a, ...updatedAmenityData } : a).sort((a, b) => a.name.localeCompare(b.name)));
+          throw new Error(`Database update failed: ${updateError.message}`);
+        }
+
+        if (updatedAmenity) {
+          setAmenities(prev => prev.map(a => a.id === editingAmenityId ? updatedAmenity : a).sort((a, b) => a.name.localeCompare(b.name)));
+        }
+      } else {
+        // Add logic
+        const newAmenityData = {
+          host_id: user.id,
+          name: newAmenity.name,
+          description: newAmenity.description,
+          price: parseFloat(newAmenity.price) || 0,
+          currency: 'INR',
+          type: newAmenity.type,
+          is_active: true,
+          property_id: newAmenity.property_id || null
+        };
+
+        const { data: insertedAmenity, error: insertError } = await supabase
+          .from('amenities')
+          .insert([newAmenityData])
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error("DB Insert Error:", insertError);
+          const fallbackAmenity: AmenityData = {
+            ...newAmenityData,
+            id: `temp-${Date.now()}`,
+            created_at: new Date().toISOString()
+          };
+          setAmenities(prev => [...prev, fallbackAmenity].sort((a, b) => a.name.localeCompare(b.name)));
+          throw new Error(`Database insert failed: ${insertError.message}`);
+        }
+
+        if (insertedAmenity) {
+          setAmenities(prev => [...prev, insertedAmenity].sort((a, b) => a.name.localeCompare(b.name)));
+        }
       }
 
-      if (insertedAmenity) {
-        setAmenities(prev => [...prev, insertedAmenity].sort((a, b) => a.name.localeCompare(b.name)));
-      }
-
-      setShowAddModal(false);
-      setNewAmenity({ name: '', description: '', price: '', type: 'Service', property_id: '' });
+      handleCloseModal();
     } catch (error: any) {
-      console.error("Error adding amenity:", error);
+      console.error("Error submitting amenity:", error);
       alert('An unexpected error occurred. Please try again later.');
     } finally {
       setIsAdding(false);
@@ -261,7 +315,7 @@ const DynamicAmenityUpsell: React.FC = () => {
             <p className="text-xl lg:text-3xl font-heading font-black text-white drop-shadow-sm font-mono tracking-tight">₹{totalRevenue.toLocaleString('en-IN')}</p>
           </div>
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={handleAddClick}
             className="bg-pink-600 hover:bg-pink-500 text-white shadow-[0_0_20px_rgba(236,72,153,0.4)] hover:shadow-[0_0_30px_rgba(236,72,153,0.6)] border border-pink-400/50 transition-all rounded-xl lg:rounded-2xl px-4 lg:px-6 py-3 lg:py-4 flex items-center justify-center gap-2 lg:gap-3 font-bold flex-1 lg:flex-none text-sm lg:text-base"
           >
             <Icon name="PlusIcon" size={18} />
@@ -339,7 +393,7 @@ const DynamicAmenityUpsell: React.FC = () => {
                                    {linkedProperty.title || linkedProperty.name || 'Unnamed Property'}
                                  </span>
                                  <span className="text-[8px] md:text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-                                   {linkedProperty.type || linkedProperty.room_type || linkedProperty.tier || (linkedProperty as any).property_type || 'Property'}
+                                   {linkedProperty.type || linkedProperty.tier || (linkedProperty as any).property_type || 'Property'}
                                  </span>
                                </div>
                              );
@@ -353,6 +407,13 @@ const DynamicAmenityUpsell: React.FC = () => {
                           }
                           return null;
                         })()}
+                        <button
+                          onClick={() => handleEditClick(amenity)}
+                          className="text-zinc-500 hover:text-pink-500 transition-colors p-1"
+                          title="Edit Offering"
+                        >
+                          <Icon name="PencilSquareIcon" size={18} />
+                        </button>
                         <button
                           onClick={() => triggerDelete(amenity.id)}
                           className="text-zinc-500 hover:text-red-500 transition-colors p-1"
@@ -514,18 +575,24 @@ const DynamicAmenityUpsell: React.FC = () => {
                 <div className="w-16 h-16 bg-pink-500/10 border border-pink-500/20 rounded-2xl flex items-center justify-center mb-4 text-pink-400 shadow-inner relative z-10">
                   <Icon name="AdjustmentsHorizontalIcon" size={32} />
                 </div>
-                <h2 className="text-2xl font-heading font-bold text-white relative z-10">Configure Asset</h2>
-                <p className="text-xs text-zinc-400 mt-2 font-medium relative z-10 text-center px-4">Monetize extra gear, services, or unique local experiences directly in the guest UI.</p>
+                <h2 className="text-2xl font-heading font-bold text-white relative z-10">
+                  {editingAmenityId ? 'Edit Asset' : 'Configure Asset'}
+                </h2>
+                <p className="text-xs text-zinc-400 mt-2 font-medium relative z-10 text-center px-4">
+                  {editingAmenityId 
+                    ? 'Update your asset configuration, pricing, or visibility.'
+                    : 'Monetize extra gear, services, or unique local experiences directly in the guest UI.'}
+                </p>
 
                 <button
-                  onClick={() => setShowAddModal(false)}
+                  onClick={handleCloseModal}
                   className="absolute top-6 right-6 w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 transition-colors z-20"
                 >
                   <Icon name="XMarkIcon" size={16} />
                 </button>
               </div>
 
-              <form onSubmit={handleAddSubmit} className="p-6 md:p-8 space-y-6">
+              <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-widest">Asset Title</label>
@@ -607,7 +674,7 @@ const DynamicAmenityUpsell: React.FC = () => {
                 <div className="flex gap-4 pt-4 border-t border-white/5">
                   <button
                     type="button"
-                    onClick={() => setShowAddModal(false)}
+                    onClick={handleCloseModal}
                     className="flex-1 py-3.5 px-4 bg-white/5 hover:bg-white/10 text-zinc-300 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors"
                   >
                     Abort
@@ -623,7 +690,8 @@ const DynamicAmenityUpsell: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        Deploy Asset <Icon name="RocketLaunchIcon" size={16} className="hidden sm:block" />
+                        {editingAmenityId ? 'Update Asset' : 'Deploy Asset'}{' '}
+                        <Icon name="RocketLaunchIcon" size={16} className="hidden sm:block" />
                       </>
                     )}
                   </button>

@@ -7,7 +7,6 @@
 -- Add total_rooms to properties table
 ALTER TABLE public.properties 
 ADD COLUMN IF NOT EXISTS total_rooms INTEGER DEFAULT 1;
-
 -- Create rooms table
 CREATE TABLE IF NOT EXISTS public.rooms (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -16,16 +15,13 @@ CREATE TABLE IF NOT EXISTS public.rooms (
     status TEXT DEFAULT 'available' CHECK (status IN ('available', 'maintenance', 'booked')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
 -- Enable RLS on rooms
 ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
-
 -- Create RLS policies for rooms
 CREATE POLICY "Public can view rooms" 
 ON public.rooms FOR SELECT 
 TO anon, authenticated 
 USING (true);
-
 CREATE POLICY "Hosts can manage their rooms" 
 ON public.rooms FOR ALL 
 TO authenticated 
@@ -36,12 +32,10 @@ USING (
         AND p.host_id = auth.uid()
     )
 );
-
 -- Update bookings table
 ALTER TABLE public.bookings 
 ADD COLUMN IF NOT EXISTS booking_type TEXT DEFAULT 'single' CHECK (booking_type IN ('single', 'bulk')),
 ADD COLUMN IF NOT EXISTS total_rooms_booked INTEGER DEFAULT 1;
-
 -- Create booking_rooms table to link bookings with specific rooms
 CREATE TABLE IF NOT EXISTS public.booking_rooms (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -49,10 +43,8 @@ CREATE TABLE IF NOT EXISTS public.booking_rooms (
     room_id UUID REFERENCES public.rooms(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
 -- Enable RLS on booking_rooms
 ALTER TABLE public.booking_rooms ENABLE ROW LEVEL SECURITY;
-
 -- Create RLS policies for booking_rooms
 CREATE POLICY "Users can view their booking rooms" 
 ON public.booking_rooms FOR SELECT 
@@ -64,7 +56,6 @@ USING (
         AND b.guest_id = auth.uid()
     )
 );
-
 CREATE POLICY "Hosts can view booking rooms for their properties" 
 ON public.booking_rooms FOR SELECT 
 TO authenticated 
@@ -76,7 +67,6 @@ USING (
         AND p.host_id = auth.uid()
     )
 );
-
 -- Function to automatically create a default room for existing properties
 DO $$
 DECLARE
@@ -86,8 +76,6 @@ BEGIN
         INSERT INTO public.rooms (property_id, name) VALUES (prop.id, 'Default Room');
     END LOOP;
 END $$;
-
-
 -- === FROM 20260219_bulk_booking_functions.sql ===
 -- Function to check room availability
 CREATE OR REPLACE FUNCTION public.check_availability(
@@ -126,7 +114,6 @@ BEGIN
     RETURN COALESCE(v_total_rooms, 0) - COALESCE(v_booked_rooms, 0);
 END;
 $$;
-
 -- Function to create a bulk booking
 CREATE OR REPLACE FUNCTION public.create_bulk_booking(
     p_property_id UUID,
@@ -200,8 +187,6 @@ BEGIN
     RETURN v_booking_id;
 END;
 $$;
-
-
 -- === FROM 20260220_host_system_schema.sql ===
 -- Create blocked_dates table
 CREATE TABLE IF NOT EXISTS public.blocked_dates (
@@ -213,20 +198,16 @@ CREATE TABLE IF NOT EXISTS public.blocked_dates (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     CONSTRAINT check_dates CHECK (end_date >= start_date)
 );
-
 -- Add rejection_reason to properties
 ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
-
 -- RLS Policies for blocked_dates
 
 -- Enable RLS
 ALTER TABLE public.blocked_dates ENABLE ROW LEVEL SECURITY;
-
 -- Policy: Public read access
 CREATE POLICY "Public can view blocked dates" ON public.blocked_dates
     FOR SELECT
     USING (true);
-
 -- Policy: Hosts can manage their own blocked dates
 CREATE POLICY "Hosts can insert their own blocked dates" ON public.blocked_dates
     FOR INSERT
@@ -237,7 +218,6 @@ CREATE POLICY "Hosts can insert their own blocked dates" ON public.blocked_dates
             AND p.host_id = auth.uid()
         )
     );
-
 CREATE POLICY "Hosts can delete their own blocked dates" ON public.blocked_dates
     FOR DELETE
     USING (
@@ -247,8 +227,6 @@ CREATE POLICY "Hosts can delete their own blocked dates" ON public.blocked_dates
             AND p.host_id = auth.uid()
         )
     );
-
-
 -- === FROM 20260220_host_system_functions.sql ===
 -- Function to block property dates
 CREATE OR REPLACE FUNCTION public.block_property_dates(
@@ -283,7 +261,6 @@ BEGIN
     RETURN v_block_id;
 END;
 $$;
-
 -- Function to unblock dates
 CREATE OR REPLACE FUNCTION public.unblock_property_dates(
     p_block_id UUID
@@ -306,7 +283,6 @@ BEGIN
     END IF;
 END;
 $$;
-
 -- Admin: Approve Property
 CREATE OR REPLACE FUNCTION public.admin_approve_property(
     p_property_id UUID
@@ -332,7 +308,6 @@ BEGIN
     RETURN TRUE;
 END;
 $$;
-
 -- Admin: Reject Property
 CREATE OR REPLACE FUNCTION public.admin_reject_property(
     p_property_id UUID,
@@ -361,8 +336,6 @@ BEGIN
     RETURN TRUE;
 END;
 $$;
-
-
 -- === FROM 20260220_update_property_functions_bulk.sql ===
 -- Migration to update create_property and update_property for Bulk Booking
 -- accepting p_total_rooms and creating/managing room records
@@ -498,8 +471,6 @@ BEGIN
     RETURN new_property_id;
 END;
 $$;
-
-
 -- 2. Update update_property
 CREATE OR REPLACE FUNCTION public.update_property(
     p_id uuid,
@@ -610,15 +581,12 @@ BEGIN
     RETURN QUERY SELECT * FROM public.properties WHERE id = p_id;
 END;
 $$;
-
-
 -- === FROM 20260220_add_room_type.sql ===
 -- Migration to add room_type column and update functions
 
 -- 1. Add column to properties table
 ALTER TABLE public.properties
 ADD COLUMN IF NOT EXISTS room_type TEXT;
-
 -- 2. Update create_property function
 CREATE OR REPLACE FUNCTION public.create_property(
     p_name text,
@@ -753,8 +721,6 @@ BEGIN
     RETURN new_property_id;
 END;
 $$;
-
-
 -- 3. Update update_property function
 CREATE OR REPLACE FUNCTION public.update_property(
     p_id uuid,
@@ -861,8 +827,6 @@ BEGIN
     RETURN QUERY SELECT * FROM public.properties WHERE id = p_id;
 END;
 $$;
-
-
 -- === FROM 20260221_fix_create_bulk_booking.sql ===
 -- Fix: Recreate create_bulk_booking with parameters in alphabetical order
 -- PostgREST/Supabase schema cache matches functions by parameter name order alphabetically
@@ -870,7 +834,6 @@ $$;
 -- Drop any existing overloads first
 DROP FUNCTION IF EXISTS public.create_bulk_booking(UUID, UUID, DATE, DATE, NUMERIC, INTEGER, TEXT);
 DROP FUNCTION IF EXISTS public.create_bulk_booking(TEXT, DATE, DATE, UUID, UUID, INTEGER, NUMERIC);
-
 -- Create function with parameters in alphabetical order (as called from booking-actions.ts via rpc)
 CREATE OR REPLACE FUNCTION public.create_bulk_booking(
     p_booking_type TEXT,
@@ -943,8 +906,5 @@ BEGIN
     RETURN v_booking_id;
 END;
 $$;
-
 -- Grant execute permission to authenticated users
 GRANT EXECUTE ON FUNCTION public.create_bulk_booking(TEXT, DATE, DATE, UUID, UUID, INTEGER, NUMERIC) TO authenticated;
-
-

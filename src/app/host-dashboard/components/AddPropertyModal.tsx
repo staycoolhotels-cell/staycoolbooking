@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Property } from '@/lib/types';
 import { AMENITIES, CATEGORIZED_AMENITIES, AmenityItem } from '@/lib/amenities';
-import { Plus, X, ChevronRight, ChevronLeft, Home, Sparkles, Layers, Users, Bed, Building2, CheckCircle, Bath, Clock, AlertCircle, ChevronDown, Palmtree, Tent, LayoutGrid, Castle, Trees, Building, BadgePercent } from 'lucide-react';
+import { Plus, X, ChevronRight, ChevronLeft, Home, Sparkles, Layers, Users, Bed, Building2, CheckCircle, Bath, Clock, AlertCircle, ChevronDown, Palmtree, Tent, LayoutGrid, Castle, Trees, Building, BadgePercent, DollarSign, ListPlus, IndianRupee } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient'; // Import supabase client
 import { NumberInput } from '@/components/ui/number-input';
@@ -21,6 +21,7 @@ export interface FormData {
   weekendPrice: number | string;
   location: string;
   type: string;
+  roomTypes: string[]; // Changed from roomType: string to roomTypes: string[]
   photos: File[];
   photo_urls: string[]; // New field for uploaded photo URLs
   amenities: number[];
@@ -57,10 +58,25 @@ export interface FormData {
   checkInTime: string;
   checkOutTime: string;
   customAmenities: string[]; // New field for manually added amenities
+  roomTypeAmenities: Record<string, number[]>; // New field for per-room-type amenities
+  roomTypeCounts: Record<string, number>; // New field for inventory per room type
+  roomTypePrices: Record<string, number | string>; // New field for pricing per room type
+  roomTypeWeekendPrices: Record<string, number | string>; // New field for weekend pricing per room type
   latitude?: number;
   longitude?: number;
   bulkBookingDiscount: number | string;
 }
+
+const PROPERTY_ROOM_TYPES: Record<string, string[]> = {
+  'hotel': ['Standard Room', 'AC Room', 'Single Room', 'Double Room', 'Twin Room', 'Deluxe Room', 'Suite'],
+  'home stay': ['Entire Home'],
+  'apartment': ['Entire Apartment'],
+  'villa': ['Entire Villa'],
+  'resort': ['Standard Room', 'AC Room', 'Deluxe Room', 'Cottage', 'Suite'],
+  'dormitory': ['Dorm Bed', 'Single Bed', 'Double Bed', 'AC Bed'],
+  'tent': ['Standard Tent', 'Luxury Tent'],
+  'wooden stay': ['Standard Wooden Room', 'Deluxe Wooden Cabin'],
+};
 
 interface AddPropertyModalProps {
   isOpen: boolean;
@@ -82,6 +98,7 @@ const AddPropertyModal = ({
     weekendPrice: '',
     location: '',
     type: '',
+    roomTypes: [], // Initialize as empty array
     photos: [],
     photo_urls: [], // Initialize as empty array
     amenities: [],
@@ -117,6 +134,10 @@ const AddPropertyModal = ({
     checkInTime: '12:00 PM',
     checkOutTime: '11:00 AM',
     customAmenities: [], // Initialize new field
+    roomTypeAmenities: {}, // Initialize as empty object
+    roomTypeCounts: {}, // Initialize as empty object
+    roomTypePrices: {}, // Initialize as empty object
+    roomTypeWeekendPrices: {}, // Initialize as empty object
     latitude: undefined,
     longitude: undefined,
     bulkBookingDiscount: 10, // Default 10%
@@ -124,6 +145,9 @@ const AddPropertyModal = ({
   const [newCustomAmenity, setNewCustomAmenity] = useState('');
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
+  const [pricingMode, setPricingMode] = useState<'flat' | 'custom'>('flat');
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [expandedRoomTypes, setExpandedRoomTypes] = useState<Record<string, boolean>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
@@ -148,6 +172,27 @@ const AddPropertyModal = ({
       lastNonZeroDiscount.current = discountNum;
     }
   }, [formData.bulkBookingDiscount]);
+
+  // Auto-sync Total Rooms when roomTypeCounts or roomTypes change
+  useEffect(() => {
+    const isSingleUnitType = ['Home Stay', 'Apartment', 'Villa'].includes(formData.type);
+    if (isSingleUnitType) {
+      if (formData.totalRooms !== 1) {
+        setFormData(prev => ({ ...prev, totalRooms: 1 }));
+      }
+      return;
+    }
+    
+    if (formData.roomTypes.length > 0) {
+      let sum = 0;
+      for (const type of formData.roomTypes) {
+        sum += (formData.roomTypeCounts[type] || 1);
+      }
+      if (sum > 0 && formData.totalRooms !== sum) {
+        setFormData(prev => ({ ...prev, totalRooms: sum }));
+      }
+    }
+  }, [formData.roomTypes, formData.roomTypeCounts, formData.type]);
 
   const propertyCategories = [
     { id: 'Hotel', name: 'Hotel', icon: Building2 },
@@ -215,6 +260,16 @@ const AddPropertyModal = ({
         weekendPrice: propertyToEdit.weekend_price_per_night || propertyToEdit.weekendPrice || '',
         location: propertyToEdit.location || '',
         type: propertyToEdit.tier || '',
+        roomTypes: (propertyToEdit.room_types && propertyToEdit.room_types.length > 0)
+          ? propertyToEdit.room_types
+          : (
+              propertyToEdit.room_type && 
+              !propertyToEdit.room_type.includes('[') && 
+              !propertyToEdit.room_type.includes(',') && 
+              propertyToEdit.room_type.length < 50
+                ? [propertyToEdit.room_type]
+                : (PROPERTY_ROOM_TYPES[(propertyToEdit.tier || propertyToEdit.type || '').toLowerCase()] || [])
+            ),
         photos: [], // Reset photos when editing
         photo_urls: initialPhotoUrls,
         amenities: propertyToEdit.amenities?.map((a: any) => a.id) || [],
@@ -252,6 +307,10 @@ const AddPropertyModal = ({
         customAmenities: propertyToEdit.amenities
           ?.filter((a: any) => !AMENITIES.some(std => std.id === a.id))
           ?.map((a: any) => a.name) || [],
+        roomTypeAmenities: (propertyToEdit as any).room_type_amenities || {},
+        roomTypeCounts: (propertyToEdit as any).room_type_counts || {},
+        roomTypePrices: (propertyToEdit as any).room_type_prices || {},
+        roomTypeWeekendPrices: (propertyToEdit as any).room_type_weekend_prices || {},
         latitude: propertyToEdit.latitude,
         longitude: propertyToEdit.longitude,
         bulkBookingDiscount: ['Home Stay', 'Apartment', 'Villa'].includes(propertyToEdit.tier || '') ? 0 : (propertyToEdit.bulk_booking_discount !== undefined && propertyToEdit.bulk_booking_discount !== null ? propertyToEdit.bulk_booking_discount : 10),
@@ -261,6 +320,9 @@ const AddPropertyModal = ({
       setIsBulkDiscountEnabled(discountVal > 0);
       lastNonZeroDiscount.current = discountVal > 0 ? discountVal : 10;
       setPhotoPreviews(initialPhotoUrls);
+
+      const hasRoomTypePrices = (propertyToEdit as any).room_type_prices && Object.keys((propertyToEdit as any).room_type_prices).length > 0;
+      setPricingMode(hasRoomTypePrices ? 'custom' : 'flat');
     } else {
       setFormData({
         name: '',
@@ -269,6 +331,7 @@ const AddPropertyModal = ({
         weekendPrice: '',
         location: '',
         type: '',
+        roomTypes: [], // Initialize as empty array
         photos: [],
         photo_urls: [],
         amenities: [],
@@ -304,6 +367,10 @@ const AddPropertyModal = ({
         checkInTime: '12:00 PM',
         checkOutTime: '11:00 AM',
         customAmenities: [],
+        roomTypeAmenities: {},
+        roomTypeCounts: {},
+        roomTypePrices: {},
+        roomTypeWeekendPrices: {},
         latitude: undefined,
         longitude: undefined,
         bulkBookingDiscount: 10,
@@ -311,6 +378,7 @@ const AddPropertyModal = ({
       setIsBulkDiscountEnabled(true);
       lastNonZeroDiscount.current = 10;
       setPhotoPreviews([]);
+      setPricingMode('flat');
     }
   }, [propertyToEdit]);
 
@@ -326,12 +394,47 @@ const AddPropertyModal = ({
     const { name, value } = e.target;
     if (name === 'type') {
       const isSingleUnitType = ['Home Stay', 'Apartment', 'Villa'].includes(value);
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-        totalRooms: isSingleUnitType ? 1 : prev.totalRooms,
-        bulkBookingDiscount: isSingleUnitType ? 0 : prev.bulkBookingDiscount
-      }));
+      const normalizedNewType = value?.trim().toLowerCase();
+      const validRoomTypes = PROPERTY_ROOM_TYPES[normalizedNewType] || [];
+      
+      setFormData((prev) => {
+        const filteredRoomTypes = prev.roomTypes.filter(rt => validRoomTypes.includes(rt));
+        
+        // Filter helper to retain only keys associated with valid/retained room types
+        const filteredCounts: Record<string, number> = {};
+        const filteredPrices: Record<string, number | string> = {};
+        const filteredWeekendPrices: Record<string, number | string> = {};
+        const filteredAmenities: Record<string, number[]> = {};
+
+        filteredRoomTypes.forEach(rt => {
+          if (prev.roomTypeCounts[rt] !== undefined) filteredCounts[rt] = prev.roomTypeCounts[rt];
+          if (prev.roomTypePrices[rt] !== undefined) filteredPrices[rt] = prev.roomTypePrices[rt];
+          if (prev.roomTypeWeekendPrices[rt] !== undefined) filteredWeekendPrices[rt] = prev.roomTypeWeekendPrices[rt];
+          if (prev.roomTypeAmenities[rt] !== undefined) filteredAmenities[rt] = prev.roomTypeAmenities[rt];
+        });
+
+        return {
+          ...prev,
+          [name]: value,
+          totalRooms: isSingleUnitType ? 1 : prev.totalRooms,
+          bulkBookingDiscount: isSingleUnitType ? 0 : prev.bulkBookingDiscount,
+          roomTypes: isSingleUnitType && validRoomTypes.length === 1 
+            ? validRoomTypes 
+            : filteredRoomTypes,
+          roomTypeCounts: isSingleUnitType && validRoomTypes.length === 1 
+            ? { [validRoomTypes[0]]: 1 } 
+            : filteredCounts,
+          roomTypePrices: isSingleUnitType && validRoomTypes.length === 1 
+            ? { [validRoomTypes[0]]: prev.roomTypePrices[validRoomTypes[0]] || '' } 
+            : filteredPrices,
+          roomTypeWeekendPrices: isSingleUnitType && validRoomTypes.length === 1 
+            ? { [validRoomTypes[0]]: prev.roomTypeWeekendPrices[validRoomTypes[0]] || '' } 
+            : filteredWeekendPrices,
+          roomTypeAmenities: isSingleUnitType && validRoomTypes.length === 1 
+            ? { [validRoomTypes[0]]: prev.roomTypeAmenities[validRoomTypes[0]] || [] } 
+            : filteredAmenities
+        };
+      });
       if (isSingleUnitType) {
         setIsBulkDiscountEnabled(false);
       }
@@ -397,24 +500,53 @@ const AddPropertyModal = ({
   };
 
   const removeCustomAmenity = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      customAmenities: prev.customAmenities.filter((_, i) => i !== index)
-    }));
+    const targetId = 2000 + index;
+    setFormData(prev => {
+      const updatedRoomTypeAmenities = { ...prev.roomTypeAmenities };
+      
+      // Remove targetId and shift down any IDs higher than it
+      Object.keys(updatedRoomTypeAmenities).forEach(roomType => {
+        const ids = updatedRoomTypeAmenities[roomType] || [];
+        updatedRoomTypeAmenities[roomType] = ids
+          .filter(id => id !== targetId)
+          .map(id => (id > targetId && id >= 2000 ? id - 1 : id));
+      });
+
+      return {
+        ...prev,
+        customAmenities: prev.customAmenities.filter((_, i) => i !== index),
+        roomTypeAmenities: updatedRoomTypeAmenities
+      };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
     
-    if (Number(formData.price) <= 0) {
-      setErrorMessage("Please enter a valid price per night.");
-      return;
-    }
+    if (formData.roomTypes.length > 0 && pricingMode === 'custom') {
+      for (const roomType of formData.roomTypes) {
+        const price = formData.roomTypePrices[roomType] || formData.price;
+        const weekendPrice = formData.roomTypeWeekendPrices[roomType] || formData.weekendPrice;
+        if (!price || Number(price) <= 0) {
+          setErrorMessage(`Please enter a valid price for ${roomType} or set a flat base rate.`);
+          return;
+        }
+        if (!weekendPrice || Number(weekendPrice) <= 0) {
+          setErrorMessage(`Please enter a valid weekend price for ${roomType} or set a flat base rate.`);
+          return;
+        }
+      }
+    } else {
+      if (Number(formData.price) <= 0) {
+        setErrorMessage("Please enter a valid price per night.");
+        return;
+      }
 
-    if (Number(formData.weekendPrice) <= 0) {
-      setErrorMessage("Please enter a valid weekend price per night.");
-      return;
+      if (Number(formData.weekendPrice) <= 0) {
+        setErrorMessage("Please enter a valid weekend price per night.");
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -428,6 +560,48 @@ const AddPropertyModal = ({
 
       const userId = session.user.id;
       const updatedFormData = { ...formData };
+
+      // Consolidate all room type amenities into a unique global list for property-level view
+      const allAmenityIds = new Set<number>();
+      Object.values(formData.roomTypeAmenities).forEach(ids => {
+        ids.forEach(id => allAmenityIds.add(id));
+      });
+      updatedFormData.amenities = Array.from(allAmenityIds);
+      
+      if (formData.roomTypes.length > 0) {
+        if (pricingMode === 'custom') {
+          // Pre-populate empty room-type pricing fields with global standard rates
+          const finalPrices = { ...formData.roomTypePrices };
+          const finalWeekendPrices = { ...formData.roomTypeWeekendPrices };
+          
+          for (const roomType of formData.roomTypes) {
+            if (!finalPrices[roomType] && formData.price) {
+              finalPrices[roomType] = formData.price;
+            }
+            if (!finalWeekendPrices[roomType] && formData.weekendPrice) {
+              finalWeekendPrices[roomType] = formData.weekendPrice;
+            }
+          }
+          updatedFormData.roomTypePrices = finalPrices;
+          updatedFormData.roomTypeWeekendPrices = finalWeekendPrices;
+          
+          // Set global pricing fields using the first room type's rate for indexing/search view
+          const firstRoomType = formData.roomTypes[0];
+          updatedFormData.price = finalPrices[firstRoomType] || formData.price;
+          updatedFormData.weekendPrice = finalWeekendPrices[firstRoomType] || formData.weekendPrice;
+        } else {
+          // Flat pricing mode: populate every room type with the standard rates
+          const flatPrices: Record<string, number | string> = {};
+          const flatWeekendPrices: Record<string, number | string> = {};
+          for (const roomType of formData.roomTypes) {
+            flatPrices[roomType] = formData.price;
+            flatWeekendPrices[roomType] = formData.weekendPrice;
+          }
+          updatedFormData.roomTypePrices = flatPrices;
+          updatedFormData.roomTypeWeekendPrices = flatWeekendPrices;
+        }
+      }
+      
       const propertyNameSlug = formData.name.replace(/\s+/g, '-');
 
       // Upload photos
@@ -473,7 +647,7 @@ const AddPropertyModal = ({
 
   const steps = [
     "Property Details",
-    "Amenities",
+    "Room Amenities",
     "Policies",
     "Uploads",
     "Pricing"
@@ -492,10 +666,17 @@ const AddPropertyModal = ({
       }
     }
 
+    // Validation for Room Amenities step (now Step 1)
     if (currentStep === 1) {
-      if (formData.amenities.length === 0 && formData.customAmenities.length === 0) {
-        setErrorMessage("Please select at least one amenity.");
-        return;
+      const selectedRoomTypes = formData.roomTypes;
+      if (selectedRoomTypes.length > 0) {
+        const missingAmenities = selectedRoomTypes.filter(type => 
+          !formData.roomTypeAmenities[type] || formData.roomTypeAmenities[type].length === 0
+        );
+        if (missingAmenities.length > 0) {
+          setErrorMessage(`Please select amenities for: ${missingAmenities.join(', ')}`);
+          return;
+        }
       }
     }
 
@@ -731,6 +912,120 @@ const AddPropertyModal = ({
                   />
                 </div>
 
+                {/* Room Type Selection based on Property Type */}
+                {(() => {
+                  const normalizedType = formData.type?.trim().toLowerCase();
+                  const roomTypes = normalizedType ? PROPERTY_ROOM_TYPES[normalizedType] : null;
+                  
+                  if (!roomTypes) return null;
+
+                  return (
+                    <div className="space-y-1.5 md:space-y-2 animate-fade-in py-2">
+                      <label className="text-xs md:text-sm font-medium text-zinc-400">Room Type Selection</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        {roomTypes.map((roomType) => {
+                          const isSelected = formData.roomTypes.includes(roomType);
+                          const count = isSelected ? (formData.roomTypeCounts[roomType] || 1) : 0;
+                          
+                          return (
+                            <div
+                              key={roomType}
+                              className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-300 ${
+                                isSelected
+                                  ? 'bg-sky-500/10 border-sky-400 text-white shadow-[0_0_15px_rgba(14,165,233,0.15)]'
+                                  : 'bg-zinc-800/40 border-zinc-700/60 text-zinc-400 hover:border-sky-500/50 hover:bg-zinc-800/80 hover:text-white'
+                              }`}
+                            >
+                              {/* Click name to toggle selection */}
+                              <button
+                                type="button"
+                                onClick={() => setFormData(prev => {
+                                  const isSel = prev.roomTypes.includes(roomType);
+                                  const newRoomTypes = isSel
+                                    ? prev.roomTypes.filter(t => t !== roomType)
+                                    : [...prev.roomTypes, roomType];
+                                  
+                                  const newCounts = { ...prev.roomTypeCounts };
+                                  if (isSel) {
+                                    delete newCounts[roomType];
+                                  } else {
+                                    newCounts[roomType] = 1;
+                                  }
+                                  
+                                  return { ...prev, roomTypes: newRoomTypes, roomTypeCounts: newCounts };
+                                })}
+                                className="flex-1 text-left font-bold text-xs md:text-sm outline-none"
+                              >
+                                {roomType}
+                              </button>
+
+                              {/* Plus/Minus Controls */}
+                              <div className="flex items-center gap-2.5 ml-2">
+                                {isSelected ? (
+                                  <div className="flex items-center gap-2 bg-zinc-950/60 border border-zinc-800 rounded-lg p-1">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setFormData(prev => {
+                                          const currentCount = prev.roomTypeCounts[roomType] || 1;
+                                          const newCount = currentCount - 1;
+                                          if (newCount <= 0) {
+                                            const newRoomTypes = prev.roomTypes.filter(t => t !== roomType);
+                                            const newCounts = { ...prev.roomTypeCounts };
+                                            delete newCounts[roomType];
+                                            return { ...prev, roomTypes: newRoomTypes, roomTypeCounts: newCounts };
+                                          } else {
+                                            return {
+                                              ...prev,
+                                              roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: newCount }
+                                            };
+                                          }
+                                        });
+                                      }}
+                                      className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-sm select-none"
+                                    >
+                                      -
+                                    </button>
+                                    <span className="text-xs md:text-sm font-black w-4 text-center select-none text-white">{count}</span>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setFormData(prev => {
+                                          const currentCount = prev.roomTypeCounts[roomType] || 1;
+                                          return {
+                                            ...prev,
+                                            roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: currentCount + 1 }
+                                          };
+                                        });
+                                      }}
+                                      className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-sm select-none"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setFormData(prev => {
+                                      const newRoomTypes = [...prev.roomTypes, roomType];
+                                      const newCounts = { ...prev.roomTypeCounts, [roomType]: 1 };
+                                      return { ...prev, roomTypes: newRoomTypes, roomTypeCounts: newCounts };
+                                    })}
+                                    className="px-2.5 py-1 text-[11px] font-black uppercase tracking-wider bg-zinc-800 hover:bg-sky-500 hover:text-white rounded border border-zinc-700/60 transition-all text-zinc-350"
+                                  >
+                                    Add
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
                 {/* Check-in & Check-out Timings */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 px-1">
@@ -888,81 +1183,510 @@ const AddPropertyModal = ({
 
 
 
+
               </div>
             )}
 
             {currentStep === 1 && (
-              <div className="animate-fade-in space-y-8">
-                <h3 className="text-xl font-semibold text-white mb-6">Select Amenities</h3>
-                {Object.entries(CATEGORIZED_AMENITIES).map(([category, items]: [string, AmenityItem[]]) => (
-                  <div key={category}>
-                    <h4 className="text-lg font-medium text-zinc-300 mb-4 sticky top-0 bg-zinc-900 py-2 z-10">{category}</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-                      {items.map((amenity: AmenityItem) => (
-                        <div
-                          key={amenity.id}
-                          onClick={() => handleAmenityChange(amenity.id)}
-                          className={`p-2.5 md:p-4 border rounded-xl md:rounded-lg cursor-pointer transition-all flex flex-col items-start gap-1.5 md:gap-2 ${formData.amenities.includes(amenity.id)
-                            ? 'bg-primary border-primary text-white shadow-[0_0_15px_rgba(14,165,233,0.3)]'
-                            : 'bg-zinc-800 border-zinc-700 hover:border-primary/50'
-                            }`}
-                        >
-                          <amenity.icon className="w-5 h-5 md:w-6 md:h-6 shrink-0" />
-                          <div>
-                            <p className="font-semibold text-xs md:text-sm leading-tight">{amenity.name}</p>
-                            <p className="text-[10px] md:text-xs text-zinc-400 mt-0.5 md:mt-1 line-clamp-2 md:line-clamp-none leading-snug">{amenity.description}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+              <div className="animate-fade-in space-y-12">
+                <div className="space-y-4">
+                  <p className="text-sm text-zinc-400 leading-relaxed">
+                    మీరు ఎంచుకున్న ప్రతి రూమ్ టైప్ కి విడివిడిగా అమూల్యమైన సదుపాయాలను ఎంచుకోండి. (Select separate amenities for each chosen room type).
+                  </p>
+                </div>
 
-                {/* Custom Amenities Section */}
-                <div className="pt-6 md:pt-8 border-t border-zinc-800">
-                  <h4 className="text-lg md:text-xl font-semibold text-white mb-4 md:mb-6">Other Amenities</h4>
-                  <div className="flex gap-2.5 md:gap-4 mb-4 md:mb-6">
-                    <input
-                      type="text"
-                      value={newCustomAmenity}
-                      onChange={(e) => setNewCustomAmenity(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomAmenity())}
-                      placeholder="e.g. Home Theater, Infinity Pool"
-                      className="flex-1 bg-zinc-800 border-zinc-700 rounded-lg p-2.5 md:p-3 text-sm md:text-base text-white focus:ring-2 focus:ring-primary focus:border-primary transition outline-none"
-                    />
+                {/* Custom Amenities Input Section */}
+                <div className="bg-zinc-900/40 border border-zinc-800 backdrop-blur-md rounded-2xl p-6 space-y-4 shadow-lg">
+                  <div className="flex items-center gap-2">
+                    <ListPlus className="w-5 h-5 text-amber-400" />
+                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">Custom Amenities (మనువల్ గా చేర్చండి)</h4>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    కింది లిస్ట్‌లో లేని సదుపాయాలను ఇక్కడ టైప్ చేసి యాడ్ చేసుకోండి. అవి ప్రతి రూమ్ టైప్‌లో "Custom Amenities" కేటగిరీ కింద కనిపిస్తాయి.
+                    (Type and add custom amenities here. They will appear under the "Custom Amenities" category for each room type.)
+                  </p>
+                  
+                  <div className="flex gap-3">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        value={newCustomAmenity}
+                        onChange={(e) => setNewCustomAmenity(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addCustomAmenity();
+                          }
+                        }}
+                        placeholder="e.g. Private Pool, Hammock, Mini Bar..."
+                        className="w-full bg-zinc-800/50 border border-zinc-700/60 hover:border-sky-500/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all font-medium placeholder:text-zinc-600"
+                      />
+                    </div>
                     <button
                       type="button"
                       onClick={addCustomAmenity}
-                      className="bg-primary text-primary-foreground px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-bold hover:bg-primary/90 transition flex items-center gap-1.5 md:gap-2 text-sm md:text-base"
+                      className="px-6 py-3 bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-[0_0_15px_rgba(14,165,233,0.3)] shrink-0 flex items-center gap-2 cursor-pointer"
                     >
-                      <Plus className="w-4 h-4 md:w-5 md:h-5" />
-                      Add
+                      <Plus className="w-4 h-4" /> Add
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-                    {formData.customAmenities.map((amenity, index) => (
-                      <div
-                        key={`custom-${index}`}
-                        className="p-2.5 md:p-4 bg-primary border-primary rounded-xl md:rounded-lg flex flex-col items-start gap-1.5 md:gap-2 relative group transition-all shadow-[0_0_15px_rgba(14,165,233,0.3)]"
-                      >
-                        <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-white shrink-0" />
-                        <div>
-                          <p className="font-semibold text-xs md:text-sm text-white leading-tight">{amenity}</p>
-                          <p className="text-[10px] md:text-xs text-white/70 mt-0.5 md:mt-1 leading-snug">Host added amenity</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeCustomAmenity(index)}
-                          className="absolute top-2 right-2 p-1 bg-black/20 hover:bg-black/40 text-white rounded-md transition-colors"
-                          title="Remove amenity"
+                  {formData.customAmenities.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {formData.customAmenities.map((amenity, idx) => (
+                        <span
+                          key={idx}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-zinc-800/80 text-zinc-300 border border-zinc-700/50"
                         >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                          <span>{amenity}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeCustomAmenity(idx)}
+                            className="text-zinc-500 hover:text-red-400 transition-colors cursor-pointer outline-none"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
+                {formData.roomTypes.length === 0 ? (
+                  <div className="p-12 border-2 border-dashed border-zinc-800 rounded-[2rem] text-center bg-zinc-900/50">
+                    <div className="w-16 h-16 bg-zinc-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <AlertCircle className="w-8 h-8 text-zinc-600" />
+                    </div>
+                    <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">No Room Types Selected</p>
+                    <p className="text-zinc-600 text-[10px] mt-2">Go back to Step 0 to select room types for this property.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {formData.roomTypes.map((roomType) => {
+                      const isRoomTypeExpanded = !!expandedRoomTypes[roomType];
+                      const selectedCount = (formData.roomTypeAmenities[roomType] || []).length;
+                      const isCompleted = selectedCount > 0;
+                      
+                      return (
+                        <div 
+                          key={roomType} 
+                          className={`border rounded-2xl transition-all duration-300 overflow-hidden ${
+                            isRoomTypeExpanded 
+                              ? 'bg-zinc-800/20 border-sky-500/30 shadow-[0_4px_25px_rgba(14,165,233,0.08)]' 
+                              : 'bg-zinc-900/40 border-zinc-800 hover:border-zinc-700/60 hover:bg-zinc-800/10'
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setExpandedRoomTypes(prev => ({
+                              ...prev,
+                              [roomType]: !prev[roomType]
+                            }))}
+                            className="w-full flex items-center justify-between py-4 px-5 transition-all text-left outline-none cursor-pointer"
+                          >
+                            <div className="flex items-center gap-4">
+                              {/* Accent indicator / Room Icon */}
+                              <div className={`p-2.5 rounded-xl transition-all duration-300 ${
+                                isCompleted 
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                                  : 'bg-zinc-800 text-zinc-500 border border-zinc-700/50'
+                              }`}>
+                                <Bed className="w-5 h-5" />
+                              </div>
+                              
+                              <div>
+                                <h4 className="text-sm md:text-base font-bold text-white tracking-wide uppercase">
+                                  {roomType}
+                                </h4>
+                                <p className="text-[10px] md:text-xs text-zinc-500 font-medium mt-0.5">
+                                  Configure inventory amenities and features
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              {/* Status pill badge */}
+                              {isCompleted ? (
+                                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.05)]">
+                                  <CheckCircle className="w-3 h-3 text-emerald-400" />
+                                  <span>{selectedCount} Selected</span>
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse">
+                                  <AlertCircle className="w-3 h-3 text-amber-400" />
+                                  <span>Required</span>
+                                </span>
+                              )}
+                              
+                              <div className={`p-1 rounded-full transition-transform duration-300 ${
+                                isRoomTypeExpanded ? 'rotate-180 bg-sky-500/10 text-sky-400' : 'bg-transparent text-zinc-500'
+                              }`}>
+                                <ChevronDown className="w-4 h-4" />
+                              </div>
+                            </div>
+                          </button>
+
+                          <AnimatePresence initial={false}>
+                            {isRoomTypeExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
+                                className="overflow-hidden border-t border-zinc-800/60"
+                              >
+                                <div className="p-5 space-y-6">
+                                  <div className="space-y-4">
+                                    {Object.entries(CATEGORIZED_AMENITIES)
+                                      .map(([category, items]: [string, AmenityItem[]]) => {
+                                        let filteredItems = items;
+                                        if (formData.type?.toLowerCase() === 'tent') {
+                                          const tentAmenityIds = [103, 104, 106, 2002, 2003, 2004, 2007, 2008, 2009, 2014, 2013, 504, 701, 2017, 601, 602, 603, 1002, 1003, 1004, 1005, 1006, 1201, 1203, 1204];
+                                          filteredItems = items.filter(item => tentAmenityIds.includes(item.id));
+                                        }
+                                        return [category, filteredItems] as [string, AmenityItem[]];
+                                      })
+                                      .filter(([_, items]) => items.length > 0)
+                                      .map(([category, items]) => {
+                                      const isExpanded = !!expandedCategories[`${roomType}-${category}`];
+                                      const categoryIds = items.map(item => item.id);
+                                      const selectedInCategoryCount = (formData.roomTypeAmenities[roomType] || []).filter(id => categoryIds.includes(id)).length;
+
+                                      return (
+                                        <div key={category} className="space-y-3">
+                                          <button
+                                            type="button"
+                                            onClick={() => setExpandedCategories(prev => ({
+                                              ...prev,
+                                              [`${roomType}-${category}`]: !prev[`${roomType}-${category}`]
+                                            }))}
+                                            className={`w-full flex items-center justify-between py-3 px-4 rounded-xl border transition-all text-left outline-none cursor-pointer ${
+                                              isExpanded 
+                                                ? 'bg-zinc-800/40 border-zinc-700/60' 
+                                                : 'bg-zinc-900/20 border-zinc-800/60 hover:bg-zinc-800/40 hover:border-zinc-700'
+                                            }`}
+                                          >
+                                            <div className="flex items-center gap-3">
+                                              <span className="text-xs font-bold text-zinc-300 tracking-wider uppercase">{category}</span>
+                                              {selectedInCategoryCount > 0 && (
+                                                <span className="text-[9px] font-extrabold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                                                  {selectedInCategoryCount} Selected
+                                                </span>
+                                              )}
+                                            </div>
+                                            <div className={`p-0.5 rounded-full transition-transform duration-300 ${
+                                              isExpanded ? 'rotate-180 text-sky-400' : 'text-zinc-500'
+                                            }`}>
+                                              <ChevronDown className="w-3.5 h-3.5" />
+                                            </div>
+                                          </button>
+                                          
+                                          <AnimatePresence initial={false}>
+                                            {isExpanded && (
+                                              <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                transition={{ duration: 0.2, ease: 'easeOut' }}
+                                                className="overflow-hidden"
+                                              >
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pt-1 pb-3">
+                                                  {items.map((amenity: AmenityItem) => {
+                                                    const isSelected = (formData.roomTypeAmenities[roomType] || []).includes(amenity.id);
+                                                    return (
+                                                      <button
+                                                        key={amenity.id}
+                                                        type="button"
+                                                        onClick={() => setFormData(prev => {
+                                                          const currentRoomAmenities = prev.roomTypeAmenities[roomType] || [];
+                                                          const newRoomAmenities = currentRoomAmenities.includes(amenity.id)
+                                                            ? currentRoomAmenities.filter(id => id !== amenity.id)
+                                                            : [...currentRoomAmenities, amenity.id];
+                                                          return {
+                                                            ...prev,
+                                                            roomTypeAmenities: {
+                                                              ...prev.roomTypeAmenities,
+                                                              [roomType]: newRoomAmenities
+                                                            }
+                                                          };
+                                                        })}
+                                                        className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 group relative cursor-pointer outline-none ${
+                                                          isSelected
+                                                            ? 'bg-sky-500 border-sky-400 text-white shadow-[0_4px_15px_rgba(14,165,233,0.25)] scale-[1.02]'
+                                                            : 'bg-zinc-800/40 border-zinc-700/60 text-zinc-400 hover:border-zinc-600 hover:bg-zinc-800/80 hover:text-white'
+                                                        }`}
+                                                      >
+                                                        <div className={`p-1.5 rounded-lg shrink-0 transition-colors ${
+                                                          isSelected ? 'bg-white/10 text-white' : 'bg-zinc-900/50 text-sky-400 group-hover:text-sky-300'
+                                                        }`}>
+                                                          <amenity.icon className="w-4 h-4" />
+                                                        </div>
+                                                        <span className="text-[11px] font-bold uppercase tracking-wide leading-tight select-none">{amenity.name}</span>
+                                                      </button>
+                                                    );
+                                                  })}
+                                                </div>
+                                              </motion.div>
+                                            )}
+                                          </AnimatePresence>
+                                        </div>
+                                      );
+                                    })}
+
+                                    {/* Render Custom Amenities category inside Room Type if any exist */}
+                                    {formData.customAmenities.length > 0 && (() => {
+                                      const isCustomExpanded = !!expandedCategories[`${roomType}-custom`];
+                                      const selectedCustomCount = (formData.roomTypeAmenities[roomType] || []).filter(id => id >= 2000).length;
+
+                                      return (
+                                        <div className="space-y-3">
+                                          <button
+                                            type="button"
+                                            onClick={() => setExpandedCategories(prev => ({
+                                              ...prev,
+                                              [`${roomType}-custom`]: !prev[`${roomType}-custom`]
+                                            }))}
+                                            className={`w-full flex items-center justify-between py-3 px-4 rounded-xl border transition-all text-left outline-none cursor-pointer ${
+                                              isCustomExpanded 
+                                                ? 'bg-zinc-800/40 border-zinc-700/60' 
+                                                : 'bg-zinc-900/20 border-zinc-800/60 hover:bg-zinc-800/40 hover:border-zinc-700'
+                                            }`}
+                                          >
+                                            <div className="flex items-center gap-3">
+                                              <span className="text-xs font-bold text-zinc-300 tracking-wider uppercase">Custom Amenities</span>
+                                              {selectedCustomCount > 0 && (
+                                                <span className="text-[9px] font-extrabold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                                                  {selectedCustomCount} Selected
+                                                </span>
+                                              )}
+                                            </div>
+                                            <div className={`p-0.5 rounded-full transition-transform duration-300 ${
+                                              isCustomExpanded ? 'rotate-180 text-sky-400' : 'text-zinc-500'
+                                            }`}>
+                                              <ChevronDown className="w-3.5 h-3.5" />
+                                            </div>
+                                          </button>
+                                          
+                                          <AnimatePresence initial={false}>
+                                            {isCustomExpanded && (
+                                              <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                transition={{ duration: 0.2, ease: 'easeOut' }}
+                                                className="overflow-hidden"
+                                              >
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pt-1 pb-3">
+                                                  {formData.customAmenities.map((name, index) => {
+                                                    const customId = 2000 + index;
+                                                    const isSelected = (formData.roomTypeAmenities[roomType] || []).includes(customId);
+                                                    return (
+                                                      <button
+                                                        key={customId}
+                                                        type="button"
+                                                        onClick={() => setFormData(prev => {
+                                                          const currentRoomAmenities = prev.roomTypeAmenities[roomType] || [];
+                                                          const newRoomAmenities = currentRoomAmenities.includes(customId)
+                                                            ? currentRoomAmenities.filter(id => id !== customId)
+                                                            : [...currentRoomAmenities, customId];
+                                                          return {
+                                                            ...prev,
+                                                            roomTypeAmenities: {
+                                                              ...prev.roomTypeAmenities,
+                                                              [roomType]: newRoomAmenities
+                                                            }
+                                                          };
+                                                        })}
+                                                        className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 group relative cursor-pointer outline-none ${
+                                                          isSelected
+                                                            ? 'bg-sky-500 border-sky-400 text-white shadow-[0_4px_15px_rgba(14,165,233,0.25)] scale-[1.02]'
+                                                            : 'bg-zinc-800/40 border-zinc-700/60 text-zinc-400 hover:border-zinc-650 hover:bg-zinc-800/80 hover:text-white'
+                                                        }`}
+                                                      >
+                                                        <div className={`p-1.5 rounded-lg shrink-0 transition-colors ${
+                                                          isSelected ? 'bg-white/10 text-white' : 'bg-zinc-900/50 text-sky-400 group-hover:text-sky-300'
+                                                        }`}>
+                                                          <Sparkles className="w-4 h-4" />
+                                                        </div>
+                                                        <span className="text-[11px] font-bold uppercase tracking-wide leading-tight select-none">{name}</span>
+                                                      </button>
+                                                    );
+                                                  })}
+                                                </div>
+                                              </motion.div>
+                                            )}
+                                          </AnimatePresence>
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                  
+                                  <div className="bg-zinc-950/20 border border-zinc-800/80 p-4 rounded-2xl">
+                                    {(() => {
+                                      const AMENITY_PRESETS = [
+                                        {
+                                          label: 'Standard Double Room',
+                                          amenities: [2007, 2008, 2009, 2010, 209, 204, 2011, 2025, 2026, 702, 501, 701, 2016, 301, 2012, 2013, 2014, 2015, 2001, 103, 2002, 2003, 106, 104, 2004, 102, 2017, 808, 2018, 804, 802, 1202, 2019, 2020, 2021],
+                                          color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-600',
+                                          forRoomTypes: ['Double Room'],
+                                        },
+                                        {
+                                          label: 'Standard Single Room',
+                                          amenities: [2007, 2008, 2009, 2010, 209, 204, 2011, 702, 501, 301, 701, 2012, 2013, 2014, 2001, 2002, 2003, 106, 104, 2004, 2005, 103, 2017, 808, 2018, 804, 1202, 2019, 2021],
+                                          color: 'bg-sky-500/10 text-sky-400 border-sky-500/20 hover:bg-sky-600',
+                                          forRoomTypes: ['Single Room'],
+                                        },
+                                        {
+                                          label: 'Standard Basic',
+                                          amenities: [103, 104, 106, 2001, 2002, 2003, 2004, 2007, 2008, 2009, 701, 501, 301, 1202],
+                                          color: 'bg-zinc-800/50 text-zinc-350 border-zinc-700/60 hover:bg-zinc-700',
+                                          forRoomTypes: ['Standard Room'],
+                                        },
+                                        {
+                                          label: 'Premium Luxury',
+                                          amenities: [103, 104, 106, 2001, 2002, 2003, 2004, 2007, 2008, 2009, 701, 501, 301, 1202, 2010, 209, 2011, 702, 2012, 2013, 2014, 2015, 2016, 802, 808, 2022, 2023, 2024, 2006],
+                                          color: 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-600',
+                                          forRoomTypes: [],
+                                        },
+                                        {
+                                          label: 'Home',
+                                          amenities: [103, 104, 106, 2001, 2002, 2003, 2004, 2007, 2008, 2009, 209, 702, 501, 301, 701, 2013, 801, 802, 807, 812, 2017, 1003, 1101],
+                                          color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-600',
+                                          forRoomTypes: ['Entire Home'],
+                                        },
+                                        {
+                                          label: 'Villa',
+                                          amenities: [103, 104, 106, 2001, 2002, 2003, 2004, 101, 2006, 2007, 2008, 2009, 209, 702, 501, 2016, 701, 2015, 2013, 801, 802, 803, 807, 812, 2017, 2022, 2023, 1001, 1002, 1003, 1004, 1101, 1102],
+                                          color: 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-600',
+                                          forRoomTypes: ['Entire Villa'],
+                                        },
+                                        {
+                                          label: 'Cottage',
+                                          amenities: [103, 104, 106, 2001, 2002, 2003, 2004, 2007, 2008, 2009, 209, 501, 301, 701, 808, 2018, 2014, 1001, 1003, 1005, 1006, 1101],
+                                          color: 'bg-teal-500/10 text-teal-400 border-teal-500/20 hover:bg-teal-600',
+                                          forRoomTypes: ['Cottage'],
+                                        },
+                                        {
+                                          label: 'Apartment',
+                                          amenities: [103, 104, 106, 2001, 2002, 2003, 2004, 2007, 2008, 2009, 209, 501, 301, 701, 2020, 801, 802, 803, 807, 812, 1001],
+                                          color: 'bg-purple-500/10 text-purple-400 border-purple-500/20 hover:bg-purple-600',
+                                          forRoomTypes: ['Entire Apartment'],
+                                        },
+                                        {
+                                          label: 'Standard Tent',
+                                          amenities: [103, 104, 2003, 2004, 2007, 2008, 2009, 701, 2013, 504, 2017, 1002, 1003, 1005],
+                                          color: 'bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-600',
+                                          forRoomTypes: ['Standard Tent'],
+                                        },
+                                        {
+                                          label: 'Luxury Tent',
+                                          amenities: [103, 104, 2003, 2004, 2007, 2008, 2009, 701, 2013, 504, 2017, 1001, 1002, 1003, 1004, 1005, 1006, 2001, 2002, 2010, 209],
+                                          color: 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-600',
+                                          forRoomTypes: ['Luxury Tent'],
+                                        },
+                                        {
+                                          label: 'Wooden Cabin',
+                                          amenities: [103, 104, 106, 2001, 2002, 2003, 2004, 2007, 2008, 2009, 2010, 209, 501, 301, 701, 2014, 808, 2018, 2017, 502, 1001, 1003, 1004, 1005, 1101],
+                                          color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20 hover:bg-yellow-600',
+                                          forRoomTypes: [],
+                                        },
+                                        {
+                                          label: 'Dorm Bed',
+                                          amenities: [103, 104, 106, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 209, 204, 501, 701, 2013, 2014, 1202, 2017],
+                                          color: 'bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-600',
+                                          forRoomTypes: ['Dorm Bed'],
+                                        },
+                                        {
+                                          label: 'AC Room',
+                                          amenities: [103, 104, 106, 2001, 2002, 2003, 2004, 2007, 2008, 2009, 2010, 209, 501, 301, 701, 2013, 2014, 808, 2017, 1202],
+                                          color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20 hover:bg-cyan-600',
+                                          forRoomTypes: ['AC Room'],
+                                        },
+                                        {
+                                          label: 'Suite Room',
+                                          amenities: [103, 104, 106, 101, 2001, 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2010, 209, 204, 2011, 2025, 2026, 702, 501, 701, 2016, 301, 2012, 2013, 2014, 2015, 802, 804, 808, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 1202],
+                                          color: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20 hover:bg-fuchsia-600',
+                                          forRoomTypes: ['Suite'],
+                                        },
+                                        {
+                                          label: 'Twin Room',
+                                          amenities: [2007, 2008, 2009, 2010, 209, 204, 2011, 702, 501, 701, 2016, 301, 2012, 2013, 2014, 2015, 2001, 103, 2002, 2003, 106, 104, 2004, 2017, 808, 2018, 804, 802, 1202, 2019, 2021],
+                                          color: 'bg-lime-500/10 text-lime-400 border-lime-500/20 hover:bg-lime-600',
+                                          forRoomTypes: ['Twin Room'],
+                                        },
+                                        {
+                                          label: 'Standard Wooden Room',
+                                          amenities: [103, 104, 106, 2001, 2002, 2003, 2004, 2007, 2008, 2009, 209, 501, 301, 701, 2014, 808, 2017, 1001, 1003, 1101],
+                                          color: 'bg-stone-500/10 text-stone-400 border-stone-500/20 hover:bg-stone-600',
+                                          forRoomTypes: ['Standard Wooden Room'],
+                                        },
+                                        {
+                                          label: 'Deluxe Wooden Cabin',
+                                          amenities: [103, 104, 106, 2001, 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2010, 209, 501, 301, 701, 2014, 2015, 808, 2018, 2017, 502, 802, 1001, 1003, 1004, 1005, 1101, 2022, 2023],
+                                          color: 'bg-amber-600/10 text-amber-500 border-amber-600/20 hover:bg-amber-700',
+                                          forRoomTypes: ['Deluxe Wooden Cabin'],
+                                        },
+                                        {
+                                          label: 'Deluxe Room',
+                                          amenities: [103, 104, 106, 2001, 2002, 2003, 2004, 2007, 2008, 2009, 2010, 209, 501, 301, 701, 2013, 2014, 808, 2017, 1202, 2012, 2015, 2016],
+                                          color: 'bg-violet-500/10 text-violet-400 border-violet-500/20 hover:bg-violet-600',
+                                          forRoomTypes: ['Deluxe Room'],
+                                        },
+                                        {
+                                          label: 'Single Dorm Bed',
+                                          amenities: [103, 104, 106, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 209, 204, 501, 701, 2013, 2014, 1202, 2017],
+                                          color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-600',
+                                          forRoomTypes: ['Single Bed'],
+                                        },
+                                        {
+                                          label: 'Double Dorm Bed',
+                                          amenities: [103, 104, 106, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 209, 204, 501, 701, 2013, 2014, 1202, 2017],
+                                          color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-600',
+                                          forRoomTypes: ['Double Bed'],
+                                        },
+                                        {
+                                          label: 'AC Dorm Bed',
+                                          amenities: [103, 104, 106, 2001, 2002, 2003, 2004, 2007, 2008, 2009, 2010, 209, 501, 301, 701, 2013, 2014, 808, 2017, 1202],
+                                          color: 'bg-sky-500/10 text-sky-400 border-sky-500/20 hover:bg-sky-600',
+                                          forRoomTypes: ['AC Bed'],
+                                        },
+                                      ];
+
+                                      const filteredPresets = AMENITY_PRESETS.filter(p => p.forRoomTypes.includes(roomType));
+
+                                      if (filteredPresets.length === 0) return null;
+
+                                      return (
+                                        <div className="flex flex-wrap gap-2">
+                                          {filteredPresets.map(preset => (
+                                            <button
+                                              key={preset.label}
+                                              type="button"
+                                              onClick={() => setFormData(prev => ({
+                                                ...prev,
+                                                roomTypeAmenities: {
+                                                  ...prev.roomTypeAmenities,
+                                                  [roomType]: preset.amenities
+                                                }
+                                              }))}
+                                              className={`px-3.5 py-2 rounded-xl text-[10px] font-extrabold uppercase tracking-wider border hover:text-white transition-all cursor-pointer ${preset.color}`}
+                                            >
+                                              {preset.label}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1074,6 +1798,12 @@ const AddPropertyModal = ({
                 ) : null}
 
                 {/* Property License, Tax Bill, Current Utility Bill - disabled for Tent */}
+                {formData.type !== 'Tent' && (
+                  <div className="mb-4 p-4 bg-sky-500/10 border border-sky-500/30 rounded-xl">
+                    <p className="text-sm font-semibold text-sky-400">📄 Upload Any Two Documents</p>
+                    <p className="text-xs text-zinc-400 mt-1">కనీసం <span className="text-sky-400 font-bold">2 documents</span> upload చేయాలి — Property License, Tax Bill, లేదా Current Utility Bill లో ఏవైనా రెండు.</p>
+                  </div>
+                )}
                 <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
                   {formData.type === 'Tent' && (
                     <div className="col-span-1 sm:col-span-2 lg:col-span-3 p-3 bg-zinc-800 border border-zinc-700 rounded-lg">
@@ -1089,100 +1819,321 @@ const AddPropertyModal = ({
 
             {currentStep === 4 && (
               <div className="space-y-6 animate-fade-in">
-                <h3 className="text-xl font-semibold text-white mb-6">Set Your Prices</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <InputField label="Price per Night (INR)" name="price" type="number" value={formData.price} onChange={handleInputChange} placeholder="e.g. 5000" />
-                  <InputField label="Weekend Price per Night (INR)" name="weekendPrice" type="number" value={formData.weekendPrice} onChange={handleInputChange} placeholder="e.g. 7500" />
-                  
-                  {/* Bulk Booking Discount with toggle and +/- buttons */}
-                  {['Home Stay', 'Apartment', 'Villa'].includes(formData.type) ? (
-                    <div className="bg-zinc-800/40 p-4 rounded-xl border border-zinc-700/30 flex items-start gap-3 relative overflow-hidden group">
-                      {/* Background sheen effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/3 to-amber-500/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                      <div className="p-2 bg-amber-500/10 rounded-lg text-amber-400 shrink-0">
-                        <BadgePercent className="w-4 h-4" />
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-black text-white tracking-tight italic uppercase italic">Set Your Prices</h3>
+                </div>
+
+                {/* Pricing Mode Toggle: Flat vs. Per Room (only shown if room types are selected) */}
+                {formData.roomTypes.length > 0 && (
+                  <div className="p-1 bg-zinc-950/80 border border-zinc-850 rounded-2xl">
+                    <div className="flex p-1 bg-zinc-900/50 rounded-xl">
+                      <button
+                        type="button"
+                        onClick={() => setPricingMode('flat')}
+                        className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg text-xs md:text-sm font-black uppercase tracking-wider transition-all duration-300 ${
+                          pricingMode === 'flat'
+                            ? 'bg-sky-500 text-white shadow-[0_0_20px_rgba(14,165,233,0.35)]'
+                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800/30'
+                        }`}
+                      >
+                        <IndianRupee className="w-4 h-4" />
+                        Flat Base Rate
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPricingMode('custom')}
+                        className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg text-xs md:text-sm font-black uppercase tracking-wider transition-all duration-300 ${
+                          pricingMode === 'custom'
+                            ? 'bg-sky-500 text-white shadow-[0_0_20px_rgba(14,165,233,0.35)]'
+                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800/30'
+                        }`}
+                      >
+                        <Building2 className="w-4 h-4" />
+                        Custom Rates Per Room
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Standard Base Pricing Section */}
+                {(pricingMode === 'flat' || formData.roomTypes.length === 0) && (
+                  <div className="space-y-4 md:space-y-5 animate-fade-in">
+                    {formData.roomTypes.length > 0 && (
+                      <div className="flex items-center gap-3 px-1">
+                        <div className="p-1.5 bg-sky-500/10 rounded-lg border border-sky-500/20">
+                          <IndianRupee className="w-4 h-4 text-sky-400" />
+                        </div>
+                        <h4 className="text-xs md:text-sm font-black text-white uppercase tracking-[0.2em] italic">Standard Flat Rate</h4>
                       </div>
-                      <div>
-                        <h4 className="text-xs md:text-sm font-semibold text-zinc-300">
-                          Bulk Booking Discount
-                        </h4>
-                        <p className="text-[10px] text-zinc-500 mt-1 leading-relaxed">
-                          Bulk discounts are only applicable to multi-unit listings (Hotels and Resorts). Since this listing is categorized as a {formData.type || 'single unit'}, bulk discounts are disabled.
-                        </p>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-900/30 p-6 border border-zinc-800 rounded-3xl relative overflow-hidden group">
+                      <div className="absolute top-0 left-0 w-32 h-32 bg-sky-500/5 rounded-full blur-3xl pointer-events-none" />
+                      <div className="absolute bottom-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+                      
+                      <div className="space-y-2 relative z-10">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-xs font-black text-zinc-400 uppercase tracking-widest">Weekday Price</span>
+                          <span className="text-[9px] font-black text-sky-400 uppercase tracking-widest bg-sky-500/10 px-2 py-0.5 rounded-md border border-sky-500/20">Mon-Fri</span>
+                        </div>
+                        <div className="relative flex items-center bg-zinc-950/60 border border-zinc-850 hover:border-zinc-750/60 focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-500/20 rounded-2xl px-4 py-3.5 transition-all">
+                          <span className="text-zinc-500 font-extrabold text-lg mr-2 select-none">₹</span>
+                          <input
+                            type="number"
+                            name="price"
+                            value={formData.price}
+                            onChange={handleInputChange}
+                            placeholder="e.g. 1200"
+                            className="w-full bg-transparent border-none outline-none text-white font-bold placeholder:text-zinc-700 text-base p-0 focus:ring-0"
+                            required
+                          />
+                          <span className="text-xs text-zinc-500 font-black tracking-widest ml-2 select-none">/NIGHT</span>
+                        </div>
+                        <p className="text-[10px] text-zinc-500 px-1">Standard rate applicable for Sunday night through Thursday night bookings.</p>
+                      </div>
+
+                      <div className="space-y-2 relative z-10">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-xs font-black text-zinc-400 uppercase tracking-widest">Weekend Price</span>
+                          <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">Sat-Sun</span>
+                        </div>
+                        <div className="relative flex items-center bg-zinc-950/60 border border-zinc-850 hover:border-zinc-750/60 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 rounded-2xl px-4 py-3.5 transition-all">
+                          <span className="text-zinc-500 font-extrabold text-lg mr-2 select-none">₹</span>
+                          <input
+                            type="number"
+                            name="weekendPrice"
+                            value={formData.weekendPrice}
+                            onChange={handleInputChange}
+                            placeholder="e.g. 1500"
+                            className="w-full bg-transparent border-none outline-none text-white font-bold placeholder:text-zinc-700 text-base p-0 focus:ring-0"
+                            required
+                          />
+                          <span className="text-xs text-zinc-500 font-black tracking-widest ml-2 select-none">/NIGHT</span>
+                        </div>
+                        <p className="text-[10px] text-zinc-500 px-1">Premium rate applicable for Friday night and Saturday night bookings.</p>
                       </div>
                     </div>
-                  ) : (
-                    <div className="bg-zinc-800 p-4 rounded-xl border border-zinc-700/50 relative overflow-hidden group">
-                      {/* Background sheen effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-sky-500/0 via-sky-500/5 to-sky-500/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                  </div>
+                )}
 
-                      <div className="relative z-10 flex justify-between items-center mb-4">
-                        <div className="flex items-center gap-2">
-                          <BadgePercent className={`w-4 h-4 transition-colors ${isBulkDiscountEnabled ? 'text-sky-400' : 'text-zinc-500'}`} />
-                          <label className="block text-xs md:text-sm font-semibold text-zinc-200">
+                {/* Per-Room-Type Custom Pricing Section */}
+                {pricingMode === 'custom' && formData.roomTypes.length > 0 && (
+                  <div className="space-y-4 md:space-y-5 animate-fade-in">
+                    <div className="flex items-center gap-3 px-1">
+                      <div className="p-1.5 bg-sky-500/10 rounded-lg border border-sky-500/20">
+                        <Building2 className="w-4 h-4 text-sky-400" />
+                      </div>
+                      <h4 className="text-xs md:text-sm font-black text-white uppercase tracking-[0.2em] italic">Per-Room-Type Custom Rates</h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-5">
+                      {formData.roomTypes.map((roomType) => {
+                        const hasCustomPrice = !!(formData.roomTypePrices[roomType] || formData.roomTypeWeekendPrices[roomType]);
+                        
+                        const priceVal = parseFloat(String(formData.roomTypePrices[roomType])) || 0;
+                        const wPriceVal = parseFloat(String(formData.roomTypeWeekendPrices[roomType])) || 0;
+                        
+                        let markupPct = 0;
+                        if (priceVal > 0 && wPriceVal > priceVal) {
+                          markupPct = Math.round(((wPriceVal - priceVal) / priceVal) * 100);
+                        } else if (!hasCustomPrice && formData.price && formData.weekendPrice) {
+                          const base = parseFloat(String(formData.price)) || 0;
+                          const weekend = parseFloat(String(formData.weekendPrice)) || 0;
+                          if (base > 0 && weekend > base) {
+                            markupPct = Math.round(((weekend - base) / base) * 100);
+                          }
+                        }
+
+                        const weekdayPlaceholder = formData.price ? `Default: ${formData.price}` : "e.g. 1500";
+                        const weekendPlaceholder = formData.weekendPrice ? `Default: ${formData.weekendPrice}` : "e.g. 1800";
+
+                        return (
+                          <div 
+                            key={roomType} 
+                            className="bg-zinc-900/30 border border-zinc-800 rounded-3xl p-5 md:p-6 hover:border-sky-500/30 focus-within:border-sky-500/30 focus-within:shadow-[0_4px_30px_rgba(14,165,233,0.05)] transition-all duration-300 group relative overflow-hidden"
+                          >
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-sky-500/5 to-transparent rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-all duration-500" />
+
+                            <div className="flex items-center justify-between mb-4 md:mb-5 relative z-10">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sky-400 group-hover:text-sky-300 transition-colors">
+                                  <Bed className="w-4 h-4" />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h5 className="text-xs md:text-sm font-black text-white uppercase tracking-wider">{roomType}</h5>
+                                    {!hasCustomPrice && (formData.price || formData.weekendPrice) ? (
+                                      <span className="text-[8px] font-black text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20 tracking-widest uppercase">Inherited</span>
+                                    ) : hasCustomPrice ? (
+                                      <span className="text-[8px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 tracking-widest uppercase">Customized</span>
+                                    ) : null}
+                                  </div>
+                                  <p className="text-[10px] text-zinc-500 mt-0.5">Customize weekday and weekend pricing or leave empty to inherit defaults</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
+                              <div className="space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Weekday Price</span>
+                                  <span className="text-[9px] font-black text-sky-400 uppercase tracking-widest bg-sky-500/10 px-2 py-0.5 rounded-md border border-sky-500/20">Mon-Fri</span>
+                                </div>
+                                <div className="relative flex items-center bg-zinc-950/50 border border-zinc-800 hover:border-zinc-750/60 focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-500/20 rounded-xl px-3.5 py-3 transition-all">
+                                  <span className="text-zinc-500 font-bold mr-2 select-none">₹</span>
+                                  <input
+                                    type="number"
+                                    value={formData.roomTypePrices[roomType] || ''}
+                                    onChange={(e: any) => setFormData(prev => ({
+                                      ...prev,
+                                      roomTypePrices: {
+                                        ...prev.roomTypePrices,
+                                        [roomType]: e.target.value
+                                      }
+                                    }))}
+                                    placeholder={weekdayPlaceholder}
+                                    className="w-full bg-transparent border-none outline-none text-white font-semibold placeholder:text-zinc-700 text-sm p-0 focus:ring-0"
+                                    required={!formData.price}
+                                  />
+                                  <span className="text-[10px] text-zinc-500 font-black tracking-widest ml-2 select-none">/NIGHT</span>
+                                </div>
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Weekend Price</span>
+                                  <div className="flex items-center gap-1.5">
+                                    {markupPct > 0 && (
+                                      <span className="text-[9px] font-extrabold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20 animate-fade-in">
+                                        +{markupPct}%
+                                      </span>
+                                    )}
+                                    <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">Sat-Sun</span>
+                                  </div>
+                                </div>
+                                <div className="relative flex items-center bg-zinc-950/50 border border-zinc-800 hover:border-zinc-750/60 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 rounded-xl px-3.5 py-3 transition-all">
+                                  <span className="text-zinc-500 font-bold mr-2 select-none">₹</span>
+                                  <input
+                                    type="number"
+                                    value={formData.roomTypeWeekendPrices[roomType] || ''}
+                                    onChange={(e: any) => setFormData(prev => ({
+                                      ...prev,
+                                      roomTypeWeekendPrices: {
+                                        ...prev.roomTypeWeekendPrices,
+                                        [roomType]: e.target.value
+                                      }
+                                    }))}
+                                    placeholder={weekendPlaceholder}
+                                    className="w-full bg-transparent border-none outline-none text-white font-semibold placeholder:text-zinc-700 text-sm p-0 focus:ring-0"
+                                    required={!formData.weekendPrice}
+                                  />
+                                  <span className="text-[10px] text-zinc-500 font-black tracking-widest ml-2 select-none">/NIGHT</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Bulk Booking Discount with toggle and +/- buttons */}
+                {['Home Stay', 'Apartment', 'Villa'].includes(formData.type) ? (
+                  <div className="bg-zinc-800/40 p-4 md:p-6 rounded-2xl md:rounded-3xl border border-zinc-700/30 flex items-start gap-3 md:gap-4 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/3 to-amber-500/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                    <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-400 shrink-0 border border-amber-500/20">
+                      <BadgePercent className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs md:text-sm font-black text-white uppercase tracking-widest mb-1.5">
+                        Bulk Booking Discount
+                      </h4>
+                      <p className="text-[10px] md:text-xs text-zinc-500 font-medium leading-relaxed">
+                        Bulk discounts are only applicable to multi-unit listings (Hotels and Resorts). Since this listing is categorized as a {formData.type || 'single unit'}, bulk discounts are disabled.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-zinc-800 p-4 md:p-6 rounded-2xl md:rounded-3xl border border-zinc-700/50 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-sky-500/0 via-sky-500/5 to-sky-500/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+                    <div className="relative z-10 flex justify-between items-center mb-4 md:mb-5">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg transition-colors ${isBulkDiscountEnabled ? 'bg-sky-500/10 text-sky-400' : 'bg-zinc-700 text-zinc-500'}`}>
+                          <BadgePercent className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <label className="block text-xs md:text-sm font-black text-white uppercase tracking-widest">
                             Bulk Booking Discount
                           </label>
                           {isBulkDiscountEnabled && (
-                            <span className="text-[10px] text-amber-400 font-black uppercase tracking-widest bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
-                              Max 10%
+                            <span className="text-[9px] text-amber-400 font-black uppercase tracking-[0.2em] mt-0.5">
+                              Max 10% Protocol Active
                             </span>
                           )}
                         </div>
-                        
-                        {/* Premium Toggle Switch */}
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            checked={isBulkDiscountEnabled}
-                            onChange={(e) => handleBulkDiscountToggle(e.target.checked)}
-                          />
-                          <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500 peer-checked:after:bg-white peer-checked:after:border-white"></div>
-                        </label>
                       </div>
-
-                      <AnimatePresence initial={false}>
-                        {isBulkDiscountEnabled ? (
-                          <motion.div
-                            key="discount-selector"
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.25, ease: 'easeInOut' }}
-                            className="overflow-hidden space-y-3"
-                          >
-                            <div className="flex justify-start">
-                              <NumberInput
-                                value={Number(formData.bulkBookingDiscount)}
-                                onChange={(val) => setFormData(prev => ({ ...prev, bulkBookingDiscount: val }))}
-                                min={1}
-                                max={10}
-                              />
-                            </div>
-                            <p className="text-[10px] text-zinc-400 font-medium leading-relaxed">
-                              Discount applied when guests book multiple units at once.
-                            </p>
-                          </motion.div>
-                        ) : (
-                          <motion.div
-                            key="discount-disabled"
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.25, ease: 'easeInOut' }}
-                            className="overflow-hidden"
-                          >
-                            <p className="text-[10px] text-zinc-500 font-medium leading-relaxed">
-                              Bulk booking discount is currently disabled. Guests will pay regular room rates when booking multiple units.
-                            </p>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                      
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={isBulkDiscountEnabled}
+                          onChange={(e) => handleBulkDiscountToggle(e.target.checked)}
+                        />
+                        <div className="w-12 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500 peer-checked:after:bg-white peer-checked:after:border-white shadow-inner"></div>
+                      </label>
                     </div>
-                  )}
-                </div>
-                <div className="p-6 bg-zinc-800 rounded-lg">
-                  <p className="text-zinc-300">These are the prices guests will see for your property. You can adjust them at any time.</p>
+
+                    <AnimatePresence initial={false}>
+                      {isBulkDiscountEnabled ? (
+                        <motion.div
+                          key="discount-selector"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25, ease: 'easeInOut' }}
+                          className="overflow-hidden space-y-4"
+                        >
+                          <div className="flex justify-start">
+                            <NumberInput
+                              value={Number(formData.bulkBookingDiscount)}
+                              onChange={(val) => setFormData(prev => ({ ...prev, bulkBookingDiscount: val }))}
+                              min={1}
+                              max={10}
+                            />
+                          </div>
+                          <div className="p-3 bg-zinc-900/50 rounded-xl border border-zinc-700/30">
+                            <p className="text-[10px] md:text-xs text-zinc-400 font-medium leading-relaxed italic">
+                              "Bulk discounts apply when guests book multiple units. This encourages larger group bookings and higher occupancy."
+                            </p>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="discount-disabled"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25, ease: 'easeInOut' }}
+                          className="overflow-hidden"
+                        >
+                          <p className="text-[10px] md:text-xs text-zinc-500 font-medium leading-relaxed">
+                            Bulk booking discount is currently disabled. Guests will pay regular room rates when booking multiple units.
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+
+                <div className="p-4 md:p-6 bg-brand-default/5 border border-brand-default/10 rounded-2xl md:rounded-3xl flex gap-4">
+                  <div className="p-2 bg-brand-default/10 rounded-xl h-fit">
+                    <AlertCircle className="w-4 h-4 text-brand-default" />
+                  </div>
+                  <p className="text-[10px] md:text-xs text-zinc-400 font-medium leading-relaxed">
+                    <span className="text-zinc-200 font-bold">Pricing Transparency:</span> These are the rates guests will see. You can dynamically adjust them later based on seasonal demand or special occasions from your dashboard.
+                  </p>
                 </div>
               </div>
             )}

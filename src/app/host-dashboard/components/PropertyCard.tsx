@@ -180,13 +180,39 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
           <div className="grid grid-cols-2 gap-1.5 md:gap-2 mt-2 md:mt-3">
             <div className="bg-white/[0.02] border border-white/5 rounded-lg md:rounded-xl p-1.5 md:p-2.5">
               <p className="text-[7px] md:text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Base Price</p>
-              <p className="text-[10px] md:text-xs font-black text-white">₹{property.price || 0}</p>
+              <p className="text-[10px] md:text-xs font-black text-white">₹{property.price_per_night || property.price || 0}</p>
             </div>
             <div className="bg-white/[0.02] border border-white/5 rounded-lg md:rounded-xl p-1.5 md:p-2.5">
               <p className="text-[7px] md:text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Est. Earnings</p>
               <p className="text-[10px] md:text-xs font-black text-emerald-400">₹{estimatedEarnings.toLocaleString('en-IN')}</p>
             </div>
           </div>
+
+          {/* Room Type Inventory Breakdown */}
+          {(() => {
+            const roomTypes: string[] = (property as any).room_types || [];
+            const roomCounts: Record<string, number> = (property as any).room_type_counts || {};
+            if (roomTypes.length === 0) return null;
+            return (
+              <div className="mt-2 md:mt-3">
+                <p className="text-[7px] md:text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Room Inventory</p>
+                <div className="flex flex-wrap gap-1">
+                  {roomTypes.map((rt) => {
+                    const count = roomCounts[rt] ?? 1;
+                    return (
+                      <span
+                        key={rt}
+                        className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[8px] md:text-[9px] font-bold"
+                      >
+                        <span>{rt}</span>
+                        <span className="bg-indigo-500/30 rounded px-1 text-white font-black">×{count}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* 4. ACTIONS AREA */}

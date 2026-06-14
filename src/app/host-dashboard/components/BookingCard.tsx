@@ -118,6 +118,21 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
 
   const statusStyles = getStatusStyles(booking.status);
 
+  const displayRoomTypes = (() => {
+    if (booking.room_type) return booking.room_type;
+    
+    const totalRooms = booking.total_rooms_booked || 1;
+    const propertyRoomTypes = (booking.properties as any)?.room_types || 
+                          ((booking.properties as any)?.room_type_counts 
+                            ? Object.keys((booking.properties as any).room_type_counts) 
+                            : []);
+                            
+    if (propertyRoomTypes.length > 0) {
+      return `${propertyRoomTypes[0]} (${totalRooms})`;
+    }
+    return `Standard Room (${totalRooms})`;
+  })();
+
   return (
     <div className="relative group overflow-hidden bg-[#0a0a0f] backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl hover:shadow-[0_0_40px_rgba(255,255,255,0.05)] transition-all duration-500">
 
@@ -195,12 +210,29 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
               </div>
             </div>
 
+            {/* Booked Room Types */}
+            {displayRoomTypes && (
+              <div className="mt-3 py-2 px-3 bg-white/[0.02] border border-white/5 rounded-xl space-y-1.5 w-fit max-w-full">
+                <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Icon name="KeyIcon" size={11} className="text-emerald-400 shrink-0" />
+                  Booked Room Types
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {displayRoomTypes.split(', ').map((room: string, idx: number) => (
+                    <span key={idx} className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[9px] font-bold px-2 py-0.5 rounded-md">
+                      {room}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Selected Premium Amenities */}
             {(booking as any).amenities && (booking as any).amenities.length > 0 && (
               <div className="mt-3 py-2 px-3 bg-white/[0.02] border border-white/5 rounded-xl space-y-1.5 w-fit max-w-full">
                 <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
                   <Icon name="SparklesIcon" size={11} className="text-indigo-400 shrink-0" />
-                  Selected Premium Services
+                  Exclusive Upgrades
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {(booking as any).amenities.map((amenity: any, idx: number) => (
@@ -211,6 +243,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                 </div>
               </div>
             )}
+
 
             {/* Date Container */}
             <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 py-2 px-3 rounded-xl w-fit shadow-inner group-hover:bg-white/[0.05] transition-colors">

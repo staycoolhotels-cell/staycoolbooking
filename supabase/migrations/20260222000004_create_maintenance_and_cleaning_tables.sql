@@ -11,10 +11,8 @@ CREATE TABLE IF NOT EXISTS public.maintenance_alerts (
     priority TEXT NOT NULL DEFAULT 'Medium', -- 'Low', 'Medium', 'High', 'Urgent'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
 -- Enable RLS for maintenance_alerts
 ALTER TABLE public.maintenance_alerts ENABLE ROW LEVEL SECURITY;
-
 -- 2. Create cleaning_checklists table
 CREATE TABLE IF NOT EXISTS public.cleaning_checklists (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -24,10 +22,8 @@ CREATE TABLE IF NOT EXISTS public.cleaning_checklists (
     status TEXT NOT NULL DEFAULT 'Pending', -- 'Pending', 'In Progress', 'Completed'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
 -- Enable RLS for cleaning_checklists
 ALTER TABLE public.cleaning_checklists ENABLE ROW LEVEL SECURITY;
-
 -- 3. Create cleaning_checklist_items table (for individual items in a checklist)
 CREATE TABLE IF NOT EXISTS public.cleaning_checklist_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -36,10 +32,8 @@ CREATE TABLE IF NOT EXISTS public.cleaning_checklist_items (
     completed BOOLEAN DEFAULT false NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
 -- Enable RLS for cleaning_checklist_items
 ALTER TABLE public.cleaning_checklist_items ENABLE ROW LEVEL SECURITY;
-
 -- Policies for maintenance_alerts
 CREATE POLICY "Hosts can manage maintenance alerts for their properties"
 ON public.maintenance_alerts FOR ALL
@@ -51,7 +45,6 @@ USING (
         AND p.host_id = auth.uid()
     )
 );
-
 CREATE POLICY "Admins can manage all maintenance alerts"
 ON public.maintenance_alerts FOR ALL
 TO authenticated
@@ -62,7 +55,6 @@ USING (
         AND u.role = 'admin'
     )
 );
-
 -- Policies for cleaning_checklists
 CREATE POLICY "Hosts can manage cleaning checklists for their properties"
 ON public.cleaning_checklists FOR ALL
@@ -74,7 +66,6 @@ USING (
         AND p.host_id = auth.uid()
     )
 );
-
 CREATE POLICY "Admins can manage all cleaning checklists"
 ON public.cleaning_checklists FOR ALL
 TO authenticated
@@ -85,7 +76,6 @@ USING (
         AND u.role = 'admin'
     )
 );
-
 -- Policies for cleaning_checklist_items
 CREATE POLICY "Hosts can manage cleaning checklist items for their properties"
 ON public.cleaning_checklist_items FOR ALL
@@ -98,7 +88,6 @@ USING (
         AND p.host_id = auth.uid()
     )
 );
-
 CREATE POLICY "Admins can manage all cleaning checklist items"
 ON public.cleaning_checklist_items FOR ALL
 TO authenticated

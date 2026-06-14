@@ -47,31 +47,61 @@ export async function POST(request: NextRequest) {
 
     if (!isSingleUnit && updatePayload.total_rooms && updatePayload.total_rooms > 0) {
       const newTotalRooms = updatePayload.total_rooms;
+      const roomTypeCounts: Record<string, number> = updatePayload.room_type_counts || data?.room_type_counts || {};
+      const roomTypes: string[] = updatePayload.room_types || data?.room_types || [];
+      const roomTypeAmenities = updatePayload.room_type_amenities || data?.room_type_amenities || {};
 
-      // Get existing rooms count for this property
-      const { data: existingRooms } = await supabaseAdmin
-        .from('rooms')
-        .select('id, name')
-        .eq('property_id', propertyId)
-        .order('created_at', { ascending: true });
+      const hasDistributedCounts = Object.keys(roomTypeCounts).length > 0 &&
+        Object.values(roomTypeCounts).some((v: number) => v > 0);
 
-      const existingCount = existingRooms?.length || 0;
+      if (hasDistributedCounts) {
+        // Fully redistribute all rooms by type — delete and recreate
+        await supabaseAdmin.from('rooms').delete().eq('property_id', propertyId);
 
-      // If new total is greater than existing, add the missing rooms
-      if (newTotalRooms > existingCount) {
-        const roomsToAdd = Array.from({ length: newTotalRooms - existingCount }).map((_, i) => ({
-          property_id: propertyId,
-          name: `${unitLabel} ${existingCount + i + 1}`,
-          status: 'available',
-        }));
+        const roomsToInsert: { property_id: string; name: string; status: string; room_type: string; room_amenities: any }[] = [];
+        for (const [roomType, count] of Object.entries(roomTypeCounts)) {
+          const amenities = roomTypeAmenities[roomType] || [];
+          for (let i = 0; i < count; i++) {
+            roomsToInsert.push({
+              property_id: propertyId,
+              name: `${roomType} ${i + 1}`,
+              status: 'available',
+              room_type: roomType,
+              room_amenities: amenities,
+            });
+          }
+        }
 
-        const { error: roomsError } = await supabaseAdmin
+        if (roomsToInsert.length > 0) {
+          const { error: roomsError } = await supabaseAdmin.from('rooms').insert(roomsToInsert);
+          if (roomsError) console.error('API: Error redistributing rooms on update:', roomsError);
+        }
+      } else {
+        // Fallback: just add missing rooms with the first room type
+        const { data: existingRooms } = await supabaseAdmin
           .from('rooms')
-          .insert(roomsToAdd);
+          .select('id, name')
+          .eq('property_id', propertyId)
+          .order('created_at', { ascending: true });
 
-        if (roomsError) {
-          console.error('API: Error syncing rooms on update:', roomsError);
-          // Property update was successful, rooms sync failure is non-critical
+        const existingCount = existingRooms?.length || 0;
+
+        if (newTotalRooms > existingCount) {
+          const defaultRoomType = roomTypes.length > 0 ? roomTypes[0] : null;
+          const defaultRoomAmenities = defaultRoomType && roomTypeAmenities[defaultRoomType]
+            ? roomTypeAmenities[defaultRoomType]
+            : [];
+
+          const roomsToAdd = Array.from({ length: newTotalRooms - existingCount }).map((_, i) => ({
+            property_id: propertyId,
+            name: `${unitLabel} ${existingCount + i + 1}`,
+            status: 'available',
+            room_type: defaultRoomType,
+            room_amenities: defaultRoomAmenities,
+          }));
+
+          const { error: roomsError } = await supabaseAdmin.from('rooms').insert(roomsToAdd);
+          if (roomsError) console.error('API: Error syncing rooms on update:', roomsError);
         }
       }
     }

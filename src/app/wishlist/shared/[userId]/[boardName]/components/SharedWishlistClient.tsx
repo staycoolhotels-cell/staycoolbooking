@@ -19,7 +19,7 @@ export default function SharedWishlistClient({ wishlistItems }: SharedWishlistCl
           id: prop.id,
           title: prop.title || prop.name || 'Untitled Property',
           location: prop.location || prop.city || 'Unknown Location',
-          type: prop.type || prop.room_type || 'Stay',
+          type: prop.type || prop.tier || 'Stay',
           price: prop.price_per_night || prop.price || 0,
           rating: prop.rating || 5.0,
           reviews: prop.reviews_count || 0,

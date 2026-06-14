@@ -29,6 +29,8 @@ import {
     Ban,
     ChevronLeft,
     ChevronRight,
+    ChevronDown,
+    ChevronUp,
     Building2,
     Landmark,
     Hash,
@@ -36,6 +38,7 @@ import {
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { JetBrains_Mono, Inter } from 'next/font/google';
+import { AMENITIES } from '@/lib/amenities';
 
 // Font Configuration
 const mono = JetBrains_Mono({ subsets: ['latin'] });
@@ -79,6 +82,23 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
     const [actionLoading, setActionLoading] = useState(false);
     const [currentProperty, setCurrentProperty] = useState(property);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [expandedRoomTypes, setExpandedRoomTypes] = useState<Record<string, boolean>>({});
+
+    const resolveAmenityName = (id: number): string => {
+        // 1. Try to find in standard AMENITIES list
+        const stdAmenity = AMENITIES.find(a => a.id === id);
+        if (stdAmenity) return stdAmenity.name;
+        
+        // 2. Try to find in the property's own amenities (which includes custom ones saved by host)
+        if (currentProperty.amenities) {
+            const propAmenity = currentProperty.amenities.find((a: any) => a && typeof a === 'object' && Number(a.id) === id);
+            if (propAmenity && (propAmenity as any).name) {
+                return (propAmenity as any).name;
+            }
+        }
+        
+        return `Amenity #${id}`;
+    };
 
     const handleApprove = async () => {
         setActionLoading(true);
@@ -376,7 +396,7 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                             <div className="space-y-3">
                                 <div className="flex justify-between text-sm py-2 border-b border-white/5">
                                     <span className="text-zinc-600">Type</span>
-                                    <span className="text-zinc-300 font-mono capitalize">{currentProperty.type || currentProperty.tier || currentProperty.room_type || (currentProperty as any).property_type || 'N/A'}</span>
+                                    <span className="text-zinc-300 font-mono capitalize">{currentProperty.type || currentProperty.tier || (currentProperty as any).property_type || 'N/A'}</span>
                                 </div>
                                 <div className="flex justify-between text-sm py-2 border-b border-white/5">
                                     <span className="text-zinc-600">Baths</span>
@@ -548,7 +568,7 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {(() => {
-                            const pType = String(currentProperty.type || currentProperty.tier || currentProperty.room_type || (currentProperty as any).property_type || '').toLowerCase();
+                            const pType = String(currentProperty.type || currentProperty.tier || (currentProperty as any).property_type || '').toLowerCase();
                             const isTent = pType === 'tent';
                             const documentsList = isTent ? [
                                 { label: 'Aadhaar Card', url: currentProperty.aadhar_url, id: 'aadhar' },
@@ -607,6 +627,124 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                             ));
                         })()}
                     </div>
+                </div>
+
+                {/* Room Configuration & Inventory Section */}
+                <div className="bg-[#050505] border border-white/10 rounded-lg p-8 relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-sky-500/40 to-transparent" />
+                    <div className="absolute -top-10 right-10 w-48 h-48 bg-sky-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-sky-500/10 border border-sky-500/20">
+                                <Bed className="w-5 h-5 text-sky-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm text-zinc-200 font-semibold uppercase tracking-wider">Room Configuration & Inventory</h3>
+                                <p className="text-[10px] text-zinc-600 font-mono mt-0.5">Host-defined room types, pricing, and amenities</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {currentProperty.room_types && currentProperty.room_types.length > 0 ? (
+                        <div className="space-y-4">
+                            {currentProperty.room_types.map((roomType) => {
+                                const isExpanded = !!expandedRoomTypes[roomType];
+                                const count = currentProperty.room_type_counts?.[roomType] || 0;
+                                const basePrice = currentProperty.room_type_prices?.[roomType] || currentProperty.price_per_night || 0;
+                                const weekendPrice = currentProperty.room_type_weekend_prices?.[roomType] || currentProperty.weekend_price_per_night || 0;
+                                const amenities = currentProperty.room_type_amenities?.[roomType] || [];
+
+                                return (
+                                    <div
+                                        key={roomType}
+                                        className={cn(
+                                            "border rounded-lg transition-all duration-300 overflow-hidden",
+                                            isExpanded
+                                                ? "bg-white/5 border-sky-500/30"
+                                                : "bg-white/[0.02] border-white/10 hover:border-white/20"
+                                        )}
+                                    >
+                                        {/* Header */}
+                                        <button
+                                            onClick={() => setExpandedRoomTypes(prev => ({
+                                                ...prev,
+                                                [roomType]: !prev[roomType]
+                                            }))}
+                                            className="w-full flex flex-col md:flex-row md:items-center justify-between p-4 gap-4 text-left outline-none"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={cn(
+                                                    "p-2 transition-colors duration-300 rounded",
+                                                    isExpanded ? "bg-sky-500/20 text-sky-400" : "bg-zinc-800 text-zinc-500"
+                                                )}>
+                                                    <Bed className="w-4 h-4" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-sm font-semibold text-zinc-200 uppercase tracking-wide">{roomType}</h4>
+                                                    <span className="text-xs text-zinc-500 font-mono">{count} Units configured</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-wrap items-center gap-4 md:gap-6">
+                                                <div className="flex items-baseline gap-1.5">
+                                                    <span className="text-[10px] text-zinc-500 font-mono uppercase">Base Rate:</span>
+                                                    <span className={cn("text-sm text-zinc-200 font-semibold", mono.className)}>₹{basePrice}</span>
+                                                    <span className="text-[10px] text-zinc-600">/night</span>
+                                                </div>
+                                                <div className="flex items-baseline gap-1.5">
+                                                    <span className="text-[10px] text-emerald-500/70 font-mono uppercase">Weekend:</span>
+                                                    <span className={cn("text-sm text-emerald-400 font-semibold", mono.className)}>₹{weekendPrice}</span>
+                                                    <span className="text-[10px] text-zinc-600">/night</span>
+                                                </div>
+                                                <div className={cn(
+                                                    "p-1 rounded-full transition-transform duration-300",
+                                                    isExpanded ? "rotate-180 bg-sky-500/10 text-sky-400" : "text-zinc-500"
+                                                )}>
+                                                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                                </div>
+                                            </div>
+                                        </button>
+
+                                        {/* Content */}
+                                        {isExpanded && (
+                                            <div className="p-4 border-t border-white/5 bg-black/40 space-y-4">
+                                                <div className="space-y-2">
+                                                    <span className="block text-[10px] text-zinc-500 font-mono uppercase tracking-wider">Room Specific Amenities</span>
+                                                    {amenities.length > 0 ? (
+                                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                                                            {amenities.map((amenityId: number) => {
+                                                                const name = resolveAmenityName(amenityId);
+                                                                return (
+                                                                    <div
+                                                                        key={amenityId}
+                                                                        className="flex items-center gap-2 p-2 rounded bg-white/5 border border-white/5 text-xs text-zinc-400"
+                                                                    >
+                                                                        <div className="w-1 h-1 bg-sky-400 rounded-full" />
+                                                                        <span className="truncate" title={name}>{name}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-xs text-zinc-600 font-mono italic">No room specific amenities configured.</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <div className="p-4 rounded-2xl bg-zinc-800/40 border border-zinc-700/50 mb-4">
+                                <Bed className="w-8 h-8 text-zinc-650" />
+                            </div>
+                            <p className="text-sm font-semibold text-zinc-500">No room types configured</p>
+                            <p className="text-xs text-zinc-700 mt-1 font-mono">This property functions as a single integrated unit</p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Features & Rules Grid */}

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Phone, ArrowRight, Loader2, Sparkles, Lock, User, Eye, EyeOff } from 'lucide-react';
-import { createBrowserClient } from '@supabase/ssr';
+import { supabase } from '@/lib/supabaseClient';
 
 import AppImage from '@/components/ui/AppImage';
 
@@ -20,11 +20,6 @@ export default function AuthClient() {
 
   // Client-side session check for history replacement
   useEffect(() => {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
     const checkSession = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {

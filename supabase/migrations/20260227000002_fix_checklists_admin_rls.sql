@@ -19,7 +19,6 @@ WITH CHECK (
         AND u.role = 'admin'
     )
 );
-
 -- For cleaning_checklist_items
 DROP POLICY IF EXISTS "Admins can manage all cleaning checklist items" ON public.cleaning_checklist_items;
 CREATE POLICY "Admins can manage all cleaning checklist items"

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import BookingCard from './BookingCard';
 import { Booking } from '@/lib/types';
 import Icon from '@/components/ui/AppIcon';
@@ -14,6 +14,58 @@ interface BookingsProps {
 
 const Bookings = ({ bookings, searchTerm, setSearchTerm, onAction }: BookingsProps) => {
   const [activeFilter, setActiveFilter] = useState<'all' | 'upcoming' | 'past' | 'cancelled'>('all');
+  const [selectedType, setSelectedType] = useState<string>('all');
+
+  const formatStayType = (type?: string) => {
+    if (!type) return 'Stay';
+    return type
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const formatStayTypePlural = (type?: string) => {
+    if (!type) return 'Stays';
+    const lower = type.toLowerCase();
+    if (lower === 'hotel') return 'Hotels';
+    if (lower === 'homestay') return 'Homestays';
+    if (lower === 'villa') return 'Villas';
+    if (lower === 'tent') return 'Tents';
+    if (lower === 'wooden') return 'Wooden Stays';
+    if (lower === 'dormitory') return 'Dormitory Stays';
+    if (lower === 'apartment') return 'Apartments';
+    if (lower === 'resort') return 'Resorts';
+    
+    const formatted = formatStayType(type);
+    if (formatted.endsWith('y')) {
+      return formatted.slice(0, -1) + 'ies';
+    }
+    return formatted + 's';
+  };
+
+  const getNormalizedType = (prop?: any) => {
+    const rawType = (prop?.type || prop?.tier || 'stay').toLowerCase();
+    if (rawType.includes('hotel')) return 'hotel';
+    if (rawType.includes('homestay') || rawType.includes('home')) return 'homestay';
+    if (rawType.includes('tent') || rawType.includes('camp')) return 'tent';
+    if (rawType.includes('wooden') || rawType.includes('cabin')) return 'wooden';
+    if (rawType.includes('dorm') || rawType.includes('hostel')) return 'dormitory';
+    if (rawType.includes('apartment') || rawType.includes('flat')) return 'apartment';
+    if (rawType.includes('villa')) return 'villa';
+    if (rawType.includes('resort')) return 'resort';
+    return rawType;
+  };
+
+  // Dynamically compute the set of unique property types available in the history
+  const availableTypes = useMemo(() => {
+    const types = new Set<string>();
+    bookings.forEach(b => {
+      if (b.properties?.type || b.properties?.tier) {
+        types.add(getNormalizedType(b.properties));
+      }
+    });
+    return Array.from(types).sort();
+  }, [bookings]);
 
   const now = new Date();
 
@@ -34,17 +86,30 @@ const Bookings = ({ bookings, searchTerm, setSearchTerm, onAction }: BookingsPro
     const checkIn = new Date(booking.check_in);
     const checkOut = new Date(booking.check_out);
 
+    let matchesTab = false;
     switch (activeFilter) {
       case 'upcoming':
-        return checkOut >= now && booking.status !== 'cancelled';
+        matchesTab = checkOut >= now && booking.status !== 'cancelled';
+        break;
       case 'past':
-        return checkOut < now && booking.status !== 'cancelled';
+        matchesTab = checkOut < now && booking.status !== 'cancelled';
+        break;
       case 'cancelled':
-        return booking.status === 'cancelled';
+        matchesTab = booking.status === 'cancelled';
+        break;
       case 'all':
       default:
-        return true;
+        matchesTab = true;
+        break;
     }
+
+    if (!matchesTab) return false;
+
+    // 3. Property Type Filter
+    if (selectedType !== 'all') {
+      return getNormalizedType(booking.properties) === selectedType;
+    }
+    return true;
   });
 
   // Calculate counts for tabs
@@ -121,6 +186,39 @@ const Bookings = ({ bookings, searchTerm, setSearchTerm, onAction }: BookingsPro
           })}
         </div>
       </div>
+
+      {/* Property Type Filter */}
+      {availableTypes.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 px-1.5 py-3 border-t border-b border-white/5">
+          <span className="text-[10px] uppercase text-zinc-500 font-bold tracking-wider mr-2">Filter by Stay:</span>
+          <button
+            onClick={() => setSelectedType('all')}
+            className={`px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-300 border
+              ${selectedType === 'all'
+                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
+                : 'bg-zinc-900/60 text-zinc-400 border-zinc-800/80 hover:border-zinc-700 hover:text-zinc-200'
+              }`}
+          >
+            All ({bookings.length})
+          </button>
+          {availableTypes.map((type) => {
+            const count = bookings.filter(b => getNormalizedType(b.properties) === type).length;
+            return (
+              <button
+                key={type}
+                onClick={() => setSelectedType(type)}
+                className={`px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-300 border
+                  ${selectedType === type
+                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
+                    : 'bg-zinc-900/60 text-zinc-400 border-zinc-800/80 hover:border-zinc-700 hover:text-zinc-200'
+                  }`}
+              >
+                {formatStayTypePlural(type)} ({count})
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* 3. Deep Glassmorphic List Container */}
       <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-2xl relative p-6 md:p-8 overflow-hidden min-h-[400px]">

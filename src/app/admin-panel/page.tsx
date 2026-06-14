@@ -62,8 +62,10 @@ export default async function AdminPanelPage() {
       guest:users!guest_id ( name, email ),
       property:properties!property_id ( 
         title,
+        room_type_prices,
         host:users!host_id ( name )
-      )
+      ),
+      booking_rooms(rooms(room_type))
     `)
     .order('created_at', { ascending: false });
 
@@ -103,6 +105,21 @@ export default async function AdminPanelPage() {
       refundPercentage = policyResult.percent;
     }
 
+    const roomTypePrices = b.property?.room_type_prices || {};
+    const roomTypeCounts = (b.booking_rooms || []).reduce((acc: Record<string, number>, br: any) => {
+      const type = br.rooms?.room_type || br.room?.room_type;
+      if (type) {
+        acc[type] = (acc[type] || 0) + 1;
+      }
+      return acc;
+    }, {});
+    const roomType = Object.keys(roomTypeCounts).length > 0 
+      ? Object.entries(roomTypeCounts).map(([type, count]) => {
+          const price = roomTypePrices[type];
+          return `${type} (${count})${price ? ` ₹${Number(price).toLocaleString('en-IN')}` : ''}`;
+        }).join(', ') 
+      : null;
+
     return {
       id: b.id,
       transactionId: `TXN-${b.id.slice(0, 8).toUpperCase()}`,
@@ -133,7 +150,8 @@ export default async function AdminPanelPage() {
       rawDate: b.created_at,
       status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
               (b.status === 'refunded' ? 'refunded' : 'pending'),
-      paymentMethod: 'Razorpay'
+      paymentMethod: 'Razorpay',
+      room_type: roomType
     };
   });
 

@@ -598,13 +598,15 @@ const HostDashboardInteractive = ({
         };
       }).filter((a): a is NonNullable<typeof a> => a !== null);
 
-      const customAmenities = formData.customAmenities?.map((name, index) => ({
-        id: 2000 + index, // Assign a unique ID for custom amenities
-        name,
-        description: 'Host added amenity',
-        available: true,
-        icon: 'CheckCircleIcon', // Default icon for custom amenities
-      })) || [];
+      const customAmenities = (formData.customAmenities || [])
+        .filter(name => name && name !== 'N/A') // Filter out empty or placeholder names
+        .map((name, index) => ({
+          id: 2000 + index, // Assign a unique ID for custom amenities
+          name,
+          description: 'Host added amenity',
+          available: true,
+          icon: 'CheckCircleIcon', // Default icon for custom amenities
+        }));
 
       const p_amenities = [...standardAmenities, ...customAmenities];
       
@@ -654,12 +656,18 @@ const HostDashboardInteractive = ({
           country: formData.country,
           location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
           total_rooms: Number(formData.totalRooms) || 0,
+          room_types: formData.roomTypes,
+          room_type_amenities: formData.roomTypeAmenities,
+          room_type_counts: formData.roomTypeCounts,
+          room_type_prices: formData.roomTypePrices,
+          room_type_weekend_prices: formData.roomTypeWeekendPrices,
           check_in_time: formData.checkInTime,
           check_out_time: formData.checkOutTime,
           latitude: formData.latitude,
           longitude: formData.longitude,
           show_specific_location: true,
           bulk_booking_discount: Number(formData.bulkBookingDiscount) || 0,
+          standard_price: parseFloat(String(formData.price)) || 0,
           updated_at: new Date().toISOString(),
         };
 
@@ -726,12 +734,18 @@ const HostDashboardInteractive = ({
             country: formData.country || '',
             location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
             total_rooms: Number(formData.totalRooms) || 0,
+            room_types: formData.roomTypes,
+            room_type_amenities: formData.roomTypeAmenities,
+            room_type_counts: formData.roomTypeCounts,
+            room_type_prices: formData.roomTypePrices,
+            room_type_weekend_prices: formData.roomTypeWeekendPrices,
             check_in_time: formData.checkInTime || '12:00 PM',
             check_out_time: formData.checkOutTime || '11:00 AM',
             latitude: formData.latitude || null,
             longitude: formData.longitude || null,
             show_specific_location: true,
             bulk_booking_discount: Number(formData.bulkBookingDiscount) || 0,
+            standard_price: parseFloat(String(formData.price)) || 0,
           };
 
           console.log('Sending API request to create property:', propertyPayload);

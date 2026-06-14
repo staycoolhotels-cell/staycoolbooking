@@ -35,7 +35,12 @@ export async function updateHostProfile(
       })
       .eq('id', userId);
 
-    if (userError) throw userError;
+    if (userError) {
+      if (userError.code === '23505' || userError.message?.includes('users_phone_unique') || userError.message?.includes('unique constraint')) {
+        throw new Error('ఈ మొబైల్ నంబర్ ఇప్పటికే మరొక ఖాతాతో నమోదు చేయబడింది. దయచేసి వేరే నంబర్‌ను ప్రయత్నించండి. (This mobile number is already registered with another account. Please try a different number.)');
+      }
+      throw userError;
+    }
 
     // 2. Update user_personal_info
     // Note: The table schema might have 'bio' and 'address' or 'location'.

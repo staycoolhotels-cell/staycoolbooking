@@ -36,6 +36,8 @@ interface BookingCardProps {
   propertyType?: string;
   maxGuests?: number;
   bulkBookingDiscount?: number;
+  roomTypePrices?: Record<string, number>;
+  roomTypeWeekendPrices?: Record<string, number>;
 }
 
 const BookingCard = ({
@@ -53,6 +55,8 @@ const BookingCard = ({
   propertyType = 'Room',
   maxGuests = 2,
   bulkBookingDiscount = 10,
+  roomTypePrices = {},
+  roomTypeWeekendPrices = {},
 }: BookingCardProps) => {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
@@ -106,6 +110,7 @@ const BookingCard = ({
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
   const [isCheckOutOpen, setIsCheckOutOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  const [selectedRoomCountsByType, setSelectedRoomCountsByType] = useState<Record<string, number>>({});
   const [hasFreeCancellation, setHasFreeCancellation] = useState(() => {
     if (typeof window !== 'undefined') {
       const val = sessionStorage.getItem(`booking_${propertyId}_hasFreeCancellation`);
@@ -113,6 +118,16 @@ const BookingCard = ({
     }
     return false;
   });
+
+  const groupedRooms = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    availableRoomsList.forEach(room => {
+      const type = room.room_type || 'Standard';
+      if (!groups[type]) groups[type] = [];
+      groups[type].push(room);
+    });
+    return groups;
+  }, [availableRoomsList]);
 
   // Save to sessionStorage when state changes
   useEffect(() => {
@@ -222,7 +237,11 @@ const BookingCard = ({
           if (typeof data === 'number') {
             setAvailableRooms(data);
             // Cap selectedRooms if it exceeds newly fetched availableRooms
-            setSelectedRooms(prev => Math.min(prev, data));
+            if (bookingType === 'single') {
+                setSelectedRooms(1);
+            } else {
+                setSelectedRooms(prev => Math.min(prev, data));
+            }
           }
         }
       } catch (err) {
@@ -275,21 +294,41 @@ const BookingCard = ({
     if (bookingType === 'single' && availableRoomsList.length > 0) {
       const firstAvailable = availableRoomsList.find((r: any) => r.is_available) || availableRoomsList[0];
       setSelectedRoomIds([firstAvailable.id]);
+      setSelectedRoomCountsByType({});
+      setSelectedRooms(1);
+    } else if (bookingType === 'bulk') {
+        // Initial bulk state
+        setSelectedRooms(1);
+        setSelectedRoomIds([]);
+        setSelectedRoomCountsByType({});
     }
   }, [bookingType, availableRoomsList]);
 
-  // Auto-selection of units — always sync with selectedRooms count
+  // Auto-selection of units — sync with selectedRoomCountsByType for bulk
   useEffect(() => {
     if (!availableRoomsList || availableRoomsList.length === 0) return;
 
-    const available = availableRoomsList.filter(r => r.is_available);
-    const requiredCount = bookingType === 'bulk' ? selectedRooms : 1;
-
-    if (available.length > 0) {
-      // Always force-select exactly requiredCount units from the available list
-      setSelectedRoomIds(available.slice(0, requiredCount).map(r => r.id));
+    if (bookingType === 'single') {
+        const available = availableRoomsList.filter(r => r.is_available);
+        if (available.length > 0 && selectedRoomIds.length === 0) {
+            setSelectedRoomIds([available[0].id]);
+        }
+        return;
     }
-  }, [availableRoomsList, bookingType, selectedRooms]);
+
+    // Bulk Booking Logic: Pick specific IDs based on counts per type
+    const newSelectedIds: string[] = [];
+    let totalCount = 0;
+
+    Object.entries(selectedRoomCountsByType).forEach(([type, count]) => {
+        const availableInType = availableRoomsList.filter(r => r.is_available && (r.room_type || 'Standard') === type);
+        newSelectedIds.push(...availableInType.slice(0, count).map(r => r.id));
+        totalCount += count;
+    });
+
+    setSelectedRoomIds(newSelectedIds);
+    setSelectedRooms(totalCount);
+  }, [availableRoomsList, bookingType, selectedRoomCountsByType]);
 
   // Auto-update guests when selected units change
   useEffect(() => {
@@ -323,15 +362,6 @@ const BookingCard = ({
     }
   }, [isBulkBookingAllowed, bookingType]);
 
-
-  if (!isHydrated) {
-    return (
-      <div className="bg-card rounded-2xl p-6 border border-border shadow-sm sticky top-24">
-        <div className="h-96 bg-muted animate-pulse rounded-lg"></div>
-      </div>
-    );
-  }
-
   const calculateNights = () => {
     if (!checkIn || !checkOut) return 0;
     const diff = checkOut.getTime() - checkIn.getTime();
@@ -341,9 +371,55 @@ const BookingCard = ({
 
   const nights = calculateNights();
 
+  // Room-specific price helper
+  const getRoomPrice = (roomType: string | null) => {
+    if (!roomType || !roomTypePrices || Object.keys(roomTypePrices).length === 0) return pricePerNight;
+    return roomTypePrices[roomType] || pricePerNight;
+  };
+
+  const selectedRoomsData = availableRoomsList.filter(r => selectedRoomIds.includes(r.id));
+
+  // Current display price (per night)
+  const displayPrice = useMemo(() => {
+    if (bookingType === 'single') {
+      const selectedRoom = selectedRoomsData[0];
+      return selectedRoom ? getRoomPrice(selectedRoom.room_type) : pricePerNight;
+    } else {
+      // For bulk, show average or just the base? Let's show base but calculation will be correct
+      return pricePerNight;
+    }
+  }, [bookingType, selectedRoomsData, pricePerNight, roomTypePrices]);
+
   // Price Calculation
   const roomsToBook = bookingType === 'bulk' ? selectedRooms : 1;
-  const baseTotal = nights * pricePerNight * roomsToBook;
+  
+  const baseTotal = useMemo(() => {
+    if (nights <= 0) return 0;
+    
+    if (bookingType === 'single') {
+        const selectedRoom = selectedRoomsData[0];
+        const price = selectedRoom ? getRoomPrice(selectedRoom.room_type) : pricePerNight;
+        return nights * price;
+    } else {
+        // Bulk booking - sum of prices for all selected rooms
+        if (selectedRoomsData.length > 0) {
+            return selectedRoomsData.reduce((sum, room) => sum + (nights * getRoomPrice(room.room_type)), 0);
+        }
+        
+        // If we have selected counts by type but availableRoomsList hasn't loaded rooms yet,
+        // use the roomTypePrices directly to avoid fallback to pricePerNight.
+        const hasSelectedCounts = Object.values(selectedRoomCountsByType).some(count => count > 0);
+        if (hasSelectedCounts) {
+            return Object.entries(selectedRoomCountsByType).reduce((sum, [type, count]) => {
+                return sum + (nights * count * getRoomPrice(type));
+            }, 0);
+        }
+
+        return nights * pricePerNight * selectedRooms;
+    }
+  }, [nights, bookingType, selectedRoomsData, pricePerNight, roomTypePrices, selectedRooms, selectedRoomCountsByType]);
+
+  const serviceFee = baseTotal * 0.1;
 
   // Discounts
   let discount = 0;
@@ -360,7 +436,6 @@ const BookingCard = ({
   }
 
   const discountedTotal = Math.max(0, baseTotal - discount);
-  const serviceFee = discountedTotal * 0.1;
 
   // Calculate selected upgrades total
   const upgradesTotal = Object.entries(selectedAmenities).reduce((sum, [id, qty]) => {
@@ -570,6 +645,13 @@ const BookingCard = ({
     },
   };
 
+  if (!isHydrated) {
+    return (
+      <div className="bg-card rounded-2xl p-6 border border-border shadow-sm sticky top-24">
+        <div className="h-96 bg-muted animate-pulse rounded-lg"></div>
+      </div>
+    );
+  }
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -596,10 +678,16 @@ const BookingCard = ({
             <div className="flex items-end justify-between mb-5">
               <div>
                 <span className="text-2xl font-bold text-white">
-                  {currency}{pricePerNight.toLocaleString('en-IN')}
+                  {bookingType === 'bulk' && nights > 0
+                    ? `${currency}${total.toLocaleString()}`
+                    : `${currency}${displayPrice.toLocaleString('en-IN')}`
+                  }
                 </span>
                 <span className="text-stone-400 text-xs font-medium ml-1">
-                  {bookingType === 'bulk' ? `/ ${unitName.toLowerCase()} / night` : '/ night'}
+                  {bookingType === 'bulk'
+                    ? (nights > 0 ? '/ total' : `/ ${unitName.toLowerCase()} / night`)
+                    : '/ night'
+                  }
                 </span>
               </div>
               <div className="flex items-center gap-1 text-[13px] bg-sky-900/25 px-2.5 py-1 rounded-full border border-sky-500/20">
@@ -768,42 +856,59 @@ const BookingCard = ({
 
               {/* Rooms Input (Only for Bulk) */}
               {bookingType === 'bulk' && (
-                <div className="space-y-2">
-                  <div className="p-3 bg-gray-900/80 border border-gray-700/60 rounded-xl flex justify-between items-center group">
-                    <div>
-                      <label className="block text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">
-                        {unitsName} to Book
-                      </label>
-                      <div className="text-sm font-medium text-white">
-                        {selectedRooms} {selectedRooms === 1 ? unitName.toLowerCase() : unitsName.toLowerCase()}
-                        {isDateSelected && (
-                          <span className="text-sky-400 text-[10px] ml-2 font-bold uppercase tracking-wider">
-                            ({availableRooms} available)
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => setSelectedRooms(Math.max(1, selectedRooms - 1))}
-                        disabled={selectedRooms <= 1}
-                        className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
-                      >
-                        <Icon name="MinusIcon" size={12} />
-                      </button>
-                      <button
-                        onClick={() => setSelectedRooms(Math.min(availableRooms, selectedRooms + 1))}
-                        disabled={selectedRooms >= availableRooms}
-                        className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
-                      >
-                        <Icon name="PlusIcon" size={12} />
-                      </button>
-                    </div>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(groupedRooms).map(([type, rooms]) => {
+                      const availableInType = rooms.filter(r => r.is_available).length;
+                      const selectedInType = selectedRoomCountsByType[type] || 0;
+                      
+                      if (availableInType === 0 && selectedInType === 0) return null;
+
+                      return (
+                        <div key={type} className="p-2 bg-gray-900/80 border border-gray-700/60 rounded-xl flex items-center justify-between gap-1.5 group">
+                          <div className="min-w-0 flex-1">
+                            <label className="block text-[9px] font-black text-sky-300/80 uppercase tracking-widest mb-0.5 group-hover:text-sky-400 transition-colors truncate">
+                              {type}
+                            </label>
+                            <div className="text-[11px] font-bold text-white truncate">
+                              {selectedInType} {selectedInType === 1 ? unitName.toLowerCase() : unitsName.toLowerCase()}
+                            </div>
+                            {isDateSelected && (availableInType - selectedInType) > 0 && (
+                                <div className={`text-[8px] font-black uppercase tracking-widest mt-0.5 ${(availableInType - selectedInType) <= 2 ? 'text-amber-400' : 'text-sky-400/30'}`}>
+                                    {(availableInType - selectedInType) === 1 ? '1 left' : `${availableInType - selectedInType} available`}
+                                </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => setSelectedRoomCountsByType(prev => ({ ...prev, [type]: Math.max(0, (prev[type] || 0) - 1) }))}
+                              disabled={selectedInType <= 0}
+                              className="w-6 h-6 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors bg-black/20"
+                            >
+                              <Icon name="MinusIcon" size={8} />
+                            </button>
+                            <button
+                              onClick={() => setSelectedRoomCountsByType(prev => ({ ...prev, [type]: Math.min(availableInType, (prev[type] || 0) + 1) }))}
+                              disabled={selectedInType >= availableInType}
+                              className="w-6 h-6 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors bg-black/20"
+                            >
+                              <Icon name="PlusIcon" size={8} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                   
                   {availableRooms > 1 && selectedRooms < availableRooms && (
                     <button
-                      onClick={() => setSelectedRooms(availableRooms)}
+                      onClick={() => {
+                          const allAvailable: Record<string, number> = {};
+                          Object.entries(groupedRooms).forEach(([type, rooms]) => {
+                              allAvailable[type] = rooms.filter(r => r.is_available).length;
+                          });
+                          setSelectedRoomCountsByType(allAvailable);
+                      }}
                       className="w-full py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 hover:text-sky-300 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all border border-sky-500/20"
                     >
                       Book All Available {unitsName} ({availableRooms})
@@ -1008,8 +1113,11 @@ const BookingCard = ({
                 <div className="space-y-3">
                   <div className="flex justify-between text-gray-300">
                     <span className="underline decoration-gray-700">
-                      {currency}{pricePerNight.toLocaleString()} x {nights} nights
-                      {roomsToBook > 1 && ` x ${roomsToBook} ${unitsName.toLowerCase()}`}
+                      {bookingType === 'single' ? (
+                        `${currency}${displayPrice.toLocaleString()} x ${nights} nights`
+                      ) : (
+                        `${roomsToBook} ${roomsToBook === 1 ? unitName.toLowerCase() : unitsName.toLowerCase()} x ${nights} nights`
+                      )}
                     </span>
                     <span>{currency}{baseTotal.toLocaleString()}</span>
                   </div>
@@ -1017,13 +1125,13 @@ const BookingCard = ({
                     <div className="flex justify-between text-emerald-400">
                       <span className="flex items-center gap-1">
                         <Icon name="TagIcon" size={14} />
-                        Bulk Discount
+                        Bulk Discount Savings
                       </span>
                       <span>-{currency}{discount.toLocaleString()}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-gray-300">
-                    <span className="underline decoration-gray-700">Service fee</span>
+                    <span className="underline decoration-gray-700">Platform Service Fee (10%)</span>
                     <span>{currency}{serviceFee.toLocaleString()}</span>
                   </div>
                   {upgradesTotal > 0 && (
@@ -1078,7 +1186,7 @@ const BookingCard = ({
         bookingDetails={{
           roomCount: selectedRooms,
           nights: nights,
-          pricePerNight: pricePerNight,
+          pricePerNight: displayPrice,
           totalPrice: total,
           discount: discount,
           propertyName: 'this property' // We might want to pass name as prop too

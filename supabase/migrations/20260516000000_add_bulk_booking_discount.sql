@@ -1,7 +1,6 @@
 -- Add bulk_booking_discount column to properties
 ALTER TABLE public.properties
 ADD COLUMN IF NOT EXISTS bulk_booking_discount numeric DEFAULT 10;
-
 -- Update create_property function to include bulk_booking_discount
 CREATE OR REPLACE FUNCTION public.create_property(
     p_name text,
@@ -145,7 +144,6 @@ BEGIN
     RETURN new_property_id;
 END;
 $$;
-
 -- Update update_property function to include bulk_booking_discount
 CREATE OR REPLACE FUNCTION public.update_property(
     p_id uuid,

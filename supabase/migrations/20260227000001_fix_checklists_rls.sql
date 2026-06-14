@@ -19,7 +19,6 @@ WITH CHECK (
         AND p.host_id = auth.uid()
     )
 );
-
 -- For cleaning_checklist_items
 DROP POLICY IF EXISTS "Hosts can manage cleaning checklist items for their properties" ON public.cleaning_checklist_items;
 CREATE POLICY "Hosts can manage cleaning checklist items for their properties"

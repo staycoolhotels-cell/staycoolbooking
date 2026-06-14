@@ -74,7 +74,7 @@ const Properties = ({
   );
 
   const tabs = [
-    { id: 'all', label: 'Portfolio Matrix', count: properties.length, icon: 'Square3Stack3DIcon', color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
+    { id: 'all', label: 'My Properties', count: properties.length, icon: 'Square3Stack3DIcon', color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
     { id: 'active', label: 'Live Assets', count: activeProperties.length, icon: 'GlobeAltIcon', color: 'text-emerald-400', bg: 'bg-emerald-500/20' },
     { id: 'offline', label: 'Maintenance Mode', count: offlineProperties.length, icon: 'MoonIcon', color: 'text-zinc-400', bg: 'bg-zinc-500/20' },
     { id: 'pending', label: 'Pending Review', count: pendingProperties.length, icon: 'ClockIcon', color: 'text-amber-400', bg: 'bg-amber-500/20' },

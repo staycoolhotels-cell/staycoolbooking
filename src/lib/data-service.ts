@@ -109,7 +109,7 @@ export const getHostBookings = cache(async (hostId: string) => {
       const supabase = createServiceClient();
       const { data, error } = await supabase
         .from('bookings')
-        .select('*, properties!inner(*), guest:users!guest_id(name, avatar_url)')
+        .select('*, properties!inner(*), guest:users!guest_id(name, avatar_url), booking_rooms(rooms(room_type))')
         .eq('properties.host_id', hostId)
         .order('created_at', { ascending: false });
 

@@ -1,11 +1,9 @@
 -- Add bulk_booking_discount column to bookings table
 ALTER TABLE public.bookings 
 ADD COLUMN IF NOT EXISTS bulk_booking_discount numeric;
-
 -- Drop functions to avoid signature conflicts
 DROP FUNCTION IF EXISTS public.create_booking_with_rooms(text, date, date, uuid, uuid, uuid[], numeric, boolean, numeric);
 DROP FUNCTION IF EXISTS public.create_bulk_booking(text, date, date, uuid, uuid, integer, numeric, boolean, numeric);
-
 -- 1. Update create_booking_with_rooms RPC
 CREATE OR REPLACE FUNCTION public.create_booking_with_rooms(
     p_booking_type text,
@@ -68,7 +66,6 @@ BEGIN
     RETURN new_booking_id;
 END;
 $$;
-
 -- 2. Update create_bulk_booking RPC
 CREATE OR REPLACE FUNCTION public.create_bulk_booking(
     p_booking_type text,
@@ -152,7 +149,6 @@ BEGIN
     RETURN new_booking_id;
 END;
 $$;
-
 -- Grant permissions
 GRANT EXECUTE ON FUNCTION public.create_booking_with_rooms(text, date, date, uuid, uuid, uuid[], numeric, boolean, numeric, numeric) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.create_booking_with_rooms(text, date, date, uuid, uuid, uuid[], numeric, boolean, numeric, numeric) TO service_role;

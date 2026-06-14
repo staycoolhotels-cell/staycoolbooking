@@ -9,10 +9,8 @@ CREATE TABLE IF NOT EXISTS public.aura_quality_scores (
     ranking_improvement TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
 -- Enable RLS
 ALTER TABLE public.aura_quality_scores ENABLE ROW LEVEL SECURITY;
-
 -- 2. Create market_comparisons table
 CREATE TABLE IF NOT EXISTS public.market_comparisons (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -21,10 +19,8 @@ CREATE TABLE IF NOT EXISTS public.market_comparisons (
     suggested_price NUMERIC NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
 -- Enable RLS
 ALTER TABLE public.market_comparisons ENABLE ROW LEVEL SECURITY;
-
 -- Policies for aura_quality_scores
 CREATE POLICY "Hosts can view their property aura scores"
 ON public.aura_quality_scores FOR SELECT
@@ -36,7 +32,6 @@ USING (
         AND p.host_id = auth.uid()
     )
 );
-
 CREATE POLICY "Admins can manage aura scores"
 ON public.aura_quality_scores FOR ALL
 TO authenticated
@@ -47,7 +42,6 @@ USING (
         AND u.role = 'admin'
     )
 );
-
 -- Policies for market_comparisons
 CREATE POLICY "Hosts can view their market comparisons"
 ON public.market_comparisons FOR SELECT
@@ -59,7 +53,6 @@ USING (
         AND p.host_id = auth.uid()
     )
 );
-
 CREATE POLICY "Admins can manage market comparisons"
 ON public.market_comparisons FOR ALL
 TO authenticated

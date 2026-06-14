@@ -2,20 +2,43 @@
 
 import React, { useState } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { toast } from 'sonner';
 
 const NewsletterSection = () => {
   const [email, setEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      // Newsletter subscription logic
+    if (!email) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to subscribe.');
+      }
+
       setIsSubscribed(true);
+      setEmail('');
       setTimeout(() => {
-        setEmail('');
         setIsSubscribed(false);
-      }, 3000);
+      }, 5000);
+    } catch (error: any) {
+      console.error('Subscription error:', error);
+      toast.error(error.message || 'An error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -57,9 +80,12 @@ const NewsletterSection = () => {
                 />
                 <button
                   type="submit"
-                  className="px-6 py-2.5 md:px-8 md:py-3 bg-sky-500 text-white rounded-lg font-bold font-sans text-sm md:text-base hover:bg-sky-600 transition-all shadow-lg hover:shadow-sky-500/20 transform hover:scale-105"
+                  disabled={isSubmitting}
+                  className={`px-6 py-2.5 md:px-8 md:py-3 bg-sky-500 text-white rounded-lg font-bold font-sans text-sm md:text-base hover:bg-sky-600 transition-all shadow-lg hover:shadow-sky-500/20 transform hover:scale-105 ${
+                    isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+                  }`}
                 >
-                  Subscribe
+                  {isSubmitting ? 'Subscribing...' : 'Subscribe'}
                 </button>
               </div>
             </form>

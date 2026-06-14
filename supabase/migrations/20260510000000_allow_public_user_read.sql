@@ -3,7 +3,6 @@
 
 -- First check if RLS is enabled
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-
 -- Add policy to allow anyone to read basic user info
 DO $$
 BEGIN

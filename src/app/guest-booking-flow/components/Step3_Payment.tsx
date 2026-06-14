@@ -19,6 +19,7 @@ interface Step3Props {
 const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [loadingRooms, setLoadingRooms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRazorpayLoaded, setIsRazorpayLoaded] = useState(false);
 
@@ -45,13 +46,18 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
   useEffect(() => {
     const fetchRoomDetails = async () => {
       if (parsedRoomIds.length > 0) {
-        const { data, error } = await supabase
-          .from('rooms')
-          .select('id, name')
-          .in('id', parsedRoomIds);
-        
-        if (!error && data) {
-          setSelectedRooms(data);
+        setLoadingRooms(true);
+        try {
+          const { data, error } = await supabase
+            .from('rooms')
+            .select('id, name, room_type')
+            .in('id', parsedRoomIds);
+          
+          if (!error && data) {
+            setSelectedRooms(data);
+          }
+        } finally {
+          setLoadingRooms(false);
         }
       }
     };
@@ -132,7 +138,37 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
   const pricePerNight = property?.price_per_night || property?.price || 0;
   // If bulk, multiply by roomCount
   const effectiveRooms = bookingType === 'bulk' ? roomCount : 1;
-  const baseTotal = pricePerNight * nightCount * effectiveRooms;
+
+  const getRoomPrice = (roomType: string | null) => {
+    const roomTypePrices = property?.room_type_prices || {};
+    if (!roomType || !roomTypePrices || Object.keys(roomTypePrices).length === 0) return pricePerNight;
+    const price = roomTypePrices[roomType];
+    return price ? Number(price) : pricePerNight;
+  };
+
+  const baseTotal = useMemo(() => {
+    if (nightCount <= 0) return 0;
+    
+    if (bookingType === 'single') {
+        const selectedRoom = selectedRooms[0];
+        const price = selectedRoom ? getRoomPrice(selectedRoom.room_type) : pricePerNight;
+        return nightCount * price;
+    } else {
+        // Bulk booking - sum of prices for all selected rooms
+        if (selectedRooms.length > 0) {
+            return selectedRooms.reduce((sum, room) => sum + (nightCount * getRoomPrice(room.room_type)), 0);
+        }
+        
+        // If we have specific room IDs but they haven't finished loading yet,
+        // we should return 0 to trigger the loading state rather than showing a wrong fallback price.
+        if (parsedRoomIds.length > 0) return 0;
+        
+        // Final fallback: use the default pricePerNight multiplied by effective room count
+        return nightCount * pricePerNight * effectiveRooms;
+    }
+  }, [nightCount, bookingType, selectedRooms, pricePerNight, property?.room_type_prices, effectiveRooms]);
+
+  const serviceFee = baseTotal * 0.1;
 
   // Calculate Bulk Discount using property's custom discount
   let discount = 0;
@@ -144,7 +180,6 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
   }
 
   const discountedSubtotal = Math.max(0, baseTotal - discount);
-  const serviceFee = discountedSubtotal * 0.1;
   
   const amenitiesTotal = amenities.reduce((sum, amenity) => {
     const count = selectedAmenities[amenity.id] || 0;
@@ -425,16 +460,24 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
             </button>
             <button
               onClick={handleInitiatePayment}
-              disabled={loading}
+              disabled={loading || loadingRooms}
               className="px-5 py-2.5 bg-primary text-white rounded-lg font-semibold flex items-center gap-2 disabled:opacity-50 text-sm"
             >
-              {loading && <Loader2 className="animate-spin h-4 w-4" />}
+              {(loading || loadingRooms) && <Loader2 className="animate-spin h-4 w-4" />}
               Confirm Booking
             </button>
           </div>
         </div>
       </div>
-      <div className="p-5 sm:p-6 rounded-xl shadow-brand-md bg-card/50 backdrop-blur-md border border-brand-energetic/20 h-fit">
+      <div className="p-5 sm:p-6 rounded-xl shadow-brand-md bg-card/50 backdrop-blur-md border border-brand-energetic/20 h-fit relative overflow-hidden">
+        {loadingRooms && (
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] z-10 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="animate-spin h-6 w-6 text-sky-400" />
+              <span className="text-[10px] font-bold text-sky-400 uppercase tracking-widest">Updating Prices...</span>
+            </div>
+          </div>
+        )}
         <h3 className="text-lg font-bold text-text-primary mb-3">Booking Summary</h3>
         <div className="space-y-2">
           {bookingCart.map((p) => (
@@ -467,18 +510,18 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-text-primary">
-              Subtotal ({nightCount} nights{effectiveRooms > 1 && ` x ${effectiveRooms} ${unitsName.toLowerCase()}`})
+              Accommodation Charges ({nightCount} nights{effectiveRooms > 1 && ` x ${effectiveRooms} ${unitsName.toLowerCase()}`})
             </span>{' '}
             <span>₹{baseTotal.toLocaleString('en-IN')}</span>
           </div>
           {discount > 0 && (
             <div className="flex justify-between text-sm text-green-400">
-              <span>Bulk Discount</span>
+              <span>Bulk Discount Savings</span>
               <span>-₹{discount.toLocaleString('en-IN')}</span>
             </div>
           )}
           <div className="flex justify-between text-sm">
-            <span className="text-text-primary text-sky-400">Service Fee (10%)</span>
+            <span className="text-text-primary text-sky-400">Platform Service Fee (10%)</span>
             <span className="text-sky-400">₹{serviceFee.toLocaleString('en-IN')}</span>
           </div>
           {amenitiesTotal > 0 && (

@@ -118,9 +118,25 @@ export default async function HostDashboardPage() {
       }
     }
 
+    const roomTypePrices = b.properties?.room_type_prices || {};
+    const roomTypeCounts = (b.booking_rooms || []).reduce((acc: Record<string, number>, br: any) => {
+      const type = br.rooms?.room_type || br.room?.room_type;
+      if (type) {
+        acc[type] = (acc[type] || 0) + 1;
+      }
+      return acc;
+    }, {});
+    const roomType = Object.keys(roomTypeCounts).length > 0 
+      ? Object.entries(roomTypeCounts).map(([type, count]) => {
+          const price = roomTypePrices[type];
+          return `${type} (${count})${price ? ` ₹${Number(price).toLocaleString('en-IN')}` : ''}`;
+        }).join(', ') 
+      : null;
+
     return {
       ...b,
       amenities: selectedAmenities,
+      room_type: roomType,
     };
   });
 
@@ -140,7 +156,8 @@ export default async function HostDashboardPage() {
       amount: Number(b.total_price),
       date: new Date(b.created_at).toLocaleDateString(),
       status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 'pending',
-      paymentMethod: 'Razorpay'
+      paymentMethod: 'Razorpay',
+      room_type: b.room_type
     }));
 
   // Group transactions by month for the chart

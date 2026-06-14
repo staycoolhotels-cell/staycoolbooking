@@ -8,6 +8,7 @@ import AppImage from '@/components/ui/AppImage';
 import { toast } from 'sonner';
 
 const ContactPage = () => {
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   return (
     <main className="min-h-screen bg-background relative overflow-hidden">
       <div className="absolute inset-0 z-0">
@@ -21,7 +22,7 @@ const ContactPage = () => {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
       </div>
 
-      
+
 
       <div className="relative z-10 container mx-auto px-4 flex flex-col items-center justify-center min-h-screen pt-24">
         <motion.div
@@ -44,20 +45,43 @@ const ContactPage = () => {
           transition={{ duration: 0.9, delay: 0.3, ease: 'easeOut' }}
           className="w-full max-w-3xl bg-surface/5 backdrop-blur-2xl border border-primary/20 rounded-3xl p-6 md:p-10"
         >
-          <form 
+          <form
             className="space-y-6"
             onSubmit={async (e) => {
               e.preventDefault();
+              setIsSubmitting(true);
               const formData = new FormData(e.currentTarget);
               const data = Object.fromEntries(formData.entries());
-              
-              console.log('Contact inquiry:', data);
-              
-              // Simulate API call
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              
-              toast.success('Inquiry sent successfully! Our team will contact you soon.');
-              (e.target as HTMLFormElement).reset();
+
+              try {
+                const response = await fetch('/api/contact', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    name: data.name,
+                    email: data.email,
+                    phone: data.phone,
+                    subject: data.subject,
+                    message: data.message,
+                  }),
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                  throw new Error(result.error || 'Failed to send inquiry.');
+                }
+
+                toast.success('Inquiry sent successfully! Our team will contact you soon.');
+                (e.target as HTMLFormElement).reset();
+              } catch (error: any) {
+                console.error('Submission error:', error);
+                toast.error(error.message || 'Failed to send inquiry. Please try again.');
+              } finally {
+                setIsSubmitting(false);
+              }
             }}
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -141,12 +165,15 @@ const ContactPage = () => {
             </div>
             <div className="pt-6 text-center">
               <motion.button
-                whileHover={{ scale: 1.05, boxShadow: '0px 0px 20px rgba(14, 165, 233, 0.5)' }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={isSubmitting ? {} : { scale: 1.05, boxShadow: '0px 0px 20px rgba(14, 165, 233, 0.5)' }}
+                whileTap={isSubmitting ? {} : { scale: 0.98 }}
                 type="submit"
-                className="bg-primary text-primary-foreground font-bold py-3 px-12 rounded-full text-base transition-shadow"
+                disabled={isSubmitting}
+                className={`bg-primary text-primary-foreground font-bold py-3 px-12 rounded-full text-base transition-shadow ${
+                  isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
-                Send Inquiry
+                {isSubmitting ? 'Sending Inquiry...' : 'Send Inquiry'}
               </motion.button>
             </div>
           </form>
@@ -161,10 +188,13 @@ const ContactPage = () => {
               <span className="text-xs">staycoolhotels@gmail.com</span>
             </a>
 
-            <div className="flex flex-col items-center gap-2 text-text-secondary text-center">
-              <Icon name="MapPin" size={24} />
-              <span className="text-xs">Rasoolpet, Phirangipuram</span>
-            </div>
+            <a
+              href="tel:+919121917221"
+              className="flex flex-col items-center gap-2 text-text-secondary hover:text-primary transition-colors text-center"
+            >
+              <Icon name="Phone" size={24} />
+              <span className="text-xs">+91 9121917221</span>
+            </a>
           </div>
         </motion.div>
       </div>

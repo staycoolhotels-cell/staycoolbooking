@@ -11,17 +11,131 @@ interface Amenity {
 
 interface AmenitiesSectionProps {
   amenities: Amenity[];
+  roomTypeAmenities?: Record<string, number[]>;
+  roomTypeCounts?: Record<string, number>;
 }
 
-const AmenitiesSection = ({ amenities }: AmenitiesSectionProps) => {
-  const [showAll, setShowAll] = useState(false);
+const AmenitiesSection = ({ amenities, roomTypeAmenities, roomTypeCounts }: AmenitiesSectionProps) => {
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
-  const availableAmenities = amenities.filter((a) => a.available);
-  const unavailableAmenities = amenities.filter((a) => !a.available);
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
-  const displayLimit = 4;
-  const displayedAvailable = showAll ? availableAmenities : availableAmenities.slice(0, displayLimit);
-  const hasMore = availableAmenities.length > displayLimit || unavailableAmenities.length > 0;
+  // Group amenities by room type if data is available
+  const hasRoomTypeAmenities = roomTypeAmenities && Object.keys(roomTypeAmenities).length > 0;
+  
+  let groupedAmenities: Record<string, Amenity[]> = {};
+  let globalAmenities: Amenity[] = [];
+
+  if (hasRoomTypeAmenities) {
+    // 1. Map amenities by ID for easy lookup
+    const amenityMap = new Map<number, Amenity>();
+    amenities.forEach(a => amenityMap.set(a.id, a));
+
+    // 2. Identify global amenities (those not assigned to any specific room type)
+    const assignedIds = new Set<number>();
+    Object.values(roomTypeAmenities).forEach(ids => {
+        ids.forEach(id => assignedIds.add(id));
+    });
+    globalAmenities = amenities.filter(a => !assignedIds.has(a.id));
+
+    // 3. Group the rest by room type
+    Object.entries(roomTypeAmenities).forEach(([roomType, ids]) => {
+      const validAmenities = ids
+        .map(id => amenityMap.get(id))
+        .filter((a): a is Amenity => a !== undefined);
+      
+      if (validAmenities.length > 0) {
+        groupedAmenities[roomType] = validAmenities;
+      }
+    });
+  } else {
+    // Fallback: treat all amenities as global if no grouping data
+    globalAmenities = amenities;
+  }
+
+  const renderAmenityGrid = (amenityList: Amenity[], title?: string) => {
+    const sectionKey = title || 'Property';
+    const isExpanded = !!expandedSections[sectionKey];
+
+    const available = amenityList.filter((a) => a.available);
+    const unavailable = amenityList.filter((a) => !a.available);
+
+    return (
+      <div className="mb-4 last:mb-0">
+        <button 
+            onClick={() => toggleSection(sectionKey)}
+            className="w-full flex items-center justify-between text-left p-4 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.05] transition-colors group"
+        >
+            <div className="flex items-center gap-3 text-sm font-bold text-sky-400 uppercase tracking-widest">
+                <Icon name={title === 'Shared' ? 'SparklesIcon' : title ? 'Bed' : 'Squares2X2Icon'} size={18} />
+                {title ? `${title} Amenities` : 'All Amenities'}
+                <span className="text-xs text-white/30 ml-2 bg-white/5 px-2 py-0.5 rounded-full">{amenityList.length}</span>
+            </div>
+            <Icon 
+                name="ChevronDownIcon" 
+                size={18} 
+                className={`text-zinc-500 transition-transform duration-300 ${isExpanded ? 'rotate-180 text-sky-400' : ''}`} 
+            />
+        </button>
+        
+        {isExpanded && (
+            <div className="animate-in fade-in slide-in-from-top-2 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 mb-4">
+                  {available.map((amenity) => (
+                    <div
+                      key={amenity.id}
+                      className="group/item flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.06] hover:border-white/10 transition-colors duration-300"
+                    >
+                      <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 bg-success/10 sm:bg-white/[0.05] rounded-full sm:rounded-xl flex items-center justify-center group-hover/item:bg-primary/20 transition-colors border border-success/20 sm:border-white/5 group-hover/item:border-primary/30">
+                        <Icon name={amenity.icon} size={16} className="text-success sm:text-white/70 group-hover/item:text-primary transition-colors w-3 h-3 sm:w-4 sm:h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0 flex flex-col justify-center h-full">
+                        <h3 className="text-[11px] sm:text-sm font-medium text-white/80 group-hover/item:text-white transition-colors truncate">
+                          {amenity.name}
+                        </h3>
+                        {amenity.description && (
+                          <p className="hidden sm:block text-[10px] sm:text-xs text-zinc-400 mt-0.5 line-clamp-2">{amenity.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {unavailable.length > 0 && (
+                  <div className="pt-4 border-t border-white/5 mt-4">
+                    <h3 className="text-xs font-semibold tracking-widest text-white/40 uppercase mb-4 flex items-center gap-2">
+                      <Icon name="NoSymbolIcon" size={14} />
+                      <span>Not Available</span>
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
+                      {unavailable.map((amenity) => (
+                        <div
+                          key={amenity.id}
+                          className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-3 p-3 bg-white/[0.01] rounded-xl opacity-50"
+                        >
+                          <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-white/[0.03] rounded-lg">
+                            <Icon name={amenity.icon} size={16} className="text-zinc-600 sm:!w-5 sm:!h-5" />
+                          </div>
+                          <div className="flex-1 min-w-0 flex flex-col justify-center h-full">
+                            <h3 className="text-[11px] sm:text-sm font-medium text-zinc-500 line-through truncate leading-tight">
+                              {amenity.name}
+                            </h3>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-3xl p-5 md:p-8 relative overflow-hidden">
@@ -37,72 +151,17 @@ const AmenitiesSection = ({ amenities }: AmenitiesSectionProps) => {
         </h2>
       </div>
 
-      <div className={`grid grid-cols-2 gap-2 sm:gap-4 ${hasMore && !showAll ? 'mb-6' : 'mb-8'}`}>
-        {displayedAvailable.map((amenity) => (
-          <div
-            key={amenity.id}
-            className="group flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.06] hover:border-white/10 transition-colors duration-300"
-          >
-            <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 bg-success/10 sm:bg-white/[0.05] rounded-full sm:rounded-xl flex items-center justify-center group-hover:bg-primary/20 transition-colors border border-success/20 sm:border-white/5 group-hover:border-primary/30">
-              <Icon name={amenity.icon} size={16} className="text-success sm:text-white/70 group-hover:text-primary transition-colors w-3 h-3 sm:w-4 sm:h-4" />
-            </div>
-            <div className="flex-1 min-w-0 flex flex-col justify-center h-full">
-              <h3 className="text-[11px] sm:text-sm font-medium text-white/80 group-hover:text-white transition-colors truncate">
-                {amenity.name}
-              </h3>
-              {amenity.description && (
-                <p className="hidden sm:block text-[10px] sm:text-xs text-zinc-400 mt-0.5 line-clamp-2">{amenity.description}</p>
-              )}
-            </div>
+      {hasRoomTypeAmenities ? (
+          <div className="space-y-2">
+             {globalAmenities.length > 0 && renderAmenityGrid(globalAmenities, "Shared")}
+             {Object.entries(groupedAmenities).map(([roomType, typeAmenities]) => (
+                 <div key={roomType}>
+                    {renderAmenityGrid(typeAmenities, roomType)}
+                 </div>
+             ))}
           </div>
-        ))}
-      </div>
-
-      {!showAll && hasMore && (
-        <button
-          onClick={() => setShowAll(true)}
-          className="w-full md:w-auto px-8 py-3 bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 rounded-xl text-white font-semibold transition-all duration-300 flex items-center justify-center gap-2"
-        >
-          <span>Show all {amenities.length} amenities</span>
-        </button>
-      )}
-
-      {showAll && unavailableAmenities.length > 0 && (
-        <div className="pt-8 border-t border-white/5">
-          <h3 className="text-sm font-semibold tracking-widest text-white/40 uppercase mb-5 flex items-center gap-2">
-            <Icon name="NoSymbolIcon" size={16} />
-            <span>Not Available</span>
-            <div className="h-px bg-gradient-to-r from-white/10 to-transparent flex-1 ml-2" />
-          </h3>
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            {unavailableAmenities.map((amenity) => (
-              <div
-                key={amenity.id}
-                className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-3 p-3 bg-white/[0.01] rounded-xl opacity-50"
-              >
-                <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-white/[0.03] rounded-lg">
-                  <Icon name={amenity.icon} size={16} className="text-zinc-600 sm:!w-5 sm:!h-5" />
-                </div>
-                <div className="flex-1 min-w-0 flex flex-col justify-center h-full">
-                  <h3 className="text-[11px] sm:text-sm font-medium text-zinc-500 line-through truncate leading-tight">
-                    {amenity.name}
-                  </h3>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {showAll && hasMore && (
-        <div className="pt-8">
-          <button
-            onClick={() => setShowAll(false)}
-            className="w-full md:w-auto px-8 py-3 bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 rounded-xl text-white font-semibold transition-all duration-300 flex items-center justify-center gap-2"
-          >
-            <span>Show less</span>
-          </button>
-        </div>
+      ) : (
+          renderAmenityGrid(globalAmenities)
       )}
     </div>
   );

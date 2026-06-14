@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
 import { Booking, Property } from '@/lib/types';
@@ -23,6 +23,7 @@ const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistory
     const [selectedBooking, setSelectedBooking] = useState<(Booking & { properties: Partial<Property> }) | null>(null);
     const [reviewBooking, setReviewBooking] = useState<(Booking & { properties: Partial<Property> }) | null>(null);
     const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
+    const [selectedType, setSelectedType] = useState<string>('all');
 
     // On mount: fetch which bookings are already reviewed from DB
     useEffect(() => {
@@ -46,10 +47,12 @@ const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistory
             });
     }, [guestId, bookings]);
 
-    // Sort bookings by date (most recent first)
-    const sortedBookings = [...bookings].sort(
-        (a, b) => new Date(b.check_in).getTime() - new Date(a.check_in).getTime()
-    );
+    // Sort bookings by creation date (most recent first)
+    const sortedBookings = useMemo(() => {
+        return [...bookings].sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+    }, [bookings]);
 
     const formatStayType = (type?: string) => {
         if (!type) return 'Stay';
@@ -59,7 +62,55 @@ const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistory
             .join(' ');
     };
 
-    const displayedBookings = showAll ? sortedBookings : sortedBookings.slice(0, 2);
+    const formatStayTypePlural = (type?: string) => {
+        if (!type) return 'Stays';
+        const lower = type.toLowerCase();
+        if (lower === 'hotel') return 'Hotels';
+        if (lower === 'homestay') return 'Homestays';
+        if (lower === 'villa') return 'Villas';
+        if (lower === 'tent') return 'Tents';
+        if (lower === 'wooden') return 'Wooden Stays';
+        if (lower === 'dormitory') return 'Dormitory Stays';
+        if (lower === 'apartment') return 'Apartments';
+        if (lower === 'resort') return 'Resorts';
+        
+        const formatted = formatStayType(type);
+        if (formatted.endsWith('y')) {
+            return formatted.slice(0, -1) + 'ies';
+        }
+        return formatted + 's';
+    };
+
+    const getNormalizedType = (prop?: Partial<Property>) => {
+        const rawType = (prop?.type || prop?.tier || 'stay').toLowerCase();
+        if (rawType.includes('hotel')) return 'hotel';
+        if (rawType.includes('homestay') || rawType.includes('home')) return 'homestay';
+        if (rawType.includes('tent') || rawType.includes('camp')) return 'tent';
+        if (rawType.includes('wooden') || rawType.includes('cabin')) return 'wooden';
+        if (rawType.includes('dorm') || rawType.includes('hostel')) return 'dormitory';
+        if (rawType.includes('apartment') || rawType.includes('flat')) return 'apartment';
+        if (rawType.includes('villa')) return 'villa';
+        if (rawType.includes('resort')) return 'resort';
+        return rawType;
+    };
+
+    // Dynamically compute the set of unique property types available in the history
+    const availableTypes = useMemo(() => {
+        const types = new Set<string>();
+        bookings.forEach(b => {
+            if (b.properties?.type || b.properties?.tier) {
+                types.add(getNormalizedType(b.properties));
+            }
+        });
+        return Array.from(types).sort();
+    }, [bookings]);
+
+    const filteredBookings = useMemo(() => {
+        if (selectedType === 'all') return sortedBookings;
+        return sortedBookings.filter(b => getNormalizedType(b.properties) === selectedType);
+    }, [sortedBookings, selectedType]);
+
+    const displayedBookings = showAll ? filteredBookings : filteredBookings.slice(0, 2);
 
     const totalBookings = bookings.length;
     const totalSpent = bookings.reduce((acc, curr) => acc + curr.total_price, 0);
@@ -123,6 +174,43 @@ const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistory
                     </div>
                 </div>
 
+                {/* Property Type Filter */}
+                {availableTypes.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 mb-6 pb-6 border-b border-zinc-800/60">
+                        <span className="text-[10px] uppercase text-zinc-500 font-bold tracking-wider mr-2">Filter by Stay:</span>
+                        <button
+                            onClick={() => {
+                                setSelectedType('all');
+                            }}
+                            className={`px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-300 border
+                                ${selectedType === 'all'
+                                    ? 'bg-sky-500/15 text-sky-400 border-sky-500/50 shadow-lg shadow-sky-500/10'
+                                    : 'bg-zinc-900/60 text-zinc-400 border-zinc-800/80 hover:border-zinc-700 hover:text-zinc-200'
+                                }`}
+                        >
+                            All ({bookings.length})
+                        </button>
+                        {availableTypes.map((type) => {
+                            const count = bookings.filter(b => getNormalizedType(b.properties) === type).length;
+                            return (
+                                <button
+                                    key={type}
+                                    onClick={() => {
+                                        setSelectedType(type);
+                                    }}
+                                    className={`px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-300 border
+                                        ${selectedType === type
+                                            ? 'bg-sky-500/15 text-sky-400 border-sky-500/50 shadow-lg shadow-sky-500/10'
+                                            : 'bg-zinc-900/60 text-zinc-400 border-zinc-800/80 hover:border-zinc-700 hover:text-zinc-200'
+                                        }`}
+                                >
+                                    {formatStayTypePlural(type)} ({count})
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
                 <div className="space-y-4">
                     {displayedBookings.length > 0 ? (
                         displayedBookings.map((booking, index) => (
@@ -153,16 +241,16 @@ const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistory
                                     <p className="text-[10px] text-zinc-500 truncate">{booking.properties.location}</p>
                                     <div className="flex flex-wrap items-center gap-1.5 xs:gap-2 mt-0.5 min-w-0">
                                         <p className="text-[10px] text-sky-400 font-medium truncate shrink-0">
-                                            {booking.guests || 1} {(booking.guests || 1) === 1 ? 'Guest' : 'Guests'} • {booking.total_rooms_booked || 1} {(booking.total_rooms_booked || 1) === 1 ? (booking.properties.type?.toLowerCase().includes('tent') ? 'Tent' : 'Room') : (booking.properties.type?.toLowerCase().includes('tent') ? 'Tents' : 'Rooms')}
+                                            {booking.guests || 1} {(booking.guests || 1) === 1 ? 'Guest' : 'Guests'} • {booking.total_rooms_booked || 1} {(booking.total_rooms_booked || 1) === 1 ? (getNormalizedType(booking.properties).includes('tent') ? 'Tent' : 'Room') : (getNormalizedType(booking.properties).includes('tent') ? 'Tents' : 'Rooms')}
                                         </p>
                                         <span className={`px-1.5 py-0 rounded-[4px] text-[7px] font-black uppercase tracking-wider border shrink-0 ${booking.booking_type === 'bulk' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-zinc-800/60 text-zinc-500 border-zinc-700/50'}`}>
                                             {booking.booking_type === 'bulk' 
                                                 ? `Bulk ${booking.bulk_booking_discount || booking.properties?.bulk_booking_discount ? `(${booking.bulk_booking_discount || booking.properties?.bulk_booking_discount}%)` : ''}` 
                                                 : 'Normal'}
                                         </span>
-                                        {booking.properties?.type && (
+                                        {(booking.properties?.type || booking.properties?.tier) && (
                                             <span className="px-1.5 py-0 rounded-[4px] text-[7px] font-black uppercase tracking-wider border shrink-0 bg-sky-500/10 text-sky-400 border-sky-500/20">
-                                                {formatStayType(booking.properties.type)}
+                                                {formatStayType(booking.properties.type || booking.properties.tier)}
                                             </span>
                                         )}
                                     </div>
@@ -248,7 +336,7 @@ const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistory
                     )}
                 </div>
 
-                {bookings.length > 2 && (
+                {filteredBookings.length > 2 && (
                     <button
                         onClick={() => setShowAll(!showAll)}
                         className="w-full mt-6 py-3 text-xs font-bold uppercase tracking-widest text-sky-400 hover:text-white hover:bg-white/5 rounded-xl transition-all border border-transparent hover:border-sky-500/20"

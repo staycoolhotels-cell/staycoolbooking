@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient';
 import Icon from '@/components/ui/AppIcon';
 import { toast } from 'sonner';
-import { createBrowserClient } from '@supabase/ssr';
 
 interface SmartEstateManagementProps {
   properties?: Property[];
@@ -15,11 +14,6 @@ interface SmartEstateManagementProps {
 
 const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ properties: propData = [], onToggleStatus }) => {
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
-
-  const supabaseClient = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
 
   const [realMetrics, setRealMetrics] = useState<Record<string, { score: number; feedback: string[] }>>({});
   const [loadingMetrics, setLoadingMetrics] = useState(true);
@@ -35,7 +29,7 @@ const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ propertie
       const propertyIds = propData.map(p => p.id);
 
       try {
-        const { data: reviews, error } = await supabaseClient
+        const { data: reviews, error } = await supabase
           .from('reviews')
           .select('property_id, rating, cleanliness_rating, accuracy_rating, communication_rating, location_rating, check_in_rating, value_rating')
           .in('property_id', propertyIds);

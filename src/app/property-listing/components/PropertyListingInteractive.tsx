@@ -145,6 +145,10 @@ interface PropertyData {
   categoryRatings?: { name: string; score: number; icon: string }[];
   badges?: string[];
   bulkBookingDiscount?: number;
+  roomTypeCounts?: Record<string, number>;
+  roomTypeAmenities?: Record<string, number[]>;
+  roomTypePrices?: Record<string, number>;
+  roomTypeWeekendPrices?: Record<string, number>;
 }
 
 interface PropertyListingInteractiveProps {
@@ -348,9 +352,14 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                 highlights={propertyData.highlights}
                 checkInTime={propertyData.checkInTime}
                 checkOutTime={propertyData.checkOutTime}
+                roomTypeCounts={propertyData.roomTypeCounts}
               />
 
-              <AmenitiesSection amenities={propertyData.amenities} />
+              <AmenitiesSection 
+                amenities={propertyData.amenities} 
+                roomTypeAmenities={propertyData.roomTypeAmenities}
+                roomTypeCounts={propertyData.roomTypeCounts}
+              />
 
               {propertyData.upsellAmenities && propertyData.upsellAmenities.length > 0 && (
                 <div className="py-8 border-t border-white/5">
@@ -472,6 +481,8 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                   propertyType={propertyData.propertyType}
                   maxGuests={propertyData.maxGuests}
                   bulkBookingDiscount={propertyData.bulkBookingDiscount}
+                  roomTypePrices={propertyData.roomTypePrices}
+                  roomTypeWeekendPrices={propertyData.roomTypeWeekendPrices}
                 />
               </div>
             </div>
@@ -519,6 +530,8 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                   propertyType={propertyData.propertyType}
                   maxGuests={propertyData.maxGuests}
                   bulkBookingDiscount={propertyData.bulkBookingDiscount}
+                  roomTypePrices={propertyData.roomTypePrices}
+                  roomTypeWeekendPrices={propertyData.roomTypeWeekendPrices}
                 />
               </div>
             </div>

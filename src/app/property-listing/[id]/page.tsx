@@ -150,6 +150,34 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         .eq('property_id', id)
         .neq('status', 'cancelled');
 
+    // Fetch room sub-units to count by type (Single / Double)
+    const { data: roomsList } = await adminSupabase
+        .from('rooms')
+        .select('room_type')
+        .eq('property_id', id);
+
+    // Build room type counts map
+    const roomTypeCountsMap: Record<string, number> = {};
+    
+    // 1. Prioritize distributed counts from properties table if available
+    const rawRoomTypeCounts = property.room_type_counts;
+    if (rawRoomTypeCounts && typeof rawRoomTypeCounts === 'object') {
+        Object.entries(rawRoomTypeCounts).forEach(([type, count]) => {
+            const numCount = Number(count);
+            if (type && numCount > 0) {
+                roomTypeCountsMap[type] = numCount;
+            }
+        });
+    }
+
+    // 2. Fallback to counting actual rooms if properties.room_type_counts is empty
+    if (Object.keys(roomTypeCountsMap).length === 0) {
+        (roomsList || []).forEach((r: { room_type: string | null }) => {
+            const t = (r.room_type || '').trim();
+            if (t) roomTypeCountsMap[t] = (roomTypeCountsMap[t] || 0) + 1;
+        });
+    }
+
     // Fetch real-time nearby places using Google Places API
     const fullAddress = property.show_specific_location
         ? `${property.address_line1 || ''} ${property.address_line2 || ''}, ${property.city || ''}, ${property.state || ''} ${property.postal_code || ''}`.trim()
@@ -303,7 +331,11 @@ export default async function PropertyListingPage({ params }: { params: Promise<
             { name: 'Value', score: calculateAverage(reviews || [], 'value_rating'), icon: 'TagIcon' }
         ],
         badges: ['Great hospitality', 'Clean', 'Great communication', 'Quiet area', 'Value for money'],
-        bulkBookingDiscount: property.bulk_booking_discount !== undefined && property.bulk_booking_discount !== null ? property.bulk_booking_discount : 10
+        bulkBookingDiscount: property.bulk_booking_discount !== undefined && property.bulk_booking_discount !== null ? property.bulk_booking_discount : 10,
+        roomTypeCounts: roomTypeCountsMap,
+        roomTypeAmenities: property.room_type_amenities || {},
+        roomTypePrices: property.room_type_prices || {},
+        roomTypeWeekendPrices: property.room_type_weekend_prices || {},
     };
 
     const jsonLd = {

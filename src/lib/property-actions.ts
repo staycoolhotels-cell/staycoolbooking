@@ -174,6 +174,7 @@ export async function addProperty(prevState: unknown, formData: FormData) {
         pan_url,
         noc_url,
         images: imageUrls,
+        standard_price: price_per_night,
         status: 'pending' // New properties start as pending
       },
     ])
@@ -232,6 +233,7 @@ export const createProperty = async (propertyData: Omit<Property, 'id' | 'create
       {
         ...propertyData,
         host_id: user.id,
+        standard_price: propertyData.price_per_night || propertyData.price,
         status: 'pending', // Explicitly set status to pending
       },
     ])
@@ -307,6 +309,60 @@ export const updatePropertyPrice = async (propertyId: string, suggestedPrice: nu
 
   return { success: true, data };
 };
+
+export const updatePropertyRoomTypePrice = async (propertyId: string, roomType: string, suggestedPrice: number) => {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  // 1. Manually verify ownership
+  const { data: propData, error: propError } = await supabaseAdmin
+    .from('properties')
+    .select('host_id, room_type_prices')
+    .eq('id', propertyId)
+    .single();
+
+  if (propError || !propData) {
+    console.error('Error verifying property ownership:', propError);
+    throw new Error('Property not found or unauthorized access');
+  }
+
+  if (propData.host_id !== user.id) {
+    console.error('Unauthorized price update attempt:', { userId: user.id, hostId: propData.host_id });
+    throw new Error('Unauthorized: You do not own this property');
+  }
+
+  // 2. Perform the update using admin client to update the room type price
+  const currentPrices = propData.room_type_prices || {};
+  const updatedPrices = {
+    ...currentPrices,
+    [roomType]: suggestedPrice.toString()
+  };
+
+  const { data, error } = await supabaseAdmin
+    .from('properties')
+    .update({ room_type_prices: updatedPrices })
+    .eq('id', propertyId)
+    .select();
+
+  if (error) {
+    console.error('Error updating property room type price via admin:', error);
+    throw new Error('An unexpected error occurred. Please try again.');
+  }
+
+  // Invalidate caches
+  revalidateTag(CACHE_TAGS.properties);
+  if (user.id) revalidateTag(CACHE_TAGS.host_properties(user.id));
+  revalidatePath('/homepage', 'page');
+  revalidatePath('/', 'layout');
+  revalidatePath('/property-listing/[id]', 'page');
+
+  return { success: true, data };
+};
+
 
 export const deleteProperty = async (propertyId: string) => {
   const supabase = await createSupabaseServerClient();

@@ -19,6 +19,64 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
 
     if (!booking) return null;
 
+    const nights = differenceInDays(new Date(booking.check_out), new Date(booking.check_in)) || 1;
+    const discountPct = (booking.bulk_booking_discount || (booking as any).properties?.bulk_booking_discount || 0) / 100;
+
+    const displayRoomType = (() => {
+        if (booking.room_type) return booking.room_type;
+        const totalRooms = booking.total_rooms_booked || 1;
+        const propertyRoomTypes = (booking.properties as any)?.room_types || 
+                              ((booking.properties as any)?.room_type_counts 
+                                ? Object.keys((booking.properties as any).room_type_counts) 
+                                : []);
+        const standardPrice = booking.properties?.standard_price || booking.properties?.price || 0;
+        if (propertyRoomTypes.length > 0) {
+            return `${propertyRoomTypes[0]} (${totalRooms})${standardPrice ? ` ₹${Number(standardPrice).toLocaleString('en-IN')}` : ''}`;
+        }
+        return `Standard Room (${totalRooms})${standardPrice ? ` ₹${Number(standardPrice).toLocaleString('en-IN')}` : ''}`;
+    })();
+
+    // Compute pre-discount base from room_type breakdown × nights
+    let baseAccommodationFromRoomType = 0;
+    if (displayRoomType) {
+        displayRoomType.split(', ').forEach((type) => {
+            const match = type.match(/^(.*)\s\((\d+)\)(?:\s(?:₹|Rs\.)\s?([\d,.]+))?$/);
+            const count = match ? parseInt(match[2]) : 1;
+            const pricePerUnit = match && match[3] ? parseFloat(match[3].replace(/,/g, '')) : 0;
+            baseAccommodationFromRoomType += count * pricePerUnit * nights;
+        });
+    }
+
+    // Amenities & Cancellation Fee
+    const amenitiesTotalFromBooking = (booking as any).amenities?.reduce((sum: number, amenity: any) => sum + (amenity.price * amenity.count), 0) || 0;
+    const freeCancellationFee = booking.free_cancellation_fee || 0;
+
+    let baseAccommodation = 0;
+    let serviceFee = 0;
+    let discountSavings = 0;
+
+    // Source of truth for display: room breakdown if available, else reverse-engineer from total_price
+    if (baseAccommodationFromRoomType > 0) {
+        baseAccommodation = baseAccommodationFromRoomType;
+        serviceFee = Math.round(baseAccommodation * 0.1);
+        discountSavings = Math.round(baseAccommodation * discountPct);
+    } else {
+        // Reverse engineer from total_price
+        // total_price - amenitiesTotalFromBooking - freeCancellationFee = base * (1.1 - discountPct)
+        const accommodationAndFee = booking.total_price - amenitiesTotalFromBooking - freeCancellationFee;
+        baseAccommodation = Math.round(accommodationAndFee / (1.1 - discountPct));
+        serviceFee = Math.round(baseAccommodation * 0.1);
+        discountSavings = Math.round(baseAccommodation * discountPct);
+    }
+
+    // Dynamic fallback for upgrades/amenities when booking.amenities is not populated or incomplete
+    const accommodationSubtotal = Math.round(baseAccommodation + serviceFee - discountSavings) + freeCancellationFee;
+    const dynamicAmenitiesTotal = booking.total_price - accommodationSubtotal;
+    const amenitiesTotal = dynamicAmenitiesTotal > 0 ? dynamicAmenitiesTotal : amenitiesTotalFromBooking;
+
+    const expectedTotal = Math.round(baseAccommodation + serviceFee - discountSavings) + amenitiesTotal + freeCancellationFee;
+    const showPriceWarning = baseAccommodationFromRoomType > 0 && Math.abs(expectedTotal - booking.total_price) > 50;
+
     const refundTransaction = transactions.find(t => t.id === booking.id && t.type === 'refund');
     const refundAmount = refundTransaction?.amount || 0;
     const refundStatus = refundTransaction?.status || 'pending';
@@ -109,17 +167,73 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {/* Dates */}
-                            <div className="bg-zinc-900/50 p-3 rounded-xl border border-white/5">
-                                <h4 className="text-[10px] font-medium text-zinc-400 mb-2 uppercase tracking-wider">Dates</h4>
-                                <div className="flex justify-between items-center text-white">
-                                    <div>
-                                        <p className="text-[10px] text-zinc-500">In</p>
-                                        <p className="text-xs font-semibold">{format(new Date(booking.check_in), 'MMM dd')}</p>
+                            <div className="bg-zinc-900/50 p-3 rounded-xl border border-white/5 flex flex-col justify-between">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1 rounded-md bg-sky-500/10 text-sky-400">
+                                            <Icon name="CalendarIcon" size={12} />
+                                        </div>
+                                        <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Duration</h4>
                                     </div>
-                                    <Icon name="ArrowRightIcon" size={12} className="text-zinc-600" />
+                                    <div className="px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20">
+                                        <p className="text-[9px] font-black text-sky-400 uppercase tracking-tight">
+                                            {differenceInDays(new Date(booking.check_out), new Date(booking.check_in))} {differenceInDays(new Date(booking.check_out), new Date(booking.check_in)) === 1 ? 'Night' : 'Nights'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Timing Information & Highlights */}
+                                <div className="space-y-3 my-2">
+                                    <div className="flex flex-col items-center py-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                                        <div className="flex items-center gap-8">
+                                            <div className="text-center">
+                                                <p className="text-[7px] font-black text-zinc-500 uppercase mb-1 tracking-widest">Check-in After</p>
+                                                <p className="text-xs font-black text-white">12:00 PM</p>
+                                            </div>
+                                            <div className="w-[1px] h-6 bg-zinc-800" />
+                                            <div className="text-center">
+                                                <p className="text-[7px] font-black text-zinc-500 uppercase mb-1 tracking-widest">Check-out Before</p>
+                                                <p className="text-xs font-black text-white">11:00 AM</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Stay Highlights */}
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-sky-500/5 border border-sky-500/10">
+                                            <Icon name="CheckBadgeIcon" size={10} className="text-sky-400" />
+                                            <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-tight">Self Check-in</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+                                            <Icon name="ShieldCheckIcon" size={10} className="text-emerald-400" />
+                                            <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-tight">Verified Stay</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-amber-500/5 border border-amber-500/10">
+                                            <Icon name="WifiIcon" size={10} className="text-amber-400" />
+                                            <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-tight">Free WiFi</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-indigo-500/5 border border-indigo-500/10">
+                                            <Icon name="SparklesIcon" size={10} className="text-indigo-400" />
+                                            <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-tight">Premium Host</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-end text-white px-1">
+                                    <div>
+                                        <p className="text-[9px] text-zinc-500 font-medium">Check-in</p>
+                                        <p className="text-sm font-bold leading-none mt-1">{format(new Date(booking.check_in), 'MMM dd')}</p>
+                                        <p className="text-[9px] text-zinc-500 mt-1">{format(new Date(booking.check_in), 'yyyy')}</p>
+                                    </div>
+                                    
+                                    <div className="flex-1 flex justify-center pb-1">
+                                        <div className="w-12 h-[1px] bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
+                                    </div>
+
                                     <div className="text-right">
-                                        <p className="text-[10px] text-zinc-500">Out</p>
-                                        <p className="text-xs font-semibold">{format(new Date(booking.check_out), 'MMM dd')}</p>
+                                        <p className="text-[9px] text-zinc-500 font-medium">Check-out</p>
+                                        <p className="text-sm font-bold leading-none mt-1">{format(new Date(booking.check_out), 'MMM dd')}</p>
+                                        <p className="text-[9px] text-zinc-500 mt-1">{format(new Date(booking.check_out), 'yyyy')}</p>
                                     </div>
                                 </div>
                             </div>
@@ -127,23 +241,65 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                             {/* Guests & Units */}
                             <div className="bg-zinc-900/50 p-3 rounded-xl border border-white/5">
                                 <h4 className="text-[10px] font-medium text-zinc-400 mb-2 uppercase tracking-wider">Booking Size</h4>
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-white">
-                                    <div className="flex items-center gap-2">
-                                        <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 shrink-0">
-                                            <Icon name="UserIcon" size={14} />
+                                <div className="flex flex-col gap-2.5 text-white">
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 shrink-0">
+                                                <Icon name="UserIcon" size={14} />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-semibold whitespace-nowrap">{booking.guests || 1} {(booking.guests || 1) === 1 ? 'Guest' : 'Guests'}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-xs font-semibold whitespace-nowrap">{booking.guests || 1} {(booking.guests || 1) === 1 ? 'Guest' : 'Guests'}</p>
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 shrink-0">
+                                                <Icon name="HomeIcon" size={14} />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-semibold whitespace-nowrap">{booking.total_rooms_booked || 1} {(booking.total_rooms_booked || 1) === 1 ? (booking.properties.type?.toLowerCase().includes('tent') ? 'Tent' : 'Room') : (booking.properties.type?.toLowerCase().includes('tent') ? 'Tents' : 'Rooms')}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 shrink-0">
-                                            <Icon name="HomeIcon" size={14} />
+                                    {displayRoomType && (
+                                        <div className="pt-3 border-t border-white/5">
+                                            <div className="flex items-center gap-2 mb-2.5">
+                                                <div className="p-1 rounded-md bg-sky-500/10 text-sky-400">
+                                                    <Icon name="KeyIcon" size={12} />
+                                                </div>
+                                                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Room Breakdown</span>
+                                            </div>
+                                            <div className="flex flex-col gap-1.5">
+                                                {(() => {
+                                                    const nights = differenceInDays(new Date(booking.check_out), new Date(booking.check_in)) || 1;
+                                                    return displayRoomType.split(', ').map((type, idx) => {
+                                                        // Parse: "Standard Room (2) ₹700"
+                                                        const match = type.match(/^(.*)\s\((\d+)\)(?:\s(?:₹|Rs\.)\s?([\d,.]+))?$/);
+                                                        const name = match ? match[1] : type.split(' (')[0];
+                                                        const count = match ? parseInt(match[2]) : 1;
+                                                        const pricePerUnit = match && match[3] ? parseFloat(match[3].replace(/,/g, '')) : 0;
+                                                        // Multiply by nights so breakdown tallies with total
+                                                        const lineTotal = count * pricePerUnit * nights;
+
+                                                        return (
+                                                            <div key={idx} className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] transition-colors">
+                                                                <span className="text-[10px] font-semibold text-zinc-300 mr-2">{name}</span>
+                                                                <div className="flex items-center gap-2 shrink-0">
+                                                                    <span className="text-[9px] font-medium text-zinc-500 bg-white/5 px-1.5 py-0.5 rounded">
+                                                                        {count} {count === 1 ? 'Unit' : 'Units'}
+                                                                    </span>
+                                                                    {lineTotal > 0 && (
+                                                                        <span className="text-[10px] font-black text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded leading-none">
+                                                                            ₹{lineTotal.toLocaleString('en-IN')}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    });
+                                                })()}
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-xs font-semibold whitespace-nowrap">{booking.total_rooms_booked || 1} {(booking.total_rooms_booked || 1) === 1 ? (booking.properties.type?.toLowerCase().includes('tent') ? 'Tent' : 'Room') : (booking.properties.type?.toLowerCase().includes('tent') ? 'Tents' : 'Rooms')}</p>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -158,6 +314,14 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                 onClick={async () => {
                                     try {
                                         const transaction = transactions.find(t => t.id === booking.id);
+                                        const computedBreakdown = {
+                                            accommodation: baseAccommodation,
+                                            service_fee: serviceFee,
+                                            taxes: 0,
+                                            discount: booking.booking_type === 'bulk' ? discountSavings : 0,
+                                            upgrades: amenitiesTotal,
+                                            cancellation_fee: freeCancellationFee
+                                        };
                                         
                                         // Construct an on-the-fly transaction object if one doesn't exist
                                         const transactionData = {
@@ -171,15 +335,16 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                             guestAddress: (booking.guest as any)?.email || 'Address not provided',
                                             propertyName: booking.properties.title || 'Property',
                                             booking_id: booking.id,
+                                            room_type: displayRoomType,
                                             paymentMethod: 'Razorpay', // Default fallback
-                                            breakdown: {
-                                                accommodation: booking.total_price * 0.78,
-                                                service_fee: booking.total_price * 0.20,
-                                                taxes: booking.total_price * 0.02
-                                            }
+                                            breakdown: computedBreakdown
                                         };
 
-                                        await generateInvoicePDF(transaction || (transactionData as any));
+                                        const finalTransaction = transaction 
+                                            ? { ...transaction, breakdown: computedBreakdown, room_type: displayRoomType } 
+                                            : transactionData;
+
+                                        await generateInvoicePDF(finalTransaction as any);
                                     } catch (err) {
                                         console.error('Invoice generation failed:', err);
                                         toast.error('Failed to generate invoice. Please try again.');
@@ -224,6 +389,34 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                         <div className="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
                             <h4 className="text-sm font-medium text-zinc-400 mb-4 uppercase tracking-wider">Payment Summary</h4>
                             <div className="space-y-3">
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-zinc-400">Accommodation Charges</span>
+                                                <span className="text-white font-medium text-xs">₹{baseAccommodation.toLocaleString('en-IN')}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-zinc-400">Platform Service Fee (10%)</span>
+                                                <span className="text-white font-medium text-xs">₹{serviceFee.toLocaleString('en-IN')}</span>
+                                            </div>
+                                            {booking.booking_type === 'bulk' && discountSavings > 0 && (
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-emerald-400 font-medium">Bulk Discount Savings</span>
+                                                    <span className="text-emerald-400 font-bold text-xs">
+                                                        -₹{discountSavings.toLocaleString('en-IN')}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {amenitiesTotal > 0 && (
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-zinc-400">Exclusive Upgrades</span>
+                                                    <span className="text-white font-medium text-xs">₹{amenitiesTotal.toLocaleString('en-IN')}</span>
+                                                </div>
+                                            )}
+                                            {freeCancellationFee > 0 && (
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-zinc-400">Cancellation Protection</span>
+                                                    <span className="text-white font-medium text-xs">₹{freeCancellationFee.toLocaleString('en-IN')}</span>
+                                                </div>
+                                            )}
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-zinc-400">Total Amount</span>
                                     <span className="text-white font-bold text-lg">₹{booking.total_price.toLocaleString('en-IN')}</span>
