@@ -238,7 +238,7 @@ const formatDynamicPreference = (text: string, yourPrice: number, suggestedPrice
   } else {
     replacement = `(+0% adjustment)`;
   }
-  return text.replace(/\([\+-]?\d+%\s*(yield opportunity|discount suggested|adjustment)\)/gi, replacement);
+  return text.replace(/\([+-]?\d+%\s*(yield opportunity|discount suggested|adjustment)\)/gi, replacement);
 };
 
 interface AuraQualityScoreProps {

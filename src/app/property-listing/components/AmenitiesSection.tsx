@@ -28,7 +28,7 @@ const AmenitiesSection = ({ amenities, roomTypeAmenities, roomTypeCounts }: Amen
   // Group amenities by room type if data is available
   const hasRoomTypeAmenities = roomTypeAmenities && Object.keys(roomTypeAmenities).length > 0;
   
-  let groupedAmenities: Record<string, Amenity[]> = {};
+  const groupedAmenities: Record<string, Amenity[]> = {};
   let globalAmenities: Amenity[] = [];
 
   if (hasRoomTypeAmenities) {

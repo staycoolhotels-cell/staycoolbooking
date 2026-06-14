@@ -27,7 +27,9 @@ export async function GET() {
     } catch (err: any) {
         try {
             await client.end();
-        } catch (e) {}
+        } catch (e) {
+            // Ignore error ending client if connection already closed
+        }
         return NextResponse.json({ success: false, error: err.message });
     }
 }
