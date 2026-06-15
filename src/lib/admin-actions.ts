@@ -923,8 +923,10 @@ export async function fetchBookingDetailsAsAdmin(bookingId: string) {
       guest:users!guest_id ( name, email ),
       property:properties!property_id ( 
         title,
+        room_type_prices,
         host:users!host_id ( name )
-      )
+      ),
+      booking_rooms(rooms(room_type))
     `)
     .eq('id', bookingId)
     .single();

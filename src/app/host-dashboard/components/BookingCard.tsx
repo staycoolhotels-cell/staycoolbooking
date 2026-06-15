@@ -5,6 +5,7 @@ import Icon from '@/components/ui/AppIcon';
 import { Booking } from '@/lib/types';
 import { approveBooking, rejectBooking } from '@/lib/booking-actions';
 import { useState } from 'react';
+import { generateInvoicePDF } from '@/lib/pdf-utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createDispute } from '@/lib/dispute-actions';
 import { toast } from 'sonner';
@@ -117,6 +118,102 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
   }, [booking.guest_id]);
 
   const statusStyles = getStatusStyles(booking.status);
+
+  const handleDownloadInvoice = async () => {
+    try {
+      const nights = Math.max(1, Math.round((new Date(booking.check_out).getTime() - new Date(booking.check_in).getTime()) / (1000 * 60 * 60 * 24)));
+      const discountPct = (booking.bulk_booking_discount || (booking as any).properties?.bulk_booking_discount || 0) / 100;
+
+      const displayRoomType = (() => {
+        if (booking.room_type) return booking.room_type;
+        const totalRooms = booking.total_rooms_booked || 1;
+        const propertyRoomTypes = (booking.properties as any)?.room_types || 
+                              ((booking.properties as any)?.room_type_counts 
+                                ? Object.keys((booking.properties as any).room_type_counts) 
+                                : []);
+        const standardPrice = booking.properties?.standard_price || booking.properties?.price || 0;
+        if (propertyRoomTypes.length > 0) {
+            return `${propertyRoomTypes[0]} (${totalRooms})${standardPrice ? ` ₹${Number(standardPrice).toLocaleString('en-IN')}` : ''}`;
+        }
+        return `Standard Room (${totalRooms})${standardPrice ? ` ₹${Number(standardPrice).toLocaleString('en-IN')}` : ''}`;
+      })();
+
+      // Compute pre-discount base from room_type breakdown × nights
+      let baseAccommodationFromRoomType = 0;
+      if (displayRoomType) {
+        displayRoomType.split(', ').forEach((type) => {
+            const match = type.match(/^(.*)\s\((\d+)\)(?:\s(?:₹|Rs\.)\s?([\d,.]+))?$/);
+            const count = match ? parseInt(match[2]) : 1;
+            const pricePerUnit = match && match[3] ? parseFloat(match[3].replace(/,/g, '')) : 0;
+            baseAccommodationFromRoomType += count * pricePerUnit * nights;
+        });
+      }
+
+      // Amenities & Cancellation Fee
+      const amenitiesTotalFromBooking = (booking as any).amenities?.reduce((sum: number, amenity: any) => sum + (amenity.price * amenity.count), 0) || 0;
+      const freeCancellationFee = booking.free_cancellation_fee || 0;
+
+      let baseAccommodation = 0;
+      let serviceFee = 0;
+      let discountSavings = 0;
+
+      // Source of truth for display: room breakdown if available, else reverse-engineer from total_price
+      if (baseAccommodationFromRoomType > 0) {
+        baseAccommodation = baseAccommodationFromRoomType;
+        serviceFee = Math.round(baseAccommodation * 0.1);
+        discountSavings = Math.round(baseAccommodation * discountPct);
+      } else {
+        // Reverse engineer from total_price
+        const accommodationAndFee = booking.total_price - amenitiesTotalFromBooking - freeCancellationFee;
+        baseAccommodation = Math.round(accommodationAndFee / (1.1 - discountPct));
+        serviceFee = Math.round(baseAccommodation * 0.1);
+        discountSavings = Math.round(baseAccommodation * discountPct);
+      }
+
+      const accommodationSubtotal = Math.round(baseAccommodation + serviceFee - discountSavings) + freeCancellationFee;
+      const dynamicAmenitiesTotal = booking.total_price - accommodationSubtotal;
+      const amenitiesTotal = dynamicAmenitiesTotal > 0 ? dynamicAmenitiesTotal : amenitiesTotalFromBooking;
+
+      const computedBreakdown = {
+        accommodation: baseAccommodation,
+        service_fee: serviceFee,
+        taxes: 0,
+        discount: booking.booking_type === 'bulk' ? discountSavings : 0,
+        upgrades: amenitiesTotal,
+        cancellation_fee: freeCancellationFee
+      };
+
+      const formatDate = (dateString: string) => {
+        const d = new Date(dateString);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+      };
+
+      const transactionData = {
+        id: booking.id,
+        invoice_id: booking.id.slice(0, 8).toUpperCase(),
+        amount: booking.total_price,
+        date: formatDate(booking.created_at),
+        status: booking.status,
+        type: (booking.status === 'cancelled' || booking.status === 'refunded') ? 'refund' : 'payment',
+        guestName: booking.guest?.name || 'Valued Guest',
+        guestAddress: (booking.guest as any)?.email || 'Address not provided',
+        propertyName: booking.properties?.title || booking.properties?.name || 'Property',
+        booking_id: booking.id,
+        room_type: displayRoomType,
+        paymentMethod: 'Razorpay',
+        breakdown: computedBreakdown
+      };
+
+      await generateInvoicePDF(transactionData as any);
+      toast.success('Invoice generated successfully.');
+    } catch (err) {
+      console.error('Invoice generation failed:', err);
+      toast.error('Failed to generate invoice. Please try again.');
+    }
+  };
 
   const displayRoomTypes = (() => {
     if (booking.room_type) return booking.room_type;
@@ -345,6 +442,13 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
               }`}
             >
               <Icon name="FingerPrintIcon" size={14} /> <span>ID</span>
+            </button>
+
+            <button
+              onClick={handleDownloadInvoice}
+              className="flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 sm:py-3 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 text-sky-400 rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2 transition-all shadow-lg shadow-sky-900/10"
+            >
+              <Icon name="DocumentTextIcon" size={14} /> <span>Invoice</span>
             </button>
           </div>
         </div>

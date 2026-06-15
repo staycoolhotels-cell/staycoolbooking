@@ -119,6 +119,49 @@ export default async function AdminPanelPage() {
           return `${type} (${count})${price ? ` ₹${Number(price).toLocaleString('en-IN')}` : ''}`;
         }).join(', ') 
       : null;
+    const nights = Math.max(1, Math.round((new Date(b.check_out).getTime() - new Date(b.check_in).getTime()) / (1000 * 60 * 60 * 24)));
+    const discountPct = (b.bulk_booking_discount || b.property?.bulk_booking_discount || 0) / 100;
+
+    let baseAccommodationFromRoomType = 0;
+    if (roomType) {
+      roomType.split(', ').forEach((type: string) => {
+        const match = type.match(/^(.*)\s\((\d+)\)(?:\s(?:₹|Rs\.)\s?([\d,.]+))?$/);
+        const count = match ? parseInt(match[2]) : 1;
+        const pricePerUnit = match && match[3] ? parseFloat(match[3].replace(/,/g, '')) : 0;
+        baseAccommodationFromRoomType += count * pricePerUnit * nights;
+      });
+    }
+
+    const amenitiesTotalFromBooking = b.amenities?.reduce((sum: number, amenity: any) => sum + (amenity.price * amenity.count), 0) || 0;
+    const freeCancellationFee = b.free_cancellation_fee || 0;
+
+    let baseAccommodation = 0;
+    let calculatedServiceFee = 0;
+    let discountSavings = 0;
+
+    if (baseAccommodationFromRoomType > 0) {
+      baseAccommodation = baseAccommodationFromRoomType;
+      calculatedServiceFee = Math.round(baseAccommodation * 0.1);
+      discountSavings = Math.round(baseAccommodation * discountPct);
+    } else {
+      const accommodationAndFee = amount - amenitiesTotalFromBooking - freeCancellationFee;
+      baseAccommodation = Math.round(accommodationAndFee / (1.1 - discountPct));
+      calculatedServiceFee = Math.round(baseAccommodation * 0.1);
+      discountSavings = Math.round(baseAccommodation * discountPct);
+    }
+
+    const accommodationSubtotal = Math.round(baseAccommodation + calculatedServiceFee - discountSavings) + freeCancellationFee;
+    const dynamicAmenitiesTotal = amount - accommodationSubtotal;
+    const amenitiesTotal = dynamicAmenitiesTotal > 0 ? dynamicAmenitiesTotal : amenitiesTotalFromBooking;
+
+    const computedBreakdown = {
+      accommodation: baseAccommodation,
+      service_fee: calculatedServiceFee,
+      taxes: 0,
+      discount: b.booking_type === 'bulk' ? discountSavings : 0,
+      upgrades: amenitiesTotal,
+      cancellation_fee: freeCancellationFee
+    };
 
     return {
       id: b.id,
@@ -131,11 +174,7 @@ export default async function AdminPanelPage() {
       serviceFee: serviceFee,
       netRevenue: netRevenue,
       type: isRefund ? 'refund' : 'payment',
-      breakdown: {
-        accommodation: amount - serviceFee,
-        service_fee: serviceFee,
-        taxes: 0 // Default for now
-      },
+      breakdown: computedBreakdown,
       date: b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A',
       bookingDate: b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : undefined,
       cancellationDate: b.cancelled_at

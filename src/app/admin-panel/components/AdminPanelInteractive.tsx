@@ -46,6 +46,7 @@ import {
 import { supabase } from '@/lib/supabaseClient';
 import { logActivity } from '@/lib/activity-actions';
 import { deleteUserAsAdmin, updateUserDetailsAsAdmin, approveHost, approveProperty, rejectProperty, updateDisputeStatusAsAdmin, fetchBookingDetailsAsAdmin, updateAllUserStats, getAdminThreads } from '@/lib/admin-actions';
+import { getRefundPercentage } from '@/lib/refund-policy';
 
 ChartJS.register(
   CategoryScale,
@@ -406,10 +407,87 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
             });
             // Also update transactions with properly mapped data
             const amount = Number(booking.total_price);
-            const serviceFee = booking.service_fee || (amount * 0.1);
+            const serviceFee = booking.service_fee || (amount * 0.2); // Keep 20% commission for dashboard stats/netRevenue
+            const netRevenue = amount - serviceFee;
             const guestEmail = booking.guest?.email;
             const guestLocation = (booking as any).guestLocation;
             const guestAddress = [guestEmail, guestLocation].filter(Boolean).join('\n') || 'Address not provided';
+            
+            const isRefund = (booking.status === 'cancelled' || booking.status === 'refunded');
+            let cancellationLead = undefined;
+            let appliedPolicy = undefined;
+            let refundPercentage = undefined;
+
+            if (isRefund && booking.cancelled_at && booking.check_in) {
+              const policyResult = getRefundPercentage(
+                booking.check_in,
+                booking.cancelled_at,
+                booking.created_at,
+                booking.has_free_cancellation
+              );
+              cancellationLead = policyResult.daysBefore;
+              appliedPolicy = policyResult.policy;
+              refundPercentage = policyResult.percent;
+            }
+
+            const roomTypePrices = booking.property?.room_type_prices || {};
+            const roomTypeCounts = (booking.booking_rooms || []).reduce((acc: Record<string, number>, br: any) => {
+              const type = br.rooms?.room_type || br.room?.room_type;
+              if (type) {
+                acc[type] = (acc[type] || 0) + 1;
+              }
+              return acc;
+            }, {});
+            const roomType = Object.keys(roomTypeCounts).length > 0 
+              ? Object.entries(roomTypeCounts).map(([type, count]) => {
+                  const price = roomTypePrices[type];
+                  return `${type} (${count})${price ? ` ₹${Number(price).toLocaleString('en-IN')}` : ''}`;
+                }).join(', ') 
+              : null;
+            const nights = Math.max(1, Math.round((new Date(booking.check_out).getTime() - new Date(booking.check_in).getTime()) / (1000 * 60 * 60 * 24)));
+            const discountPct = (booking.bulk_booking_discount || booking.property?.bulk_booking_discount || 0) / 100;
+
+            let baseAccommodationFromRoomType = 0;
+            if (roomType) {
+              roomType.split(', ').forEach((type: string) => {
+                const match = type.match(/^(.*)\s\((\d+)\)(?:\s(?:₹|Rs\.)\s?([\d,.]+))?$/);
+                const count = match ? parseInt(match[2]) : 1;
+                const pricePerUnit = match && match[3] ? parseFloat(match[3].replace(/,/g, '')) : 0;
+                baseAccommodationFromRoomType += count * pricePerUnit * nights;
+              });
+            }
+
+            const amenitiesTotalFromBooking = booking.amenities?.reduce((sum: number, amenity: any) => sum + (amenity.price * amenity.count), 0) || 0;
+            const freeCancellationFee = booking.free_cancellation_fee || 0;
+
+            let baseAccommodation = 0;
+            let calculatedServiceFee = 0;
+            let discountSavings = 0;
+
+            if (baseAccommodationFromRoomType > 0) {
+              baseAccommodation = baseAccommodationFromRoomType;
+              calculatedServiceFee = Math.round(baseAccommodation * 0.1);
+              discountSavings = Math.round(baseAccommodation * discountPct);
+            } else {
+              const accommodationAndFee = amount - amenitiesTotalFromBooking - freeCancellationFee;
+              baseAccommodation = Math.round(accommodationAndFee / (1.1 - discountPct));
+              calculatedServiceFee = Math.round(baseAccommodation * 0.1);
+              discountSavings = Math.round(baseAccommodation * discountPct);
+            }
+
+            const accommodationSubtotal = Math.round(baseAccommodation + calculatedServiceFee - discountSavings) + freeCancellationFee;
+            const dynamicAmenitiesTotal = amount - accommodationSubtotal;
+            const amenitiesTotal = dynamicAmenitiesTotal > 0 ? dynamicAmenitiesTotal : amenitiesTotalFromBooking;
+
+            const computedBreakdown = {
+              accommodation: baseAccommodation,
+              service_fee: calculatedServiceFee,
+              taxes: 0,
+              discount: booking.booking_type === 'bulk' ? discountSavings : 0,
+              upgrades: amenitiesTotal,
+              cancellation_fee: freeCancellationFee
+            };
+
             const mappedTransaction = {
               id: booking.id,
               transactionId: `TXN-${booking.id.slice(0, 8).toUpperCase()}`,
@@ -420,14 +498,25 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
               amount,
               serviceFee,
               netRevenue: amount - serviceFee,
-              type: (booking.status === 'confirmed' || booking.status === 'completed') ? 'payment' :
-                    (booking.status === 'cancelled' || booking.status === 'refunded') ? 'refund' : 'other',
-              breakdown: { accommodation: amount - serviceFee, service_fee: serviceFee, taxes: 0 },
-              date: new Date(booking.created_at).toLocaleDateString(),
+              type: isRefund ? 'refund' : 'payment',
+              breakdown: computedBreakdown,
+              date: booking.created_at ? new Date(booking.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A',
+              bookingDate: booking.created_at ? new Date(booking.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : undefined,
+              cancellationDate: booking.cancelled_at
+                ? new Date(booking.cancelled_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                : undefined,
+              refundDate: booking.status === 'refunded' && booking.cancelled_at
+                ? new Date(booking.cancelled_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                : undefined,
+              daysBeforeCheckIn: cancellationLead,
+              appliedPolicy: appliedPolicy,
+              refundPercentage: refundPercentage,
+              rawDate: booking.created_at,
               status: (booking.status === 'confirmed' || booking.status === 'completed') ? 'completed' :
                       (booking.status === 'refunded' ? 'refunded' : 'pending'),
               paymentMethod: 'Razorpay',
-            } as Transaction;
+              room_type: roomType
+            } as unknown as Transaction;
             setTransactions((prev) => {
               const filtered = prev.filter((t) => t.id !== mappedTransaction.id);
               return [mappedTransaction, ...filtered];

@@ -143,9 +143,9 @@ const AddPropertyModal = ({
     bulkBookingDiscount: 10, // Default 10%
   });
   const [newCustomAmenity, setNewCustomAmenity] = useState('');
+  const [disabledFields, setDisabledFields] = useState<Record<string, boolean>>({});
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
-  const [pricingMode, setPricingMode] = useState<'flat' | 'custom'>('flat');
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [expandedRoomTypes, setExpandedRoomTypes] = useState<Record<string, boolean>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -173,12 +173,29 @@ const AddPropertyModal = ({
     }
   }, [formData.bulkBookingDiscount]);
 
-  // Auto-sync Total Rooms when roomTypeCounts or roomTypes change
+  // Auto-sync Total Rooms/Beds when roomTypeCounts or roomTypes change
   useEffect(() => {
-    const isSingleUnitType = ['Home Stay', 'Apartment', 'Villa'].includes(formData.type);
-    if (isSingleUnitType) {
+    const isSingleRoomsType = ['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(formData.type);
+    if (isSingleRoomsType) {
       if (formData.totalRooms !== 1) {
         setFormData(prev => ({ ...prev, totalRooms: 1 }));
+      }
+      
+      // For Dormitory, auto-sync Beds to the sum of room type counts
+      if (formData.type === 'Dormitory') {
+        if (formData.roomTypes.length > 0) {
+          let sum = 0;
+          for (const type of formData.roomTypes) {
+            sum += (formData.roomTypeCounts[type] || 1);
+          }
+          if (sum > 0 && formData.beds !== sum) {
+            setFormData(prev => ({ ...prev, beds: sum }));
+          }
+        } else {
+          if (formData.beds !== 0) {
+            setFormData(prev => ({ ...prev, beds: 0 }));
+          }
+        }
       }
       return;
     }
@@ -192,7 +209,7 @@ const AddPropertyModal = ({
         setFormData(prev => ({ ...prev, totalRooms: sum }));
       }
     }
-  }, [formData.roomTypes, formData.roomTypeCounts, formData.type]);
+  }, [formData.roomTypes, formData.roomTypeCounts, formData.type, formData.totalRooms, formData.beds]);
 
   const propertyCategories = [
     { id: 'Hotel', name: 'Hotel', icon: Building2 },
@@ -288,7 +305,7 @@ const AddPropertyModal = ({
         cancellationPolicy: propertyToEdit.cancellation_policy || 'Tiered',
         rules: propertyToEdit.rules || [],
         safetyItems: propertyToEdit.safety_items || [],
-        bedrooms: propertyToEdit.bedrooms || 1,
+        bedrooms: ['Tent', 'Dormitory', 'Hotel', 'Resort'].includes(propertyToEdit.tier || '') ? 0 : (propertyToEdit.bedrooms || 1),
         beds: propertyToEdit.beds || 1,
         bathrooms: propertyToEdit.bathrooms || 1,
         maxGuests: propertyToEdit.max_guests || 2,
@@ -315,14 +332,21 @@ const AddPropertyModal = ({
         longitude: propertyToEdit.longitude,
         bulkBookingDiscount: ['Home Stay', 'Apartment', 'Villa'].includes(propertyToEdit.tier || '') ? 0 : (propertyToEdit.bulk_booking_discount !== undefined && propertyToEdit.bulk_booking_discount !== null ? propertyToEdit.bulk_booking_discount : 10),
       });
+      setDisabledFields({
+        name: !!(propertyToEdit.title || propertyToEdit.name),
+        addressLine2: !!propertyToEdit.address_line2,
+        landmark: !!propertyToEdit.landmark,
+        district: !!propertyToEdit.district,
+        city: !!propertyToEdit.city,
+        state: !!propertyToEdit.state,
+        postalCode: !!propertyToEdit.postal_code,
+        country: !!propertyToEdit.country,
+      });
       const isSingleUnitType = ['Home Stay', 'Apartment', 'Villa'].includes(propertyToEdit.tier || '');
       const discountVal = isSingleUnitType ? 0 : (propertyToEdit.bulk_booking_discount !== undefined && propertyToEdit.bulk_booking_discount !== null ? propertyToEdit.bulk_booking_discount : 10);
       setIsBulkDiscountEnabled(discountVal > 0);
       lastNonZeroDiscount.current = discountVal > 0 ? discountVal : 10;
       setPhotoPreviews(initialPhotoUrls);
-
-      const hasRoomTypePrices = (propertyToEdit as any).room_type_prices && Object.keys((propertyToEdit as any).room_type_prices).length > 0;
-      setPricingMode(hasRoomTypePrices ? 'custom' : 'flat');
     } else {
       setFormData({
         name: '',
@@ -378,7 +402,7 @@ const AddPropertyModal = ({
       setIsBulkDiscountEnabled(true);
       lastNonZeroDiscount.current = 10;
       setPhotoPreviews([]);
-      setPricingMode('flat');
+      setDisabledFields({});
     }
   }, [propertyToEdit]);
 
@@ -416,7 +440,8 @@ const AddPropertyModal = ({
         return {
           ...prev,
           [name]: value,
-          totalRooms: isSingleUnitType ? 1 : prev.totalRooms,
+          bedrooms: ['Tent', 'Dormitory', 'Hotel', 'Resort'].includes(value) ? 0 : (prev.bedrooms === 0 ? 1 : prev.bedrooms),
+          totalRooms: ['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(value) ? 1 : prev.totalRooms,
           bulkBookingDiscount: isSingleUnitType ? 0 : prev.bulkBookingDiscount,
           roomTypes: isSingleUnitType && validRoomTypes.length === 1 
             ? validRoomTypes 
@@ -524,29 +549,22 @@ const AddPropertyModal = ({
     e.preventDefault();
     if (isSubmitting) return;
     
-    if (formData.roomTypes.length > 0 && pricingMode === 'custom') {
+    if (formData.roomTypes.length > 0) {
       for (const roomType of formData.roomTypes) {
-        const price = formData.roomTypePrices[roomType] || formData.price;
-        const weekendPrice = formData.roomTypeWeekendPrices[roomType] || formData.weekendPrice;
+        const price = formData.roomTypePrices[roomType];
+        const weekendPrice = formData.roomTypeWeekendPrices[roomType];
         if (!price || Number(price) <= 0) {
-          setErrorMessage(`Please enter a valid price for ${roomType} or set a flat base rate.`);
+          setErrorMessage(`Please enter a valid price for ${roomType}.`);
           return;
         }
         if (!weekendPrice || Number(weekendPrice) <= 0) {
-          setErrorMessage(`Please enter a valid weekend price for ${roomType} or set a flat base rate.`);
+          setErrorMessage(`Please enter a valid weekend price for ${roomType}.`);
           return;
         }
       }
     } else {
-      if (Number(formData.price) <= 0) {
-        setErrorMessage("Please enter a valid price per night.");
-        return;
-      }
-
-      if (Number(formData.weekendPrice) <= 0) {
-        setErrorMessage("Please enter a valid weekend price per night.");
-        return;
-      }
+      setErrorMessage("Please select at least one room type first.");
+      return;
     }
 
     setIsSubmitting(true);
@@ -569,37 +587,20 @@ const AddPropertyModal = ({
       updatedFormData.amenities = Array.from(allAmenityIds);
       
       if (formData.roomTypes.length > 0) {
-        if (pricingMode === 'custom') {
-          // Pre-populate empty room-type pricing fields with global standard rates
-          const finalPrices = { ...formData.roomTypePrices };
-          const finalWeekendPrices = { ...formData.roomTypeWeekendPrices };
-          
-          for (const roomType of formData.roomTypes) {
-            if (!finalPrices[roomType] && formData.price) {
-              finalPrices[roomType] = formData.price;
-            }
-            if (!finalWeekendPrices[roomType] && formData.weekendPrice) {
-              finalWeekendPrices[roomType] = formData.weekendPrice;
-            }
-          }
-          updatedFormData.roomTypePrices = finalPrices;
-          updatedFormData.roomTypeWeekendPrices = finalWeekendPrices;
-          
-          // Set global pricing fields using the first room type's rate for indexing/search view
-          const firstRoomType = formData.roomTypes[0];
-          updatedFormData.price = finalPrices[firstRoomType] || formData.price;
-          updatedFormData.weekendPrice = finalWeekendPrices[firstRoomType] || formData.weekendPrice;
-        } else {
-          // Flat pricing mode: populate every room type with the standard rates
-          const flatPrices: Record<string, number | string> = {};
-          const flatWeekendPrices: Record<string, number | string> = {};
-          for (const roomType of formData.roomTypes) {
-            flatPrices[roomType] = formData.price;
-            flatWeekendPrices[roomType] = formData.weekendPrice;
-          }
-          updatedFormData.roomTypePrices = flatPrices;
-          updatedFormData.roomTypeWeekendPrices = flatWeekendPrices;
-        }
+        const finalPrices = { ...formData.roomTypePrices };
+        const finalWeekendPrices = { ...formData.roomTypeWeekendPrices };
+        updatedFormData.roomTypePrices = finalPrices;
+        updatedFormData.roomTypeWeekendPrices = finalWeekendPrices;
+        
+        // Find minimum custom prices for global indexing
+        const pricesList = Object.values(finalPrices).map(p => parseFloat(String(p)) || 0).filter(p => p > 0);
+        const minPrice = pricesList.length > 0 ? Math.min(...pricesList) : 0;
+
+        const weekendPricesList = Object.values(finalWeekendPrices).map(p => parseFloat(String(p)) || 0).filter(p => p > 0);
+        const minWeekendPrice = weekendPricesList.length > 0 ? Math.min(...weekendPricesList) : 0;
+        
+        updatedFormData.price = minPrice > 0 ? String(minPrice) : '';
+        updatedFormData.weekendPrice = minWeekendPrice > 0 ? String(minWeekendPrice) : '';
       }
       
       const propertyNameSlug = formData.name.replace(/\s+/g, '-');
@@ -759,7 +760,7 @@ const AddPropertyModal = ({
             {currentStep === 0 && (
               <div className="space-y-4 md:space-y-6 animate-fade-in">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                  <InputField label="Property Name" name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. Sunny Beachfront Villa" />
+                  <InputField label="Property Name" name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. Sunny Beachfront Villa" disabled={false} />
                   <div className="space-y-1.5 md:space-y-2">
                     <label className="text-xs md:text-sm font-medium text-zinc-400">Country/region</label>
                     <select
@@ -767,23 +768,26 @@ const AddPropertyModal = ({
                       value={formData.country}
                       onChange={handleInputChange}
                       required
-                      className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-2.5 md:p-3 text-sm md:text-base text-white focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition"
+                      disabled={disabledFields.country}
+                      className={`w-full bg-zinc-800 border-zinc-700 rounded-lg p-2.5 md:p-3 text-sm md:text-base text-white focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition ${
+                        disabledFields.country ? 'opacity-50 cursor-not-allowed bg-zinc-900/40 border-zinc-800' : ''
+                      }`}
                     >
                       <option value="India - IN">India - IN</option>
                       {/* Add other countries if needed */}
                     </select>
                   </div>
 
-                  <InputField label="Street address" name="addressLine2" value={formData.addressLine2} onChange={handleInputChange} placeholder="e.g. MG Road" />
-                  <InputField label="Nearby landmark" name="landmark" value={formData.landmark} onChange={handleInputChange} placeholder="e.g. Near Apollo Hospital" />
-                  <InputField label="District/locality" name="district" value={formData.district} onChange={handleInputChange} placeholder="e.g. Banjara Hills" />
+                  <InputField label="Street address" name="addressLine2" value={formData.addressLine2} onChange={handleInputChange} placeholder="e.g. MG Road" disabled={disabledFields.addressLine2} />
+                  <InputField label="Nearby landmark" name="landmark" value={formData.landmark} onChange={handleInputChange} placeholder="e.g. Near Apollo Hospital" disabled={disabledFields.landmark} />
+                  <InputField label="District/locality" name="district" value={formData.district} onChange={handleInputChange} placeholder="e.g. Banjara Hills" disabled={disabledFields.district} />
 
                   <div className="grid grid-cols-2 gap-3 md:gap-4">
-                    <InputField label="City/town" name="city" value={formData.city} onChange={handleInputChange} />
-                    <InputField label="State" name="state" value={formData.state} onChange={handleInputChange} />
+                    <InputField label="City/town" name="city" value={formData.city} onChange={handleInputChange} disabled={disabledFields.city} />
+                    <InputField label="State" name="state" value={formData.state} onChange={handleInputChange} disabled={disabledFields.state} />
                   </div>
 
-                  <InputField label="PIN code" name="postalCode" value={formData.postalCode} onChange={handleInputChange} />
+                  <InputField label="PIN code" name="postalCode" value={formData.postalCode} onChange={handleInputChange} disabled={disabledFields.postalCode} />
 
                   <div className="md:col-span-2 rounded-2xl overflow-hidden h-[450px] bg-zinc-800 border border-zinc-700 relative shadow-2xl group/map">
                     <MapPicker
@@ -813,14 +817,31 @@ const AddPropertyModal = ({
 
                         const districtRaw = addressData.suburb || addressData.neighbourhood || addressData.city_district || addressData.state_district || addressData.county;
 
+                        const newAddressLine2 = addressData.road ? toTitleCase(addressData.road) : '';
+                        const newLandmark = landmarkRaw ? toTitleCase(cleanField(landmarkRaw)) : '';
+                        const newCity = cleanedCity ? toTitleCase(cleanedCity) : '';
+                        const newState = addressData.state ? toTitleCase(addressData.state) : '';
+                        const newPostalCode = addressData.postcode || '';
+                        const newDistrict = districtRaw ? toTitleCase(cleanField(districtRaw)) : '';
+
                         setFormData(prev => ({
                           ...prev,
-                          addressLine2: addressData.road ? toTitleCase(addressData.road) : '',
-                          landmark: landmarkRaw ? toTitleCase(cleanField(landmarkRaw)) : '',
-                          city: cleanedCity ? toTitleCase(cleanedCity) : '',
-                          state: addressData.state ? toTitleCase(addressData.state) : '',
-                          postalCode: addressData.postcode || '',
-                          district: districtRaw ? toTitleCase(cleanField(districtRaw)) : '',
+                          addressLine2: newAddressLine2,
+                          landmark: newLandmark,
+                          city: newCity,
+                          state: newState,
+                          postalCode: newPostalCode,
+                          district: newDistrict,
+                        }));
+
+                        setDisabledFields(prev => ({
+                          ...prev,
+                          addressLine2: !!newAddressLine2,
+                          landmark: !!newLandmark,
+                          city: !!newCity,
+                          state: !!newState,
+                          postalCode: !!newPostalCode,
+                          district: !!newDistrict,
                         }));
                       }}
                       address={[
@@ -939,22 +960,27 @@ const AddPropertyModal = ({
                               {/* Click name to toggle selection */}
                               <button
                                 type="button"
-                                onClick={() => setFormData(prev => {
-                                  const isSel = prev.roomTypes.includes(roomType);
-                                  const newRoomTypes = isSel
-                                    ? prev.roomTypes.filter(t => t !== roomType)
-                                    : [...prev.roomTypes, roomType];
-                                  
-                                  const newCounts = { ...prev.roomTypeCounts };
-                                  if (isSel) {
-                                    delete newCounts[roomType];
-                                  } else {
-                                    newCounts[roomType] = 1;
-                                  }
-                                  
-                                  return { ...prev, roomTypes: newRoomTypes, roomTypeCounts: newCounts };
-                                })}
-                                className="flex-1 text-left font-bold text-xs md:text-sm outline-none"
+                                onClick={() => {
+                                  if (['Home Stay', 'Apartment', 'Villa'].includes(formData.type)) return;
+                                  setFormData(prev => {
+                                    const isSel = prev.roomTypes.includes(roomType);
+                                    const newRoomTypes = isSel
+                                      ? prev.roomTypes.filter(t => t !== roomType)
+                                      : [...prev.roomTypes, roomType];
+                                    
+                                    const newCounts = { ...prev.roomTypeCounts };
+                                    if (isSel) {
+                                      delete newCounts[roomType];
+                                    } else {
+                                      newCounts[roomType] = 1;
+                                    }
+                                    
+                                    return { ...prev, roomTypes: newRoomTypes, roomTypeCounts: newCounts };
+                                  });
+                                }}
+                                className={`flex-1 text-left font-bold text-xs md:text-sm outline-none ${
+                                  ['Home Stay', 'Apartment', 'Villa'].includes(formData.type) ? 'cursor-default' : ''
+                                }`}
                               >
                                 {roomType}
                               </button>
@@ -962,49 +988,55 @@ const AddPropertyModal = ({
                               {/* Plus/Minus Controls */}
                               <div className="flex items-center gap-2.5 ml-2">
                                 {isSelected ? (
-                                  <div className="flex items-center gap-2 bg-zinc-950/60 border border-zinc-800 rounded-lg p-1">
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setFormData(prev => {
-                                          const currentCount = prev.roomTypeCounts[roomType] || 1;
-                                          const newCount = currentCount - 1;
-                                          if (newCount <= 0) {
-                                            const newRoomTypes = prev.roomTypes.filter(t => t !== roomType);
-                                            const newCounts = { ...prev.roomTypeCounts };
-                                            delete newCounts[roomType];
-                                            return { ...prev, roomTypes: newRoomTypes, roomTypeCounts: newCounts };
-                                          } else {
+                                  ['Home Stay', 'Apartment', 'Villa'].includes(formData.type) ? (
+                                    <div className="flex items-center justify-center bg-zinc-950/60 border border-zinc-800 rounded-lg px-3 py-1">
+                                      <span className="text-xs md:text-sm font-black select-none text-white">1</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2 bg-zinc-950/60 border border-zinc-800 rounded-lg p-1">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setFormData(prev => {
+                                            const currentCount = prev.roomTypeCounts[roomType] || 1;
+                                            const newCount = currentCount - 1;
+                                            if (newCount <= 0) {
+                                              const newRoomTypes = prev.roomTypes.filter(t => t !== roomType);
+                                              const newCounts = { ...prev.roomTypeCounts };
+                                              delete newCounts[roomType];
+                                              return { ...prev, roomTypes: newRoomTypes, roomTypeCounts: newCounts };
+                                            } else {
+                                              return {
+                                                ...prev,
+                                                roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: newCount }
+                                              };
+                                            }
+                                          });
+                                        }}
+                                        className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-sm select-none"
+                                      >
+                                        -
+                                      </button>
+                                      <span className="text-xs md:text-sm font-black w-4 text-center select-none text-white">{count}</span>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setFormData(prev => {
+                                            const currentCount = prev.roomTypeCounts[roomType] || 1;
                                             return {
                                               ...prev,
-                                              roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: newCount }
+                                              roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: currentCount + 1 }
                                             };
-                                          }
-                                        });
-                                      }}
-                                      className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-sm select-none"
-                                    >
-                                      -
-                                    </button>
-                                    <span className="text-xs md:text-sm font-black w-4 text-center select-none text-white">{count}</span>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setFormData(prev => {
-                                          const currentCount = prev.roomTypeCounts[roomType] || 1;
-                                          return {
-                                            ...prev,
-                                            roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: currentCount + 1 }
-                                          };
-                                        });
-                                      }}
-                                      className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-sm select-none"
-                                    >
-                                      +
-                                    </button>
-                                  </div>
+                                          });
+                                        }}
+                                        className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-sm select-none"
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  )
                                 ) : (
                                   <button
                                     type="button"
@@ -1106,16 +1138,16 @@ const AddPropertyModal = ({
                       {formData.type === 'Tent' ? 'For tent bookings.' : 'For bulk bookings.'}
                     </p>
                   </div>
-                  <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${['Tent', 'Dormitory'].includes(formData.type) ? 'opacity-40 pointer-events-none' : ''}`}>
+                  <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${['Tent', 'Dormitory', 'Hotel', 'Resort'].includes(formData.type) ? 'opacity-40 pointer-events-none' : ''}`}>
                     <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
                       <Home className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
                       <label htmlFor="bedrooms" className="block text-xs md:text-sm font-medium text-zinc-300">Bedrooms</label>
-                      {['Tent', 'Dormitory'].includes(formData.type) && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
+                      {['Tent', 'Dormitory', 'Hotel', 'Resort'].includes(formData.type) && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
                     </div>
                     <div className="flex justify-center">
-                      <NumberInput
+                              <NumberInput
                         value={formData.bedrooms}
-                        onChange={(val) => !['Tent', 'Dormitory'].includes(formData.type) && setFormData(prev => ({ ...prev, bedrooms: val }))}
+                        onChange={(val) => !['Tent', 'Dormitory', 'Hotel', 'Resort'].includes(formData.type) && setFormData(prev => ({ ...prev, bedrooms: val }))}
                         min={0}
                       />
                     </div>
@@ -1823,100 +1855,8 @@ const AddPropertyModal = ({
                   <h3 className="text-xl font-black text-white tracking-tight italic uppercase italic">Set Your Prices</h3>
                 </div>
 
-                {/* Pricing Mode Toggle: Flat vs. Per Room (only shown if room types are selected) */}
-                {formData.roomTypes.length > 0 && (
-                  <div className="p-1 bg-zinc-950/80 border border-zinc-850 rounded-2xl">
-                    <div className="flex p-1 bg-zinc-900/50 rounded-xl">
-                      <button
-                        type="button"
-                        onClick={() => setPricingMode('flat')}
-                        className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg text-xs md:text-sm font-black uppercase tracking-wider transition-all duration-300 ${
-                          pricingMode === 'flat'
-                            ? 'bg-sky-500 text-white shadow-[0_0_20px_rgba(14,165,233,0.35)]'
-                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800/30'
-                        }`}
-                      >
-                        <IndianRupee className="w-4 h-4" />
-                        Flat Base Rate
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPricingMode('custom')}
-                        className={`flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg text-xs md:text-sm font-black uppercase tracking-wider transition-all duration-300 ${
-                          pricingMode === 'custom'
-                            ? 'bg-sky-500 text-white shadow-[0_0_20px_rgba(14,165,233,0.35)]'
-                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800/30'
-                        }`}
-                      >
-                        <Building2 className="w-4 h-4" />
-                        Custom Rates Per Room
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Standard Base Pricing Section */}
-                {(pricingMode === 'flat' || formData.roomTypes.length === 0) && (
-                  <div className="space-y-4 md:space-y-5 animate-fade-in">
-                    {formData.roomTypes.length > 0 && (
-                      <div className="flex items-center gap-3 px-1">
-                        <div className="p-1.5 bg-sky-500/10 rounded-lg border border-sky-500/20">
-                          <IndianRupee className="w-4 h-4 text-sky-400" />
-                        </div>
-                        <h4 className="text-xs md:text-sm font-black text-white uppercase tracking-[0.2em] italic">Standard Flat Rate</h4>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-900/30 p-6 border border-zinc-800 rounded-3xl relative overflow-hidden group">
-                      <div className="absolute top-0 left-0 w-32 h-32 bg-sky-500/5 rounded-full blur-3xl pointer-events-none" />
-                      <div className="absolute bottom-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
-                      
-                      <div className="space-y-2 relative z-10">
-                        <div className="flex items-center justify-between px-1">
-                          <span className="text-xs font-black text-zinc-400 uppercase tracking-widest">Weekday Price</span>
-                          <span className="text-[9px] font-black text-sky-400 uppercase tracking-widest bg-sky-500/10 px-2 py-0.5 rounded-md border border-sky-500/20">Mon-Fri</span>
-                        </div>
-                        <div className="relative flex items-center bg-zinc-950/60 border border-zinc-850 hover:border-zinc-750/60 focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-500/20 rounded-2xl px-4 py-3.5 transition-all">
-                          <span className="text-zinc-500 font-extrabold text-lg mr-2 select-none">₹</span>
-                          <input
-                            type="number"
-                            name="price"
-                            value={formData.price}
-                            onChange={handleInputChange}
-                            placeholder="e.g. 1200"
-                            className="w-full bg-transparent border-none outline-none text-white font-bold placeholder:text-zinc-700 text-base p-0 focus:ring-0"
-                            required
-                          />
-                          <span className="text-xs text-zinc-500 font-black tracking-widest ml-2 select-none">/NIGHT</span>
-                        </div>
-                        <p className="text-[10px] text-zinc-500 px-1">Standard rate applicable for Sunday night through Thursday night bookings.</p>
-                      </div>
-
-                      <div className="space-y-2 relative z-10">
-                        <div className="flex items-center justify-between px-1">
-                          <span className="text-xs font-black text-zinc-400 uppercase tracking-widest">Weekend Price</span>
-                          <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">Sat-Sun</span>
-                        </div>
-                        <div className="relative flex items-center bg-zinc-950/60 border border-zinc-850 hover:border-zinc-750/60 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 rounded-2xl px-4 py-3.5 transition-all">
-                          <span className="text-zinc-500 font-extrabold text-lg mr-2 select-none">₹</span>
-                          <input
-                            type="number"
-                            name="weekendPrice"
-                            value={formData.weekendPrice}
-                            onChange={handleInputChange}
-                            placeholder="e.g. 1500"
-                            className="w-full bg-transparent border-none outline-none text-white font-bold placeholder:text-zinc-700 text-base p-0 focus:ring-0"
-                            required
-                          />
-                          <span className="text-xs text-zinc-500 font-black tracking-widest ml-2 select-none">/NIGHT</span>
-                        </div>
-                        <p className="text-[10px] text-zinc-500 px-1">Premium rate applicable for Friday night and Saturday night bookings.</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Per-Room-Type Custom Pricing Section */}
-                {pricingMode === 'custom' && formData.roomTypes.length > 0 && (
+                {formData.roomTypes.length > 0 ? (
                   <div className="space-y-4 md:space-y-5 animate-fade-in">
                     <div className="flex items-center gap-3 px-1">
                       <div className="p-1.5 bg-sky-500/10 rounded-lg border border-sky-500/20">
@@ -1927,24 +1867,17 @@ const AddPropertyModal = ({
 
                     <div className="grid grid-cols-1 gap-5">
                       {formData.roomTypes.map((roomType) => {
-                        const hasCustomPrice = !!(formData.roomTypePrices[roomType] || formData.roomTypeWeekendPrices[roomType]);
-                        
                         const priceVal = parseFloat(String(formData.roomTypePrices[roomType])) || 0;
                         const wPriceVal = parseFloat(String(formData.roomTypeWeekendPrices[roomType])) || 0;
+                        const hasCustomPrice = priceVal > 0 || wPriceVal > 0;
                         
                         let markupPct = 0;
                         if (priceVal > 0 && wPriceVal > priceVal) {
                           markupPct = Math.round(((wPriceVal - priceVal) / priceVal) * 100);
-                        } else if (!hasCustomPrice && formData.price && formData.weekendPrice) {
-                          const base = parseFloat(String(formData.price)) || 0;
-                          const weekend = parseFloat(String(formData.weekendPrice)) || 0;
-                          if (base > 0 && weekend > base) {
-                            markupPct = Math.round(((weekend - base) / base) * 100);
-                          }
                         }
 
-                        const weekdayPlaceholder = formData.price ? `Default: ${formData.price}` : "e.g. 1500";
-                        const weekendPlaceholder = formData.weekendPrice ? `Default: ${formData.weekendPrice}` : "e.g. 1800";
+                        const weekdayPlaceholder = "e.g. 1500";
+                        const weekendPlaceholder = "e.g. 1800";
 
                         return (
                           <div 
@@ -1961,13 +1894,11 @@ const AddPropertyModal = ({
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <h5 className="text-xs md:text-sm font-black text-white uppercase tracking-wider">{roomType}</h5>
-                                    {!hasCustomPrice && (formData.price || formData.weekendPrice) ? (
-                                      <span className="text-[8px] font-black text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20 tracking-widest uppercase">Inherited</span>
-                                    ) : hasCustomPrice ? (
+                                    {hasCustomPrice ? (
                                       <span className="text-[8px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 tracking-widest uppercase">Customized</span>
                                     ) : null}
                                   </div>
-                                  <p className="text-[10px] text-zinc-500 mt-0.5">Customize weekday and weekend pricing or leave empty to inherit defaults</p>
+                                  <p className="text-[10px] text-zinc-500 mt-0.5">Customize weekday and weekend pricing for this room type</p>
                                 </div>
                               </div>
                             </div>
@@ -1992,7 +1923,7 @@ const AddPropertyModal = ({
                                     }))}
                                     placeholder={weekdayPlaceholder}
                                     className="w-full bg-transparent border-none outline-none text-white font-semibold placeholder:text-zinc-700 text-sm p-0 focus:ring-0"
-                                    required={!formData.price}
+                                    required
                                   />
                                   <span className="text-[10px] text-zinc-500 font-black tracking-widest ml-2 select-none">/NIGHT</span>
                                 </div>
@@ -2024,7 +1955,7 @@ const AddPropertyModal = ({
                                     }))}
                                     placeholder={weekendPlaceholder}
                                     className="w-full bg-transparent border-none outline-none text-white font-semibold placeholder:text-zinc-700 text-sm p-0 focus:ring-0"
-                                    required={!formData.weekendPrice}
+                                    required
                                   />
                                   <span className="text-[10px] text-zinc-500 font-black tracking-widest ml-2 select-none">/NIGHT</span>
                                 </div>
@@ -2035,7 +1966,7 @@ const AddPropertyModal = ({
                       })}
                     </div>
                   </div>
-                )}
+                ) : null}
                 
                 {/* Bulk Booking Discount with toggle and +/- buttons */}
                 {['Home Stay', 'Apartment', 'Villa'].includes(formData.type) ? (
@@ -2221,19 +2152,33 @@ const AddPropertyModal = ({
 };
 
 
-const InputField = ({ label, name, type = "text", value, onChange, placeholder }: any) => (
+const InputField = ({ label, name, type = "text", value, onChange, placeholder, disabled }: any) => (
   <div>
     <label htmlFor={name} className="block text-xs md:text-sm font-medium text-zinc-400 mb-1 md:mb-1.5">{label}</label>
-    <input
-      type={type}
-      id={name}
-      name={name}
-      value={value}
-      onChange={onChange}
-      className="w-full bg-zinc-800 border-zinc-700 rounded-lg p-2.5 md:p-3 text-sm md:text-base text-white focus:ring-2 focus:ring-primary focus:border-primary transition"
-      placeholder={placeholder}
-      required
-    />
+    <div className="relative">
+      <input
+        type={type}
+        id={name}
+        name={name}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        className={`w-full rounded-lg p-2.5 md:p-3 pr-16 text-sm md:text-base transition-all duration-300 outline-none ${
+          disabled
+            ? 'bg-zinc-950/40 border border-zinc-900 text-zinc-500 cursor-not-allowed opacity-50'
+            : 'bg-zinc-800/30 border border-zinc-700/60 text-white hover:border-sky-500/50 hover:bg-zinc-800/60 focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500'
+        }`}
+        placeholder={placeholder}
+        required
+      />
+      {disabled && (
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+          <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 bg-zinc-900/60 px-2 py-0.5 rounded border border-zinc-800/60 select-none">
+            Locked
+          </span>
+        </div>
+      )}
+    </div>
   </div>
 );
 
