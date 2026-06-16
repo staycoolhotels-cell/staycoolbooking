@@ -176,9 +176,21 @@ const AddPropertyModal = ({
   // Auto-sync Total Rooms/Beds when roomTypeCounts or roomTypes change
   useEffect(() => {
     const isSingleRoomsType = ['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(formData.type);
+    
+    // Ensure all selected room types have a count of at least 1 in roomTypeCounts
+    let hasChanges = false;
+    const updatedCounts = { ...formData.roomTypeCounts };
+    formData.roomTypes.forEach(type => {
+      if (updatedCounts[type] === undefined || updatedCounts[type] < 1) {
+        updatedCounts[type] = 1;
+        hasChanges = true;
+      }
+    });
+
     if (isSingleRoomsType) {
       if (formData.totalRooms !== 1) {
-        setFormData(prev => ({ ...prev, totalRooms: 1 }));
+        setFormData(prev => ({ ...prev, totalRooms: 1, roomTypeCounts: hasChanges ? updatedCounts : prev.roomTypeCounts }));
+        return;
       }
       
       // For Dormitory, auto-sync Beds to the sum of room type counts
@@ -186,16 +198,18 @@ const AddPropertyModal = ({
         if (formData.roomTypes.length > 0) {
           let sum = 0;
           for (const type of formData.roomTypes) {
-            sum += (formData.roomTypeCounts[type] || 1);
+            sum += (updatedCounts[type] || 1);
           }
-          if (sum > 0 && formData.beds !== sum) {
-            setFormData(prev => ({ ...prev, beds: sum }));
+          if (formData.beds !== sum || hasChanges) {
+            setFormData(prev => ({ ...prev, beds: sum, roomTypeCounts: updatedCounts }));
           }
         } else {
           if (formData.beds !== 0) {
             setFormData(prev => ({ ...prev, beds: 0 }));
           }
         }
+      } else if (hasChanges) {
+        setFormData(prev => ({ ...prev, roomTypeCounts: updatedCounts }));
       }
       return;
     }
@@ -203,11 +217,13 @@ const AddPropertyModal = ({
     if (formData.roomTypes.length > 0) {
       let sum = 0;
       for (const type of formData.roomTypes) {
-        sum += (formData.roomTypeCounts[type] || 1);
+        sum += (updatedCounts[type] || 1);
       }
-      if (sum > 0 && formData.totalRooms !== sum) {
-        setFormData(prev => ({ ...prev, totalRooms: sum }));
+      if (formData.totalRooms !== sum || hasChanges) {
+        setFormData(prev => ({ ...prev, totalRooms: sum, roomTypeCounts: updatedCounts }));
       }
+    } else if (hasChanges) {
+      setFormData(prev => ({ ...prev, roomTypeCounts: updatedCounts }));
     }
   }, [formData.roomTypes, formData.roomTypeCounts, formData.type, formData.totalRooms, formData.beds]);
 

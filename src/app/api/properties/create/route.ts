@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
 
     // Invalidate caches to ensure lists reflect the update
     revalidateTag(CACHE_TAGS.properties);
+    revalidateTag(CACHE_TAGS.host_properties(hostId));
     revalidatePath('/homepage', 'page');
     revalidatePath('/', 'layout');
 

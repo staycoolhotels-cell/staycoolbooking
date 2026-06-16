@@ -488,6 +488,7 @@ const HostDashboardInteractive = ({
 
     if (!propertiesError) {
       setProperties(properties || []);
+      setStoreProperties(properties || []);
     }
   };
 
@@ -621,13 +622,33 @@ const HostDashboardInteractive = ({
       const finalSafetyItems = formData.safetyItems.length > 0 ? formData.safetyItems : ['N/A'];
       const finalCancellationPolicy = formData.cancellationPolicy || 'N/A';
 
+      // Calculate minimum room type price if room types are present
+      let finalPrice = parseFloat(String(formData.price)) || 0;
+      let finalWeekendPrice = parseFloat(String(formData.weekendPrice)) || 0;
+      if (formData.roomTypes && formData.roomTypes.length > 0 && formData.roomTypePrices) {
+        const pricesList = Object.values(formData.roomTypePrices)
+          .map(p => parseFloat(String(p)) || 0)
+          .filter(p => p > 0);
+        if (pricesList.length > 0) {
+          finalPrice = Math.min(...pricesList);
+        }
+      }
+      if (formData.roomTypes && formData.roomTypes.length > 0 && formData.roomTypeWeekendPrices) {
+        const weekendPricesList = Object.values(formData.roomTypeWeekendPrices)
+          .map(p => parseFloat(String(p)) || 0)
+          .filter(p => p > 0);
+        if (weekendPricesList.length > 0) {
+          finalWeekendPrice = Math.min(...weekendPricesList);
+        }
+      }
+
       if (propertyToEdit) {
         // Editing existing property — via server-side API route (bypasses client schema cache)
         const updatePayload = {
           title: String(formData.name),
           description: String(formData.description),
-          price_per_night: parseFloat(String(formData.price)) || 0,
-          weekend_price_per_night: parseFloat(String(formData.weekendPrice)) || 0,
+          price_per_night: finalPrice,
+          weekend_price_per_night: finalWeekendPrice,
           tier: String(formData.type),
           amenities: finalAmenities,
           license_url: formData.license_url || '',
@@ -667,7 +688,7 @@ const HostDashboardInteractive = ({
           longitude: formData.longitude,
           show_specific_location: true,
           bulk_booking_discount: Number(formData.bulkBookingDiscount) || 0,
-          standard_price: parseFloat(String(formData.price)) || 0,
+          standard_price: finalPrice,
           updated_at: new Date().toISOString(),
         };
 
@@ -704,8 +725,8 @@ const HostDashboardInteractive = ({
           const propertyPayload = {
             title: String(formData.name),
             description: String(formData.description),
-            price_per_night: parseFloat(String(formData.price)) || 0,
-            weekend_price_per_night: parseFloat(String(formData.weekendPrice)) || 0,
+            price_per_night: finalPrice,
+            weekend_price_per_night: finalWeekendPrice,
             tier: String(formData.type),
             amenities: finalAmenities,
             license_url: formData.license_url || '',
@@ -745,7 +766,7 @@ const HostDashboardInteractive = ({
             longitude: formData.longitude || null,
             show_specific_location: true,
             bulk_booking_discount: Number(formData.bulkBookingDiscount) || 0,
-            standard_price: parseFloat(String(formData.price)) || 0,
+            standard_price: finalPrice,
           };
 
           console.log('Sending API request to create property:', propertyPayload);
@@ -1039,7 +1060,7 @@ const HostDashboardInteractive = ({
                   {activeTab === 'occupancy-pulse' && <OccupancyPulse bookings={hostData.bookings} />}
                   {activeTab === 'revenue-velocity' && <RevenueForecasting bookings={hostData.bookings} />}
                   {activeTab === 'unified-inbox' && <UnifiedInbox inboxContext={inboxContext} />}
-                  {activeTab === 'aura-quality' && <AuraQualityScore properties={properties} />}
+                  {activeTab === 'aura-quality' && <AuraQualityScore properties={properties} onUpdate={fetchProperties} />}
                   {activeTab === 'amenity-upsell' && <DynamicAmenityUpsell />}
                   {activeTab === 'cleaning-maintenance' && <CleaningMaintenanceLog properties={properties} />}
                   {activeTab === 'disputes' && <DisputesList disputes={disputes} isLoading={isLoadingDisputes} />}

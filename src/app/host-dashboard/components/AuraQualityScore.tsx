@@ -243,9 +243,10 @@ const formatDynamicPreference = (text: string, yourPrice: number, suggestedPrice
 
 interface AuraQualityScoreProps {
   properties?: Property[];
+  onUpdate?: () => void;
 }
 
-const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) => {
+const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [], onUpdate }) => {
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -562,6 +563,9 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
       ));
 
       toast.success(isAI ? 'Optimal price applied successfully! Your property listing has been updated.' : 'Standard price restored successfully!');
+      
+      // Trigger parent properties update
+      if (onUpdate) onUpdate();
     } catch (error: any) {
       console.error('Error updating price:', error);
       const errorMessage = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
@@ -612,6 +616,9 @@ const AuraQualityScore: React.FC<AuraQualityScoreProps> = ({ properties = [] }) 
       }));
 
       toast.success(isAI ? `Optimal price applied for ${roomType} successfully!` : `Standard price restored for ${roomType} successfully!`);
+      
+      // Trigger parent properties update
+      if (onUpdate) onUpdate();
     } catch (error: any) {
       console.error('Error updating room type price:', error);
       const errorMessage = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));

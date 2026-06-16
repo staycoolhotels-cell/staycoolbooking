@@ -38,26 +38,17 @@ export const getActiveProperties = unstable_cache(
   }
 );
 
-// 2. Fetch properties for a specific host (Cached across requests)
+// 2. Fetch properties for a specific host (No cross-request cache, request-level memoization only)
 export const getHostProperties = cache(async (hostId: string) => {
-  return unstable_cache(
-    async () => {
-      console.info(`Fetching properties for host ${hostId} from DB (Cache Miss)...`);
-      const supabase = createServiceClient();
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('host_id', hostId);
+  console.info(`Fetching properties for host ${hostId} from DB...`);
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from('properties')
+    .select('*')
+    .eq('host_id', hostId);
 
-      if (error) throw error;
-      return data as Property[];
-    },
-    [`host-properties-${hostId}`],
-    {
-      revalidate: 600, // 10 minutes
-      tags: [CACHE_TAGS.host_properties(hostId), CACHE_TAGS.properties],
-    }
-  )();
+  if (error) throw error;
+  return data as Property[];
 });
 
 // 3. Simple Request-level memoized User fetch
@@ -101,25 +92,16 @@ export const getSupportAdmin = cache(async () => {
   return data;
 });
 
-// 4. Fetch bookings for a host (Memoized & Cached)
+// 5. Fetch bookings for a host (No cross-request cache, request-level memoization only)
 export const getHostBookings = cache(async (hostId: string) => {
-  return unstable_cache(
-    async () => {
-      console.info(`Fetching bookings for host ${hostId} from DB (Cache Miss)...`);
-      const supabase = createServiceClient();
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('*, properties!inner(*), guest:users!guest_id(name, avatar_url), booking_rooms(rooms(room_type))')
-        .eq('properties.host_id', hostId)
-        .order('created_at', { ascending: false });
+  console.info(`Fetching bookings for host ${hostId} from DB...`);
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('*, properties!inner(*), guest:users!guest_id(name, avatar_url), booking_rooms(rooms(room_type))')
+    .eq('properties.host_id', hostId)
+    .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data as any[];
-    },
-    [`host-bookings-${hostId}`],
-    {
-      revalidate: 300, // 5 minutes
-      tags: [CACHE_TAGS.bookings],
-    }
-  )();
+  if (error) throw error;
+  return data as any[];
 });

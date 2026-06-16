@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
 
     // Invalidate caches to ensure home page and other lists reflect the update
     revalidateTag(CACHE_TAGS.properties);
+    revalidateTag(CACHE_TAGS.host_properties(hostId));
     revalidatePath('/homepage', 'page');
     revalidatePath('/', 'layout');
     revalidatePath('/property-listing/[id]', 'page');

@@ -342,9 +342,22 @@ export const updatePropertyRoomTypePrice = async (propertyId: string, roomType: 
     [roomType]: suggestedPrice.toString()
   };
 
+  // Find minimum price of all room types to update price_per_night and standard_price
+  const pricesList = Object.values(updatedPrices).map(p => parseFloat(String(p)) || 0).filter(p => p > 0);
+  const minPrice = pricesList.length > 0 ? Math.min(...pricesList) : 0;
+
+  const updateFields: any = {
+    room_type_prices: updatedPrices
+  };
+
+  if (minPrice > 0) {
+    updateFields.price_per_night = minPrice;
+    updateFields.standard_price = minPrice;
+  }
+
   const { data, error } = await supabaseAdmin
     .from('properties')
-    .update({ room_type_prices: updatedPrices })
+    .update(updateFields)
     .eq('id', propertyId)
     .select();
 
