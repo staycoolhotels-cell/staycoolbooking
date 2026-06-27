@@ -143,7 +143,15 @@ const AddPropertyModal = ({
     bulkBookingDiscount: 10, // Default 10%
   });
   const [newCustomAmenity, setNewCustomAmenity] = useState('');
-  const [disabledFields, setDisabledFields] = useState<Record<string, boolean>>({});
+  const [disabledFields, setDisabledFields] = useState<Record<string, boolean>>({
+    addressLine2: true,
+    landmark: true,
+    district: true,
+    city: true,
+    state: true,
+    postalCode: true,
+    country: true,
+  });
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
@@ -349,7 +357,7 @@ const AddPropertyModal = ({
         bulkBookingDiscount: ['Home Stay', 'Apartment', 'Villa'].includes(propertyToEdit.tier || '') ? 0 : (propertyToEdit.bulk_booking_discount !== undefined && propertyToEdit.bulk_booking_discount !== null ? propertyToEdit.bulk_booking_discount : 10),
       });
       setDisabledFields({
-        name: !!(propertyToEdit.title || propertyToEdit.name),
+        name: false,
         addressLine2: !!propertyToEdit.address_line2,
         landmark: !!propertyToEdit.landmark,
         district: !!propertyToEdit.district,
@@ -418,7 +426,15 @@ const AddPropertyModal = ({
       setIsBulkDiscountEnabled(true);
       lastNonZeroDiscount.current = 10;
       setPhotoPreviews([]);
-      setDisabledFields({});
+      setDisabledFields({
+        addressLine2: true,
+        landmark: true,
+        district: true,
+        city: true,
+        state: true,
+        postalCode: true,
+        country: true,
+      });
     }
   }, [propertyToEdit]);
 
@@ -858,6 +874,7 @@ const AddPropertyModal = ({
                           state: !!newState,
                           postalCode: !!newPostalCode,
                           district: !!newDistrict,
+                          country: !!(addressData.country || prev.country || formData.country),
                         }));
                       }}
                       address={[

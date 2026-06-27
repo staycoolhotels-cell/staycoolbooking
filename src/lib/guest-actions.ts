@@ -90,7 +90,7 @@ export async function getGuestProfileForHost(guestId: string) {
            console.log(`[getGuestProfileForHost] Found "${guestId}" in Auth. Syncing to DB...`);
            const userRole = authUser.user_metadata?.role || 'guest';
            const userName = authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Guest User';
-           const userStatus = authUser.user_metadata?.status || (userRole === 'host' ? 'pending' : 'active');
+           const userStatus = authUser.user_metadata?.status || (userRole === 'host' ? 'active' : 'active');
 
            const { data: newProfile, error: createError } = await supabaseAdmin
              .from('users')

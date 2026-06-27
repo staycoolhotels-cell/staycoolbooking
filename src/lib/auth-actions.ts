@@ -113,9 +113,7 @@ export async function signUpUser(_prevState: string | undefined, formData: FormD
       data: {
         name,
         role,
-        // Status is handled by the database trigger:
-        // Role=Host -> Status=Pending
-        // Role=Guest -> Status=Active
+        status: 'active',
       },
     },
   });
@@ -387,7 +385,7 @@ export async function login(_prevState: string | undefined, formData: FormData) 
     // CRITICAL: Respect metadata status if it exists (set by admin approveHost).
     // If metadata has NO status, default new hosts to 'pending', guests to 'active'.
     const metaStatus = data.user.user_metadata?.status;
-    const userStatus = metaStatus || (userRole === 'host' ? 'pending' : 'active');
+    const userStatus = metaStatus || (userRole === 'host' ? 'active' : 'active');
 
     const { data: newProfile, error: createError } = await supabaseAdmin
       .from('users')
@@ -702,6 +700,7 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
             role: finalUserRole,
             name: name || 'Mobile User',
             phone: phone,
+            status: 'active',
           }
         });
 
@@ -770,7 +769,7 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
 
       const { data: newProfile, error: createError } = await supabaseAdmin
         .from('users')
-        .insert({
+        .upsert({
           id: userId,
           name: userName,
           phone: phone,
@@ -782,7 +781,7 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
           referral_commissions_remaining: (referrerId && finalUserRole === 'host') ? 5 : 0,
           subscription_status: subscriptionStatus,
           subscription_expiry: subscriptionExpiry,
-        })
+        }, { onConflict: 'id' })
         .select('id, role, status')
         .single();
 
@@ -900,7 +899,7 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
 
         const { data: newProfile, error: createError } = await supabaseAdmin
           .from('users')
-          .insert({
+          .upsert({
             id: userId,
             name: userName,
             phone: phone,
@@ -911,7 +910,7 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
             referral_commissions_remaining: (referrerId && finalUserRole === 'host') ? 5 : 0,
             subscription_status: subscriptionStatus,
             subscription_expiry: subscriptionExpiry,
-          })
+          }, { onConflict: 'id' })
           .select('role, status')
           .single();
 
