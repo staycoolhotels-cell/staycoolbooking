@@ -270,7 +270,7 @@ const Profile = ({
                 <Icon name="CalendarDaysIcon" size={14} /> System Origin
               </label>
               <div className="flex items-center gap-2 text-base font-bold text-zinc-400 bg-white/[0.02] border border-transparent rounded-xl px-4 py-3.5 cursor-not-allowed">
-                <Icon name="LockClosedIcon" size={14} /> January 2024
+                <Icon name="LockClosedIcon" size={14} /> June 2026
               </div>
             </div>
 

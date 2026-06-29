@@ -70,6 +70,8 @@ export default function BankingDetails() {
     const [submitting, setSubmitting] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
     const [error, setError] = useState('');
+    const [resetting, setResetting] = useState(false);
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [formData, setFormData] = useState<FormData>({
         legal_business_name: '',
         email: '',
@@ -91,6 +93,17 @@ export default function BankingDetails() {
             if (res.ok) {
                 const data = await res.json();
                 setKycStatus(data);
+                if (data) {
+                    setFormData({
+                        legal_business_name: data.legal_business_name || '',
+                        email: data.email || '',
+                        phone: data.phone || '',
+                        pan_number: data.pan_number || '',
+                        bank_account_number: data.bank_account_number || '',
+                        bank_ifsc: data.bank_ifsc || '',
+                        bank_beneficiary_name: data.bank_beneficiary_name || '',
+                    });
+                }
             } else if (res.status === 404) {
                 setKycStatus({ kyc_status: 'pending' });
             }
@@ -98,6 +111,28 @@ export default function BankingDetails() {
             setKycStatus({ kyc_status: 'pending' });
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function handleReset() {
+        setResetting(true);
+        setError('');
+        try {
+            const res = await fetch('/api/razorpay/linked-account/reset', {
+                method: 'POST'
+            });
+            if (res.ok) {
+                setKycStatus({ kyc_status: 'pending' });
+                setCurrentStep(0);
+                setShowResetConfirm(false);
+            } else {
+                const data = await res.json();
+                setError(data.error || 'Failed to reset payout details. Please try again.');
+            }
+        } catch {
+            setError('Network error. Failed to reset payout details.');
+        } finally {
+            setResetting(false);
         }
     }
 
@@ -205,12 +240,63 @@ export default function BankingDetails() {
                     </div>
                 )}
 
-                <button
-                    onClick={fetchStatus}
-                    className="w-full py-4 px-6 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 font-bold rounded-2xl transition-all text-sm uppercase tracking-widest"
-                >
-                    Refresh Status
-                </button>
+                {error && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-2 text-sm text-red-400">
+                        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                        {error}
+                    </div>
+                )}
+
+                {showResetConfirm ? (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 md:p-6 space-y-4">
+                        <div className="flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                            <div>
+                                <h4 className="font-bold text-red-400 text-sm md:text-base">Confirm Details Reupload</h4>
+                                <p className="text-zinc-400 text-xs md:text-sm mt-1">
+                                    Reuploading details will deactivate your current Razorpay Route account in our system. You will need to submit all details again, and payouts will be paused until the new KYC is verified by Razorpay.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <button
+                                onClick={() => setShowResetConfirm(false)}
+                                className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 font-bold rounded-xl transition-all text-xs uppercase tracking-widest"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleReset}
+                                disabled={resetting}
+                                className="flex-1 py-3 px-4 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 font-bold rounded-xl transition-all text-xs uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {resetting ? (
+                                    <>
+                                        <div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                                        Resetting...
+                                    </>
+                                ) : (
+                                    'Yes, Reset & Reupload'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <button
+                            onClick={fetchStatus}
+                            className="flex-1 py-4 px-6 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 font-bold rounded-2xl transition-all text-sm uppercase tracking-widest"
+                        >
+                            Refresh Status
+                        </button>
+                        <button
+                            onClick={() => setShowResetConfirm(true)}
+                            className="flex-1 py-4 px-6 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold rounded-2xl transition-all text-sm uppercase tracking-widest"
+                        >
+                            Reupload Details
+                        </button>
+                    </div>
+                )}
             </div>
         );
     }
@@ -249,10 +335,15 @@ export default function BankingDetails() {
                 <div className="p-1.5 md:p-2 bg-sky-500/20 rounded-lg md:rounded-xl shrink-0 mt-0.5">
                     <Building2 className="w-3.5 h-3.5 md:w-4 md:h-4 text-sky-400" />
                 </div>
-                <p className="text-sky-300 text-sm leading-relaxed">
-                    Set up your banking details to receive automatic payouts after each guest booking.
-                    Your information is securely handled by <strong className="text-sky-200">Razorpay Route</strong>.
-                </p>
+                <div className="space-y-1">
+                    <p className="text-sky-300 text-sm leading-relaxed">
+                        Set up your banking details to receive automatic payouts after each guest booking.
+                        Your information is securely handled by <strong className="text-sky-200">Razorpay Route</strong>.
+                    </p>
+                    <p className="text-amber-400/90 text-xs font-semibold">
+                        ⚠️ Note: Please upload details of a single (individual) bank account only. Joint bank accounts are not supported.
+                    </p>
+                </div>
             </div>
 
             {/* Step indicators */}
@@ -360,6 +451,12 @@ export default function BankingDetails() {
 
                     {currentStep === 2 && (
                         <>
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-amber-400">
+                                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                                <div>
+                                    <strong className="font-bold">Important Note:</strong> Please upload details of a single (individual) bank account only. Joint bank accounts are not supported by Razorpay Route payouts.
+                                </div>
+                            </div>
                             <div>
                                 <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">
                                     Account Holder Name <span className="text-red-400">*</span>
