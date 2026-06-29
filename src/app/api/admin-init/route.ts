@@ -102,6 +102,20 @@ async function ensureAdminUserExists() {
 
 export async function POST(request: Request) {
     try {
+        // SECURITY: This endpoint is privileged — it can create/reset admin credentials.
+        // It must only be callable with the correct ADMIN_INIT_SECRET header.
+        // Set ADMIN_INIT_SECRET in your .env and supply it as: X-Admin-Init-Secret: <value>
+        const expectedSecret = process.env.ADMIN_INIT_SECRET;
+        if (!expectedSecret) {
+            console.error('ADMIN_INIT_SECRET is not configured in environment variables.');
+            return NextResponse.json({ success: false, message: 'Endpoint not available' }, { status: 503 });
+        }
+
+        const suppliedSecret = request.headers.get('x-admin-init-secret');
+        if (!suppliedSecret || suppliedSecret !== expectedSecret) {
+            return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+        }
+
         const result = await ensureAdminUserExists();
 
         if (result.success) {

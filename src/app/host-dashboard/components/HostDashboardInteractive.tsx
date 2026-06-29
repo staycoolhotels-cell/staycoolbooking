@@ -698,7 +698,8 @@ const HostDashboardInteractive = ({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               propertyId: propertyToEdit.id,
-              hostId: hostData.id,
+              // SECURITY: hostId is no longer passed from client.
+              // The API derives it from the authenticated session.
               updatePayload,
             }),
           });
@@ -774,7 +775,8 @@ const HostDashboardInteractive = ({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              hostId: hostData.id,
+              // SECURITY: hostId is no longer passed from client.
+              // The API derives it from the authenticated session.
               propertyPayload,
             }),
           });

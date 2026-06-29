@@ -105,13 +105,23 @@ export async function GET(req: Request) {
                 liveStatus = 'activated';
             }
 
+
             // Sync to DB if changed
             if (liveStatus !== kyc.kyc_status) {
                 await supabase
                     .from('host_kyc_details')
                     .update({ kyc_status: liveStatus })
                     .eq('user_id', user.id);
+
+                // Also sync users.kyc_status when activated
+                if (liveStatus === 'activated') {
+                    await supabase
+                        .from('users')
+                        .update({ kyc_status: 'verified' })
+                        .eq('id', user.id);
+                }
             }
+
         } catch (rzpFetchErr: any) {
             console.warn('Could not fetch live Razorpay status:', rzpFetchErr?.message);
             // Return DB status as fallback

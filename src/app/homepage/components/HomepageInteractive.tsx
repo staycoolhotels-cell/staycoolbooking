@@ -117,7 +117,7 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
   } = useAppStore();
 
   const [isHydrated, setIsHydrated] = useState(false);
-  const [selectedStayType, setSelectedStayType] = useState('hotel');
+  const [selectedStayType, setSelectedStayType] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [searchLocation, setSearchLocation] = useState<string>('');
 

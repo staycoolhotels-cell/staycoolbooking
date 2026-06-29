@@ -210,6 +210,16 @@ export default function AuthClient() {
                       </div>
                     </div>
 
+                    {/* Forgot Password */}
+                    <div className="flex justify-end">
+                      <Link
+                        href="/forgot-password"
+                        className="text-xs text-primary hover:text-primary/80 transition-colors"
+                      >
+                        Forgot password?
+                      </Link>
+                    </div>
+
                     <SubmitButton>Sign In</SubmitButton>
                   </form>
                 </motion.div>

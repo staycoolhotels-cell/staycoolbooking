@@ -970,3 +970,57 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
 
   return 'OTP Verification failed.';
 }
+
+/**
+ * Sends a password reset email to the given email address.
+ */
+export async function sendPasswordResetEmail(_prevState: string | undefined, formData: FormData) {
+  const email = formData.get('email') as string;
+
+  if (!email) {
+    return JSON.stringify({ error: 'Email is required.' });
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/reset-password`,
+  });
+
+  if (error) {
+    console.error('Password Reset Error:', error.message);
+    return JSON.stringify({ error: 'Failed to send reset email. Please try again.' });
+  }
+
+  return JSON.stringify({ success: true });
+}
+
+/**
+ * Updates the user's password after they click the reset link.
+ * Must be called from a page that has the Supabase session set via the reset link.
+ */
+export async function updatePassword(_prevState: string | undefined, formData: FormData) {
+  const password = formData.get('password') as string;
+  const confirmPassword = formData.get('confirmPassword') as string;
+
+  if (!password || !confirmPassword) {
+    return JSON.stringify({ error: 'Both password fields are required.' });
+  }
+
+  if (password.length < 6) {
+    return JSON.stringify({ error: 'Password must be at least 6 characters.' });
+  }
+
+  if (password !== confirmPassword) {
+    return JSON.stringify({ error: 'Passwords do not match.' });
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    console.error('Update Password Error:', error.message);
+    return JSON.stringify({ error: 'Failed to update password. The reset link may have expired. Please request a new one.' });
+  }
+
+  return JSON.stringify({ success: true });
+}

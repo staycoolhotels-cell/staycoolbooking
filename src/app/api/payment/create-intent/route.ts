@@ -45,6 +45,11 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
         }
 
+        // SECURITY: Ensure only the booking's guest can create a payment intent for it.
+        if (booking.guest_id !== user.id) {
+            return NextResponse.json({ error: 'Forbidden: this is not your booking' }, { status: 403 });
+        }
+
         // Step 2: Fetch Property
         if (!booking.property_id) {
             console.error('Booking has no property_id:', booking);

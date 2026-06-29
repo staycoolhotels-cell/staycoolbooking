@@ -220,10 +220,26 @@ export async function POST(req: Request) {
                 const account = payload?.account?.entity;
                 if (!account) break;
 
+                // Update host_kyc_details status
                 await supabase
                     .from('host_kyc_details')
                     .update({ kyc_status: 'activated' })
                     .eq('razorpay_account_id', account.id);
+
+                // Also sync users.kyc_status to 'verified'
+                const { data: kycRecord } = await supabase
+                    .from('host_kyc_details')
+                    .select('user_id')
+                    .eq('razorpay_account_id', account.id)
+                    .single();
+
+                if (kycRecord?.user_id) {
+                    await supabase
+                        .from('users')
+                        .update({ kyc_status: 'verified' })
+                        .eq('id', kycRecord.user_id);
+                    console.log(`[Webhook] account.activated: Synced users.kyc_status=verified for user ${kycRecord.user_id}`);
+                }
 
                 console.log(`[Webhook] account.activated: Account ${account.id} is now activated.`);
                 break;

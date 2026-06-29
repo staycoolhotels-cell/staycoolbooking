@@ -1,21 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase-server';
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { revalidateTag, revalidatePath } from 'next/cache';
 import { CACHE_TAGS } from '@/lib/data-service';
 
 // Server-side admin client — bypasses PostgREST schema cache entirely
-const supabaseAdmin = createClient(
+const supabaseAdmin = createSupabaseAdmin(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 export async function POST(request: NextRequest) {
   try {
-    const { hostId, propertyPayload } = await request.json();
+    // SECURITY: Authenticate the caller using their JWT session.
+    // Never trust a hostId supplied by the client body.
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!hostId || !propertyPayload || !propertyPayload.title) {
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { propertyPayload } = await request.json();
+
+    if (!propertyPayload || !propertyPayload.title) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    // SECURITY: Use the authenticated user's id as hostId — never a client-supplied value.
+    const hostId = user.id;
 
     const payloadWithHost = {
       ...propertyPayload,

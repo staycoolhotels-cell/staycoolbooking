@@ -1,21 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase-server';
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { revalidateTag, revalidatePath } from 'next/cache';
 import { CACHE_TAGS } from '@/lib/data-service';
 
 // Server-side admin client — bypasses PostgREST schema cache entirely
-const supabaseAdmin = createClient(
+const supabaseAdmin = createSupabaseAdmin(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 export async function POST(request: NextRequest) {
   try {
-    const { propertyId, hostId, updatePayload } = await request.json();
+    // SECURITY: Authenticate the caller using their JWT session.
+    // Never trust a hostId supplied by the client body.
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!propertyId || !hostId || !updatePayload) {
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { propertyId, updatePayload } = await request.json();
+
+    if (!propertyId || !updatePayload) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    // SECURITY: Use the authenticated user's id as hostId — never the client-supplied value.
+    const hostId = user.id;
 
     const finalUpdatePayload = { ...updatePayload };
     if (updatePayload.title && !updatePayload.name) {
@@ -24,6 +37,7 @@ export async function POST(request: NextRequest) {
       finalUpdatePayload.title = updatePayload.name;
     }
 
+    // The .eq('host_id', hostId) clause ensures a host can only update their OWN property.
     const { data, error } = await supabaseAdmin
       .from('properties')
       .update(finalUpdatePayload)
@@ -35,6 +49,11 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('API: Error updating property:', error);
       return NextResponse.json({ error: error.message || 'An unexpected error occurred.' }, { status: 500 });
+    }
+
+    if (!data) {
+      // No rows matched — either property doesn't exist or it belongs to a different host
+      return NextResponse.json({ error: 'Property not found or access denied' }, { status: 403 });
     }
 
     // Sync sub-units (rooms) when total_rooms changes during edit

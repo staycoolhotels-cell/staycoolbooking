@@ -20,7 +20,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guests, setGuests] = useState(1);
-  const [stayType, setStayType] = useState('hotel');
+  const [stayType, setStayType] = useState('all');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showGuestSelector, setShowGuestSelector] = useState(false);
 
