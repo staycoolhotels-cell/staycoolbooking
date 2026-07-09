@@ -4,10 +4,10 @@ try {
     const content = fs.readFileSync('backup.sql', 'utf8');
     const lines = content.split('\n');
     const funcLines = lines.filter(l => 
-        (l.includes('FUNCTION') || l.includes('function')) && 
-        (l.toLowerCase().includes('sql') || l.toLowerCase().includes('exec') || l.toLowerCase().includes('query') || l.toLowerCase().includes('run'))
+        l.includes('CREATE FUNCTION') || l.includes('CREATE OR REPLACE FUNCTION')
     );
-    console.log('SQL/Exec/Query matches:', funcLines);
+    console.log('All functions in backup.sql:');
+    funcLines.forEach(l => console.log(l));
 } catch (e) {
     console.error('Failed:', e.message);
 }

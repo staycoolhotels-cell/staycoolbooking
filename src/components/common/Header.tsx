@@ -36,8 +36,13 @@ const Header = () => {
     // Auth state synchronization
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      if (event === 'PASSWORD_RECOVERY') {
+        if (typeof window !== 'undefined' && window.location.pathname !== '/reset-password') {
+          router.push('/reset-password');
+        }
+      }
     });
     return () => subscription.unsubscribe();
   }, [pathname]);

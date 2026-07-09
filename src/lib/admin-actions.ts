@@ -969,3 +969,40 @@ export async function getAdminThreads() {
 
   return messages;
 }
+
+export async function renewHostSubscriptionAction(userId: string) {
+  const supabase = await createAdminSupabaseClient();
+  const newExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+
+  // Layer 1: Update users table
+  const { data, error: updateError } = await supabase
+    .from('users')
+    .update({ 
+      subscription_status: 'active',
+      subscription_expiry: newExpiry
+    })
+    .eq('id', userId)
+    .select('id, subscription_status, subscription_expiry');
+
+  if (updateError) {
+    console.error('renewHostSubscriptionAction: Direct update failed:', updateError);
+    return { success: false, error: 'Database update failed: ' + updateError.message };
+  }
+
+  // Layer 2: Update auth user metadata
+  const { error: metaError } = await supabase.auth.admin.updateUserById(userId, {
+    user_metadata: { subscription_status: 'active', subscription_expiry: newExpiry }
+  });
+  if (metaError) {
+    console.warn('renewHostSubscriptionAction: Failed to update auth metadata (non-fatal):', metaError.message);
+  }
+
+  // Log activity
+  await logActivity('subscription_renewal', `Host ${userId} has renewed their subscription. Expiry set to ${newExpiry}`, userId, 'Subscription Renewed', 'success');
+
+  // Revalidate path
+  revalidatePath('/host-dashboard');
+
+  return { success: true, expiry: newExpiry, data };
+}
+

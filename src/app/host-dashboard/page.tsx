@@ -62,12 +62,8 @@ export default async function HostDashboardPage() {
       const expiryDate = new Date(host.subscription_expiry);
       const now = new Date();
       if (now > expiryDate) {
-        // Subscription expired
-        console.log('❌ BLOCKING: Host subscription expired:', host.subscription_expiry);
-        // We could redirect to a renewal page, but for now let's just show an error or sign out
-        // redirect('/host-renewal'); // Future implementation
-        await supabase.auth.signOut();
-        redirect('/auth?error=subscription_expired');
+        // Subscription expired - We let the page load so they can see the renewal overlay in the center of the screen
+        console.log('⚠️ Host subscription expired. Letting dashboard load so they can pay/renew:', host.subscription_expiry);
       }
     }
 

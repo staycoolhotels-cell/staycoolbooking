@@ -17,10 +17,23 @@ export default function AuthClient() {
   const [mobileNumber, setMobileNumber] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Client-side session check for history replacement
   useEffect(() => {
     const checkSession = async () => {
+      // If we are recovering password, let Header or local page handle it, do not redirect to dashboard/homepage
+      if (typeof window !== 'undefined' && (
+        window.location.hash.includes('type=recovery') || 
+        window.location.search.includes('type=recovery')
+      )) {
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         // Fetch role and replace history
@@ -66,6 +79,14 @@ export default function AuthClient() {
       setOtpSent(false); // Reset OTP state
     }
   };
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#050505] overflow-hidden relative selection:bg-primary/30 selection:text-primary-foreground">
@@ -168,7 +189,7 @@ export default function AuthClient() {
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <form action={emailAction} className="space-y-5">
+                  <form action={emailAction} className="space-y-5" data-1p-ignore="true" data-op-ignore="true">
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1" htmlFor="email">
                         Email Address
@@ -181,6 +202,13 @@ export default function AuthClient() {
                           name="email"
                           placeholder="name@example.com"
                           required
+                          data-1p-ignore="true"
+                          data-op-ignore="true"
+                          data-lpignore="true"
+                          data-lp-ignore="true"
+                          data-dashlane-ignore="true"
+                          data-protonpass-ignore="true"
+                          autoComplete="off"
                           className="w-full pl-11 md:pl-12 pr-4 md:py-3.5 py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                         />
                       </div>
@@ -198,6 +226,13 @@ export default function AuthClient() {
                           name="password"
                           placeholder="••••••••"
                           required
+                          data-1p-ignore="true"
+                          data-op-ignore="true"
+                          data-lpignore="true"
+                          data-lp-ignore="true"
+                          data-dashlane-ignore="true"
+                          data-protonpass-ignore="true"
+                          autoComplete="off"
                           className="w-full pl-11 md:pl-12 pr-12 md:py-3.5 py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                         />
                         <button
@@ -231,7 +266,7 @@ export default function AuthClient() {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <form action={mobileDispatch} className="space-y-5">
+                  <form action={mobileDispatch} className="space-y-5" data-1p-ignore="true" data-op-ignore="true">
                     {!otpSent ? (
                       <div className="space-y-4">
                         <div className="space-y-2">

@@ -97,6 +97,27 @@ async function ensureAdminUserExists() {
         return { success: false, message: 'Failed to upsert admin into public.users' };
     }
 
+    // Demote any OTHER admins in public.users to role 'guest'
+    const { data: otherAdmins } = await supabaseAdmin
+        .from('users')
+        .select('id, email')
+        .eq('role', 'admin')
+        .neq('email', adminEmail);
+
+    if (otherAdmins && otherAdmins.length > 0) {
+        for (const other of otherAdmins) {
+            console.log(`Demoting non-env admin user: ${other.email}`);
+            await supabaseAdmin
+                .from('users')
+                .update({ role: 'guest' })
+                .eq('id', other.id);
+
+            await supabaseAdmin.auth.admin.updateUserById(other.id, {
+                user_metadata: { role: 'guest' }
+            });
+        }
+    }
+
     return { success: true, message: 'Admin user initialized successfully', adminEmail };
 }
 

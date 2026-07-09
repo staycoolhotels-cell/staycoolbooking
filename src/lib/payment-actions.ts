@@ -39,6 +39,43 @@ export async function createHostSignupOrder() {
     }
 }
 
+export async function createHostRenewalOrder() {
+    try {
+        const key_id = process.env.RAZORPAY_KEY_ID;
+        if (!key_id) {
+            throw new Error('RAZORPAY_KEY_ID is not configured');
+        }
+
+        const options = {
+            amount: 29900, // Amount in paise (299 INR)
+            currency: "INR",
+            receipt: "receipt_host_renewal_" + Date.now(),
+        };
+
+        const order = await razorpay.orders.create(options);
+        
+        return {
+            success: true,
+            orderId: order.id,
+            amount: order.amount,
+            currency: order.currency,
+            key_id: key_id,
+            error: null
+        };
+    } catch (error: any) {
+        console.error('Error creating Razorpay renewal order:', error);
+        return {
+            success: false,
+            orderId: null,
+            amount: 0,
+            currency: "INR",
+            key_id: null,
+            error: `Payment Error: ${error.message || 'An unexpected error occurred'}`
+        };
+    }
+}
+
+
 export async function verifyPaymentSignature(
     orderId: string,
     paymentId: string,

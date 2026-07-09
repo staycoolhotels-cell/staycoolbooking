@@ -74,6 +74,12 @@ export default function AdminSetupPage() {
               value={secretKey}
               onChange={(e) => setSecretKey(e.target.value)}
               placeholder="Enter Deployment Key"
+              data-1p-ignore=""
+              data-op-ignore=""
+              data-lpignore="true"
+              data-dashlane-ignore="true"
+              data-protonpass-ignore="true"
+              autoComplete="off"
               className="w-full p-3 bg-muted border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all"
             />
           </div>

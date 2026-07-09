@@ -32,6 +32,11 @@ function SignupContent() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Email Signup State
   const [emailState, emailAction] = useActionState<any, any>(signUpUser, undefined);
@@ -285,6 +290,14 @@ function SignupContent() {
     },
   ];
 
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#050505] overflow-hidden relative selection:bg-primary/30 selection:text-primary-foreground pt-32 pb-12">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" />
@@ -383,7 +396,7 @@ function SignupContent() {
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <form action={handleEmailSignupSubmit} className="space-y-5">
+                  <form action={handleEmailSignupSubmit} className="space-y-5" data-1p-ignore="true" data-op-ignore="true">
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1" htmlFor="fullName">
                         Full Name
@@ -396,6 +409,12 @@ function SignupContent() {
                           name="fullName"
                           placeholder="Your Full Name"
                           required
+                          data-1p-ignore="true"
+                          data-op-ignore="true"
+                          data-lpignore="true"
+                          data-lp-ignore="true"
+                          data-dashlane-ignore="true"
+                          data-protonpass-ignore="true"
                           className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                         />
                       </div>
@@ -413,6 +432,13 @@ function SignupContent() {
                           name="email"
                           placeholder="name@example.com"
                           required
+                          data-1p-ignore="true"
+                          data-op-ignore="true"
+                          data-lpignore="true"
+                          data-lp-ignore="true"
+                          data-dashlane-ignore="true"
+                          data-protonpass-ignore="true"
+                          autoComplete="off"
                           className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                         />
                       </div>
@@ -431,6 +457,13 @@ function SignupContent() {
                             name="password"
                             placeholder="••••••"
                             required
+                            data-1p-ignore="true"
+                            data-op-ignore="true"
+                            data-lpignore="true"
+                          data-lp-ignore="true"
+                            data-dashlane-ignore="true"
+                            data-protonpass-ignore="true"
+                            autoComplete="off"
                             className="w-full pl-12 pr-12 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                           />
                           <button
@@ -454,6 +487,13 @@ function SignupContent() {
                             name="confirmPassword"
                             placeholder="••••••"
                             required
+                            data-1p-ignore="true"
+                            data-op-ignore="true"
+                            data-lpignore="true"
+                          data-lp-ignore="true"
+                            data-dashlane-ignore="true"
+                            data-protonpass-ignore="true"
+                            autoComplete="off"
                             className="w-full pl-12 pr-12 py-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                           />
                           <button
@@ -537,7 +577,7 @@ function SignupContent() {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <form action={handleMobileSignupSubmit} className="space-y-5">
+                  <form action={handleMobileSignupSubmit} className="space-y-5" data-1p-ignore="true" data-op-ignore="true">
                     {!otpSent ? (
                       <div className="space-y-4">
                         <div className="space-y-2">

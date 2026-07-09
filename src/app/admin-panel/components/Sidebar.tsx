@@ -334,6 +334,12 @@ const Sidebar = ({ isMobileMenuOpen, onMobileToggle: _onMobileToggle, onCloseMob
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
                     placeholder="Enter new email"
+                    data-1p-ignore=""
+                    data-op-ignore=""
+                    data-lpignore="true"
+                    data-dashlane-ignore="true"
+                    data-protonpass-ignore="true"
+                    autoComplete="off"
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-zinc-600 focus:outline-none focus:border-primary/50 transition-colors"
                   />
                 </div>
@@ -344,6 +350,12 @@ const Sidebar = ({ isMobileMenuOpen, onMobileToggle: _onMobileToggle, onCloseMob
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Enter new password"
+                    data-1p-ignore=""
+                    data-op-ignore=""
+                    data-lpignore="true"
+                    data-dashlane-ignore="true"
+                    data-protonpass-ignore="true"
+                    autoComplete="off"
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-zinc-600 focus:outline-none focus:border-primary/50 transition-colors"
                   />
                 </div>

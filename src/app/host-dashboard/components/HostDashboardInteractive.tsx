@@ -26,8 +26,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { resetCancellationPenalty } from '@/lib/booking-actions';
-import { createHostSignupOrder } from '@/lib/payment-actions';
-import { approveHost } from '@/lib/admin-actions';
+import { createHostSignupOrder, createHostRenewalOrder } from '@/lib/payment-actions';
+import { approveHost, renewHostSubscriptionAction } from '@/lib/admin-actions';
 import { updateHostProfile } from '@/lib/host-actions';
 import { getUnreadCounts } from '@/lib/chat-actions';
 import Overview from './Overview';
@@ -161,6 +161,295 @@ const HostDashboardInteractive = ({
 
   const isLocked = Number(hostData.cancellation_count || 0) >= 5;
   const isPending = hostData.status === 'pending';
+
+  // Subscription State and Calculation
+  const [isSubscriptionExpired, setIsSubscriptionExpired] = useState(false);
+  const [showSubscriptionWarning, setShowSubscriptionWarning] = useState(false);
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!hostData.subscription_expiry) return;
+    
+    const checkSubscription = () => {
+      const expiry = new Date(hostData.subscription_expiry!);
+      const now = new Date();
+      
+      const diffTime = expiry.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      setDaysRemaining(diffDays);
+
+      if (now > expiry) {
+        setIsSubscriptionExpired(true);
+        setShowSubscriptionWarning(false);
+      } else if (diffDays > 0 && diffDays <= 30) {
+        setIsSubscriptionExpired(false);
+        
+        // Frequencies checking logic:
+        const storageKey = `sub_warning_last_shown_${hostData.id}`;
+        const lastShown = localStorage.getItem(storageKey);
+        const todayStr = new Date().toDateString();
+
+        let shouldShow = false;
+        if (!lastShown) {
+          shouldShow = true;
+        } else {
+          const lastShownDate = new Date(lastShown);
+          const timeSinceLastShown = now.getTime() - lastShownDate.getTime();
+          const daysSinceLastShown = timeSinceLastShown / (1000 * 60 * 60 * 24);
+
+          if (diffDays <= 7) {
+            // Last week: show daily
+            if (lastShownDate.toDateString() !== todayStr) {
+              shouldShow = true;
+            }
+          } else {
+            // Last month: show weekly (every 7 days)
+            if (daysSinceLastShown >= 7) {
+              shouldShow = true;
+            }
+          }
+        }
+
+        if (shouldShow) {
+          setShowSubscriptionWarning(true);
+          localStorage.setItem(storageKey, now.toISOString());
+        }
+      } else {
+        setIsSubscriptionExpired(false);
+        setShowSubscriptionWarning(false);
+      }
+    };
+
+    checkSubscription();
+  }, [hostData.subscription_expiry, hostData.id]);
+
+  const SubscriptionExpiredOverlay = () => {
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handlePayment = async () => {
+      setIsProcessing(true);
+      try {
+        const order = await createHostRenewalOrder();
+        if (!order.success) {
+          toast.error("Failed to initiate renewal payment: " + order.error);
+          return;
+        }
+
+        const payment: any = await new Promise((resolve, reject) => {
+          if (typeof (window as any).Razorpay === 'undefined') {
+            reject(new Error('Razorpay SDK not loaded.'));
+            return;
+          }
+
+          const options = {
+            key: order.key_id,
+            amount: order.amount,
+            currency: order.currency,
+            name: "StayCool",
+            description: "Host Subscription Renewal Fee",
+            order_id: order.orderId,
+            handler: (response: any) => resolve(response),
+            modal: {
+              ondismiss: () => reject(new Error('Payment cancelled')),
+            },
+            prefill: {
+              email: hostData.email,
+              name: hostData.name
+            },
+            theme: { color: "#0ea5e9" }
+          };
+          const rzp = new (window as any).Razorpay(options);
+          rzp.open();
+        });
+
+        // Verification call
+        const { success, expiry } = await renewHostSubscriptionAction(hostData.id);
+        if (success) {
+          toast.success("Subscription renewed successfully! Valid until " + new Date(expiry!).toLocaleDateString());
+          window.location.reload();
+        } else {
+          toast.error("Subscription renewal update failed. Please contact support.");
+        }
+      } catch (_err: any) {
+        if (_err?.message !== 'Payment cancelled') {
+          toast.error("Payment failed: " + (_err?.message || _err));
+        }
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 z-[150] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="max-w-xl w-full bg-[#0a0a0f] border border-amber-500/20 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(212,175,55,0.15)] text-center relative overflow-hidden"
+        >
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent" />
+          
+          <div className="mb-8 flex justify-center">
+            <div className="w-20 h-20 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-[0_0_40px_rgba(212,175,55,0.2)]">
+              <AlertTriangle size={40} className="text-amber-500" />
+            </div>
+          </div>
+
+          <h2 className="text-3xl font-black text-white mb-4 tracking-tight uppercase italic text-amber-500 animate-pulse">Subscription Expired</h2>
+          
+          <div className="space-y-4 mb-10">
+            <p className="text-lg text-white/90 font-bold leading-relaxed px-4">
+              మీ సబ్‌స్క్రిప్షన్ గడువు ముగిసింది. డాష్‌బోర్డ్ సేవలను తిరిగి పొందడానికి ₹299 చెల్లించి మీ సబ్‌స్క్రిప్షన్‌ను పునరుద్ధరించుకోండి.
+            </p>
+            <p className="text-sm text-zinc-500 font-medium uppercase tracking-[0.2em]">
+              Renew subscription for ₹299 to restore access
+            </p>
+          </div>
+
+          <button
+            onClick={handlePayment}
+            disabled={isProcessing}
+            className="w-full py-5 bg-gradient-to-r from-amber-600 to-amber-400 hover:from-amber-500 hover:to-amber-300 text-black font-black uppercase tracking-widest text-sm shadow-[0_20px_40px_-10px_rgba(212,175,55,0.3)] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 group rounded-2xl"
+          >
+            {isProcessing ? (
+              <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+            ) : (
+              <>
+                <Banknote size={20} className="group-hover:rotate-12 transition-transform" />
+                Pay ₹299 & Renew Now
+              </>
+            )}
+          </button>
+          
+          <p className="mt-6 text-[10px] text-zinc-600 font-bold uppercase tracking-widest">
+            Instant Renewal • Secure Payment
+          </p>
+        </motion.div>
+      </div>
+    );
+  };
+
+  const SubscriptionWarningPopup = () => {
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handlePayment = async () => {
+      setIsProcessing(true);
+      try {
+        const order = await createHostRenewalOrder();
+        if (!order.success) {
+          toast.error("Failed to initiate renewal payment: " + order.error);
+          return;
+        }
+
+        const payment: any = await new Promise((resolve, reject) => {
+          if (typeof (window as any).Razorpay === 'undefined') {
+            reject(new Error('Razorpay SDK not loaded.'));
+            return;
+          }
+
+          const options = {
+            key: order.key_id,
+            amount: order.amount,
+            currency: order.currency,
+            name: "StayCool",
+            description: "Host Subscription Renewal Fee",
+            order_id: order.orderId,
+            handler: (response: any) => resolve(response),
+            modal: {
+              ondismiss: () => reject(new Error('Payment cancelled')),
+            },
+            prefill: {
+              email: hostData.email,
+              name: hostData.name
+            },
+            theme: { color: "#0ea5e9" }
+          };
+          const rzp = new (window as any).Razorpay(options);
+          rzp.open();
+        });
+
+        // Verification call
+        const { success, expiry } = await renewHostSubscriptionAction(hostData.id);
+        if (success) {
+          toast.success("Subscription renewed successfully! Valid until " + new Date(expiry!).toLocaleDateString());
+          setShowSubscriptionWarning(false);
+          window.location.reload();
+        } else {
+          toast.error("Subscription renewal update failed. Please contact support.");
+        }
+      } catch (_err: any) {
+        if (_err?.message !== 'Payment cancelled') {
+          toast.error("Payment failed: " + (_err?.message || _err));
+        }
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 z-[140] bg-black/80 backdrop-blur-md flex items-center justify-center p-6">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="max-w-xl w-full bg-[#0a0a0f] border border-amber-500/20 rounded-[3rem] p-10 shadow-[0_0_80px_rgba(212,175,55,0.1)] text-center relative overflow-hidden"
+        >
+          <button
+            onClick={() => setShowSubscriptionWarning(false)}
+            className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-905 transition-colors"
+          >
+            <Plus className="rotate-45 text-zinc-500" />
+          </button>
+          
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+          
+          <div className="mb-6 flex justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(212,175,55,0.15)]">
+              <Gift size={32} className="text-amber-500 font-bold" />
+            </div>
+          </div>
+
+          <h2 className="text-2xl font-black text-white mb-3 tracking-tight uppercase italic text-amber-500">Subscription Expiring Soon</h2>
+          
+          <div className="space-y-3 mb-8">
+            <p className="text-base text-white/90 font-bold leading-relaxed px-4">
+              మీ సబ్‌స్క్రిప్షన్ మరో {daysRemaining} రోజుల్లో ముగుస్తుంది. అంతరాయం లేకుండా సేవలను కొనసాగించడానికి ముందే ₹299 చెల్లించి సబ్‌స్క్రిప్షన్‌ను పునరుద్ధరించుకోండి.
+            </p>
+            <p className="text-xs text-zinc-500 font-medium uppercase tracking-[0.2em]">
+              Your subscription expires in {daysRemaining} days. Renew now to avoid disruption.
+            </p>
+          </div>
+
+          <div className="flex gap-4">
+            <button
+              onClick={() => setShowSubscriptionWarning(false)}
+              className="flex-1 py-4 bg-zinc-900 hover:bg-zinc-800 text-white font-black uppercase tracking-widest text-xs rounded-xl transition-all active:scale-95"
+            >
+              Later
+            </button>
+            <button
+              onClick={handlePayment}
+              disabled={isProcessing}
+              className="flex-2 w-2/3 py-4 bg-gradient-to-r from-amber-600 to-amber-400 hover:from-amber-500 hover:to-amber-300 text-black font-black uppercase tracking-widest text-xs shadow-[0_15px_30px_-5px_rgba(212,175,55,0.25)] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 group rounded-xl"
+            >
+              {isProcessing ? (
+                <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Banknote size={16} className="group-hover:rotate-12 transition-transform" />
+                  Renew Now
+                </>
+              )}
+            </button>
+          </div>
+          
+          <p className="mt-6 text-[9px] text-zinc-600 font-bold uppercase tracking-widest">
+            Instant Renewal • Access Uninterrupted
+          </p>
+        </motion.div>
+      </div>
+    );
+  };
+
 
   const PendingApprovalOverlay = () => {
     const [isProcessing, setIsProcessing] = useState(false);
@@ -832,6 +1121,8 @@ const HostDashboardInteractive = ({
       {/* Penalty Overlay (Moved to top level for maximum visibility) */}
       {isLocked && <PenaltyOverlay />}
       {isPending && <PendingApprovalOverlay />}
+      {isSubscriptionExpired && <SubscriptionExpiredOverlay />}
+      {showSubscriptionWarning && <SubscriptionWarningPopup />}
 
       {/* Mobile Toggle Button - Moved to a cleaner position */}
       <button
