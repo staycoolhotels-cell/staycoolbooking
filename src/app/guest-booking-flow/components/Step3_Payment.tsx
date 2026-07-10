@@ -153,7 +153,7 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
     const end = new Date(filters.checkOut);
     if (isNaN(start.getTime()) || isNaN(end.getTime())) return [];
     
-    let current = new Date(start.getTime());
+    const current = new Date(start.getTime());
     while (current < end) {
       dates.push(new Date(current));
       current.setDate(current.getDate() + 1);

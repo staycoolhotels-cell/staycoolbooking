@@ -422,7 +422,7 @@ const BookingCard = ({
   const stayDates = useMemo(() => {
     if (!checkIn || !checkOut) return [];
     const dates: Date[] = [];
-    let current = new Date(checkIn.getTime());
+    const current = new Date(checkIn.getTime());
     while (current < checkOut) {
       dates.push(new Date(current));
       current.setDate(current.getDate() + 1);
