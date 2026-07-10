@@ -24,6 +24,27 @@ const DefaultIcon = L.icon({
 // Explicitly set the default icon
 L.Marker.prototype.options.icon = DefaultIcon;
 
+// Bulletproof global safety wrapper for Leaflet map prototype to prevent '_leaflet_pos' and 'offsetWidth' null reference crashes
+if (typeof window !== 'undefined' && L && L.Map && L.Map.prototype) {
+  const originalGetSize = L.Map.prototype.getSize;
+  L.Map.prototype.getSize = function(this: L.Map) {
+    // @ts-expect-error - internal leaflet reference
+    if (!this._container) {
+      return L.point(0, 0);
+    }
+    return originalGetSize.call(this);
+  };
+
+  const originalInvalidateSize = L.Map.prototype.invalidateSize;
+  L.Map.prototype.invalidateSize = function(this: L.Map, options?: any) {
+    // @ts-expect-error - internal leaflet reference
+    if (!this._container) {
+      return this;
+    }
+    return originalInvalidateSize.call(this, options);
+  };
+}
+
 interface MapPickerContentProps {
   lat?: number;
   lng?: number;
@@ -56,6 +77,14 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
   useEffect(() => {
     if (!ready || !containerRef.current || mapRef.current) return;
 
+    // Safety: check if element already has a map
+    // @ts-expect-error - _leaflet_id is a private property of Leaflet
+    if (containerRef.current._leaflet_id) {
+      // @ts-expect-error - _leaflet_id is a private property of Leaflet
+      delete containerRef.current._leaflet_id;
+      containerRef.current.innerHTML = '';
+    }
+
     const initialLat = lat || 20.5937;
     const initialLng = lng || 78.9629;
     const initialZoom = lat && lng ? 17 : 5;
@@ -63,8 +92,27 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
     // Initialize map
     const map = L.map(containerRef.current, {
       zoomControl: false, // Custom zoom control for better aesthetics
-      attributionControl: false
-    }).setView([initialLat, initialLng], initialZoom);
+      attributionControl: false,
+      zoomAnimation: false,
+      fadeAnimation: false,
+      markerZoomAnimation: false
+    });
+
+    // Safety wrapper to prevent post-unmount crashes
+    const originalGetSize = map.getSize;
+    map.getSize = function(this: L.Map) {
+      // @ts-expect-error - internal leaflet reference
+      if (!this._container) return L.point(0, 0);
+      return originalGetSize.call(this);
+    };
+    const originalInvalidateSize = map.invalidateSize;
+    map.invalidateSize = function(this: L.Map, options?: any) {
+      // @ts-expect-error - internal leaflet reference
+      if (!this._container) return this;
+      return originalInvalidateSize.call(this, options);
+    };
+
+    map.setView([initialLat, initialLng], initialZoom);
     mapRef.current = map;
 
     // Add Zoom Control at a better position
@@ -87,15 +135,21 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
 
     // Fix for map not filling container on initial load or layout change
     const resizeObserver = new ResizeObserver(() => {
-      map.invalidateSize();
+      // @ts-expect-error - internal leaflet reference
+      if (map && map._container && map._panes && map._panes.mapPane) {
+        map.invalidateSize();
+      }
     });
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);
     }
 
     // Small timeout as a fallback
-    setTimeout(() => {
-      map.invalidateSize();
+    const timeoutId = setTimeout(() => {
+      // @ts-expect-error - internal leaflet reference
+      if (map && map._container && map._panes && map._panes.mapPane) {
+        map.invalidateSize();
+      }
     }, 500);
 
     const fetchAddress = async (lat: number, lng: number) => {
@@ -128,7 +182,7 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
       }
 
       onLocationSelect(newLat, newLng);
-      map.flyTo(e.latlng, Math.max(map.getZoom(), 17));
+      map.setView(e.latlng, Math.max(map.getZoom(), 17), { animate: false });
       
       // Fetch address components
       await fetchAddress(newLat, newLng);
@@ -139,8 +193,14 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
 
     return () => {
       resizeObserver.disconnect();
+      clearTimeout(timeoutId);
       if (mapRef.current) {
-        mapRef.current.remove();
+        try {
+          mapRef.current.stop();
+          mapRef.current.remove();
+        } catch (e) {
+          console.warn("Leaflet cleanup error:", e);
+        }
         mapRef.current = null;
         markerRef.current = null;
         tileLayerRef.current = null;
@@ -159,7 +219,7 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
   useEffect(() => {
     if (lat && lng && mapRef.current) {
       const newPos: L.LatLngExpression = [lat, lng];
-      mapRef.current.setView(newPos, Math.max(mapRef.current.getZoom(), 17));
+      mapRef.current.setView(newPos, Math.max(mapRef.current.getZoom(), 17), { animate: false });
       
       if (markerRef.current) {
         markerRef.current.setLatLng(newPos);
@@ -183,14 +243,17 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
     setIsLocating(true);
     setLocateError(null);
     isMapClickUpdateRef.current = true;
-    mapRef.current.locate({ setView: true, maxZoom: 17 });
+    mapRef.current.locate({ setView: false });
 
     mapRef.current.once('locationfound', async (e) => {
       const { lat: newLat, lng: newLng } = e.latlng;
-      if (markerRef.current) {
-        markerRef.current.setLatLng(e.latlng);
-      } else {
-        markerRef.current = L.marker(e.latlng, { icon: DefaultIcon }).addTo(mapRef.current!);
+      if (mapRef.current) {
+        mapRef.current.setView(e.latlng, 17, { animate: false });
+        if (markerRef.current) {
+          markerRef.current.setLatLng(e.latlng);
+        } else {
+          markerRef.current = L.marker(e.latlng, { icon: DefaultIcon }).addTo(mapRef.current);
+        }
       }
       onLocationSelect(newLat, newLng);
 
@@ -251,7 +314,7 @@ const MapPickerContent = ({ lat, lng, onLocationSelect, onAddressSelect, address
           const newLng = parseFloat(data[0].lon);
           onLocationSelect(newLat, newLng);
           if (mapRef.current) {
-            mapRef.current.flyTo([newLat, newLng], 17);
+            mapRef.current.setView([newLat, newLng], 17, { animate: false });
           }
           return;
         }

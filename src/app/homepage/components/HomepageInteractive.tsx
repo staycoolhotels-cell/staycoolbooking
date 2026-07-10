@@ -69,6 +69,8 @@ interface PropertyForCard {
   host: {
     verified: boolean;
   };
+  lat?: number;
+  lng?: number;
 }
 
 const mapPropertyForCard = (property: Property): PropertyForCard => {
@@ -98,6 +100,8 @@ const mapPropertyForCard = (property: Property): PropertyForCard => {
     amenities: [], // Placeholder
     instantBook: true, // Placeholder
     host: { verified: true }, // Placeholder
+    lat: property.latitude,
+    lng: property.longitude,
   };
 };
 
@@ -763,6 +767,8 @@ const HomepageInteractive: React.FC<HomepageInteractiveProps> = ({ initialProper
                       price: p.price,
                       available: true,
                       location: p.location,
+                      lat: p.lat,
+                      lng: p.lng,
                       image:
                         p.images && p.images.length > 0
                           ? p.images[0].url

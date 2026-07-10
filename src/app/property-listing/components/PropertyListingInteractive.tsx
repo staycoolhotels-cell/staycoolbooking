@@ -149,6 +149,7 @@ interface PropertyData {
   roomTypeAmenities?: Record<string, number[]>;
   roomTypePrices?: Record<string, number>;
   roomTypeWeekendPrices?: Record<string, number>;
+  weekendPrice?: number;
 }
 
 interface PropertyListingInteractiveProps {
@@ -483,6 +484,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                   bulkBookingDiscount={propertyData.bulkBookingDiscount}
                   roomTypePrices={propertyData.roomTypePrices}
                   roomTypeWeekendPrices={propertyData.roomTypeWeekendPrices}
+                  weekendPrice={propertyData.weekendPrice}
                 />
               </div>
             </div>
@@ -532,6 +534,7 @@ const PropertyListingInteractive = ({ propertyData }: PropertyListingInteractive
                   bulkBookingDiscount={propertyData.bulkBookingDiscount}
                   roomTypePrices={propertyData.roomTypePrices}
                   roomTypeWeekendPrices={propertyData.roomTypeWeekendPrices}
+                  weekendPrice={propertyData.weekendPrice}
                 />
               </div>
             </div>

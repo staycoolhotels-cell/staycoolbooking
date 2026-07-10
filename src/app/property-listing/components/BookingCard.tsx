@@ -38,6 +38,7 @@ interface BookingCardProps {
   bulkBookingDiscount?: number;
   roomTypePrices?: Record<string, number>;
   roomTypeWeekendPrices?: Record<string, number>;
+  weekendPrice?: number;
 }
 
 const BookingCard = ({
@@ -57,6 +58,7 @@ const BookingCard = ({
   bulkBookingDiscount = 10,
   roomTypePrices = {},
   roomTypeWeekendPrices = {},
+  weekendPrice = 0,
 }: BookingCardProps) => {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
@@ -371,6 +373,34 @@ const BookingCard = ({
 
   const nights = calculateNights();
 
+  // Helper to check if a Date is Saturday or Sunday
+  const isWeekend = (date: Date) => {
+    const day = date.getDay();
+    return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+  };
+
+  // Helper to get room-specific price for a specific date
+  const getRoomPriceForDate = (roomType: string | null, date: Date) => {
+    const isWeekendDay = isWeekend(date);
+    
+    if (isWeekendDay) {
+      // 1. Check room type weekend price
+      if (roomType && roomTypeWeekendPrices && roomTypeWeekendPrices[roomType] !== undefined && Number(roomTypeWeekendPrices[roomType]) > 0) {
+        return Number(roomTypeWeekendPrices[roomType]);
+      }
+      // 2. Check property-level weekend price
+      if (weekendPrice && Number(weekendPrice) > 0) {
+        return Number(weekendPrice);
+      }
+    }
+    
+    // Regular weekday price
+    if (roomType && roomTypePrices && roomTypePrices[roomType] !== undefined) {
+      return Number(roomTypePrices[roomType]);
+    }
+    return pricePerNight;
+  };
+
   // Room-specific price helper
   const getRoomPrice = (roomType: string | null) => {
     if (!roomType || !roomTypePrices || Object.keys(roomTypePrices).length === 0) return pricePerNight;
@@ -385,39 +415,115 @@ const BookingCard = ({
       const selectedRoom = selectedRoomsData[0];
       return selectedRoom ? getRoomPrice(selectedRoom.room_type) : pricePerNight;
     } else {
-      // For bulk, show average or just the base? Let's show base but calculation will be correct
       return pricePerNight;
     }
   }, [bookingType, selectedRoomsData, pricePerNight, roomTypePrices]);
 
+  const stayDates = useMemo(() => {
+    if (!checkIn || !checkOut) return [];
+    const dates: Date[] = [];
+    let current = new Date(checkIn.getTime());
+    while (current < checkOut) {
+      dates.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
+  }, [checkIn, checkOut]);
+
+  const weekendNightsCount = useMemo(() => {
+    return stayDates.filter(isWeekend).length;
+  }, [stayDates]);
+
+  const weekdayNightsCount = useMemo(() => {
+    return nights - weekendNightsCount;
+  }, [nights, weekendNightsCount]);
+
+  const displayWeekendPrice = useMemo(() => {
+    if (bookingType === 'single') {
+      const selectedRoom = selectedRoomsData[0];
+      const roomType = selectedRoom ? selectedRoom.room_type : null;
+      if (roomType && roomTypeWeekendPrices && roomTypeWeekendPrices[roomType] !== undefined && Number(roomTypeWeekendPrices[roomType]) > 0) {
+        return Number(roomTypeWeekendPrices[roomType]);
+      }
+    }
+    return weekendPrice || 0;
+  }, [bookingType, selectedRoomsData, weekendPrice, roomTypeWeekendPrices]);
+
   // Price Calculation
   const roomsToBook = bookingType === 'bulk' ? selectedRooms : 1;
   
-  const baseTotal = useMemo(() => {
-    if (nights <= 0) return 0;
-    
+  const weekdayTotal = useMemo(() => {
+    if (nights <= 0 || stayDates.length === 0) return 0;
+    const weekdayDates = stayDates.filter(d => !isWeekend(d));
+    if (weekdayDates.length === 0) return 0;
+
     if (bookingType === 'single') {
         const selectedRoom = selectedRoomsData[0];
-        const price = selectedRoom ? getRoomPrice(selectedRoom.room_type) : pricePerNight;
-        return nights * price;
+        const roomType = selectedRoom ? selectedRoom.room_type : null;
+        return weekdayDates.reduce((sum, date) => sum + getRoomPriceForDate(roomType, date), 0);
     } else {
-        // Bulk booking - sum of prices for all selected rooms
         if (selectedRoomsData.length > 0) {
-            return selectedRoomsData.reduce((sum, room) => sum + (nights * getRoomPrice(room.room_type)), 0);
+            return selectedRoomsData.reduce((roomSum, room) => {
+              const roomType = room.room_type;
+              return roomSum + weekdayDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(roomType, date), 0);
+            }, 0);
         }
-        
-        // If we have selected counts by type but availableRoomsList hasn't loaded rooms yet,
-        // use the roomTypePrices directly to avoid fallback to pricePerNight.
         const hasSelectedCounts = Object.values(selectedRoomCountsByType).some(count => count > 0);
         if (hasSelectedCounts) {
             return Object.entries(selectedRoomCountsByType).reduce((sum, [type, count]) => {
-                return sum + (nights * count * getRoomPrice(type));
+                const typeStayTotal = weekdayDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(type, date), 0);
+                return sum + (count * typeStayTotal);
             }, 0);
         }
-
-        return nights * pricePerNight * selectedRooms;
+        return weekdayDates.reduce((sum, date) => sum + (getRoomPriceForDate(null, date) * selectedRooms), 0);
     }
-  }, [nights, bookingType, selectedRoomsData, pricePerNight, roomTypePrices, selectedRooms, selectedRoomCountsByType]);
+  }, [nights, bookingType, selectedRoomsData, pricePerNight, roomTypePrices, selectedRooms, selectedRoomCountsByType, stayDates]);
+
+  const weekendTotal = useMemo(() => {
+    if (nights <= 0 || stayDates.length === 0) return 0;
+    const weekendDates = stayDates.filter(isWeekend);
+    if (weekendDates.length === 0) return 0;
+
+    if (bookingType === 'single') {
+        const selectedRoom = selectedRoomsData[0];
+        const roomType = selectedRoom ? selectedRoom.room_type : null;
+        return weekendDates.reduce((sum, date) => sum + getRoomPriceForDate(roomType, date), 0);
+    } else {
+        if (selectedRoomsData.length > 0) {
+            return selectedRoomsData.reduce((roomSum, room) => {
+              const roomType = room.room_type;
+              return roomSum + weekendDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(roomType, date), 0);
+            }, 0);
+        }
+        const hasSelectedCounts = Object.values(selectedRoomCountsByType).some(count => count > 0);
+        if (hasSelectedCounts) {
+            return Object.entries(selectedRoomCountsByType).reduce((sum, [type, count]) => {
+                const typeStayTotal = weekendDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(type, date), 0);
+                return sum + (count * typeStayTotal);
+            }, 0);
+        }
+        return weekendDates.reduce((sum, date) => sum + (getRoomPriceForDate(null, date) * selectedRooms), 0);
+    }
+  }, [nights, bookingType, selectedRoomsData, pricePerNight, roomTypePrices, roomTypeWeekendPrices, weekendPrice, selectedRooms, selectedRoomCountsByType, stayDates]);
+
+  const baseTotal = useMemo(() => {
+    return weekdayTotal + weekendTotal;
+  }, [weekdayTotal, weekendTotal]);
+
+  const weekdayAveragePrice = useMemo(() => {
+    if (weekdayNightsCount <= 0) return 0;
+    return weekdayTotal / (bookingType === 'single' ? weekdayNightsCount : (weekdayNightsCount * roomsToBook));
+  }, [weekdayNightsCount, weekdayTotal, bookingType, roomsToBook]);
+
+  const weekendAveragePrice = useMemo(() => {
+    if (weekendNightsCount <= 0) return 0;
+    return weekendTotal / (bookingType === 'single' ? weekendNightsCount : (weekendNightsCount * roomsToBook));
+  }, [weekendNightsCount, weekendTotal, bookingType, roomsToBook]);
+
+  const averagePrice = useMemo(() => {
+    if (nights <= 0) return displayPrice;
+    return baseTotal / (bookingType === 'single' ? nights : (nights * roomsToBook));
+  }, [nights, baseTotal, bookingType, roomsToBook, displayPrice]);
 
   const serviceFee = baseTotal * 0.1;
 
@@ -675,20 +781,26 @@ const BookingCard = ({
         ) : (
           <>
             {/* Header: Price & Rating */}
-            <div className="flex items-end justify-between mb-5">
+            <div className="flex items-end justify-between mb-5 animate-in fade-in duration-300">
               <div>
                 <span className="text-2xl font-bold text-white">
                   {bookingType === 'bulk' && nights > 0
                     ? `${currency}${total.toLocaleString()}`
-                    : `${currency}${displayPrice.toLocaleString('en-IN')}`
+                    : `${currency}${(nights > 0 ? averagePrice : displayPrice).toLocaleString('en-IN')}`
                   }
                 </span>
                 <span className="text-stone-400 text-xs font-medium ml-1">
                   {bookingType === 'bulk'
                     ? (nights > 0 ? '/ total' : `/ ${unitName.toLowerCase()} / night`)
-                    : '/ night'
+                    : (nights > 0 ? '/ night (average)' : '/ night')
                   }
                 </span>
+                {displayWeekendPrice > 0 && !nights && (
+                  <div className="text-[11px] text-sky-400 font-semibold mt-1 flex items-center gap-1.5 animate-pulse">
+                    <Icon name="TagIcon" size={10} className="text-sky-400" />
+                    Weekend: {currency}{displayWeekendPrice.toLocaleString('en-IN')} / night
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-1 text-[13px] bg-sky-900/25 px-2.5 py-1 rounded-full border border-sky-500/20">
                 <Icon name="StarIcon" size={12} variant="solid" className="text-amber-400" />
@@ -1111,16 +1223,36 @@ const BookingCard = ({
               <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-2">
                 <p className="text-center text-sm text-gray-400">You won't be charged yet</p>
                 <div className="space-y-3">
-                  <div className="flex justify-between text-gray-300">
-                    <span className="underline decoration-gray-700">
-                      {bookingType === 'single' ? (
-                        `${currency}${displayPrice.toLocaleString()} x ${nights} nights`
-                      ) : (
-                        `${roomsToBook} ${roomsToBook === 1 ? unitName.toLowerCase() : unitsName.toLowerCase()} x ${nights} nights`
-                      )}
-                    </span>
-                    <span>{currency}{baseTotal.toLocaleString()}</span>
-                  </div>
+                  {weekdayNightsCount > 0 && (
+                    <div className="flex justify-between text-gray-300">
+                      <span className="underline decoration-gray-700">
+                        {bookingType === 'single' ? (
+                          `${currency}${weekdayAveragePrice.toLocaleString('en-IN')} x ${weekdayNightsCount} weekday ${weekdayNightsCount === 1 ? 'night' : 'nights'}`
+                        ) : (
+                          `${roomsToBook} ${roomsToBook === 1 ? unitName.toLowerCase() : unitsName.toLowerCase()} x ${weekdayNightsCount} weekday ${weekdayNightsCount === 1 ? 'night' : 'nights'}`
+                        )}
+                      </span>
+                      <span>{currency}{weekdayTotal.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {weekendNightsCount > 0 && (
+                    <div className="flex justify-between text-gray-300">
+                      <span className="underline decoration-gray-700">
+                        {bookingType === 'single' ? (
+                          `${currency}${weekendAveragePrice.toLocaleString('en-IN')} x ${weekendNightsCount} weekend ${weekendNightsCount === 1 ? 'night' : 'nights'}`
+                        ) : (
+                          `${roomsToBook} ${roomsToBook === 1 ? unitName.toLowerCase() : unitsName.toLowerCase()} x ${weekendNightsCount} weekend ${weekendNightsCount === 1 ? 'night' : 'nights'}`
+                        )}
+                      </span>
+                      <span>{currency}{weekendTotal.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {weekdayNightsCount > 0 && weekendNightsCount > 0 && (
+                    <div className="flex justify-between text-xs text-stone-400 border-t border-white/10 pt-1.5 pb-0.5">
+                      <span>Total ({nights} {nights === 1 ? 'night' : 'nights'})</span>
+                      <span>{currency}{baseTotal.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
                   {discount > 0 && (
                     <div className="flex justify-between text-emerald-400">
                       <span className="flex items-center gap-1">
@@ -1186,7 +1318,7 @@ const BookingCard = ({
         bookingDetails={{
           roomCount: selectedRooms,
           nights: nights,
-          pricePerNight: displayPrice,
+          pricePerNight: averagePrice,
           totalPrice: total,
           discount: discount,
           propertyName: 'this property' // We might want to pass name as prop too

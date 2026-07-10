@@ -273,6 +273,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
                 isVerifiedStay: true,
             })) || [],
         pricePerNight: property.price_per_night,
+        weekendPrice: property.weekend_price_per_night || 0,
         currency: '₹',
         isAvailable: true,
         hostResponseRate: 98, // Placeholder as no data in DB

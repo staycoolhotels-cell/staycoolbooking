@@ -146,27 +146,113 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
     return price ? Number(price) : pricePerNight;
   };
 
-  const baseTotal = useMemo(() => {
-    if (nightCount <= 0) return 0;
+  const stayDates = useMemo(() => {
+    if (!filters.checkIn || !filters.checkOut) return [];
+    const dates: Date[] = [];
+    const start = new Date(filters.checkIn);
+    const end = new Date(filters.checkOut);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return [];
     
+    let current = new Date(start.getTime());
+    while (current < end) {
+      dates.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
+  }, [filters.checkIn, filters.checkOut]);
+
+  const isWeekend = (date: Date) => {
+    const day = date.getDay();
+    return day === 0 || day === 6; // Sunday = 0, Saturday = 6
+  };
+
+  const getRoomPriceForDate = (roomType: string | null, date: Date) => {
+    const isWeekendDay = isWeekend(date);
+    const roomTypeWeekendPrices = property?.room_type_weekend_prices || {};
+    const weekendPrice = property?.weekend_price_per_night || property?.weekendPrice || 0;
+    const roomTypePrices = property?.room_type_prices || {};
+
+    if (isWeekendDay) {
+      // 1. Check room type weekend price
+      if (roomType && roomTypeWeekendPrices[roomType] !== undefined && Number(roomTypeWeekendPrices[roomType]) > 0) {
+        return Number(roomTypeWeekendPrices[roomType]);
+      }
+      // 2. Check property-level weekend price
+      if (weekendPrice && Number(weekendPrice) > 0) {
+        return Number(weekendPrice);
+      }
+    }
+
+    // Regular weekday price
+    if (roomType && roomTypePrices[roomType] !== undefined) {
+      return Number(roomTypePrices[roomType]);
+    }
+    return pricePerNight;
+  };
+
+  const weekdayTotal = useMemo(() => {
+    if (nightCount <= 0 || stayDates.length === 0) return 0;
+    const weekdayDates = stayDates.filter(d => !isWeekend(d));
+    if (weekdayDates.length === 0) return 0;
+
     if (bookingType === 'single') {
         const selectedRoom = selectedRooms[0];
-        const price = selectedRoom ? getRoomPrice(selectedRoom.room_type) : pricePerNight;
-        return nightCount * price;
+        const roomType = selectedRoom ? selectedRoom.room_type : null;
+        return weekdayDates.reduce((sum, date) => sum + getRoomPriceForDate(roomType, date), 0);
     } else {
-        // Bulk booking - sum of prices for all selected rooms
         if (selectedRooms.length > 0) {
-            return selectedRooms.reduce((sum, room) => sum + (nightCount * getRoomPrice(room.room_type)), 0);
+            return selectedRooms.reduce((roomSum, room) => {
+              const roomType = room.room_type;
+              return roomSum + weekdayDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(roomType, date), 0);
+            }, 0);
         }
-        
-        // If we have specific room IDs but they haven't finished loading yet,
-        // we should return 0 to trigger the loading state rather than showing a wrong fallback price.
         if (parsedRoomIds.length > 0) return 0;
-        
-        // Final fallback: use the default pricePerNight multiplied by effective room count
-        return nightCount * pricePerNight * effectiveRooms;
+        return weekdayDates.reduce((sum, date) => sum + (getRoomPriceForDate(null, date) * effectiveRooms), 0);
     }
-  }, [nightCount, bookingType, selectedRooms, pricePerNight, property?.room_type_prices, effectiveRooms]);
+  }, [nightCount, bookingType, selectedRooms, pricePerNight, property?.room_type_prices, effectiveRooms, stayDates, parsedRoomIds]);
+
+  const weekendTotal = useMemo(() => {
+    if (nightCount <= 0 || stayDates.length === 0) return 0;
+    const weekendDates = stayDates.filter(isWeekend);
+    if (weekendDates.length === 0) return 0;
+
+    if (bookingType === 'single') {
+        const selectedRoom = selectedRooms[0];
+        const roomType = selectedRoom ? selectedRoom.room_type : null;
+        return weekendDates.reduce((sum, date) => sum + getRoomPriceForDate(roomType, date), 0);
+    } else {
+        if (selectedRooms.length > 0) {
+            return selectedRooms.reduce((roomSum, room) => {
+              const roomType = room.room_type;
+              return roomSum + weekendDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(roomType, date), 0);
+            }, 0);
+        }
+        if (parsedRoomIds.length > 0) return 0;
+        return weekendDates.reduce((sum, date) => sum + (getRoomPriceForDate(null, date) * effectiveRooms), 0);
+    }
+  }, [nightCount, bookingType, selectedRooms, pricePerNight, property?.room_type_prices, property?.room_type_weekend_prices, property?.weekend_price_per_night, effectiveRooms, stayDates, parsedRoomIds]);
+
+  const baseTotal = useMemo(() => {
+    return weekdayTotal + weekendTotal;
+  }, [weekdayTotal, weekendTotal]);
+
+  const weekendNightsCount = useMemo(() => {
+    return stayDates.filter(isWeekend).length;
+  }, [stayDates]);
+
+  const weekdayNightsCount = useMemo(() => {
+    return nightCount - weekendNightsCount;
+  }, [nightCount, weekendNightsCount]);
+
+  const weekdayAveragePrice = useMemo(() => {
+    if (weekdayNightsCount <= 0) return 0;
+    return weekdayTotal / (bookingType === 'single' ? weekdayNightsCount : (weekdayNightsCount * effectiveRooms));
+  }, [weekdayNightsCount, weekdayTotal, bookingType, effectiveRooms]);
+
+  const weekendAveragePrice = useMemo(() => {
+    if (weekendNightsCount <= 0) return 0;
+    return weekendTotal / (bookingType === 'single' ? weekendNightsCount : (weekendNightsCount * effectiveRooms));
+  }, [weekendNightsCount, weekendTotal, bookingType, effectiveRooms]);
 
   const serviceFee = baseTotal * 0.1;
 
@@ -508,12 +594,28 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
         </div>
         <div className="border-t border-border-secondary my-4"></div>
         <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-text-primary">
-              Accommodation Charges ({nightCount} nights{effectiveRooms > 1 && ` x ${effectiveRooms} ${unitsName.toLowerCase()}`})
-            </span>{' '}
-            <span>₹{baseTotal.toLocaleString('en-IN')}</span>
-          </div>
+          {weekdayNightsCount > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-text-primary">
+                Weekday Charges ({weekdayNightsCount} {weekdayNightsCount === 1 ? 'night' : 'nights'}{effectiveRooms > 1 && ` x ${effectiveRooms} ${unitsName.toLowerCase()}`})
+              </span>
+              <span>₹{weekdayTotal.toLocaleString('en-IN')}</span>
+            </div>
+          )}
+          {weekendNightsCount > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-text-primary text-sky-400 font-medium">
+                Weekend Charges ({weekendNightsCount} {weekendNightsCount === 1 ? 'night' : 'nights'}{effectiveRooms > 1 && ` x ${effectiveRooms} ${unitsName.toLowerCase()}`})
+              </span>
+              <span className="text-sky-400 font-bold">₹{weekendTotal.toLocaleString('en-IN')}</span>
+            </div>
+          )}
+          {weekdayNightsCount > 0 && weekendNightsCount > 0 && (
+            <div className="flex justify-between text-xs text-text-secondary border-t border-white/5 pt-1.5 pb-0.5">
+              <span>Total ({nightCount} {nightCount === 1 ? 'night' : 'nights'})</span>
+              <span>₹{baseTotal.toLocaleString('en-IN')}</span>
+            </div>
+          )}
           {discount > 0 && (
             <div className="flex justify-between text-sm text-green-400">
               <span>Bulk Discount Savings</span>

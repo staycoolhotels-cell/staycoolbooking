@@ -7,6 +7,26 @@ import { GestureHandling } from 'leaflet-gesture-handling';
 import 'leaflet-gesture-handling/dist/leaflet-gesture-handling.css';
 
 // Fix for default marker icons in Leaflet with Next.js
+// Bulletproof global safety wrapper for Leaflet map prototype to prevent '_leaflet_pos' and 'offsetWidth' null reference crashes
+if (typeof window !== 'undefined' && L && L.Map && L.Map.prototype) {
+  const originalGetSize = L.Map.prototype.getSize;
+  L.Map.prototype.getSize = function(this: L.Map) {
+    // @ts-expect-error - internal leaflet reference
+    if (!this._container) {
+      return L.point(0, 0);
+    }
+    return originalGetSize.call(this);
+  };
+
+  const originalInvalidateSize = L.Map.prototype.invalidateSize;
+  L.Map.prototype.invalidateSize = function(this: L.Map, options?: any) {
+    // @ts-expect-error - internal leaflet reference
+    if (!this._container) {
+      return this;
+    }
+    return originalInvalidateSize.call(this, options);
+  };
+}
 const createDefaultIcon = () => L.divIcon({
   className: 'custom-div-icon',
   html: `<div style="background-color: #0ea5e9; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(14,165,233,0.5);"></div>`,
@@ -101,7 +121,12 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertyS
     return () => {
       setIsMounted(false);
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+        try {
+          mapInstanceRef.current.stop();
+          mapInstanceRef.current.remove();
+        } catch (e) {
+          console.warn("Leaflet cleanup error:", e);
+        }
         mapInstanceRef.current = null;
       }
     };
@@ -116,21 +141,41 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertyS
     setLoading(true);
     const geocodeAll = async () => {
       const results: (MapProperty & { lat: number; lng: number })[] = [];
+      const seenCoords = new Set<string>();
+
       for (const prop of properties) {
+        let lat = prop.lat;
+        let lng = prop.lng;
+        let coordsFound = false;
+
         if (
-          prop.lat &&
-          prop.lng &&
-          !(prop.lat >= 51.0 && prop.lat <= 52.0 && prop.lng >= -0.6 && prop.lng <= 0.4) &&
-          !(prop.lat === 0 && prop.lng === 0)
+          lat &&
+          lng &&
+          !(lat >= 51.0 && lat <= 52.0 && lng >= -0.6 && lng <= 0.4) &&
+          !(lat === 0 && lng === 0)
         ) {
-          results.push({ ...prop, lat: prop.lat, lng: prop.lng });
-          continue;
-        }
-        if (prop.location) {
+          coordsFound = true;
+        } else if (prop.location) {
           const coords = await geocodeLocation(prop.location);
           if (coords) {
-            results.push({ ...prop, lat: coords.lat, lng: coords.lng });
+            lat = coords.lat;
+            lng = coords.lng;
+            coordsFound = true;
           }
+        }
+
+        if (coordsFound && lat !== undefined && lng !== undefined) {
+          // If this coordinate has been used, apply a tiny jitter so they don't completely overlap
+          let key = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+          let attempts = 0;
+          while (seenCoords.has(key) && attempts < 10) {
+            lat += (Math.random() - 0.5) * 0.0006;
+            lng += (Math.random() - 0.5) * 0.0006;
+            key = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+            attempts++;
+          }
+          seenCoords.add(key);
+          results.push({ ...prop, lat, lng });
         }
       }
       setGeoProperties(results);
@@ -175,8 +220,25 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertyS
       gestureHandling: true,
       gestureHandlingOptions: {
         theme: 'dark',
-      }
+      },
+      zoomAnimation: false,
+      fadeAnimation: false,
+      markerZoomAnimation: false
     } as any);
+
+    // Safety wrapper to prevent post-unmount crashes
+    const originalGetSize = map.getSize;
+    map.getSize = function(this: L.Map) {
+      // @ts-expect-error - internal leaflet reference
+      if (!this._container) return L.point(0, 0);
+      return originalGetSize.call(this);
+    };
+    const originalInvalidateSize = map.invalidateSize;
+    map.invalidateSize = function(this: L.Map, options?: any) {
+      // @ts-expect-error - internal leaflet reference
+      if (!this._container) return this;
+      return originalInvalidateSize.call(this, options);
+    };
 
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       attribution: ''
@@ -191,7 +253,12 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertyS
 
     return () => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+        try {
+          mapInstanceRef.current.stop();
+          mapInstanceRef.current.remove();
+        } catch (e) {
+          console.warn("Leaflet cleanup error:", e);
+        }
         mapInstanceRef.current = null;
       }
     };
@@ -202,8 +269,29 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertyS
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    // Update view
-    map.setView(mapCenter, mapZoom);
+    try {
+      const container = map.getContainer();
+      if (!container) return;
+
+      // Update view
+      if (geoProperties.length === 0) {
+        map.setView(INDIA_CENTER, 5, { animate: false });
+      } else if (geoProperties.length === 1) {
+        map.setView([geoProperties[0].lat, geoProperties[0].lng], 15, { animate: false });
+      } else {
+        // Calculate bounds of all properties
+        const bounds = L.latLngBounds(geoProperties.map(p => [p.lat, p.lng]));
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, {
+            padding: [50, 50],
+            maxZoom: 16,
+            animate: false
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("Leaflet map update view error:", e);
+    }
 
     // Clear old markers
     markersRef.current.forEach(m => m.remove());
@@ -256,7 +344,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ properties, onPropertyS
       markersRef.current.push(marker);
     });
 
-  }, [geoProperties, mapCenter, mapZoom]);
+  }, [geoProperties]);
 
   return (
     <div 
