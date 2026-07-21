@@ -20,6 +20,15 @@ const TripCommandCenter = ({ activeBooking }: TripCommandCenterProps) => {
   const [isDisputeVisible, setIsDisputeVisible] = useState(false);
   const [accessCode, setAccessCode] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (activeBooking && activeBooking.status === 'checked_in') {
+      const code = activeBooking.id.replace(/-/g, '').slice(0, 6).toUpperCase();
+      setAccessCode(code);
+    } else {
+      setAccessCode(null);
+    }
+  }, [activeBooking]);
+
   // Form State for reporting issue
   const [issueText, setIssueText] = useState('');
   const [issuePriority, setIssuePriority] = useState('Low');
@@ -207,21 +216,25 @@ const TripCommandCenter = ({ activeBooking }: TripCommandCenterProps) => {
             <span className="font-semibold text-sm">Navigation</span>
           </motion.button>
 
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => isCheckInAvailable && setDigitalKeyVisible(true)}
-            disabled={!isCheckInAvailable}
-            className={`w-full rounded-xl px-4 py-4 flex items-center justify-center gap-2 transition-all border ${isCheckInAvailable
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20 hover:border-emerald-500/40'
-              : 'bg-zinc-800/40 text-zinc-500 border-zinc-700/50 cursor-not-allowed'
-              }`}
-          >
-            <Icon name="KeyIcon" size={18} />
-            <span className="font-semibold text-sm">
-              {isCheckInAvailable ? 'Digital Key' : 'Locked'}
-            </span>
-          </motion.button>
+          {activeBooking.status === 'checked_in' ? (
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setDigitalKeyVisible(true)}
+              className="w-full rounded-xl px-4 py-4 flex items-center justify-center gap-2 transition-all border bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20 hover:border-emerald-500/40"
+            >
+              <Icon name="KeyIcon" size={18} />
+              <span className="font-semibold text-sm">Digital Key</span>
+            </motion.button>
+          ) : (
+            <motion.button
+              disabled={true}
+              className="w-full rounded-xl px-4 py-4 flex items-center justify-center gap-2 transition-all border bg-zinc-800/40 text-zinc-500 border-zinc-700/50 cursor-not-allowed"
+            >
+              <Icon name="KeyIcon" size={18} />
+              <span className="font-semibold text-sm">Locked until check-in</span>
+            </motion.button>
+          )}
         </div>
 
         {/* Report Issue Button - Restored and unconditionally visible per earlier fix! */}

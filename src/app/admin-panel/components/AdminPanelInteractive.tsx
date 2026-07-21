@@ -314,7 +314,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
   useEffect(() => {
     const totalRevenue = bookings.reduce((sum: number, b: Booking) => {
-      if (b.status === 'confirmed' || b.status === 'completed') {
+      if (b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed') {
         return sum + (Number(b.total_price) || 0);
       }
       return sum;
@@ -360,7 +360,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     bookings.forEach((booking: Booking) => {
       const month = new Date(booking.created_at).getMonth();
       monthlyBookings[month]++;
-      if (booking.status === 'confirmed' || booking.status === 'completed') {
+      if (booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'completed') {
         monthlyRevenue[month] += Number(booking.total_price) || 0;
       }
     });
@@ -512,7 +512,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
               appliedPolicy: appliedPolicy,
               refundPercentage: refundPercentage,
               rawDate: booking.created_at,
-              status: (booking.status === 'confirmed' || booking.status === 'completed') ? 'completed' :
+              status: (booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'completed') ? 'completed' :
                       (booking.status === 'refunded' ? 'refunded' : 'pending'),
               paymentMethod: 'Razorpay',
               room_type: roomType

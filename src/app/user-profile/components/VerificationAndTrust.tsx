@@ -178,7 +178,7 @@ const VerificationAndTrust = ({ verifications, bookings = [], onUpdate, onContac
         accept="image/*,.pdf"
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-6">
         {/* Document Vault */}
         <div className="bg-zinc-800/40 rounded-xl p-4">
           <h3 className="font-semibold text-zinc-300 mb-3">Secure Document Vault</h3>

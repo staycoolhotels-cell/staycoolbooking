@@ -307,6 +307,7 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
         selectedRoomIds: parsedRoomIds,
         hasFreeCancellation: filters.hasFreeCancellation,
         freeCancellationFee: freeCancellationFee,
+        serviceFee: serviceFee,
       };
 
 

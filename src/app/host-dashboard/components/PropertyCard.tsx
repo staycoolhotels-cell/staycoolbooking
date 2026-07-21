@@ -86,7 +86,7 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
 
   const estimatedEarnings = React.useMemo(() => {
     return bookings.reduce((sum, b) => {
-      if (b.status === 'confirmed' || b.status === 'completed') {
+      if (b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed') {
         return sum + (Number(b.total_price) || 0);
       }
       return sum;

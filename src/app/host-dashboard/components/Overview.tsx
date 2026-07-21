@@ -451,7 +451,7 @@ const Overview = ({ properties = [], bookings = [], earnings = [], reviews = [],
                         )}
                         <div
                           className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border shrink-0 ${
-                            booking.status === 'confirmed'
+                            (booking.status === 'confirmed' || booking.status === 'checked_in')
                               ? 'bg-success/20 text-success border-success/30'
                               : booking.status === 'pending_payment'
                               ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'

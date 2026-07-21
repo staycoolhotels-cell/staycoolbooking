@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase-server';
 import { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import HostDashboardInteractive from './components/HostDashboardInteractive';
+import { autoProcessCheckedInBookings } from '@/lib/booking-actions';
 
 export const metadata: Metadata = {
   title: 'Host Dashboard - StayCool',
@@ -78,6 +79,9 @@ export default async function HostDashboardPage() {
 
   const accessToken = user.id; // Use user ID instead of access token
 
+  // Run automatic check-ins first
+  await autoProcessCheckedInBookings();
+
   // Use cached data services for better performance
   const propertiesPromise = getHostProperties(user.id);
   const bookingsPromise = getHostBookings(user.id);
@@ -142,7 +146,7 @@ export default async function HostDashboardPage() {
     .eq('receiver_id', user.id);
 
   const mappedTransactions = (bookings || [])
-    .filter(b => b.status === 'confirmed' || b.status === 'completed')
+    .filter(b => b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed')
     .map(b => ({
       id: b.id,
       transactionId: `TXN-${b.id.slice(0, 8).toUpperCase()}`,
@@ -151,14 +155,14 @@ export default async function HostDashboardPage() {
       hostName: host.name || 'Me',
       amount: Number(b.total_price),
       date: new Date(b.created_at).toLocaleDateString(),
-      status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 'pending',
+      status: (b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed') ? 'completed' : 'pending',
       paymentMethod: 'Razorpay',
       room_type: b.room_type
     }));
 
   // Group transactions by month for the chart
   const monthlyEarningsMap: Record<string, number> = {};
-  const confirmedBookingsForChart = (bookings || []).filter(b => b.status === 'confirmed' || b.status === 'completed');
+  const confirmedBookingsForChart = (bookings || []).filter(b => b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed');
   confirmedBookingsForChart.forEach((b: any) => {
     const month = new Date(b.created_at).toLocaleString('default', { month: 'short' });
     monthlyEarningsMap[month] = (monthlyEarningsMap[month] || 0) + (Number(b.total_price) || 0);

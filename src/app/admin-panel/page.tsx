@@ -7,6 +7,7 @@ import { getUsersData, syncAndFetchUsers, getAdminThreads } from '@/lib/admin-ac
 import { createAdminSupabaseClient } from '@/lib/admin-actions';
 import { Suspense } from 'react';
 import { getRefundPercentage } from '@/lib/refund-policy';
+import { autoProcessCheckedInBookings } from '@/lib/booking-actions';
 
 export const metadata: Metadata = {
   title: 'Admin Panel - StayCool',
@@ -41,6 +42,9 @@ export default async function AdminPanelPage() {
   if (error || !session || adminProfile?.role !== 'admin') {
     redirect('/auth');
   }
+
+  // Automatically process checked-in bookings first
+  await autoProcessCheckedInBookings();
 
   const [profiles, authUsers, supportThreads] = await Promise.all([
     syncAndFetchUsers(),
@@ -187,7 +191,7 @@ export default async function AdminPanelPage() {
       appliedPolicy: appliedPolicy,
       refundPercentage: refundPercentage,
       rawDate: b.created_at,
-      status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
+      status: (b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed') ? 'completed' : 
               (b.status === 'refunded' ? 'refunded' : 'pending'),
       paymentMethod: 'Razorpay',
       room_type: roomType

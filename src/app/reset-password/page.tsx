@@ -85,7 +85,7 @@ export default function ResetPasswordPage() {
   }, [success, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#050505] overflow-hidden relative selection:bg-primary/30">
+    <div className="min-h-screen flex items-center justify-center bg-[#050505] overflow-hidden relative selection:bg-primary/30 pt-32 pb-12">
       {/* Background glows */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-sky-500/15 rounded-full blur-[120px] opacity-30 mix-blend-screen animate-pulse" />

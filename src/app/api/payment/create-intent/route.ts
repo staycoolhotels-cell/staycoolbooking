@@ -115,15 +115,13 @@ export async function POST(req: Request) {
         const amount = Number(booking.total_price) * 100; // Convert to cents
         const applicationFee = Math.round(amount * commissionRate);
 
-        // Create PaymentIntent
+        // Create PaymentIntent without transfer_data or application_fee.
+        // Payout transfer will be triggered upon check-in.
         const paymentIntent = await stripe.paymentIntents.create({
             amount: amount,
             currency: 'usd',
             automatic_payment_methods: { enabled: true },
-            application_fee_amount: applicationFee,
-            transfer_data: {
-                destination: host.stripe_account_id,
-            },
+            transfer_group: bookingId,
             metadata: {
                 booking_id: bookingId,
                 guest_id: user.id,

@@ -19,7 +19,7 @@ const regions = [
 
 async function test() {
     for (const region of regions) {
-        const host = `aws-0-${region}.pooler.supabase.com`;
+        const host = `aws-1-${region}.pooler.supabase.com`;
         const config = {
             host,
             port: 6543,

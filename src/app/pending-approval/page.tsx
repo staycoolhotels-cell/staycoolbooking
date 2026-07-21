@@ -4,7 +4,7 @@ import Icon from '@/components/ui/AppIcon';
 
 export default function PendingApprovalPage() {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
+        <div className="min-h-screen flex items-center justify-center bg-background px-4 pt-32 pb-12">
             <div className="bg-card w-full max-w-2xl p-8 rounded-3xl shadow-brand-lg border border-border">
                 <div className="text-center">
                     {/* Icon */}

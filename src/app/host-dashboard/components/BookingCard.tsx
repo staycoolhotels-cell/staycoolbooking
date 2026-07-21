@@ -30,6 +30,15 @@ const getStatusStyles = (status: Booking['status']) => {
         indicator: 'bg-emerald-400 animate-pulse',
         glow: 'from-emerald-500/0 via-emerald-500/20 to-emerald-500/0'
       };
+    case 'checked_in':
+      return {
+        bg: 'bg-teal-500/20',
+        text: 'text-teal-300',
+        border: 'border-teal-500/30',
+        shadow: 'shadow-[0_0_15px_rgba(20,184,166,0.15)]',
+        indicator: 'bg-teal-400 animate-pulse',
+        glow: 'from-teal-500/0 via-teal-500/20 to-teal-500/0'
+      };
     case 'pending':
       return {
         bg: 'bg-amber-500/20',
@@ -412,7 +421,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
               <Icon name="ChatBubbleLeftRightIcon" size={14} /> <span>Message</span>
             </button>
 
-            {booking.status === 'confirmed' && (
+            {(booking.status === 'confirmed' || booking.status === 'checked_in') && (
               <button
                 disabled={isRejecting}
                 onClick={() => {

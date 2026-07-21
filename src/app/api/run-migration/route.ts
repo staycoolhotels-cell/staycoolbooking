@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { Client } from 'pg';
 
 export async function GET() {
-    const dbUrl = `postgresql://postgres:2bFZKr8g15GBpfng@db.dlislsrlwovcxsuqdlvy.supabase.co:5432/postgres`;
+    const dbUrl = `postgresql://postgres.dlislsrlwovcxsuqdlvy:2bFZKr8g15GBpfng@aws-0-ap-south-1.pooler.supabase.com:6543/postgres`;
     const config = {
         connectionString: dbUrl,
         ssl: { rejectUnauthorized: false },
@@ -13,12 +13,11 @@ export async function GET() {
     try {
         await client.connect();
         await client.query(`
-            ALTER TABLE public.properties 
-            ADD COLUMN IF NOT EXISTS standard_price INTEGER;
+            ALTER TABLE public.payment_transfers 
+            ADD COLUMN IF NOT EXISTS referrer_id UUID REFERENCES auth.users(id);
 
-            UPDATE public.properties 
-            SET standard_price = price_per_night 
-            WHERE standard_price IS NULL;
+            ALTER TABLE public.payment_transfers 
+            ADD COLUMN IF NOT EXISTS referrer_amount NUMERIC(12, 2) DEFAULT 0;
 
             NOTIFY pgrst, 'reload schema';
         `);

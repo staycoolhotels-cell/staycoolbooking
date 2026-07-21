@@ -102,7 +102,7 @@ const OccupancyPulse: React.FC<OccupancyPulseProps> = ({ bookings = [] }) => {
     const today = new Date().toISOString().split('T')[0];
 
     return (bookings || [])
-      .filter((b) => b && b.status === 'confirmed')
+      .filter((b) => b && (b.status === 'confirmed' || b.status === 'checked_in'))
       .filter((b) => {
         const checkIn = b.check_in;
         const checkOut = b.check_out;

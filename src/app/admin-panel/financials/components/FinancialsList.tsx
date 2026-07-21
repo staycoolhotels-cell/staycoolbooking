@@ -205,7 +205,7 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
                 hostName: booking.property?.host?.name || 'Unknown Host',
                 amount: Number(booking.total_price),
                 date: booking.created_at,
-                status: (booking.status === 'confirmed' || booking.status === 'completed') ? 'completed' : 
+                status: (booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'completed') ? 'completed' : 
                         (booking.status === 'refunded' ? 'refunded' : 'pending'),
                 paymentMethod: 'Razorpay'
               };

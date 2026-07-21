@@ -160,7 +160,7 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
   if (status === 'loading') return <AnimatedLoader fullScreen text="Loading Profile..." />;
 
   const activeBooking = bookings.find((b) =>
-    (b.status === 'confirmed' || b.status === 'pending_payment') &&
+    (b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'pending_payment') &&
     new Date(b.check_out) >= new Date()
   ) || null;
 

@@ -4,8 +4,12 @@ import { redirect } from 'next/navigation';
 
 import UserProfileInteractive from './components/UserProfileInteractive';
 import { calculateRefundAmount } from '@/lib/refund-policy';
+import { autoProcessCheckedInBookings } from '@/lib/booking-actions';
 
 export default async function ProfilePage() {
+  // Automatically check-in bookings that have arrived on or before today
+  await autoProcessCheckedInBookings();
+
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -176,9 +180,9 @@ export default async function ProfilePage() {
       refundDate: b.status === 'refunded' && b.cancelled_at
         ? new Date(b.cancelled_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })
         : undefined,
-      type: (b.status === 'confirmed' || b.status === 'completed') ? 'payment' : 
+      type: (b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed') ? 'payment' : 
             isCancelledOrRefunded ? 'refund' : 'other',
-      status: (b.status === 'confirmed' || b.status === 'completed') ? 'completed' : 
+      status: (b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed') ? 'completed' : 
               (b.status === 'refunded' ? 'refunded' : 'pending'),
       paymentMethod: 'Razorpay',
       room_type: b.room_type,

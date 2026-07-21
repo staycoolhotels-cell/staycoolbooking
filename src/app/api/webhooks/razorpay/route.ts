@@ -84,12 +84,12 @@ export async function POST(req: Request) {
                         .eq('id', bookingId)
                         .neq('status', 'confirmed'); // Don't re-update already confirmed
 
-                    // Update payment_transfers to processing/settled
+                    // Update payment_transfers with the payment ID but keep status as pending (to be split on check-in)
                     await supabase
                         .from('payment_transfers')
                         .update({
                             razorpay_payment_id: razorpayPaymentId,
-                            transfer_status: 'processing',
+                            transfer_status: 'pending',
                         })
                         .eq('razorpay_order_id', razorpayOrderId);
 

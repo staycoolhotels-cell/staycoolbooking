@@ -63,29 +63,14 @@ export async function POST(req: Request) {
         const hostId = property?.host_id;
 
         // ─────────────────────────────────────────────
-        // 2. Calculate commission dynamically
+        // 2. Calculate commission dynamically (Guest pays service fee, host pays 0% commission)
         // ─────────────────────────────────────────────
-        let adminCommission = totalAmount * 0.20; // default 20%
-        let hostAmount = totalAmount - adminCommission;
-        let referrerCommission = 0;
-        let referrerId = null;
-        let commissionType = 'percentage';
-        let commissionValue = 20;
-
-        const { data: commissionData } = await supabase
-            .rpc('get_commission_for_booking', {
-                p_property_id: booking.property_id,
-                p_total_price: totalAmount,
-            });
-
-        if (commissionData) {
-            adminCommission = Number(commissionData.admin_commission_amount);
-            hostAmount = Number(commissionData.host_amount);
-            referrerCommission = Number(commissionData.referrer_commission_amount);
-            referrerId = commissionData.referrer_id;
-            commissionType = commissionData.commission_type;
-            commissionValue = Number(commissionData.commission_value);
-        }
+        const adminCommission = Number((booking as any).service_fee || 0);
+        const hostAmount = totalAmount - adminCommission;
+        const referrerCommission = 0;
+        const referrerId = null;
+        const commissionType = 'percentage';
+        const commissionValue = 0;
 
         // ─────────────────────────────────────────────
         // 3. Fetch host's and referrer's linked accounts
@@ -173,9 +158,13 @@ export async function POST(req: Request) {
             },
         };
 
+        // Host and referrer transfers will be executed manually upon check-in.
+        // Thus, we do not attach transfers to the order options, so the money goes to the admin first.
+        /*
         if (transfers.length > 0) {
             orderOptions.transfers = transfers;
         }
+        */
 
         const order = await razorpay.orders.create(orderOptions);
 
@@ -203,6 +192,8 @@ export async function POST(req: Request) {
                     commission_type: commissionType,
                     commission_value: commissionValue,
                     transfer_status: 'pending',
+                    referrer_id: referrerId,
+                    referrer_amount: referrerCommission,
                 },
                 { onConflict: 'booking_id' }
             );

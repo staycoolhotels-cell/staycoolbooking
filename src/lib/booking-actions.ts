@@ -5,6 +5,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { CACHE_TAGS } from './data-service';
+import { razorpay } from './razorpay';
+import { stripe } from './stripe';
 
 const createSupabaseServerClient = async () => {
   const cookieStore = await cookies();
@@ -203,6 +205,7 @@ export async function createBooking(bookingDetails: {
   amenities?: Array<{ id: string; count: number; price: number; name: string }>;
   hasFreeCancellation?: boolean;
   freeCancellationFee?: number;
+  serviceFee?: number;
 }, _prevState: unknown) {
   try {
     const supabase = await createSupabaseServerClient();
@@ -236,7 +239,8 @@ export async function createBooking(bookingDetails: {
       amenities = [], 
       selectedRoomIds = [],
       hasFreeCancellation = false,
-      freeCancellationFee = 0
+      freeCancellationFee = 0,
+      serviceFee = 0
     } = bookingDetails;
 
     // Use RPC to create booking and assign rooms atomically
@@ -277,7 +281,7 @@ export async function createBooking(bookingDetails: {
     // Update guests separately since RPC doesn't take guests parameter
     if (data && guests) {
       const adminSupabase = createServiceClient();
-      await adminSupabase.from('bookings').update({ guests }).eq('id', data);
+      await adminSupabase.from('bookings').update({ guests, service_fee: serviceFee }).eq('id', data);
       if (data && amenities && amenities.length > 0) {
         await supabase.from('activities').insert({
           type: 'booking_amenities',
@@ -499,6 +503,240 @@ export async function getGuestVerification(guestId: string) {
     return { success: true, fileUrl: signedData.signedUrl };
   } catch (err: any) {
     console.error('Error fetching guest verification:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function processCheckInAndPayout(bookingId: string, adminSupabase: any) {
+  // 1. Fetch booking with property host info
+  const { data: booking, error: bookingError } = await adminSupabase
+    .from('bookings')
+    .select('*, properties(host_id)')
+    .eq('id', bookingId)
+    .single();
+
+  if (bookingError || !booking) {
+    console.error('[CheckIn] Booking fetch error:', bookingError);
+    return { error: 'Booking not found' };
+  }
+
+  const hostId = (booking as any).properties?.host_id;
+
+  if (booking.status === 'checked_in') {
+    return { success: true, message: 'Already checked in.' };
+  }
+
+  if (booking.status !== 'confirmed') {
+    return { error: `Cannot check in. Booking status is: ${booking.status}` };
+  }
+
+  // 2. Perform status update to 'checked_in'
+  const { error: updateError } = await adminSupabase
+    .from('bookings')
+    .update({ status: 'checked_in' })
+    .eq('id', bookingId);
+
+  if (updateError) {
+    console.error('[CheckIn] Failed to update booking status:', updateError);
+    return { error: 'Failed to update booking status' };
+  }
+
+  // 3. Process splits
+  if (booking.razorpay_payment_id) {
+    // Fetch payment transfer details
+    const { data: transferDetails } = await adminSupabase
+      .from('payment_transfers')
+      .select('*')
+      .eq('booking_id', bookingId)
+      .single();
+
+    if (transferDetails && transferDetails.transfer_status !== 'settled') {
+      const { data: hostKyc } = await adminSupabase
+        .from('host_kyc_details')
+        .select('razorpay_account_id, kyc_status')
+        .eq('user_id', hostId)
+        .single();
+
+      const hostRazorpayAccountId = (hostKyc?.kyc_status === 'activated') ? hostKyc.razorpay_account_id : null;
+
+      let referrerRazorpayAccountId = null;
+      if (transferDetails.referrer_id && transferDetails.referrer_amount > 0) {
+        const { data: referrerKyc } = await adminSupabase
+          .from('host_kyc_details')
+          .select('razorpay_account_id, kyc_status')
+          .eq('user_id', transferDetails.referrer_id)
+          .single();
+        if (referrerKyc?.kyc_status === 'activated') {
+          referrerRazorpayAccountId = referrerKyc.razorpay_account_id;
+        }
+      }
+
+      const transfers = [];
+
+      if (hostRazorpayAccountId && Number(transferDetails.host_amount) > 0) {
+        transfers.push({
+          account: hostRazorpayAccountId,
+          amount: Math.round(Number(transferDetails.host_amount) * 100),
+          currency: 'INR',
+          notes: { booking_id: bookingId, type: 'host_payout', host_id: hostId }
+        });
+      }
+
+      if (referrerRazorpayAccountId && Number(transferDetails.referrer_amount) > 0) {
+        transfers.push({
+          account: referrerRazorpayAccountId,
+          amount: Math.round(Number(transferDetails.referrer_amount) * 100),
+          currency: 'INR',
+          notes: {
+            booking_id: bookingId,
+            type: 'referral_commission',
+            referred_host_id: hostId,
+            referrer_id: transferDetails.referrer_id
+          }
+        });
+      }
+
+      if (transfers.length > 0) {
+        try {
+          const transferResult = await razorpay.payments.transfer(booking.razorpay_payment_id, { transfers });
+          const returnedItems = transferResult.items || [];
+          const hostTransferId = returnedItems.find((item: any) => item.notes?.type === 'host_payout')?.id || (transferResult as any).id;
+
+          await adminSupabase
+            .from('payment_transfers')
+            .update({
+              razorpay_transfer_id: hostTransferId,
+              transfer_status: 'settled',
+            })
+            .eq('booking_id', bookingId);
+        } catch (rpError: any) {
+          console.error('[CheckIn] Razorpay transfer request failed:', rpError);
+          await adminSupabase
+            .from('payment_transfers')
+            .update({
+              transfer_status: 'failed',
+              failure_reason: rpError.message || 'Razorpay transfer failed',
+            })
+            .eq('booking_id', bookingId);
+        }
+      }
+    }
+  } else {
+    // Stripe flow
+    const { data: stripePayment } = await adminSupabase
+      .from('payments')
+      .select('*')
+      .eq('booking_id', bookingId)
+      .eq('status', 'succeeded')
+      .single();
+
+    if (stripePayment) {
+      const { data: hostUser } = await adminSupabase
+        .from('users')
+        .select('stripe_account_id, stripe_onboarding_completed')
+        .eq('id', hostId)
+        .single();
+
+      if (hostUser?.stripe_account_id && hostUser.stripe_onboarding_completed) {
+        const commissionAmount = Number(stripePayment.commission_amount || 0);
+        const totalPaid = Number(stripePayment.amount);
+        const hostAmount = totalPaid - commissionAmount;
+
+        if (hostAmount > 0) {
+          try {
+            await stripe.transfers.create({
+              amount: Math.round(hostAmount),
+              currency: stripePayment.currency || 'usd',
+              destination: hostUser.stripe_account_id,
+              transfer_group: bookingId,
+            });
+            await adminSupabase
+              .from('payments')
+              .update({ status: 'transferred' })
+              .eq('id', stripePayment.id);
+          } catch (stripeError: any) {
+            console.error('[CheckIn] Stripe transfer failed:', stripeError);
+          }
+        }
+      }
+    }
+  }
+
+  revalidateTag(CACHE_TAGS.bookings);
+  revalidatePath('/user-profile');
+  revalidatePath('/host-dashboard');
+  return { success: true };
+}
+
+export async function checkInBooking(bookingId: string) {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { error: 'User not authenticated' };
+    }
+
+    const adminSupabase = createServiceClient();
+
+    // Fetch booking to verify ownership
+    const { data: booking, error: bookingError } = await adminSupabase
+      .from('bookings')
+      .select('guest_id')
+      .eq('id', bookingId)
+      .single();
+
+    if (bookingError || !booking) {
+      return { error: 'Booking not found' };
+    }
+
+    if (booking.guest_id !== user.id) {
+      return { error: 'Forbidden: this is not your booking' };
+    }
+
+    return await processCheckInAndPayout(bookingId, adminSupabase);
+  } catch (err: any) {
+    console.error('CheckInBooking action failed:', err);
+    return { error: err.message || 'An unexpected error occurred.' };
+  }
+}
+
+export async function autoProcessCheckedInBookings() {
+  try {
+    const adminSupabase = createServiceClient();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // Find all confirmed bookings where check_in date is today or in the past
+    const { data: bookingsToCheckIn, error } = await adminSupabase
+      .from('bookings')
+      .select('id')
+      .eq('status', 'confirmed')
+      .lte('check_in', todayStr);
+
+    if (error) {
+      console.error('[AutoCheckIn] Error fetching bookings:', error);
+      return { success: false, error };
+    }
+
+    if (!bookingsToCheckIn || bookingsToCheckIn.length === 0) {
+      return { success: true, count: 0 };
+    }
+
+    console.log(`[AutoCheckIn] Found ${bookingsToCheckIn.length} bookings to automatically check in.`);
+
+    let processedCount = 0;
+    for (const b of bookingsToCheckIn) {
+      try {
+        await processCheckInAndPayout(b.id, adminSupabase);
+        processedCount++;
+      } catch (err) {
+        console.error(`[AutoCheckIn] Failed to auto check-in booking ${b.id}:`, err);
+      }
+    }
+    
+    return { success: true, count: processedCount };
+  } catch (err: any) {
+    console.error('[AutoCheckIn] Unexpected error:', err);
     return { success: false, error: err.message };
   }
 }

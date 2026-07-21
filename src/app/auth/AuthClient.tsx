@@ -89,14 +89,14 @@ export default function AuthClient() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#050505] overflow-hidden relative selection:bg-primary/30 selection:text-primary-foreground">
+    <div className="min-h-screen flex items-center justify-center bg-[#050505] overflow-hidden relative selection:bg-primary/30 selection:text-primary-foreground pt-32 pb-12">
       {/* Dynamic Background Elements */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] opacity-30 mix-blend-screen animate-pulse-subtle" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] opacity-30 mix-blend-screen animate-pulse-subtle delay-1000" />
       </div>
 
-      <div className="w-full max-w-md px-4 sm:px-6 relative z-10 mt-24 sm:mt-0 mb-8 sm:mb-0">
+      <div className="w-full max-w-md px-4 sm:px-6 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

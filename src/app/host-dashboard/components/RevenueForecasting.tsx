@@ -26,7 +26,7 @@ const RevenueForecasting: React.FC<RevenueForecastingProps> = ({ bookings = [] }
     thirtyDaysAgo.setDate(today.getDate() - 30);
 
     const relevantBookings = bookings
-      .filter((b) => (b.status === 'confirmed' || b.status === 'completed'))
+      .filter((b) => (b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed'))
       .sort((a, b) => a.check_in.localeCompare(b.check_in));
 
     const forecastMap: { [key: string]: number } = {};
