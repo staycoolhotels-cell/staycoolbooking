@@ -70,8 +70,8 @@ BEGIN
     -- Handle Referrer Split (5% to Referrer, rest to Admin)
     -- Only if Host 2 was referred and has remaining referral bookings
     IF v_referrer_id IS NOT NULL AND v_commissions_remaining > 0 THEN
-        -- Calculate 0% for referrer
-        v_referrer_commission := ROUND((p_total_price * 0.00)::NUMERIC, 2);
+        -- Calculate 5% for referrer
+        v_referrer_commission := ROUND((p_total_price * 0.05)::NUMERIC, 2);
         
         -- Admin gets the rest of the total commission
         -- If total commission is less than 5% (unlikely but possible with custom rules), 

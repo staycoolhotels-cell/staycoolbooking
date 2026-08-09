@@ -92,6 +92,17 @@ export default async function HostDashboardPage() {
     getSupportAdmin()
   ]);
 
+  // The main dashboard is available only after the two mandatory host setup steps.
+  const { data: hostKyc } = await createServiceClient()
+    .from('host_kyc_details')
+    .select('kyc_status')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (!properties?.length || hostKyc?.kyc_status !== 'activated') {
+    redirect('/host-onboarding');
+  }
+
   // Fetch amenities log from activities table to load selected amenities for host bookings
   const adminSupabase = createServiceClient();
   const { data: bookingActivities } = await adminSupabase

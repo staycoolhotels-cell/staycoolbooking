@@ -563,8 +563,9 @@ const BookingCard = ({
     }
 
     if (!isAuthenticated) {
-      toast.error('Please login to reserve a property');
-      router.push('/auth');
+      // Keep the selected stay details and take the guest to the booking flow.
+      // That flow presents login as its first step and resumes afterwards.
+      proceedToBooking();
       return;
     }
 

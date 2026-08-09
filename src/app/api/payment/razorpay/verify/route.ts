@@ -81,8 +81,14 @@ export async function POST(req: Request) {
             if (booking) {
                 const hostId = booking.property?.host_id;
                 const amount = Number(booking.total_price);
-                const platformFee = amount * 0.20; // Default 20% commission for logging
-                const hostPayout = amount - platformFee;
+                const guestServiceFee = Number(booking.service_fee || 0);
+                const hostRevenue = Math.max(0, amount - guestServiceFee);
+                const { data: hostProfile } = hostId
+                    ? await supabase.from('users').select('referred_by, referral_commissions_remaining').eq('id', hostId).single()
+                    : { data: null };
+                const commissionRate = hostProfile?.referred_by && (hostProfile.referral_commissions_remaining || 0) > 0 ? 5 : 10;
+                const hostPayout = Number((hostRevenue * (1 - commissionRate / 100)).toFixed(2));
+                const platformFee = Number((amount - hostPayout).toFixed(2));
 
                 // A. Record Transaction (Secondary Ledger)
                 await supabase
@@ -100,18 +106,18 @@ export async function POST(req: Request) {
 
                 // B. Handle Referral Commission Decrement
                 if (hostId) {
-                    const { data: hostProfile } = await supabase
+                    const { data: referralProfile } = await supabase
                         .from('users')
                         .select('referred_by, referral_commissions_remaining')
                         .eq('id', hostId)
                         .single();
 
-                    if (hostProfile && hostProfile.referred_by && (hostProfile.referral_commissions_remaining || 0) > 0) {
+                    if (referralProfile && referralProfile.referred_by && (referralProfile.referral_commissions_remaining || 0) > 0) {
                         await supabase
                             .from('users')
-                            .update({ referral_commissions_remaining: hostProfile.referral_commissions_remaining - 1 })
+                            .update({ referral_commissions_remaining: referralProfile.referral_commissions_remaining - 1 })
                             .eq('id', hostId);
-                        console.log(`📉 Decremented referral commissions for host ${hostId}. Remaining: ${hostProfile.referral_commissions_remaining - 1}`);
+                        console.log(`📉 Decremented referral commissions for host ${hostId}. Remaining: ${referralProfile.referral_commissions_remaining - 1}`);
                     }
                 }
             }

@@ -53,7 +53,7 @@ export async function POST(req: Request) {
 
         // 2. Cancellation Distribution Logic Calculation
         const transfer = booking.payment_transfer && booking.payment_transfer.length > 0 ? booking.payment_transfer[0] : null;
-        const commissionRate = transfer?.commission_value ? Number(transfer.commission_value) : 20;
+        const commissionRate = transfer?.commission_value ? Number(transfer.commission_value) : 10;
 
         const { 
             guestRefundAmount, 

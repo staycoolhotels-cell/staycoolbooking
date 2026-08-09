@@ -1,6 +1,29 @@
 @import './tailwind.css';
 @import 'leaflet/dist/leaflet.css';
 
+/* Authentication cards */
+.auth-label { display: block; margin: 0 0 0.7rem 0.25rem; color: #9b9ba4; font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.auth-card { position: relative; overflow: hidden; background: linear-gradient(135deg, rgba(10,16,22,.98), rgba(5,5,7,.98) 58%, rgba(6,18,29,.98)) !important; box-shadow: 0 25px 90px rgba(0,0,0,.65), inset 0 1px rgba(255,255,255,.06) !important; }
+.auth-card::before { content: ''; position: absolute; width: 280px; height: 280px; top: -150px; left: -100px; border-radius: 999px; background: rgba(14,165,233,.18); filter: blur(70px); pointer-events: none; }
+.auth-card::after { content: ''; position: absolute; width: 260px; height: 260px; bottom: -180px; right: -100px; border-radius: 999px; background: rgba(37,99,235,.16); filter: blur(75px); pointer-events: none; }
+.auth-intro, .auth-form-panel { position: relative; z-index: 1; }
+.auth-field { position: relative; display: flex; align-items: center; gap: .85rem; min-height: 58px; border: 1px solid rgba(255,255,255,.13); border-radius: 15px; background: rgba(17,18,22,.8); color: #8d8d99; padding: 0 1.05rem; transition: border-color .2s, box-shadow .2s, background .2s, transform .2s; }
+.auth-field:hover { border-color: rgba(125,211,252,.3); background: rgba(22,25,31,.9); }
+.auth-field:focus-within { border-color: rgba(56,189,248,.65); box-shadow: 0 0 0 3px rgba(56,189,248,.1); }
+.auth-icon { flex: 0 0 auto; color: #9494a0; }
+.auth-input { width: 100%; border: 0; outline: 0; background: transparent; color: #fff; font-size: .95rem; min-width: 0; }
+.auth-input::placeholder { color: #585864; opacity: 1; }
+
+@media (min-width: 1024px) {
+  .auth-intro { display: flex; flex-direction: column; justify-content: center; min-height: 300px; border-right: 1px solid rgba(255,255,255,.1); padding-right: 1.5rem; }
+  .auth-intro > div:first-child { margin-left: 2.75rem; margin-right: 0; box-shadow: 0 0 35px rgba(14,165,233,.12); }
+  .auth-intro header { text-align: left; }
+  .auth-form-panel { align-self: center; padding-top: .25rem; }
+}
+
+.auth-intro h1 { letter-spacing: -.04em; }
+.auth-intro p { color: #94a3b8; }
+
 :root {
   --color-border: 59 78 102;
   --color-input: 40 53 66;

@@ -10,7 +10,6 @@ import { redirect } from 'next/navigation';
 
 import { logActivity } from './activity-actions';
 
-import { verifyPaymentSignature } from './payment-actions';
 
 import { sendMsg91OTP, verifyMsg91OTP } from './msg91';
 
@@ -128,16 +127,6 @@ export async function signUpUser(_prevState: string | undefined, formData: FormD
 
 
 
-  // Payment Details
-
-  const razorpayPaymentId = formData.get('razorpay_payment_id') as string;
-
-  const razorpayOrderId = formData.get('razorpay_order_id') as string;
-
-  const razorpaySignature = formData.get('razorpay_signature') as string;
-
-
-
   // 1. Basic Validation
 
   if (!email || !password || !confirmPassword || !name) {
@@ -161,28 +150,6 @@ export async function signUpUser(_prevState: string | undefined, formData: FormD
   // Only allow 'host' or 'guest'. Default to 'guest'.
 
   const role = rawRole?.toLowerCase() === 'host' ? 'host' : 'guest';
-
-
-
-  // 3. Payment Verification for Host
-
-  if (role === 'host') {
-
-    if (!razorpayPaymentId || !razorpayOrderId || !razorpaySignature) {
-
-      return 'Payment verification failed: Missing payment details.';
-
-    }
-
-    const isPaymentValid = await verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
-
-    if (!isPaymentValid) {
-
-      return 'Payment verification failed: Invalid signature.';
-
-    }
-
-  }
 
 
 
@@ -258,7 +225,7 @@ export async function signUpUser(_prevState: string | undefined, formData: FormD
 
     const userName = name;
 
-    // HOST APPROVAL REMOVED: Hosts start as 'active' after successful payment verification
+    // Hosts start as active immediately after signup; no signup payment is required.
 
     const userStatus = 'active';
 
@@ -509,6 +476,8 @@ async function ensureAdminUserExists() {
 export async function login(_prevState: string | undefined, formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
+  const requestedReturnTo = formData.get('returnTo') as string | null;
+  const safeReturnTo = requestedReturnTo?.startsWith('/guest-booking-flow') ? requestedReturnTo : null;
 
   if (!email || !password) {
     return 'Email and password are required.';
@@ -584,6 +553,17 @@ export async function login(_prevState: string | undefined, formData: FormData) 
   const { role, status } = userProfile;
   const normalizedRole = role?.toLowerCase() || '';
 
+  // Enforce expected role from login portal
+  const expectedRole = formData.get('expectedRole') as string;
+  if (expectedRole && expectedRole.toLowerCase() !== normalizedRole) {
+    await supabase.auth.signOut();
+    if (expectedRole.toLowerCase() === 'host') {
+      return 'This account is not registered as a Host. Please sign in using the Guest portal.';
+    } else {
+      return 'This account is registered as a Host. Please sign in using the Host portal.';
+    }
+  }
+
   // Sync-heal Auth Metadata: If the Auth metadata role/status does not match public.users, update it!
   const authUserMeta = data.user.user_metadata || {};
   if (authUserMeta.role !== normalizedRole || authUserMeta.status !== status) {
@@ -645,7 +625,7 @@ export async function login(_prevState: string | undefined, formData: FormData) 
 
         userProfile = { ...userProfile, status: 'active' };
 
-        redirect('/host-dashboard');
+        redirect('/host-onboarding');
 
         return;
 
@@ -685,7 +665,7 @@ export async function login(_prevState: string | undefined, formData: FormData) 
 
       console.log('✅ ALLOWING: Host status is approved/active/pending');
 
-      redirect('/host-dashboard');
+      redirect('/host-onboarding');
 
     }
 
@@ -711,7 +691,7 @@ export async function login(_prevState: string | undefined, formData: FormData) 
 
     }
 
-    redirect('/');
+    redirect(safeReturnTo || '/');
 
   }
 
@@ -885,16 +865,6 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
 
 
 
-  // Payment Details
-
-  const razorpayPaymentId = formData.get('razorpay_payment_id') as string;
-
-  const razorpayOrderId = formData.get('razorpay_order_id') as string;
-
-  const razorpaySignature = formData.get('razorpay_signature') as string;
-
-
-
   if (!phone || !token) {
 
     return 'Phone number and OTP are required.';
@@ -947,33 +917,32 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
 
     }
 
+    // Enforce expected role for mobile login
+    const expectedRole = formData.get('expectedRole') as string;
+    if (expectedRole) {
+      const isBypassPhone = phone === '+911111111111' || phone === '1111111111';
+      let databaseRole = 'guest';
+      if (existingUser) {
+        const { data: dbUser } = await supabaseAdmin.from('users').select('role').eq('id', existingUser.id).single();
+        databaseRole = dbUser?.role?.toLowerCase() || 'guest';
+      } else if (isBypassPhone) {
+        databaseRole = 'host';
+      }
+
+      if (expectedRole.toLowerCase() !== databaseRole) {
+        if (expectedRole.toLowerCase() === 'host') {
+          return 'This account is not registered as a Host. Please sign in using the Guest portal.';
+        } else {
+          return 'This account is registered as a Host. Please sign in using the Host portal.';
+        }
+      }
+    }
+
   }
 
 
 
   const userRole = role?.toLowerCase() === 'host' ? 'host' : 'guest';
-
-
-
-  // Payment Verification for Host
-
-  if (isSignupFlow && userRole === 'host') {
-
-    if (!razorpayPaymentId || !razorpayOrderId || !razorpaySignature) {
-
-      return 'Payment verification failed: Details missing.';
-
-    }
-
-    const isPaymentValid = await verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
-
-    if (!isPaymentValid) {
-
-      return 'Payment verification failed: Invalid signature.';
-
-    }
-
-  }
 
 
 

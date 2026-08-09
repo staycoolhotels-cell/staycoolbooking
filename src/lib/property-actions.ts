@@ -201,7 +201,8 @@ export async function addProperty(prevState: unknown, formData: FormData) {
     revalidatePath('/', 'layout');
     revalidatePath('/property-listing/[id]', 'page');
 
-    redirect('/host-dashboard'); // Redirect to host dashboard after successful addition
+    // Keep new hosts in the onboarding panel until Banking & KYC is complete.
+    redirect('/host-onboarding?property-created=1');
   }
 
   return { error: 'Failed to add property.' };

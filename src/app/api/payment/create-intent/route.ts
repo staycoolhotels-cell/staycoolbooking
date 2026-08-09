@@ -97,7 +97,7 @@ export async function POST(req: Request) {
             .eq('id', property.host_id)
             .single();
 
-        let commissionRate = 0.20; // Default 20%
+        let commissionRate = 0.10; // Fixed 10% platform commission
         let discountApplied = false;
 
         if (hostProfile && (hostProfile.referral_benefit_count || 0) > 0) {

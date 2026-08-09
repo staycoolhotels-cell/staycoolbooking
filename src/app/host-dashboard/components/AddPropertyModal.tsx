@@ -245,6 +245,8 @@ const AddPropertyModal = ({
     { id: 'Tent', name: 'Tent', icon: Tent },
     { id: 'Dormitory', name: 'Dormitory', icon: Users },
   ];
+  const isLicenseOnlyProperty = ['Hotel', 'Resort', 'Dormitory'].includes(formData.type);
+  const usesHostIdProofs = ['Home Stay', 'Villa', 'Wooden Stay', 'Apartment'].includes(formData.type);
 
   // Scroll to top of step container when step changes
   useEffect(() => {
@@ -661,10 +663,10 @@ const AddPropertyModal = ({
         if (formData.license.length > 0) {
           updatedFormData.license_url = await uploadFileToSupabase(formData.license[0], BUCKETS.propertyDocuments, `${userId}/properties/${propertyNameSlug}/documents/license`);
         }
-        if (formData.taxBill.length > 0) {
+        if (!isLicenseOnlyProperty && formData.taxBill.length > 0) {
           updatedFormData.tax_bill_url = await uploadFileToSupabase(formData.taxBill[0], BUCKETS.propertyDocuments, `${userId}/properties/${propertyNameSlug}/documents/tax-bill`);
         }
-        if (formData.currentBill.length > 0) {
+        if (!isLicenseOnlyProperty && formData.currentBill.length > 0) {
           updatedFormData.current_bill_url = await uploadFileToSupabase(formData.currentBill[0], BUCKETS.propertyDocuments, `${userId}/properties/${propertyNameSlug}/documents/current-bill`);
         }
       }
@@ -741,6 +743,11 @@ const AddPropertyModal = ({
           setErrorMessage("Tent property కోసం కనీసం 2 documents upload చేయాలి (Aadhaar, PAN, లేదా NOC లో ఏవైనా 2).");
           return;
         }
+      } else if (isLicenseOnlyProperty) {
+        if (!(formData.license.length > 0 || formData.license_url)) {
+          setErrorMessage('Please upload the Property License.');
+          return;
+        }
       } else {
         const docCount = [
           formData.license.length > 0 || formData.license_url,
@@ -749,7 +756,9 @@ const AddPropertyModal = ({
         ].filter(Boolean).length;
 
         if (docCount < 2) {
-          setErrorMessage("Please upload at least 2 documents (Property License, Tax Bill, or Utility Bill).");
+          setErrorMessage(usesHostIdProofs
+            ? 'Please upload both Host ID Proof documents.'
+            : 'Please upload at least 2 documents (Property License, Tax Bill, or Utility Bill).');
           return;
         }
       }
@@ -762,7 +771,7 @@ const AddPropertyModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4">
       <div className="bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
         <div className="flex justify-between items-center p-4 md:p-6 border-b border-zinc-800">
           <h2 className="text-lg md:text-2xl font-bold text-white">{propertyToEdit ? 'Edit Property' : 'Create a new listing'}</h2>
@@ -1862,22 +1871,28 @@ const AddPropertyModal = ({
                   </>
                 ) : null}
 
+                {isLicenseOnlyProperty && (
+                  <div className="mb-4 p-4 bg-sky-500/10 border border-sky-500/30 rounded-xl">
+                    <p className="text-sm font-semibold text-sky-400">Property License Required</p>
+                    <p className="text-xs text-zinc-400 mt-1">Hotel, Resort, and Dormitory listings require only the Property License.</p>
+                  </div>
+                )}
                 {/* Property License, Tax Bill, Current Utility Bill - disabled for Tent */}
-                {formData.type !== 'Tent' && (
+                {formData.type !== 'Tent' && !isLicenseOnlyProperty && (
                   <div className="mb-4 p-4 bg-sky-500/10 border border-sky-500/30 rounded-xl">
                     <p className="text-sm font-semibold text-sky-400">📄 Upload Any Two Documents</p>
                     <p className="text-xs text-zinc-400 mt-1">కనీసం <span className="text-sky-400 font-bold">2 documents</span> upload చేయాలి — Property License, Tax Bill, లేదా Current Utility Bill లో ఏవైనా రెండు.</p>
                   </div>
                 )}
-                <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
+                <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 ${formData.type === 'Tent' ? 'hidden' : ''}`}>
                   {formData.type === 'Tent' && (
                     <div className="col-span-1 sm:col-span-2 lg:col-span-3 p-3 bg-zinc-800 border border-zinc-700 rounded-lg">
                       <p className="text-xs text-amber-400">⚠️ Property License, Tax Bill, and Current Utility Bill are not required for Tent listings.</p>
                     </div>
                   )}
-                  <FileUploadField label="Property License" name="license" onChange={(e: React.ChangeEvent<HTMLInputElement>) => !formData.type.includes('Tent') && handleFileChange(e, 'license')} fileName={formData.license[0]?.name} currentUrl={formData.license_url} disabled={formData.type === 'Tent'} />
-                  <FileUploadField label="Tax Bill" name="taxBill" onChange={(e: React.ChangeEvent<HTMLInputElement>) => !formData.type.includes('Tent') && handleFileChange(e, 'taxBill')} fileName={formData.taxBill[0]?.name} currentUrl={formData.tax_bill_url} disabled={formData.type === 'Tent'} />
-                  <FileUploadField label="Current Utility Bill" name="currentBill" onChange={(e: React.ChangeEvent<HTMLInputElement>) => !formData.type.includes('Tent') && handleFileChange(e, 'currentBill')} fileName={formData.currentBill[0]?.name} currentUrl={formData.current_bill_url} disabled={formData.type === 'Tent'} />
+                  {!usesHostIdProofs && <FileUploadField label="Property License" name="license" onChange={(e: React.ChangeEvent<HTMLInputElement>) => !formData.type.includes('Tent') && handleFileChange(e, 'license')} fileName={formData.license[0]?.name} currentUrl={formData.license_url} disabled={formData.type === 'Tent'} />}
+                  {!isLicenseOnlyProperty && <FileUploadField label={usesHostIdProofs ? 'Host ID Proof 1' : 'Tax Bill'} name="taxBill" onChange={(e: React.ChangeEvent<HTMLInputElement>) => !formData.type.includes('Tent') && handleFileChange(e, 'taxBill')} fileName={formData.taxBill[0]?.name} currentUrl={formData.tax_bill_url} disabled={formData.type === 'Tent'} />}
+                  {!isLicenseOnlyProperty && <FileUploadField label={usesHostIdProofs ? 'Host ID Proof 2' : 'Current Utility Bill'} name="currentBill" onChange={(e: React.ChangeEvent<HTMLInputElement>) => !formData.type.includes('Tent') && handleFileChange(e, 'currentBill')} fileName={formData.currentBill[0]?.name} currentUrl={formData.current_bill_url} disabled={formData.type === 'Tent'} />}
                 </div>
               </div>
             )}

@@ -17,7 +17,17 @@ const GuestBookingInteractive = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preSelectedPropertyId = searchParams.get('propertyId');
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  // Guests may start a reservation before logging in. Login is intentionally
+  // the first booking step, so the selected property and dates are retained.
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setCurrentStep(user ? 1 : 0);
+      setCheckingSession(false);
+    });
+  }, []);
 
   // Handle browser/system back button
   useEffect(() => {
@@ -96,6 +106,11 @@ const GuestBookingInteractive = () => {
 
   const steps = ['Identity', 'Payment', 'Finish'];
 
+  const startLogin = () => {
+    const returnTo = `${window.location.pathname}${window.location.search}`;
+    router.push(`/auth?${new URLSearchParams({ role: 'guest', returnTo }).toString()}`);
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <div className="relative min-h-[100dvh] w-full overflow-hidden text-slate-300 font-sans flex flex-col bg-[#0a0a0f]">
@@ -120,22 +135,42 @@ const GuestBookingInteractive = () => {
             >
               {/* SLENDER CONTAINER */}
               <div className="relative border border-white/5 bg-white/[0.02] backdrop-blur-2xl rounded-3xl overflow-hidden shadow-2xl">
-                {/* Integrated Stepper (Header of the Card) */}
-                <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02]">
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-sky-400/60">
-                      Step 0{currentStep}
-                    </span>
-                    <h2 className="text-sm font-bold text-white tracking-widest uppercase italic">
-                      {steps[currentStep - 1]}
-                    </h2>
+                {checkingSession ? (
+                  <div className="flex min-h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-sky-500 border-t-transparent" /></div>
+                ) : currentStep === 0 ? (
+                  <div className="grid gap-8 p-6 md:grid-cols-[1fr_320px] md:p-10">
+                    <div>
+                      <button onClick={() => router.push(preSelectedPropertyId ? `/property-listing/${preSelectedPropertyId}` : '/')} className="mb-7 text-sm font-semibold text-zinc-400 hover:text-white">← Back</button>
+                      <p className="text-xs font-black uppercase tracking-[0.25em] text-sky-400">Request to book</p>
+                      <h1 className="mt-3 text-3xl font-black text-white md:text-4xl">Complete your booking</h1>
+                      <div className="mt-8 rounded-2xl border border-sky-500/30 bg-sky-500/10 p-5">
+                        <div className="flex items-center justify-between gap-4">
+                          <div><p className="font-bold text-white">1. Log in or sign up</p><p className="mt-1 text-sm text-zinc-400">Sign in to continue with your reservation.</p></div>
+                          <button onClick={startLogin} className="shrink-0 rounded-xl bg-sky-500 px-5 py-3 text-sm font-black text-slate-950 hover:bg-sky-400">Continue</button>
+                        </div>
+                      </div>
+                      <div className="mt-4 rounded-2xl border border-white/10 p-5 text-zinc-500"><p className="font-bold">2. Add a payment method</p></div>
+                      <div className="mt-4 rounded-2xl border border-white/10 p-5 text-zinc-500"><p className="font-bold">3. Review your request</p></div>
+                    </div>
+                    <aside className="h-fit rounded-2xl border border-white/10 bg-black/20 p-5">
+                      {bookingCart[0]?.images?.[0]?.url && <img src={bookingCart[0].images[0].url} alt="Selected property" className="mb-4 h-32 w-full rounded-xl object-cover" />}
+                      <h2 className="font-black text-white">{bookingCart[0]?.title || bookingCart[0]?.name || 'Your selected stay'}</h2>
+                      <p className="mt-2 text-sm text-zinc-400">{filters.checkIn || 'Select dates'} {filters.checkOut ? `– ${filters.checkOut}` : ''}</p>
+                      <p className="mt-1 text-sm text-zinc-400">{filters.guests} guest{filters.guests === 1 ? '' : 's'}</p>
+                    </aside>
                   </div>
-                  <Stepper steps={steps} currentStep={currentStep} />
-                </div>
+                ) : <>
+                  {/* Integrated Stepper (Header of the Card) */}
+                  <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02]">
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-[10px] font-black uppercase tracking-[0.4em] text-sky-400/60">Step 0{currentStep}</span>
+                      <h2 className="text-sm font-bold text-white tracking-widest uppercase italic">{steps[currentStep - 1]}</h2>
+                    </div>
+                    <Stepper steps={steps} currentStep={currentStep} />
+                  </div>
 
-                {/* Body - Scaled down padding */}
-                <div className="p-3 sm:p-5 md:p-8">
-                  {currentStep === 1 && (
+                  <div className="p-3 sm:p-5 md:p-8">
+                    {currentStep === 1 && (
                     <Step2_Verification
                       verificationData={verificationData}
                       setVerificationData={setVerificationData}
@@ -148,16 +183,16 @@ const GuestBookingInteractive = () => {
                         }
                       }}
                     />
-                  )}
-                  {currentStep === 2 && (
+                    )}
+                    {currentStep === 2 && (
                     <Step3_Payment
                       bookingCart={bookingCart}
                       filters={filters}
                       onNext={() => setCurrentStep(3)}
                       onBack={() => setCurrentStep(1)}
                     />
-                  )}
-                  {currentStep === 3 && (
+                    )}
+                    {currentStep === 3 && (
                     <Step4_Confirmation 
                       latitude={bookingCart[0]?.latitude}
                       longitude={bookingCart[0]?.longitude}
@@ -166,8 +201,9 @@ const GuestBookingInteractive = () => {
                         : bookingCart[0]?.location
                       }
                     />
-                  )}
-                </div>
+                    )}
+                  </div>
+                </>}
 
                 {/* Footer removed */}
               </div>

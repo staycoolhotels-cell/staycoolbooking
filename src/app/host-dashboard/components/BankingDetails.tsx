@@ -64,7 +64,7 @@ const statusConfig = {
 
 const inputClass = 'w-full px-4 py-3 bg-zinc-900/60 border border-white/10 rounded-xl text-sm text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500/50 transition-all';
 
-export default function BankingDetails() {
+export default function BankingDetails({ onActivated }: { onActivated?: () => void }) {
     const [kycStatus, setKycStatus] = useState<KycStatus | null>(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -85,6 +85,10 @@ export default function BankingDetails() {
     useEffect(() => {
         fetchStatus();
     }, []);
+
+    useEffect(() => {
+        if (kycStatus?.kyc_status === 'activated') onActivated?.();
+    }, [kycStatus?.kyc_status, onActivated]);
 
     async function fetchStatus() {
         setLoading(true);

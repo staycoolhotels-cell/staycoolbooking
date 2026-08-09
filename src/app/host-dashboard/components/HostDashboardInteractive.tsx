@@ -1121,8 +1121,6 @@ const HostDashboardInteractive = ({
       {/* Penalty Overlay (Moved to top level for maximum visibility) */}
       {isLocked && <PenaltyOverlay />}
       {isPending && <PendingApprovalOverlay />}
-      {isSubscriptionExpired && <SubscriptionExpiredOverlay />}
-      {showSubscriptionWarning && <SubscriptionWarningPopup />}
 
       {/* Mobile Toggle Button - Moved to a cleaner position */}
       <button

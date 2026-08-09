@@ -1,368 +1,108 @@
 'use client';
 
 import { login, signInWithMobile, verifyMobileOtp } from '@/lib/auth-actions';
-import { useActionState, useState, useEffect } from 'react';
+import { useActionState, useEffect, useState, Suspense } from 'react';
 import { useFormStatus } from 'react-dom';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Phone, ArrowRight, Loader2, Sparkles, Lock, User, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
-
-import AppImage from '@/components/ui/AppImage';
+import { Eye, EyeOff, Loader2, Mail, Phone, LockKeyhole, ArrowRight } from 'lucide-react';
 
 export default function AuthClient() {
+  return <Suspense fallback={<AuthLoader />}><AuthContent /></Suspense>;
+}
+
+function AuthContent() {
   const router = useRouter();
-  const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
-  const [mobileNumber, setMobileNumber] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
+  const params = useSearchParams();
+  const expectedRole = params.get('role')?.toLowerCase() === 'host' ? 'host' : 'guest';
+  const returnTo = params.get('returnTo')?.startsWith('/guest-booking-flow') ? params.get('returnTo')! : '';
+  const [method, setMethod] = useState<'email' | 'phone'>('email');
   const [showPassword, setShowPassword] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Client-side session check for history replacement
-  useEffect(() => {
-    const checkSession = async () => {
-      // If we are recovering password, let Header or local page handle it, do not redirect to dashboard/homepage
-      if (typeof window !== 'undefined' && (
-        window.location.hash.includes('type=recovery') || 
-        window.location.search.includes('type=recovery')
-      )) {
-        return;
-      }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // Fetch role and replace history
-        const { data: profile } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-
-        let target = '/';
-        if (profile?.role === 'admin') target = '/admin-panel';
-        else if (profile?.role === 'host') target = '/host-dashboard';
-
-        router.replace(target);
-      }
-    };
-
-    checkSession();
-  }, [router]);
-
-  // Email Login State
+  const [phone, setPhone] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
   const [emailState, emailAction] = useActionState(login, undefined);
-
-  // Mobile Login State
-  const [mobileState, mobileDispatch] = useActionState(async (prevState: any, formData: FormData) => {
+  const [mobileState, mobileAction] = useActionState(async (previous: any, formData: FormData) => {
     if (!otpSent) {
-      // Send OTP
-      const result = await signInWithMobile(prevState, formData);
-      if (typeof result === 'object' && result?.success) {
-        setOtpSent(true);
-        return undefined;
-      }
+      const result = await signInWithMobile(previous, formData);
+      if (typeof result === 'object' && result?.success) { setOtpSent(true); return undefined; }
       return result;
-    } else {
-      // Verify OTP
-      return await verifyMobileOtp(prevState, formData);
     }
+    return verifyMobileOtp(previous, formData);
   }, undefined);
 
-  const toggleAuthMethod = (method: 'email' | 'phone') => {
-    if (authMethod !== method) {
-      setAuthMethod(method);
-      setOtpSent(false); // Reset OTP state
+  useEffect(() => {
+    if (typeof mobileState === 'object' && mobileState?.success) {
+      router.replace(expectedRole === 'host' ? '/host-onboarding' : (returnTo || '/'));
     }
-  };
+  }, [mobileState, expectedRole, returnTo, router]);
 
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-      </div>
-    );
-  }
+  const error = method === 'email' ? (typeof emailState === 'string' ? emailState : '') : (typeof mobileState === 'string' ? mobileState : '');
+  const signupHref = `/signup?role=${expectedRole}`;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#050505] overflow-hidden relative selection:bg-primary/30 selection:text-primary-foreground pt-32 pb-12">
-      {/* Dynamic Background Elements */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] opacity-30 mix-blend-screen animate-pulse-subtle" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] opacity-30 mix-blend-screen animate-pulse-subtle delay-1000" />
+    <main className="min-h-screen bg-[#030405] px-4 py-5 text-white sm:px-6 sm:py-8">
+      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-[780px] items-center justify-center sm:min-h-[calc(100vh-4rem)]">
+        <section className="auth-card w-full rounded-[24px] border border-white/10 bg-[#050505] px-4 py-6 shadow-[0_20px_70px_rgba(0,0,0,.55)] sm:px-6 sm:py-7 lg:grid lg:grid-cols-[.72fr_1.28fr] lg:gap-7 lg:px-7 lg:py-7">
+          <div className="auth-intro">
+          <div className="mx-auto mb-6 flex h-[88px] w-[88px] items-center justify-center rounded-[21px] border border-white/15 bg-[#111214] p-3">
+            <img src="/assets/images/logo.png" alt="StayCool" className="h-full w-full object-contain" />
+          </div>
+          <header className="mb-9 text-center">
+            <h1 className="font-serif text-[32px] font-bold leading-none tracking-tight sm:text-[36px]">Welcome Back</h1>
+            <p className="mt-2 text-sm text-zinc-400">Sign in to access your account</p>
+          </header>
+
+          </div>
+          <div className="auth-form-panel">
+
+          <div className="mb-8 grid grid-cols-2 rounded-2xl border border-white/10 bg-[#101012] p-1.5">
+            <MethodButton active={method === 'email'} onClick={() => { setMethod('email'); setOtpSent(false); }} icon={<Mail size={19} />} label="Email" />
+            <MethodButton active={method === 'phone'} onClick={() => { setMethod('phone'); setOtpSent(false); }} icon={<Phone size={19} />} label="Mobile" />
+          </div>
+
+          {error && <p className="mb-5 rounded-xl border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</p>}
+
+          {method === 'email' ? (
+            <form action={emailAction} className="space-y-6">
+              <input type="hidden" name="expectedRole" value={expectedRole} />
+              <input type="hidden" name="returnTo" value={returnTo} />
+              <Field label="Email address" icon={<Mail size={23} />}><input id="email" name="email" type="email" autoComplete="email" placeholder="name@example.com" required className="auth-input" /></Field>
+              <div>
+                <div className="mb-3 flex items-center justify-between"><label htmlFor="password" className="auth-label">Password</label><Link href="/forgot-password" className="text-sm text-sky-400 hover:text-sky-300">Forgot password?</Link></div>
+                <div className="auth-field"><LockKeyhole className="auth-icon" size={23} /><input id="password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" placeholder="••••••••" required className="auth-input pr-12" /><button type="button" aria-label="Toggle password visibility" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 text-zinc-500 hover:text-zinc-200">{showPassword ? <EyeOff size={22} /> : <Eye size={22} />}</button></div>
+              </div>
+              <SubmitButton>Sign In</SubmitButton>
+            </form>
+          ) : (
+            <form action={mobileAction} className="space-y-6">
+              <input type="hidden" name="expectedRole" value={expectedRole} />
+              {!otpSent ? <Field label="Mobile number" icon={<Phone size={23} />}><input id="phone" name="phone" type="tel" inputMode="numeric" placeholder="Enter mobile number" required value={phone} onChange={(event) => setPhone(event.target.value)} className="auth-input" /></Field> : <Field label="Verification code" icon={<LockKeyhole size={23} />}><input name="phone" type="hidden" value={phone} /><input id="otp" name="otp" inputMode="numeric" maxLength={6} placeholder="Enter 6-digit code" required className="auth-input tracking-[.28em]" /></Field>}
+              {otpSent && <button type="button" onClick={() => setOtpSent(false)} className="-mt-3 text-sm text-sky-400">Change mobile number</button>}
+              <SubmitButton>{otpSent ? 'Verify & Sign In' : 'Send OTP'}</SubmitButton>
+            </form>
+          )}
+
+          <div className="my-8 flex items-center gap-3"><span className="h-px flex-1 bg-white/10" /><span className="text-xs text-zinc-500">New to StayCool?</span><span className="h-px flex-1 bg-white/10" /></div>
+          <Link href={signupHref} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-sky-400/30 bg-sky-400/5 py-4 text-sm font-semibold text-sky-300 transition hover:bg-sky-400/10">Create an account <ArrowRight size={18} /></Link>
+          <p className="mt-6 text-center text-xs text-zinc-500">Signing in as a {expectedRole} · <Link href={expectedRole === 'host' ? '/auth?role=guest' : '/auth?role=host'} className="text-sky-400">Switch portal</Link></p>
+          </div>
+        </section>
       </div>
-
-      <div className="w-full max-w-md px-4 sm:px-6 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="bg-black/40 backdrop-blur-xl border border-white/10 p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-2xl shadow-black/50"
-        >
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center mb-6">
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="p-3 bg-white/5 border border-white/10 rounded-2xl shadow-inner"
-              >
-                <img
-                  src="/assets/images/logo.png"
-                  alt="StayCool Logo"
-                  className="w-10 h-10 sm:w-12 sm:h-12 object-contain filter drop-shadow-lg"
-                />
-              </motion.div>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-heading font-bold text-white tracking-tight mb-1.5 md:mb-2">
-              Welcome Back
-            </h1>
-            <p className="text-zinc-400 text-xs md:text-sm">
-              Sign in to access your account
-            </p>
-          </div>
-
-          {/* Error Messages */}
-          <AnimatePresence mode="wait">
-            {(emailState || (typeof mobileState === 'string' && mobileState)) && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm font-medium flex items-center gap-2"
-              >
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
-                {authMethod === 'email' ? emailState : (typeof mobileState === 'string' ? mobileState : '')}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Toggle Switch */}
-          <div className="bg-zinc-900/50 p-1 md:p-1.5 rounded-xl flex items-center gap-1 mb-6 md:mb-8 border border-white/5 mx-auto max-w-[300px]">
-            <button
-              onClick={() => toggleAuthMethod('email')}
-              className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 py-2 md:py-2.5 px-3 md:px-4 rounded-lg text-xs md:text-sm font-medium transition-all duration-300 relative ${authMethod === 'email' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
-                }`}
-            >
-              {authMethod === 'email' && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute inset-0 bg-primary/10 border border-primary/20 rounded-lg shadow-sm"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-2">
-                <Mail className="w-4 h-4" /> Email
-              </span>
-            </button>
-            <button
-              onClick={() => toggleAuthMethod('phone')}
-              className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 py-2 md:py-2.5 px-3 md:px-4 rounded-lg text-xs md:text-sm font-medium transition-all duration-300 relative ${authMethod === 'phone' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
-                }`}
-            >
-              {authMethod === 'phone' && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute inset-0 bg-primary/10 border border-primary/20 rounded-lg shadow-sm"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-2">
-                <Phone className="w-4 h-4" /> Mobile
-              </span>
-            </button>
-          </div>
-
-          {/* Forms */}
-          <div className="relative min-h-[220px]">
-            <AnimatePresence mode="wait" initial={false}>
-              {authMethod === 'email' ? (
-                <motion.div
-                  key="email-form"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <form action={emailAction} className="space-y-5" data-1p-ignore="true" data-op-ignore="true">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1" htmlFor="email">
-                        Email Address
-                      </label>
-                      <div className="relative group">
-                        <Mail className="absolute left-4 top-3.5 w-4 h-4 md:w-5 md:h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
-                        <input
-                          id="email"
-                          type="email"
-                          name="email"
-                          placeholder="name@example.com"
-                          required
-                          data-1p-ignore="true"
-                          data-op-ignore="true"
-                          data-lpignore="true"
-                          data-lp-ignore="true"
-                          data-dashlane-ignore="true"
-                          data-protonpass-ignore="true"
-                          autoComplete="off"
-                          className="w-full pl-11 md:pl-12 pr-4 md:py-3.5 py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1" htmlFor="password">
-                        Password
-                      </label>
-                      <div className="relative group">
-                        <Lock className="absolute left-4 top-3.5 w-4 h-4 md:w-5 md:h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
-                        <input
-                          id="password"
-                          type={showPassword ? "text" : "password"}
-                          name="password"
-                          placeholder="••••••••"
-                          required
-                          data-1p-ignore="true"
-                          data-op-ignore="true"
-                          data-lpignore="true"
-                          data-lp-ignore="true"
-                          data-dashlane-ignore="true"
-                          data-protonpass-ignore="true"
-                          autoComplete="off"
-                          className="w-full pl-11 md:pl-12 pr-12 md:py-3.5 py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-3 md:top-3.5 text-zinc-500 hover:text-zinc-300 transition-colors"
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4 md:w-5 md:h-5" /> : <Eye className="w-4 h-4 md:w-5 md:h-5" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Forgot Password */}
-                    <div className="flex justify-end">
-                      <Link
-                        href="/forgot-password"
-                        className="text-xs text-primary hover:text-primary/80 transition-colors"
-                      >
-                        Forgot password?
-                      </Link>
-                    </div>
-
-                    <SubmitButton>Sign In</SubmitButton>
-                  </form>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="mobile-form"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <form action={mobileDispatch} className="space-y-5" data-1p-ignore="true" data-op-ignore="true">
-                    {!otpSent ? (
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1" htmlFor="phone">
-                            Mobile Number
-                          </label>
-                          <div className="relative group">
-                            <Phone className="absolute left-4 top-3.5 w-4 h-4 md:w-5 md:h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
-                            <input
-                              id="phone"
-                              type="tel"
-                              name="phone"
-                              placeholder="+91..."
-                              required
-                              value={mobileNumber}
-                              onChange={(e) => setMobileNumber(e.target.value)}
-                              className="w-full pl-11 md:pl-12 pr-4 md:py-3.5 py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
-                            />
-                          </div>
-                        </div>
-                        <SubmitButton>Send verification code</SubmitButton>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <input type="hidden" name="phone" value={mobileNumber} />
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1" htmlFor="otp">
-                              Verification Code
-                            </label>
-                            <button
-                              type="button"
-                              onClick={() => setOtpSent(false)}
-                              className="text-xs text-primary hover:text-primary/80 transition-colors"
-                            >
-                              Change number?
-                            </button>
-                          </div>
-                          <div className="relative group">
-                            <Lock className="absolute left-4 top-3.5 w-4 h-4 md:w-5 md:h-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
-                            <input
-                              id="otp"
-                              type="text"
-                              name="otp"
-                              placeholder="123456"
-                              required
-                              className="w-full pl-11 md:pl-12 pr-4 md:py-3.5 py-2.5 text-xs md:text-sm rounded-lg md:rounded-xl bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all tracking-widest"
-                            />
-                          </div>
-                        </div>
-                        <SubmitButton>Verify & Sign In</SubmitButton>
-                      </div>
-                    )}
-                  </form>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Footer */}
-          <div className="mt-8 pt-6 border-t border-white/5 text-center">
-            <p className="text-zinc-500 text-sm mb-2">Don't have an account?</p>
-            <Link
-              href="/signup"
-              className="inline-flex items-center text-primary font-semibold hover:text-primary/80 transition-colors group"
-            >
-              Create an account <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-        </motion.div>
-      </div >
-    </div >
+    </main>
   );
+}
+
+function MethodButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+  return <button type="button" onClick={onClick} className={`flex items-center justify-center gap-2 rounded-xl py-3 text-base font-semibold transition ${active ? 'border border-sky-400/40 bg-sky-400/10 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>{icon}{label}</button>;
+}
+
+function Field({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return <div><label className="auth-label">{label}</label><div className="auth-field">{icon}{children}</div></div>;
 }
 
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
-
-  return (
-    <button
-      type="submit"
-      aria-disabled={pending}
-      disabled={pending}
-      className="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white py-3 md:py-4 rounded-lg md:rounded-xl font-bold text-sm md:text-base shadow-lg shadow-sky-500/20 hover:shadow-sky-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5 active:translate-y-0 relative overflow-hidden group"
-    >
-      <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none" />
-      <span className="relative flex items-center justify-center gap-2">
-        {pending ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin" />
-            Processing
-          </>
-        ) : (
-          children
-        )}
-      </span>
-    </button>
-  );
+  return <button type="submit" disabled={pending} className="w-full rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 py-4 text-lg font-bold text-white shadow-[0_10px_26px_rgba(14,116,255,.28)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60">{pending ? <span className="flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={20} />Please wait</span> : children}</button>;
 }
+
+function AuthLoader() { return <div className="flex min-h-screen items-center justify-center bg-[#030405]"><Loader2 className="animate-spin text-sky-400" size={32} /></div>; }

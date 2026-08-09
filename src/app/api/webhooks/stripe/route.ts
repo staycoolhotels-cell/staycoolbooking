@@ -55,9 +55,12 @@ export async function POST(req: Request) {
                         .eq('id', bookingId)
                         .single();
 
-                    const serviceFeeInCents = booking?.service_fee 
+                    const guestServiceFeeInCents = booking?.service_fee
                         ? Math.round(Number(booking.service_fee) * 100)
                         : Math.round(paymentIntent.amount * 0.1 / 1.1);
+                    const hostRevenueInCents = Math.max(0, paymentIntent.amount - guestServiceFeeInCents);
+                    const hostPayoutInCents = Math.round(hostRevenueInCents * 0.90);
+                    const platformCommissionInCents = paymentIntent.amount - hostPayoutInCents;
 
                     // Update booking status
                     await supabase
@@ -74,7 +77,7 @@ export async function POST(req: Request) {
                             currency: paymentIntent.currency,
                             status: 'succeeded',
                             stripe_payment_intent_id: paymentIntent.id,
-                            commission_amount: serviceFeeInCents,
+                            commission_amount: platformCommissionInCents,
                         });
 
                     // --- Referral Benefit Decrement ---

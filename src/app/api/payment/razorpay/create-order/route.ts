@@ -6,8 +6,7 @@ import { razorpay } from '@/lib/razorpay';
  * POST /api/payment/razorpay/create-order
  *
  * Creates a Razorpay order with automatic payment split via Route.
- * Commission is fetched dynamically from commission_rules table.
- * Supports Referral Commission Split for the first 5 bookings.
+ * Keeps a fixed 10% platform commission and pays the remaining 90% to the host.
  */
 export async function POST(req: Request) {
     try {
@@ -35,6 +34,7 @@ export async function POST(req: Request) {
                 status,
                 guest_id,
                 property_id,
+                service_fee,
                 razorpay_payment_id,
                 property:properties!property_id (
                     id,
@@ -63,14 +63,24 @@ export async function POST(req: Request) {
         const hostId = property?.host_id;
 
         // ─────────────────────────────────────────────
-        // 2. Calculate commission dynamically (Guest pays service fee, host pays 0% commission)
+        // 2. Referred hosts receive a 5% platform commission for their first
+        // referral bookings (the remaining allowance is consumed per booking).
+        // The referring host also receives a 5% referral commission on each
+        // of those bookings, and the rest stays with the platform.
         // ─────────────────────────────────────────────
-        const adminCommission = Number((booking as any).service_fee || 0);
-        const hostAmount = totalAmount - adminCommission;
-        const referrerCommission = 0;
-        const referrerId = null;
+        const { data: hostProfile } = hostId
+            ? await supabase.from('users').select('referred_by, referral_commissions_remaining').eq('id', hostId).single()
+            : { data: null };
+        const referralActive = Boolean(hostProfile?.referred_by && (hostProfile?.referral_commissions_remaining || 0) > 0);
+        const commissionValue = referralActive ? 5 : 10;
+        const guestServiceFee = Number((booking.service_fee || 0));
+        const hostRevenue = Math.max(0, totalAmount - guestServiceFee);
+        const hostCommission = Number((hostRevenue * (commissionValue / 100)).toFixed(2));
+        const hostAmount = Number((hostRevenue - hostCommission).toFixed(2));
+        const referrerCommission = referralActive ? Number((hostRevenue * 0.05).toFixed(2)) : 0;
+        const referrerId = referralActive ? (hostProfile?.referred_by || null) : null;
+        const adminCommission = Number((totalAmount - hostAmount - referrerCommission).toFixed(2));
         const commissionType = 'percentage';
-        const commissionValue = 0;
 
         // ─────────────────────────────────────────────
         // 3. Fetch host's and referrer's linked accounts

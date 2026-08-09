@@ -105,8 +105,10 @@ export async function POST(req: Request) {
 
                         if (booking) {
                             const amount = Number(booking.total_price);
-                            const platformFee = amount * 0.20;
-                            const hostPayout = amount - platformFee;
+                            const guestServiceFee = Number(booking.service_fee || 0);
+                            const hostRevenue = Math.max(0, amount - guestServiceFee);
+                            const hostPayout = Number((hostRevenue * 0.90).toFixed(2));
+                            const platformFee = Number((amount - hostPayout).toFixed(2));
 
                             await supabase
                                 .from('transactions')

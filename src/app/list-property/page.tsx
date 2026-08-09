@@ -1,9 +1,9 @@
 'use client';
 
-import { useRef, useState, useActionState, startTransition } from 'react';
+import { Suspense, useRef, useState, useActionState, startTransition } from 'react';
 import { useFormStatus } from 'react-dom';
 import { addProperty } from '@/lib/property-actions';
-import { redirect } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -15,6 +15,11 @@ function SubmitButton() {
 }
 
 export default function AddPropertyPage() {
+  return <Suspense fallback={<div className="min-h-screen bg-white" />}><AddPropertyContent /></Suspense>;
+}
+
+function AddPropertyContent() {
+  const isOnboarding = useSearchParams().get('onboarding') === '1';
   const [state, formAction] = useActionState(addProperty, null);
   const formRef = useRef<HTMLFormElement>(null);
   const [amenities, setAmenities] = useState<string[]>([]);
@@ -95,6 +100,7 @@ export default function AddPropertyPage() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">List Your Property</h1>
+      {isOnboarding && <div className="mb-6 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sky-950"><p className="font-bold">Add your first property to continue host setup.</p><p className="mt-1 text-sm">Banking &amp; KYC will be the next step after your property is created.</p></div>}
       <form 
         ref={formRef} 
         onSubmit={handleSubmit} 
