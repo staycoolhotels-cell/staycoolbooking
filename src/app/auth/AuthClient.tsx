@@ -14,7 +14,8 @@ export default function AuthClient() {
 function AuthContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const expectedRole = params.get('role')?.toLowerCase() === 'host' ? 'host' : 'guest';
+  const requestedRole = params.get('role')?.toLowerCase();
+  const expectedRole: 'guest' | 'host' | 'admin' = requestedRole === 'host' || requestedRole === 'admin' ? requestedRole : 'guest';
   const returnTo = params.get('returnTo')?.startsWith('/guest-booking-flow') ? params.get('returnTo')! : '';
   const [method, setMethod] = useState<'email' | 'phone'>('email');
   const [showPassword, setShowPassword] = useState(false);
@@ -32,7 +33,7 @@ function AuthContent() {
 
   useEffect(() => {
     if (typeof mobileState === 'object' && mobileState?.success) {
-      router.replace(expectedRole === 'host' ? '/host-onboarding' : (returnTo || '/'));
+      router.replace(expectedRole === 'host' ? '/host-onboarding' : expectedRole === 'admin' ? '/admin-panel' : (returnTo || '/'));
     }
   }, [mobileState, expectedRole, returnTo, router]);
 
@@ -48,8 +49,8 @@ function AuthContent() {
             <img src="/assets/images/logo.png" alt="StayCool" className="h-full w-full object-contain" />
           </div>
           <header className="mb-9 text-center">
-            <h1 className="font-serif text-[32px] font-bold leading-none tracking-tight sm:text-[36px]">Welcome Back</h1>
-            <p className="mt-2 text-sm text-zinc-400">Sign in to access your account</p>
+            <h1 className="font-serif text-[32px] font-bold leading-none tracking-tight sm:text-[36px]">{expectedRole === 'admin' ? 'Admin Login' : 'Welcome Back'}</h1>
+            <p className="mt-2 text-sm text-zinc-400">Sign in to access your {expectedRole === 'admin' ? 'admin' : expectedRole} account</p>
           </header>
 
           </div>
@@ -82,8 +83,8 @@ function AuthContent() {
             </form>
           )}
 
-          <div className="my-8 flex items-center gap-3"><span className="h-px flex-1 bg-white/10" /><span className="text-xs text-zinc-500">New to StayCool?</span><span className="h-px flex-1 bg-white/10" /></div>
-          <Link href={signupHref} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-sky-400/30 bg-sky-400/5 py-4 text-sm font-semibold text-sky-300 transition hover:bg-sky-400/10">Create an account <ArrowRight size={18} /></Link>
+          {expectedRole !== 'admin' && <><div className="my-8 flex items-center gap-3"><span className="h-px flex-1 bg-white/10" /><span className="text-xs text-zinc-500">New to StayCool?</span><span className="h-px flex-1 bg-white/10" /></div>
+          <Link href={signupHref} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-sky-400/30 bg-sky-400/5 py-4 text-sm font-semibold text-sky-300 transition hover:bg-sky-400/10">Create an account <ArrowRight size={18} /></Link></>}
           <p className="mt-6 text-center text-xs text-zinc-500">Signing in as a {expectedRole} · <Link href={expectedRole === 'host' ? '/auth?role=guest' : '/auth?role=host'} className="text-sky-400">Switch portal</Link></p>
           </div>
         </section>

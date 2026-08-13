@@ -175,7 +175,8 @@ export async function addProperty(prevState: unknown, formData: FormData) {
         noc_url,
         images: imageUrls,
         standard_price: price_per_night,
-        status: 'pending' // New properties start as pending
+        // Host listings are automatically approved and immediately available.
+        status: 'active'
       },
     ])
     .select();
@@ -189,9 +190,9 @@ export async function addProperty(prevState: unknown, formData: FormData) {
     await logActivity('new_property', `New property added: ${name}`, host_id);
     await createNotification(
       'new_property',
-      'Property Approval Request',
-      `A new property "${name}" was submitted and is pending approval.`,
-      'warning'
+      'Property Published',
+      `Your property "${name}" was published automatically.`,
+      'success'
     );
 
     // Invalidate caches
@@ -235,7 +236,8 @@ export const createProperty = async (propertyData: Omit<Property, 'id' | 'create
         ...propertyData,
         host_id: user.id,
         standard_price: propertyData.price_per_night || propertyData.price,
-        status: 'pending', // Explicitly set status to pending
+        // Keep this alternate creation path consistent with the API route.
+        status: 'active',
       },
     ])
     .select();
@@ -247,9 +249,9 @@ export const createProperty = async (propertyData: Omit<Property, 'id' | 'create
 
   await createNotification(
     'new_property',
-    'Property Approval Request',
-    `A new property was created and is pending approval.`,
-    'warning'
+    'Property Published',
+    `Your new property was published automatically.`,
+    'success'
   );
 
   // Invalidate caches

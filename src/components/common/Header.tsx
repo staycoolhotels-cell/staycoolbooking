@@ -113,8 +113,9 @@ const Header = () => {
   const mobileNavLinks = [
     ...navLinks,
     ...(!user?.id ? [
-      { name: 'Log in / Sign up', path: '/auth?role=guest' },
-      { name: 'Become a Host', path: '/auth?role=host' },
+      { name: 'Guest Signup / Login', path: '/auth?role=guest' },
+      { name: 'Host Signup / Login', path: '/auth?role=host' },
+      { name: 'Admin Login', path: '/auth?role=admin' },
       { name: 'Help Centre', path: '/contact' }
     ] : [])
   ];
@@ -190,13 +191,18 @@ const Header = () => {
 
           {/* 3. ACTIONS: Desktop (Airbnb Style) */}
           <div className="hidden xl:flex items-center gap-6 relative" ref={dropdownRef}>
-            {/* Become a Host Link */}
-            <Link 
-              href={role === 'host' ? "/host-dashboard" : "/signup?role=host"}
-              className="text-xs font-black uppercase tracking-[0.2em] text-white/70 hover:text-[#0ea5e9] transition-all py-2.5 px-4 rounded-full hover:bg-white/5 cursor-pointer"
-            >
-              Become a Host
-            </Link>
+            {!user?.id ? (
+              <div className="flex items-center gap-2">
+                <Link href="/auth?role=host" className="text-[10px] font-black uppercase tracking-[0.15em] text-white/70 hover:text-[#0ea5e9] transition-all py-2.5 px-3 rounded-full hover:bg-white/5 cursor-pointer">Host Signup / Login</Link>
+              </div>
+            ) : (
+              <Link
+                href={role === 'host' ? "/host-dashboard" : role === 'admin' ? "/admin-panel" : "/user-profile"}
+                className="text-xs font-black uppercase tracking-[0.2em] text-white/70 hover:text-[#0ea5e9] transition-all py-2.5 px-4 rounded-full hover:bg-white/5 cursor-pointer"
+              >
+                {role === 'host' ? 'Host Dashboard' : role === 'admin' ? 'Admin Dashboard' : 'My Account'}
+              </Link>
+            )}
 
             {/* Globe Icon */}
             <button 
@@ -248,12 +254,20 @@ const Header = () => {
                         onClick={() => setIsDropdownOpen(false)}
                         className="block px-5 py-3 text-sm font-bold text-sky-400 hover:bg-white/5 transition-all text-left"
                       >
-                        Log in or sign up
+                        Guest Signup / Login
+                      </Link>
+
+                      <Link
+                        href="/auth?role=admin"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="block px-5 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-all text-left"
+                      >
+                        Admin Login
                       </Link>
                       
                       <div className="h-[1px] bg-white/10 my-2" />
 
-                      {/* Become a Host Card (matches Airbnb screenshot illustration style) */}
+                      {/* Host signup and login card */}
                       <Link 
                         href="/auth?role=host"
                         onClick={() => setIsDropdownOpen(false)}
@@ -261,7 +275,7 @@ const Header = () => {
                       >
                         <div className="bg-gradient-to-r from-sky-500/10 to-blue-500/10 hover:from-sky-500/20 hover:to-blue-500/20 border border-sky-500/20 rounded-2xl p-4 mx-3 my-2 flex items-center justify-between cursor-pointer transition-all group/card">
                           <div className="flex-1 pr-2">
-                            <p className="font-bold text-sm text-white group-hover/card:text-sky-400 transition-colors">Become a host</p>
+                            <p className="font-bold text-sm text-white group-hover/card:text-sky-400 transition-colors">Host Signup / Login</p>
                             <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
                               Sign in or sign up to start hosting and earn extra income.
                             </p>
@@ -460,11 +474,11 @@ const Header = () => {
                 className="mt-8 sm:mt-12 w-full max-w-[240px] sm:max-w-[280px]"
               >
                 {!user?.id ? (
-                  <Link href="/auth">
-                    <button className="w-full relative px-8 sm:px-12 py-3.5 sm:py-5 border border-sky-500/30 bg-sky-500/10 text-sky-400 font-black text-sm sm:text-base uppercase tracking-[0.15em] sm:tracking-[0.2em] hover:bg-sky-500 hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(14,165,233,0.15)] rounded-xl">
-                      Sign In
-                    </button>
-                  </Link>
+                  <div className="space-y-3">
+                    <Link href="/auth?role=guest" className="block w-full rounded-xl border border-sky-500/30 bg-sky-500/10 px-6 py-3 text-center text-sm font-black uppercase tracking-[0.15em] text-sky-400 transition-all hover:bg-sky-500 hover:text-white">Guest Login</Link>
+                    <Link href="/auth?role=host" className="block w-full rounded-xl border border-sky-500/30 bg-sky-500/10 px-6 py-3 text-center text-sm font-black uppercase tracking-[0.15em] text-sky-400 transition-all hover:bg-sky-500 hover:text-white">Host Login</Link>
+                    <Link href="/auth?role=admin" className="block w-full rounded-xl border border-sky-500/30 bg-sky-500/10 px-6 py-3 text-center text-sm font-black uppercase tracking-[0.15em] text-sky-400 transition-all hover:bg-sky-500 hover:text-white">Admin Login</Link>
+                  </div>
                 ) : (
                   <button
                     onClick={handleLogout}

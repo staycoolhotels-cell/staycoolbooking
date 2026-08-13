@@ -5,7 +5,7 @@ import { useActionState, useEffect, useState, Suspense } from 'react';
 import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Check, Eye, EyeOff, Loader2, LockKeyhole, Mail, Phone, UserRound, ArrowRight } from 'lucide-react';
+import { Check, Eye, EyeOff, Loader2, LockKeyhole, Mail, Phone, UserRound, ArrowRight, Ticket } from 'lucide-react';
 
 export default function SignupPage() { return <Suspense fallback={<Loader />}><SignupContent /></Suspense>; }
 
@@ -18,6 +18,7 @@ function SignupContent() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [emailState, emailAction] = useActionState<any, FormData>(signUpUser, undefined);
   const [mobileState, mobileAction] = useActionState<any, FormData>(async (previous, formData) => {
@@ -52,9 +53,10 @@ function SignupContent() {
           <Field label="Email address" icon={<Mail size={22} />}><input name="email" type="email" placeholder="name@example.com" required className="auth-input" /></Field>
           <PasswordField label="Password" show={showPassword} setShow={setShowPassword} name="password" />
           <PasswordField label="Confirm password" show={showConfirm} setShow={setShowConfirm} name="confirmPassword" />
+          {role === 'Host' && <Field label="Referral code (optional)" icon={<Ticket size={22} />}><input name="referralCode" type="text" placeholder="Enter referral code" className="auth-input uppercase" /></Field>}
           <input type="hidden" name="role" value={role} /><Submit>Create Account</Submit>
         </form> : <form action={mobileAction} className="space-y-5">
-          {!otpSent ? <><Field label="Full name" icon={<UserRound size={22} />}><input name="name" value={name} onChange={event => setName(event.target.value)} type="text" placeholder="Your full name" required className="auth-input" /></Field><Field label="Mobile number" icon={<Phone size={22} />}><input name="phone" value={phone} onChange={event => setPhone(event.target.value)} type="tel" inputMode="numeric" placeholder="Enter mobile number" required className="auth-input" /></Field><input type="hidden" name="role" value={role} /><input type="hidden" name="flow" value="signup" /><Submit>Send OTP</Submit></> : <><input type="hidden" name="phone" value={phone} /><input type="hidden" name="name" value={name} /><input type="hidden" name="role" value={role} /><Field label="Verification code" icon={<LockKeyhole size={22} />}><input name="otp" inputMode="numeric" maxLength={6} placeholder="Enter 6-digit code" required className="auth-input tracking-[.28em]" /></Field><button type="button" onClick={() => setOtpSent(false)} className="text-sm text-sky-400">Change mobile number</button><Submit>Verify & Create Account</Submit></>}
+          {!otpSent ? <><Field label="Full name" icon={<UserRound size={22} />}><input name="name" value={name} onChange={event => setName(event.target.value)} type="text" placeholder="Your full name" required className="auth-input" /></Field><Field label="Mobile number" icon={<Phone size={22} />}><input name="phone" value={phone} onChange={event => setPhone(event.target.value)} type="tel" inputMode="numeric" placeholder="Enter mobile number" required className="auth-input" /></Field>{role === 'Host' && <Field label="Referral code (optional)" icon={<Ticket size={22} />}><input name="referralCode" value={referralCode} onChange={event => setReferralCode(event.target.value)} type="text" placeholder="Enter referral code" className="auth-input uppercase" /></Field>}<input type="hidden" name="role" value={role} /><input type="hidden" name="flow" value="signup" /><Submit>Send OTP</Submit></> : <><input type="hidden" name="phone" value={phone} /><input type="hidden" name="name" value={name} /><input type="hidden" name="referralCode" value={referralCode} /><input type="hidden" name="role" value={role} /><Field label="Verification code" icon={<LockKeyhole size={22} />}><input name="otp" inputMode="numeric" maxLength={6} placeholder="Enter 6-digit code" required className="auth-input tracking-[.28em]" /></Field><button type="button" onClick={() => setOtpSent(false)} className="text-sm text-sky-400">Change mobile number</button><Submit>Verify & Create Account</Submit></>}
         </form>}
         <div className="my-8 flex items-center gap-3"><span className="h-px flex-1 bg-white/10" /><span className="text-xs text-zinc-500">Already registered?</span><span className="h-px flex-1 bg-white/10" /></div>
         <Link href={`/auth?role=${role.toLowerCase()}`} className="flex items-center justify-center gap-2 rounded-2xl border border-sky-400/30 bg-sky-400/5 py-4 text-sm font-semibold text-sky-300 transition hover:bg-sky-400/10">Sign In <ArrowRight size={18} /></Link>

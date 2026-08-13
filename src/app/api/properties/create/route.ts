@@ -35,6 +35,8 @@ export async function POST(request: NextRequest) {
       name: propertyPayload.name || propertyPayload.title || '',
       title: propertyPayload.title || propertyPayload.name || '',
       host_id: hostId,
+      // Host listings are published immediately; they do not require admin review.
+      status: 'active',
     };
 
     // Insert property

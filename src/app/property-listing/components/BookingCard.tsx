@@ -595,8 +595,11 @@ const BookingCard = ({
     });
 
 
-    if (Object.keys(selectedAmenities).length > 0) {
-      params.append('amenities', JSON.stringify(selectedAmenities));
+    const guestSelectedAmenities = Object.fromEntries(
+      Object.entries(selectedAmenities).filter(([, quantity]) => Number(quantity) > 0)
+    );
+    if (Object.keys(guestSelectedAmenities).length > 0) {
+      params.append('amenities', JSON.stringify(guestSelectedAmenities));
     }
 
     router.push(`/guest-booking-flow?${params.toString()}`);

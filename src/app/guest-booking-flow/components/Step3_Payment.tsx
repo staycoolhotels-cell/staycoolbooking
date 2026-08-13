@@ -26,7 +26,12 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
   const [amenities, setAmenities] = useState<any[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<Record<string, number>>(() => {
     try {
-      return JSON.parse(filters.amenities || '{}');
+      const requestedAmenities = JSON.parse(filters.amenities || '{}');
+      // Only guest-selected, positive quantities are carried into checkout.
+      // This prevents an available upsell from being charged automatically.
+      return Object.fromEntries(
+        Object.entries(requestedAmenities).filter(([, quantity]) => Number(quantity) > 0)
+      ) as Record<string, number>;
     } catch {
       return {};
     }
@@ -501,7 +506,13 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
                         <div className="flex items-center gap-2 bg-background rounded-lg border border-border-secondary p-0.5">
                           <button 
                             type="button"
-                            onClick={() => setSelectedAmenities(prev => ({ ...prev, [amenity.id]: Math.max(0, (prev[amenity.id] || 0) - 1)}))}
+                            onClick={() => setSelectedAmenities(prev => {
+                              const next = { ...prev };
+                              const quantity = (next[amenity.id] || 0) - 1;
+                              if (quantity > 0) next[amenity.id] = quantity;
+                              else delete next[amenity.id];
+                              return next;
+                            })}
                             className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-sky-500/10 hover:text-sky-400 transition-colors"
                           >
                             <Icon name="MinusIcon" size={10} />
@@ -524,7 +535,12 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
                             type="checkbox" 
                             className="sr-only peer"
                             checked={!!selectedAmenities[amenity.id]}
-                            onChange={(e) => setSelectedAmenities(prev => ({ ...prev, [amenity.id]: e.target.checked ? 1 : 0 }))}
+                            onChange={(e) => setSelectedAmenities(prev => {
+                              const next = { ...prev };
+                              if (e.target.checked) next[amenity.id] = 1;
+                              else delete next[amenity.id];
+                              return next;
+                            })}
                           />
                           <div className="w-8 h-4.5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-sky-500"></div>
                         </label>

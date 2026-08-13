@@ -559,6 +559,8 @@ export async function login(_prevState: string | undefined, formData: FormData) 
     await supabase.auth.signOut();
     if (expectedRole.toLowerCase() === 'host') {
       return 'This account is not registered as a Host. Please sign in using the Guest portal.';
+    } else if (expectedRole.toLowerCase() === 'admin') {
+      return 'This account is not registered as an Admin. Please sign in using the appropriate portal.';
     } else {
       return 'This account is registered as a Host. Please sign in using the Host portal.';
     }
@@ -932,6 +934,8 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
       if (expectedRole.toLowerCase() !== databaseRole) {
         if (expectedRole.toLowerCase() === 'host') {
           return 'This account is not registered as a Host. Please sign in using the Guest portal.';
+        } else if (expectedRole.toLowerCase() === 'admin') {
+          return 'This account is not registered as an Admin. Please sign in using the appropriate portal.';
         } else {
           return 'This account is registered as a Host. Please sign in using the Host portal.';
         }
