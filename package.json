@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "staycool-booking",
   "version": "0.1.0",
   "type": "commonjs",
@@ -160,4 +161,22 @@
     "url": "https://github.com/vsharesoftwaresolutions/staycoolbooking/issues"
   },
   "homepage": "https://github.com/vsharesoftwaresolutions/staycoolbooking#readme"
+=======
+  "name": "staycool-booking-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "npm --prefix staycoolbooking1 install",
+    "dev": "npm --prefix staycoolbooking1 run dev",
+    "build": "npm --prefix staycoolbooking1 run build",
+    "start": "npm --prefix staycoolbooking1 run start",
+    "lint": "npm --prefix staycoolbooking1 run lint",
+    "lint:fix": "npm --prefix staycoolbooking1 run lint:fix",
+    "format": "npm --prefix staycoolbooking1 run format",
+    "serve": "npm --prefix staycoolbooking1 run serve",
+    "type-check": "npm --prefix staycoolbooking1 run type-check",
+    "test": "npm --prefix staycoolbooking1 run test",
+    "test:ui": "npm --prefix staycoolbooking1 run test:ui"
+  }
+>>>>>>> 3a403ad (Initial commit)
 }
