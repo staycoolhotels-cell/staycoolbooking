@@ -69,10 +69,9 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
         discountSavings = Math.round(baseAccommodation * discountPct);
     }
 
-    // Dynamic fallback for upgrades/amenities when booking.amenities is not populated or incomplete
-    const accommodationSubtotal = Math.round(baseAccommodation + serviceFee - discountSavings) + freeCancellationFee;
-    const dynamicAmenitiesTotal = booking.total_price - accommodationSubtotal;
-    const amenitiesTotal = dynamicAmenitiesTotal > 0 ? dynamicAmenitiesTotal : amenitiesTotalFromBooking;
+    // Only show upgrades if the booking actually has amenities selected by the guest
+    const amenitiesTotal = amenitiesTotalFromBooking;
+
 
     const expectedTotal = Math.round(baseAccommodation + serviceFee - discountSavings) + amenitiesTotal + freeCancellationFee;
     const showPriceWarning = baseAccommodationFromRoomType > 0 && Math.abs(expectedTotal - booking.total_price) > 50;

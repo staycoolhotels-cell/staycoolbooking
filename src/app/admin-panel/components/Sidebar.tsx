@@ -16,17 +16,18 @@ interface NavLink {
   label: string;
   icon: string;
   isExternal?: boolean;
+  key?: 'dashboard' | 'properties' | 'financials' | 'kyc' | 'users' | 'marketing' | 'reviews' | 'chat';
 }
 
 const navLinks: NavLink[] = [
-  { href: '/admin-panel', label: 'Dashboard', icon: 'ChartBarIcon' },
-  { href: '/admin-panel/property-management', label: 'Property Management', icon: 'HomeModernIcon' },
-  { href: '/admin-panel/financials', label: 'Financials', icon: 'BanknotesIcon' },
-  { href: '/admin-panel/kyc-management', label: 'KYC Management', icon: 'IdentificationIcon' },
-  { href: '/admin-panel/user-management', label: 'User Management', icon: 'UsersIcon' },
-  { href: '/admin-panel/marketing', label: 'Marketing', icon: 'MegaphoneIcon' },
-  { href: '/admin-panel/reviews', label: 'Reviews', icon: 'ChatBubbleBottomCenterTextIcon' },
-  { href: '/admin-panel?tab=inbox', label: 'Chat', icon: 'ChatBubbleLeftRightIcon' },
+  { href: '/admin-panel', label: 'Dashboard', icon: 'ChartBarIcon', key: 'dashboard' },
+  { href: '/admin-panel/property-management', label: 'Property Management', icon: 'HomeModernIcon', key: 'properties' },
+  { href: '/admin-panel/financials', label: 'Financials', icon: 'BanknotesIcon', key: 'financials' },
+  { href: '/admin-panel/kyc-management', label: 'KYC Management', icon: 'IdentificationIcon', key: 'kyc' },
+  { href: '/admin-panel/user-management', label: 'User Management', icon: 'UsersIcon', key: 'users' },
+  { href: '/admin-panel/marketing', label: 'Marketing', icon: 'MegaphoneIcon', key: 'marketing' },
+  { href: '/admin-panel/reviews', label: 'Reviews', icon: 'ChatBubbleBottomCenterTextIcon', key: 'reviews' },
+  { href: '/admin-panel?tab=inbox', label: 'Chat', icon: 'ChatBubbleLeftRightIcon', key: 'chat' },
   { href: 'https://dashboard.razorpay.com/app/route/accounts', label: 'Route', icon: 'ArrowsRightLeftIcon', isExternal: true },
 ];
 
@@ -49,6 +50,101 @@ const Sidebar = ({ isMobileMenuOpen, onMobileToggle: _onMobileToggle, onCloseMob
   const [adminProfile, setAdminProfile] = React.useState<{ name: string, email: string, avatar_url: string | null } | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [message, setMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const [unreadCounts, setUnreadCounts] = React.useState<Record<string, number>>({
+    chat: 0,
+    kyc: 0,
+    properties: 0,
+    users: 0,
+    reviews: 0,
+    dashboard: 0,
+    financials: 0,
+    marketing: 0,
+  });
+
+  const fetchUnreadBadges = React.useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // 1. Unread Chat Messages (for Admin)
+      let chatCount = 0;
+      if (user) {
+        const { count: cCount } = await supabase
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('receiver_id', user.id)
+          .eq('is_read', false);
+        chatCount = cCount || 0;
+      }
+      if (chatCount === 0) {
+        const { count: fallbackChatCount } = await supabase
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('is_read', false);
+        chatCount = fallbackChatCount || 0;
+      }
+
+      // 2. Pending Properties
+      const { count: propCount } = await supabase
+        .from('properties')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
+      // 3. Pending KYC Requests
+      const { count: kycCount } = await supabase
+        .from('host_kyc_details')
+        .select('id', { count: 'exact', head: true })
+        .or('kyc_status.eq.pending,kyc_status.eq.submitted,kyc_status.eq.under_review');
+
+      // 4. Pending Host Signups / Approvals
+      const { count: userCount } = await supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'host')
+        .or('status.eq.pending,status.eq.pending_approval');
+
+      // 5. Unread Notifications for Admin
+      const { count: notifCount } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_read', false);
+
+      // 6. Unread / Pending Reviews
+      const { count: reviewCount } = await supabase
+        .from('reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_read', false);
+
+      setUnreadCounts({
+        chat: chatCount || 0,
+        kyc: kycCount || 0,
+        properties: propCount || 0,
+        users: userCount || 0,
+        dashboard: notifCount || 0,
+        reviews: reviewCount || 0,
+      });
+    } catch (err) {
+      console.error('Error fetching admin sidebar badges:', err);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchUnreadBadges();
+
+    const channel = supabase
+      .channel('admin-sidebar-badge-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => fetchUnreadBadges())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => fetchUnreadBadges())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'host_kyc_details' }, () => fetchUnreadBadges())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => fetchUnreadBadges())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => fetchUnreadBadges())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, () => fetchUnreadBadges())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchUnreadBadges]);
 
   React.useEffect(() => {
     const fetchProfile = async () => {
@@ -196,6 +292,9 @@ const Sidebar = ({ isMobileMenuOpen, onMobileToggle: _onMobileToggle, onCloseMob
                   ? pathname === '/admin-panel' && (!activeTabQuery || activeTabQuery === 'overview')
                   : pathname === link.href;
 
+              const count = link.key ? unreadCounts[link.key] || 0 : 0;
+              const showRedDot = count > 0 && !isActive;
+
               return (
                 <Link
                   key={link.href}
@@ -203,13 +302,19 @@ const Sidebar = ({ isMobileMenuOpen, onMobileToggle: _onMobileToggle, onCloseMob
                   onClick={onCloseMobileMenu}
                   target={link.isExternal ? "_blank" : undefined}
                   rel={link.isExternal ? "noopener noreferrer" : undefined}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 relative ${isActive
                     ? 'bg-white/10 text-white'
                     : 'text-zinc-400 hover:bg-white/5 hover:text-white'
                     }`}
                 >
                   <Icon name={link.icon as any} size={22} />
-                  <span className="font-heading font-medium">{link.label}</span>
+                  <span className="font-heading font-medium flex-1">{link.label}</span>
+                  {showRedDot && (
+                    <span className="relative flex h-2.5 w-2.5 ml-auto shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.9)]" />
+                    </span>
+                  )}
                 </Link>
               );
             })}

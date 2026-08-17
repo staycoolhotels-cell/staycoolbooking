@@ -147,6 +147,7 @@ const HostDashboardInteractive = ({
   const [isLoadingDisputes, setIsLoadingDisputes] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [adminUnreadMessages, setAdminUnreadMessages] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   type InboxContext = {
     guest_id: string;
@@ -655,6 +656,34 @@ const HostDashboardInteractive = ({
     setProperties(hostData.properties);
   }, [hostData.properties]);
 
+  // Keep the Overview badge in sync with new host activity such as bookings,
+  // payouts, reviews, and other platform notifications.
+  useEffect(() => {
+    const fetchUnreadNotifications = async () => {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', hostData.id)
+        .eq('is_read', false);
+
+      if (!error) setUnreadNotifications(count ?? 0);
+    };
+
+    fetchUnreadNotifications();
+
+    const channel = supabase
+      .channel('host-unread-notifications')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${hostData.id}`,
+      }, fetchUnreadNotifications)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [hostData.id]);
+
   // Real-time unread message count
   useEffect(() => {
     const fetchUnread = async () => {
@@ -1115,6 +1144,12 @@ const HostDashboardInteractive = ({
     { id: 'profile', label: 'Identify', icon: UserCircle },
   ];
 
+  const hasUnreadActivity = (tabId: string) => (
+    (tabId === 'overview' && unreadNotifications > 0) ||
+    (tabId === 'unified-inbox' && unreadMessages > 0) ||
+    (tabId === 'support-chat' && adminUnreadMessages > 0)
+  );
+
   return (
     <div className="relative min-h-[calc(100vh-100px)] w-full bg-[#080808] flex text-zinc-100">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
@@ -1204,18 +1239,12 @@ const HostDashboardInteractive = ({
                     }`}>{(item as any).subtitle}</span>
                   )}
                 </span>
-                {/* Unread dot for inbox */}
-                {item.id === 'unified-inbox' && unreadMessages > 0 && activeTab !== 'unified-inbox' && (
+                {/* New activity indicator for notifications and unread conversations. */}
+                {hasUnreadActivity(item.id) && activeTab !== item.id && (
                   <span className="relative flex h-2.5 w-2.5 ml-1 shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
-                  </span>
-                )}
-                {/* Unread dot for support chat */}
-                {item.id === 'support-chat' && adminUnreadMessages > 0 && activeTab !== 'support-chat' && (
-                  <span className="relative flex h-2.5 w-2.5 ml-1 shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+                    <span className="sr-only">New activity</span>
                   </span>
                 )}
                 {isActive && (

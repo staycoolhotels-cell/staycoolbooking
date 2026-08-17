@@ -50,3 +50,35 @@ export async function getUnreadCounts(userId: string) {
 
   return { guestUnreadCount, adminUnreadCount };
 }
+
+/**
+ * Fetches an admin user to initiate support chats.
+ */
+export async function getAdminUser() {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, name, role, avatar_url')
+    .eq('role', 'admin')
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching admin user:', error);
+  }
+
+  if (data) {
+    return data;
+  }
+
+  // Fallback: Search for user with admin email pattern if role was not set
+  const { data: fallbackData } = await supabase
+    .from('users')
+    .select('id, name, role, avatar_url')
+    .ilike('email', '%admin%')
+    .limit(1)
+    .maybeSingle();
+
+  return fallbackData || null;
+}
+

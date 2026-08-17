@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getUserMessages } from '@/lib/chat-actions';
+import { getUserMessages, getAdminUser } from '@/lib/chat-actions';
 import { Message } from '../types';
 import { createBrowserClient } from '@supabase/ssr';
 import RealTimeChat from '@/components/chat/RealTimeChat';
 import Icon from '@/components/ui/AppIcon';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 
 interface SupportInboxProps {
   currentUser: { id: string; name: string };
@@ -22,10 +23,15 @@ const SupportInbox: React.FC<SupportInboxProps> = ({ currentUser }) => {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'chat'>('list');
   const [isLoading, setIsLoading] = useState(true);
+  const [adminUser, setAdminUser] = useState<any>(null);
 
   const fetchMessages = async (userId: string) => {
     setIsLoading(true);
     const messagesData = await getUserMessages(userId);
+    const admin = await getAdminUser();
+    if (admin) {
+      setAdminUser(admin);
+    }
 
     if (messagesData) {
       const formattedMessages = messagesData.map((msg: any) => ({
@@ -62,11 +68,70 @@ const SupportInbox: React.FC<SupportInboxProps> = ({ currentUser }) => {
       setMessages(threads);
       
       // Auto-select the first thread if none selected
-      if (threads.length > 0 && !selectedMessage) {
-        setSelectedMessage(threads[0]);
+      if (threads.length > 0) {
+        if (!selectedMessage) {
+          setSelectedMessage(threads[0]);
+        }
+      } else if (admin && !selectedMessage) {
+        // Auto select new chat thread with Admin if no support history exists
+        const defaultAdminThread: Message = {
+          id: `support-admin-${admin.id}`,
+          sender_id: admin.id,
+          receiver_id: userId,
+          sender_name: admin.name || 'Platform Support Admin',
+          sender_avatar: admin.avatar_url || null,
+          content: 'Click to start chatting with admin support...',
+          created_at: new Date().toISOString(),
+          sentiment: 'Neutral',
+          is_read: true,
+        };
+        setSelectedMessage(defaultAdminThread);
       }
+    } else if (admin && !selectedMessage) {
+      const defaultAdminThread: Message = {
+        id: `support-admin-${admin.id}`,
+        sender_id: admin.id,
+        receiver_id: userId,
+        sender_name: admin.name || 'Platform Support Admin',
+        sender_avatar: admin.avatar_url || null,
+        content: 'Click to start chatting with admin support...',
+        created_at: new Date().toISOString(),
+        sentiment: 'Neutral',
+        is_read: true,
+      };
+      setSelectedMessage(defaultAdminThread);
     }
     setIsLoading(false);
+  };
+
+  const handleStartNewChat = async () => {
+    let targetAdmin = adminUser;
+    if (!targetAdmin) {
+      targetAdmin = await getAdminUser();
+      if (targetAdmin) {
+        setAdminUser(targetAdmin);
+      }
+    }
+
+    if (!targetAdmin) {
+      toast.error('Admin support user not found. Please try again later.');
+      return;
+    }
+
+    const newThread: Message = {
+      id: `support-admin-${targetAdmin.id}`,
+      sender_id: targetAdmin.id,
+      receiver_id: currentUser.id,
+      sender_name: targetAdmin.name || 'Platform Support Admin',
+      sender_avatar: targetAdmin.avatar_url || null,
+      content: 'Start chatting with admin support...',
+      created_at: new Date().toISOString(),
+      sentiment: 'Neutral',
+      is_read: true,
+    };
+
+    setSelectedMessage(newThread);
+    setViewMode('chat');
   };
 
   useEffect(() => {
@@ -130,7 +195,15 @@ const SupportInbox: React.FC<SupportInboxProps> = ({ currentUser }) => {
           </div>
         </div>
 
-        <div className="relative z-10 flex gap-3 lg:gap-4 w-full lg:w-auto mt-2 lg:mt-0">
+        <div className="relative z-10 flex gap-3 lg:gap-4 w-full lg:w-auto mt-2 lg:mt-0 items-center">
+          <button
+            onClick={handleStartNewChat}
+            className="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs lg:text-sm transition-all shadow-lg flex items-center gap-2"
+          >
+            <Icon name="ChatBubbleLeftRightIcon" size={18} />
+            <span>Contact Support</span>
+          </button>
+
           <div className="flex-1 lg:flex-none bg-white/5 border border-white/10 rounded-xl lg:rounded-2xl px-5 lg:px-8 py-3 lg:py-4 flex flex-col items-center justify-center shadow-inner relative overflow-hidden min-w-[140px]">
             <p className="text-[9px] lg:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 whitespace-nowrap">Status</p>
             <p className="text-xl lg:text-2xl font-heading font-black text-success">Online</p>
@@ -144,7 +217,7 @@ const SupportInbox: React.FC<SupportInboxProps> = ({ currentUser }) => {
           ${viewMode === 'chat' ? 'hidden' : 'flex'} lg:flex
           w-full lg:w-[350px] bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-2xl flex-col relative overflow-hidden flex-none h-[500px] lg:h-full transition-all duration-300
         `}>
-          <div className="p-6 border-b border-white/10 flex justify-between items-center relative z-10 bg-black/20">
+          <div className="p-4 lg:p-6 border-b border-white/10 flex justify-between items-center relative z-10 bg-black/20">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20 shadow-inner">
                 <Icon name="ChatBubbleLeftRightIcon" size={20} className="text-indigo-400" />
@@ -153,6 +226,13 @@ const SupportInbox: React.FC<SupportInboxProps> = ({ currentUser }) => {
                 Support Threads
               </h2>
             </div>
+            <button
+              onClick={handleStartNewChat}
+              className="p-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 transition-all"
+              title="Start new chat with Admin"
+            >
+              <Icon name="PlusIcon" size={16} />
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto w-full p-4 space-y-2 no-scrollbar relative z-10">
@@ -161,10 +241,19 @@ const SupportInbox: React.FC<SupportInboxProps> = ({ currentUser }) => {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
                </div>
             ) : messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center opacity-60">
-                <Icon name="InboxIcon" size={48} className="text-zinc-500 mb-4" />
-                <p className="text-sm font-bold text-zinc-300">No Support History</p>
-                <p className="text-xs text-zinc-500 mt-1">Contact admin for help.</p>
+              <div className="flex flex-col items-center justify-center py-16 text-center opacity-90 px-4">
+                <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4">
+                  <Icon name="InboxIcon" size={28} className="text-indigo-400" />
+                </div>
+                <p className="text-sm font-bold text-zinc-200">No Support History</p>
+                <p className="text-xs text-zinc-400 mt-1 mb-6">Need help? Send a direct message to Platform Support.</p>
+                <button
+                  onClick={handleStartNewChat}
+                  className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all shadow-lg flex items-center justify-center gap-2"
+                >
+                  <Icon name="ChatBubbleLeftRightIcon" size={16} />
+                  <span>Start Chat with Admin</span>
+                </button>
               </div>
             ) : (
               <AnimatePresence>
@@ -255,10 +344,19 @@ const SupportInbox: React.FC<SupportInboxProps> = ({ currentUser }) => {
             </div>
           ) : (
             <div className="flex h-full items-center justify-center relative z-10">
-              <div className="text-center p-8">
-                <Icon name="ChatBubbleLeftEllipsisIcon" size={48} className="text-zinc-700 mx-auto mb-4" />
+              <div className="text-center p-8 max-w-sm">
+                <div className="w-16 h-16 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
+                  <Icon name="ChatBubbleLeftEllipsisIcon" size={32} className="text-indigo-400" />
+                </div>
                 <h3 className="text-lg font-bold text-white mb-2">Platform Support</h3>
-                <p className="text-sm text-zinc-500">Select a support thread to start chatting with an admin.</p>
+                <p className="text-sm text-zinc-400 mb-6">Select a support thread or start a direct conversation with an admin.</p>
+                <button
+                  onClick={handleStartNewChat}
+                  className="py-3 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2 mx-auto"
+                >
+                  <Icon name="PaperAirplaneIcon" size={16} />
+                  <span>Message Admin Support</span>
+                </button>
               </div>
             </div>
           )}
@@ -269,3 +367,4 @@ const SupportInbox: React.FC<SupportInboxProps> = ({ currentUser }) => {
 };
 
 export default SupportInbox;
+

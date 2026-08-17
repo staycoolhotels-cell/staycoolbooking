@@ -92,7 +92,7 @@ const Header = () => {
   // Determine role-based navigation links
   const baseLinks = [
     { name: 'Home', path: '/homepage' },
-    { name: 'About Us', path: '/about' },
+    { name: 'About Us', path: '/about-us' },
     { name: 'Community', path: '/community' },
     { name: 'Contact', path: '/contact' },
   ];
@@ -109,16 +109,7 @@ const Header = () => {
   }
 
   const navLinks = [...baseLinks, ...roleSpecificLinks];
-
-  const mobileNavLinks = [
-    ...navLinks,
-    ...(!user?.id ? [
-      { name: 'Guest Signup / Login', path: '/auth?role=guest' },
-      { name: 'Host Signup / Login', path: '/auth?role=host' },
-      { name: 'Admin Login', path: '/auth?role=admin' },
-      { name: 'Help Centre', path: '/contact' }
-    ] : [])
-  ];
+  const mobileNavLinks = navLinks;
 
   // Hide global header on admin panel pages
   if (pathname.startsWith('/admin-panel')) return null;
@@ -137,7 +128,6 @@ const Header = () => {
               whileTap={{ scale: 0.95 }}
               className="flex items-center gap-4"
             >
-              { }
               <div className="rounded-full border-2 border-sky-500/70 p-[4px] shadow-[0_0_10px_rgba(14,165,233,0.4)] flex items-center justify-center">
                 <img
                   src="/assets/images/logo.png"
@@ -145,7 +135,6 @@ const Header = () => {
                   className="h-8 sm:h-10 w-auto object-contain"
                 />
               </div>
-              { }
               <img
                 src="/assets/Picsart_26-03-22_23-32-24-684.png"
                 alt="StayCool Booking"
@@ -164,8 +153,9 @@ const Header = () => {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 * i }}
-                    className={`text-[10px] font-black uppercase tracking-[0.4em] transition-all duration-500 ${active ? 'text-[#0ea5e9]' : 'text-white/40 group-hover:text-white'
-                      }`}
+                    className={`text-[10px] font-black uppercase tracking-[0.4em] transition-all duration-500 ${
+                      active ? 'text-[#0ea5e9]' : 'text-white/40 group-hover:text-white'
+                    }`}
                   >
                     {link.name}
                   </motion.span>

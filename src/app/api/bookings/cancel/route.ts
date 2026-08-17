@@ -51,9 +51,9 @@ export async function POST(req: Request) {
         const totalPrice = Number(booking.total_price);
         const daysUntilCheckIn = differenceInDays(startOfDay(new Date(booking.check_in)), startOfDay(now));
 
-        // 2. Cancellation Distribution Logic Calculation
-        const transfer = booking.payment_transfer && booking.payment_transfer.length > 0 ? booking.payment_transfer[0] : null;
-        const commissionRate = transfer?.commission_value ? Number(transfer.commission_value) : 10;
+        // 2. Cancellation Distribution Logic Calculation (10% platform fee on cancellation)
+        const commissionRate = 10;
+
 
         const { 
             guestRefundAmount, 
@@ -67,8 +67,7 @@ export async function POST(req: Request) {
             now,
             booking.created_at,
             booking.has_free_cancellation,
-            Number(booking.free_cancellation_fee || 0),
-            commissionRate
+            Number(booking.free_cancellation_fee || 0)
         );
 
         // 3. Initiate Razorpay Refunds / Reversals
@@ -76,14 +75,12 @@ export async function POST(req: Request) {
         
         // If a payment exists on razorpay
         if (rzpPaymentId) {
+            // A. Safely attempt transfer reversals if host was already paid
             try {
-                // To do exact logic, we should reverse the original transfers exactly how we need.
-                // Fetch existing transfers for this payment
                 const transfersList = await razorpay.payments.fetchTransfer(rzpPaymentId);
 
-                // If host transfer exists
                 if (transfersList && transfersList.items && transfersList.items.length > 0) {
-                    const hostTransfer = transfersList.items[0] as any; // Assuming only 1 transfer to host exists per payment
+                    const hostTransfer = transfersList.items[0] as any;
                     const originalTransferAmount = Number(hostTransfer.amount);
                     
                     if (hostChargePercent === 0) {
@@ -101,12 +98,16 @@ export async function POST(req: Request) {
                             });
                         }
                     }
-
                 }
+            } catch (transferErr: any) {
+                // Non-fatal: if no transfers were created yet or transfer fetch fails, continue with guest refund
+                console.warn("Transfer reversal skipped or not applicable:", transferErr?.message || transferErr);
+            }
 
-                // Now execute the Refund to Guest (from Platform)
+            // B. Execute the Refund to Guest via Razorpay
+            try {
                 if (guestRefundAmount > 0) {
-                    await razorpay.payments.refund(rzpPaymentId, {
+                    const refundResult = await razorpay.payments.refund(rzpPaymentId, {
                         amount: Math.round(guestRefundAmount * 100), // in paise
                         notes: {
                             reason: 'User cancelled booking based on policy',
@@ -114,10 +115,13 @@ export async function POST(req: Request) {
                             days_until_check_in: String(daysUntilCheckIn)
                         }
                     });
+                    console.log("Razorpay Refund Success:", refundResult);
                 }
             } catch (paymentErr: any) {
                 console.error("Razorpay Cancellation Failed:", paymentErr);
-                return NextResponse.json({ error: 'Failed to process refund with Payment Gateway.' }, { status: 500 });
+                return NextResponse.json({ 
+                    error: `Payment Gateway Refund Failed: ${paymentErr?.error?.description || paymentErr?.message || 'Unknown error'}` 
+                }, { status: 500 });
             }
         }
 

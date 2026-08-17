@@ -85,8 +85,9 @@ export default async function AdminPanelPage() {
 
   // Map confirmed bookings to the Transaction interface
   const mappedTransactions = (bookingsWithDetails || []).map(b => {
-    const amount = Number(b.total_price);
-    const serviceFee = b.service_fee || (amount * 0.2); // Updated to 20% commission as requested
+    const rawAmount = Number(b.total_price ?? b.amount ?? b.price ?? b.grand_total ?? 0);
+    const amount = isNaN(rawAmount) ? 0 : rawAmount;
+    const serviceFee = b.service_fee || (amount * 0.1);
     const netRevenue = amount - serviceFee;
     const guestLocation = locationMap[b.guest_id];
     const guestEmail = b.guest?.email;

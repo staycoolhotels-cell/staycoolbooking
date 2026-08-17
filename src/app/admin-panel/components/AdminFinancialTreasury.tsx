@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
 import { Transaction } from '@/lib/types';
 import SpendingChart from '@/components/common/SpendingChart';
 import { generateInvoicePDF, exportTransactionsToPDF } from '@/lib/pdf-utils';
 import RealTimeInvoice from '@/components/common/RealTimeInvoice';
+import { supabase } from '@/lib/supabaseClient';
 import {
   Dialog,
   DialogContent,
@@ -14,26 +15,90 @@ import {
 } from "@/components/ui/dialog";
 
 type AdminFinancialTreasuryProps = {
-  transactions: Transaction[];
+  transactions?: Transaction[];
 };
 
 const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryProps) => {
-  const isPayment = (t: Transaction) => t.type === 'payment' || (!t.type && (t.amount || 0) > 0);
+  const [localTransactions, setLocalTransactions] = useState<Transaction[]>(transactions);
 
-  const totalRevenue = transactions
-    .filter(isPayment)
-    .reduce((acc, t) => acc + (t.amount || 0), 0);
+  useEffect(() => {
+    if (transactions && transactions.length > 0) {
+      setLocalTransactions(transactions);
+      return;
+    }
 
-  const platformEarnings = transactions
-    .filter(isPayment)
-    .reduce((acc, t) => acc + (t.serviceFee || 0), 0);
+    const fetchFinancialData = async () => {
+      try {
+        const { data: bookingsData } = await supabase
+          .from('bookings')
+          .select(`
+            *,
+            guest:users!guest_id(name, email),
+            property:properties!property_id(title, host:users!host_id(name))
+          `)
+          .order('created_at', { ascending: false });
 
-  const pendingRefunds = transactions.filter((t) => t.type === 'refund' && t.status === 'pending');
+        if (bookingsData && bookingsData.length > 0) {
+          const mapped: Transaction[] = bookingsData.map((b: any) => {
+            const rawAmount = Number(b.total_price ?? b.amount ?? b.price ?? b.grand_total ?? 0);
+            const amount = isNaN(rawAmount) ? 0 : rawAmount;
+            const serviceFee = b.service_fee || Math.round(amount * 0.1);
+            const statusStr = (b.status || '').toLowerCase();
+            const isRefund = statusStr === 'cancelled' || statusStr === 'refunded' || statusStr === 'failed';
+
+            return {
+              id: b.id,
+              transactionId: `TXN-${String(b.id).slice(0, 8).toUpperCase()}`,
+              propertyName: b.property?.title || 'Property Stays',
+              guestName: b.guest?.name || 'Guest User',
+              hostName: b.property?.host?.name || 'Platform Host',
+              amount: amount,
+              serviceFee: serviceFee,
+              netRevenue: amount - serviceFee,
+              type: isRefund ? 'refund' : 'payment',
+              status: isRefund ? 'refunded' : 'completed',
+              date: b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN') : 'N/A',
+              paymentMethod: 'Razorpay',
+              breakdown: {
+                accommodation: Math.round(amount * 0.9),
+                service_fee: serviceFee,
+                taxes: 0,
+              }
+            };
+          });
+          setLocalTransactions(mapped);
+        }
+      } catch (err) {
+        console.error('Error fetching financial treasury data:', err);
+      }
+    };
+
+    fetchFinancialData();
+  }, [transactions]);
+
+  const activeData = localTransactions.length > 0 ? localTransactions : transactions;
+
+  const isPayment = (t: Transaction) => {
+    const st = (t.status || '').toLowerCase();
+    const type = (t.type || '').toLowerCase();
+    return type !== 'refund' && st !== 'refunded' && st !== 'failed' && (t.amount || 0) >= 0;
+  };
+
+  const paymentList = activeData.filter(isPayment);
+
+  const totalRevenue = paymentList.reduce((acc, t) => acc + (t.amount || 0), 0);
+
+  const platformEarnings = paymentList.reduce(
+    (acc, t) => acc + (t.serviceFee || Math.round((t.amount || 0) * 0.1)),
+    0
+  );
+
+  const pendingRefunds = activeData.filter((t) => t.type === 'refund' || t.status === 'refunded' || t.status === 'pending');
 
   const [previewTransaction, setPreviewTransaction] = React.useState<Transaction | null>(null);
 
   const downloadInvoicesBatch = async () => {
-    await exportTransactionsToPDF(transactions);
+    await exportTransactionsToPDF(activeData);
   };
 
   return (
@@ -64,7 +129,7 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
         <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 md:p-6 relative overflow-hidden group">
           <div className="absolute -right-20 -top-20 w-48 h-48 bg-sky-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-sky-500/15 transition-all" />
           <h3 className="font-bold text-zinc-400 text-center mb-4 md:mb-6 text-[10px] md:text-xs uppercase tracking-widest">Revenue Allocation Matrix</h3>
-          <SpendingChart transactions={transactions} />
+          <SpendingChart transactions={activeData} />
           <div className="mt-6 md:mt-8 flex flex-col sm:grid sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="text-center p-3 md:p-4 border border-white/5 rounded-xl bg-black/20">
               <p className="text-lg md:text-2xl font-black text-white font-mono">
@@ -117,7 +182,7 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
              <h3 className="font-bold text-zinc-400 text-xs uppercase tracking-widest mb-3 px-1">Recent Invoices</h3>
              <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
                 <div className="max-h-48 overflow-y-auto divide-y divide-white/5 pr-2 custom-scrollbar">
-                  {transactions
+                  {activeData
                     .filter(isPayment)
                     .slice(0, 10)
                     .map((t) => (

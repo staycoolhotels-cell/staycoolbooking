@@ -314,8 +314,10 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
   useEffect(() => {
     const totalRevenue = bookings.reduce((sum: number, b: Booking) => {
-      if (b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed') {
-        return sum + (Number(b.total_price) || 0);
+      const statusStr = (b.status || '').toLowerCase();
+      if (statusStr !== 'cancelled' && statusStr !== 'refunded' && statusStr !== 'failed') {
+        const amt = Number(b.total_price ?? (b as any).amount ?? (b as any).price ?? 0);
+        return sum + (isNaN(amt) ? 0 : amt);
       }
       return sum;
     }, 0);
@@ -358,10 +360,13 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     const monthlyBookings = new Array(12).fill(0);
     const monthlyRevenue = new Array(12).fill(0);
     bookings.forEach((booking: Booking) => {
-      const month = new Date(booking.created_at).getMonth();
+      const dateVal = booking.created_at ? new Date(booking.created_at) : new Date();
+      const month = isNaN(dateVal.getTime()) ? new Date().getMonth() : dateVal.getMonth();
       monthlyBookings[month]++;
-      if (booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'completed') {
-        monthlyRevenue[month] += Number(booking.total_price) || 0;
+      const statusStr = (booking.status || '').toLowerCase();
+      if (statusStr !== 'cancelled' && statusStr !== 'refunded' && statusStr !== 'failed') {
+        const amt = Number(booking.total_price ?? (booking as any).amount ?? (booking as any).price ?? 0);
+        monthlyRevenue[month] += isNaN(amt) ? 0 : amt;
       }
     });
 

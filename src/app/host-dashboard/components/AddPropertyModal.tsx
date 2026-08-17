@@ -1881,7 +1881,13 @@ const AddPropertyModal = ({
                 {formData.type !== 'Tent' && !isLicenseOnlyProperty && (
                   <div className="mb-4 p-4 bg-sky-500/10 border border-sky-500/30 rounded-xl">
                     <p className="text-sm font-semibold text-sky-400">📄 Upload Any Two Documents</p>
-                    <p className="text-xs text-zinc-400 mt-1">కనీసం <span className="text-sky-400 font-bold">2 documents</span> upload చేయాలి — Property License, Tax Bill, లేదా Current Utility Bill లో ఏవైనా రెండు.</p>
+                    <p className="text-xs text-zinc-400 mt-1">
+                      {usesHostIdProofs ? (
+                        <>కనీసం <span className="text-sky-400 font-bold">2 documents</span> upload చేయాలి — Host ID Proof 1 మరియు Host ID Proof 2 రెండూ upload చేయండి.</>
+                      ) : (
+                        <>కనీసం <span className="text-sky-400 font-bold">2 documents</span> upload చేయాలి — Property License, Tax Bill, లేదా Current Utility Bill లో ఏవైనా రెండు.</>
+                      )}
+                    </p>
                   </div>
                 )}
                 <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 ${formData.type === 'Tent' ? 'hidden' : ''}`}>

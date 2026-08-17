@@ -97,6 +97,12 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty, c
                                                         <strong className="text-zinc-100">Free Cancellation Protection:</strong> Pay ₹70 to get a 100% refund for same-day booking cancellations.
                                                     </p>
                                                 </li>
+                                                <li className="flex items-start gap-3">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 flex-shrink-0" />
+                                                    <p className="text-[12px] text-zinc-400 leading-relaxed">
+                                                        <strong className="text-zinc-100">Platform Fee:</strong> The platform fee is non-refundable in all circumstances.
+                                                    </p>
+                                                </li>
                                             </ul>
                                         </div>
                                     </div>
