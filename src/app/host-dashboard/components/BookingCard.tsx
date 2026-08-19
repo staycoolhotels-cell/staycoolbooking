@@ -75,6 +75,15 @@ const getStatusStyles = (status: Booking['status']) => {
         indicator: 'bg-orange-400 animate-pulse',
         glow: 'from-orange-500/0 via-orange-500/20 to-orange-500/0'
       };
+    case 'payment_failed':
+      return {
+        bg: 'bg-red-500/20',
+        text: 'text-red-300',
+        border: 'border-red-500/30',
+        shadow: 'shadow-[0_0_15px_rgba(248,113,113,0.15)]',
+        indicator: 'bg-red-400',
+        glow: 'from-red-500/0 via-red-500/20 to-red-500/0'
+      };
     default:
       return {
         bg: 'bg-zinc-500/20',

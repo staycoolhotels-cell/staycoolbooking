@@ -256,7 +256,7 @@ export interface Booking {
   check_in: string;
   check_out: string;
   total_price: number;
-  status: 'confirmed' | 'checked_in' | 'completed' | 'cancelled' | 'pending' | 'pending_payment' | 'refunded';
+  status: 'confirmed' | 'checked_in' | 'completed' | 'cancelled' | 'pending' | 'pending_payment' | 'payment_failed' | 'refunded';
   guests: number;
   total_rooms_booked?: number;
   booking_type?: 'single' | 'bulk';

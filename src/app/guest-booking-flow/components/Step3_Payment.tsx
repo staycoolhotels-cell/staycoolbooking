@@ -26,19 +26,34 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
 
   const cancelPendingPayment = useCallback(async (bookingId: string) => {
     try {
-      await fetch('/api/bookings/cancel-pending-payment', {
+      const response = await fetch('/api/bookings/cancel-pending-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId }),
         keepalive: true,
       });
+      if (!response.ok) throw new Error('Cancellation request failed');
     } catch (cancelError) {
       console.error('Could not cancel the unfinished booking:', cancelError);
     }
   }, []);
 
   useEffect(() => {
+    const cancelOnPageExit = () => {
+      const bookingId = pendingBookingIdRef.current;
+      if (!bookingId) return;
+
+      // sendBeacon is designed to finish a request while the browser is leaving
+      // the page (including the browser Back button or closing the tab).
+      navigator.sendBeacon(
+        '/api/bookings/cancel-pending-payment',
+        new Blob([JSON.stringify({ bookingId })], { type: 'application/json' })
+      );
+    };
+
+    window.addEventListener('pagehide', cancelOnPageExit);
     return () => {
+      window.removeEventListener('pagehide', cancelOnPageExit);
       const bookingId = pendingBookingIdRef.current;
       if (bookingId) void cancelPendingPayment(bookingId);
     };
@@ -404,7 +419,6 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
           modal: {
             ondismiss: () => {
               void cancelPendingPayment(newBookingId);
-              pendingBookingIdRef.current = null;
               // Instead of a generic error, we use a specific string we can catch
               reject(new Error('PAYMENT_CANCELLED'));
             },
@@ -419,7 +433,6 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
         const rzp = new (window as any).Razorpay(options);
         rzp.on('payment.failed', (response: any) => {
           void cancelPendingPayment(newBookingId);
-          pendingBookingIdRef.current = null;
           const description = response?.error?.description || '';
           const reason = response?.error?.reason || '';
           // Provide a clearer message for international card errors
