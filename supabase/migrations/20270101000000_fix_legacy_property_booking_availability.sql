@@ -174,4 +174,11 @@ $$;
 GRANT EXECUTE ON FUNCTION public.get_available_rooms(uuid, date, date) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.check_availability(uuid, date, date) TO anon, authenticated;
 
+-- Clean up abandoned checkouts created before the client-side cancellation fix.
+-- A booking with a completed Razorpay payment is never changed.
+UPDATE public.bookings
+SET status = 'payment_failed'
+WHERE status = 'pending_payment'
+  AND razorpay_payment_id IS NULL;
+
 NOTIFY pgrst, 'reload schema';
