@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Property } from '@/lib/types';
 import Icon from '@/components/ui/AppIcon';
 import { createBooking } from '@/lib/booking-actions';
@@ -22,6 +22,27 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRazorpayLoaded, setIsRazorpayLoaded] = useState(false);
+  const pendingBookingIdRef = useRef<string | null>(null);
+
+  const cancelPendingPayment = useCallback(async (bookingId: string) => {
+    try {
+      await fetch('/api/bookings/cancel-pending-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId }),
+        keepalive: true,
+      });
+    } catch (cancelError) {
+      console.error('Could not cancel the unfinished booking:', cancelError);
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      const bookingId = pendingBookingIdRef.current;
+      if (bookingId) void cancelPendingPayment(bookingId);
+    };
+  }, [cancelPendingPayment]);
 
   const [amenities, setAmenities] = useState<any[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<Record<string, number>>(() => {
@@ -326,6 +347,7 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
         throw new Error('Failed to create booking');
       }
       const newBookingId = bookingRes.data[0].id;
+      pendingBookingIdRef.current = newBookingId;
 
       // 2. Create Razorpay Order via API
       const orderRes = await fetch('/api/payment/razorpay/create-order', {
@@ -371,6 +393,7 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
               }
 
               toast.success('Payment successful! Booking confirmed.');
+              pendingBookingIdRef.current = null;
               resolve();
             } catch (err: any) {
               reject(err);
@@ -380,6 +403,8 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
           theme: { color: '#0ea5e9' },
           modal: {
             ondismiss: () => {
+              void cancelPendingPayment(newBookingId);
+              pendingBookingIdRef.current = null;
               // Instead of a generic error, we use a specific string we can catch
               reject(new Error('PAYMENT_CANCELLED'));
             },
@@ -393,6 +418,8 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
 
         const rzp = new (window as any).Razorpay(options);
         rzp.on('payment.failed', (response: any) => {
+          void cancelPendingPayment(newBookingId);
+          pendingBookingIdRef.current = null;
           const description = response?.error?.description || '';
           const reason = response?.error?.reason || '';
           // Provide a clearer message for international card errors
@@ -412,6 +439,10 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
       onNext();
 
     } catch (err: any) {
+      if (pendingBookingIdRef.current) {
+        void cancelPendingPayment(pendingBookingIdRef.current);
+        pendingBookingIdRef.current = null;
+      }
       if (err.message === 'PAYMENT_CANCELLED') {
         console.log('User cancelled the payment modal.');
         // Don't show a scary error toast, just stop loading

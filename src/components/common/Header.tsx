@@ -285,14 +285,6 @@ const Header = () => {
                       </Link>
                       
                       <Link 
-                        href="/community"
-                        onClick={() => setIsDropdownOpen(false)}
-                        className="block px-5 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-all text-left"
-                      >
-                        Find a co-host
-                      </Link>
-                      
-                      <Link 
                         href="/contact"
                         onClick={() => setIsDropdownOpen(false)}
                         className="block px-5 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-all text-left"
