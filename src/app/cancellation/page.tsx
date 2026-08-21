@@ -49,13 +49,7 @@ const CancellationPolicyPage = () => {
                                 <span className="text-[11px] font-black text-sky-400 uppercase tracking-[0.2em]">Special Protection</span>
                             </div>
                             <ul className="space-y-4">
-                                <li className="flex items-start gap-3">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-2 flex-shrink-0" />
-                                    <p className="text-sm text-zinc-400 leading-relaxed">
-                                        <strong className="text-zinc-100 block mb-0.5">6-Hours Grace Period</strong>
-                                        100% refund if cancelled within 6 hours of booking.
-                                    </p>
-                                </li>
+
                                 <li className="flex items-start gap-3">
                                     <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-2 flex-shrink-0" />
                                     <p className="text-sm text-zinc-400 leading-relaxed">

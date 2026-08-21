@@ -4,13 +4,10 @@ import { differenceInDays, startOfDay, isSameDay } from 'date-fns';
  * Calculates the refund percentage based on timing and free cancellation status.
  *
  * Rules:
- * 1. Grace Period (ALL bookings): Cancel within 6 hours of booking → 100% refund.
- *    Platform fee (₹70 if paid) stays with Admin.
- *
- * 2. Same Day Exception (₹70 users only): If booking date == check-in date AND
+ * 1. Same Day Exception (₹70 users only): If booking date == check-in date AND
  *    guest paid ₹70 Free Cancellation → 100% refund. ₹70 stays with Admin.
  *
- * 3. All other cancellations → Tiered Policy (regardless of ₹70 status):
+ * 2. All other cancellations → Tiered Policy (regardless of ₹70 status):
  *    - ≥ 10 days before check-in : 100% refund
  *    - 5 – 9 days before check-in: 70%  refund
  *    - 2 – 4 days before check-in: 50%  refund
@@ -34,21 +31,12 @@ export function getRefundPercentage(
 
   const daysBefore = differenceInDays(startOfDay(checkIn), startOfDay(cancellation));
 
-  // Rule 1 — Grace Period: within 6 hours of booking (applies to ALL bookings)
-  if (booking) {
-    const hoursSinceBooking =
-      (cancellation.getTime() - booking.getTime()) / (1000 * 60 * 60);
-    if (hoursSinceBooking >= 0 && hoursSinceBooking <= 6) {
-      return { percent: 100, policy: 'Grace Period (Within 6 Hours of Booking)', daysBefore };
-    }
-  }
-
-  // Rule 2 — Same Day Exception: same day booking + same day check-in + ₹70 paid
+  // Rule 1 — Same Day Exception: same day booking + same day check-in + ₹70 paid
   if (isFreeCancellationActive && booking && isSameDay(booking, checkIn)) {
     return { percent: 100, policy: 'Same Day Booking & Check-in (Free Cancellation)', daysBefore };
   }
 
-  // Rule 3 — Tiered Policy (all other cases, ₹70 paid or not)
+  // Rule 2 — Tiered Policy (all other cases, ₹70 paid or not)
   if (daysBefore >= 10) return { percent: 100, policy: 'Standard (10+ Days Before)', daysBefore };
   if (daysBefore >= 5)  return { percent: 70,  policy: 'Standard (5-10 Days Before)', daysBefore };
   if (daysBefore >= 2)  return { percent: 50,  policy: 'Standard (2-5 Days Before)', daysBefore };
