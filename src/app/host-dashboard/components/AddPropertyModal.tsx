@@ -360,13 +360,13 @@ const AddPropertyModal = ({
       });
       setDisabledFields({
         name: false,
-        addressLine2: !!propertyToEdit.address_line2,
-        landmark: !!propertyToEdit.landmark,
-        district: !!propertyToEdit.district,
-        city: !!propertyToEdit.city,
-        state: !!propertyToEdit.state,
-        postalCode: !!propertyToEdit.postal_code,
-        country: !!propertyToEdit.country,
+        addressLine2: false,
+        landmark: false,
+        district: false,
+        city: false,
+        state: false,
+        postalCode: false,
+        country: false,
       });
       const isSingleUnitType = ['Home Stay', 'Apartment', 'Villa'].includes(propertyToEdit.tier || '');
       const discountVal = isSingleUnitType ? 0 : (propertyToEdit.bulk_booking_discount !== undefined && propertyToEdit.bulk_booking_discount !== null ? propertyToEdit.bulk_booking_discount : 10);
@@ -755,10 +755,8 @@ const AddPropertyModal = ({
           formData.currentBill.length > 0 || formData.current_bill_url
         ].filter(Boolean).length;
 
-        if (docCount < 2) {
-          setErrorMessage(usesHostIdProofs
-            ? 'Please upload both Host ID Proof documents.'
-            : 'Please upload at least 2 documents (Property License, Tax Bill, or Utility Bill).');
+        if (docCount < 1) {
+          setErrorMessage('Please upload at least 1 document (Property License).');
           return;
         }
       }
@@ -819,16 +817,16 @@ const AddPropertyModal = ({
                     </select>
                   </div>
 
-                  <InputField label="Street address" name="addressLine2" value={formData.addressLine2} onChange={handleInputChange} placeholder="e.g. MG Road" disabled={disabledFields.addressLine2} />
-                  <InputField label="Nearby landmark" name="landmark" value={formData.landmark} onChange={handleInputChange} placeholder="e.g. Near Apollo Hospital" disabled={disabledFields.landmark} />
-                  <InputField label="District/locality" name="district" value={formData.district} onChange={handleInputChange} placeholder="e.g. Banjara Hills" disabled={disabledFields.district} />
+                  <InputField label="Street address" name="addressLine2" value={formData.addressLine2} onChange={handleInputChange} placeholder="e.g. MG Road" disabled={false} />
+                  <InputField label="Nearby landmark" name="landmark" value={formData.landmark} onChange={handleInputChange} placeholder="e.g. Near Apollo Hospital" disabled={false} />
+                  <InputField label="District/locality" name="district" value={formData.district} onChange={handleInputChange} placeholder="e.g. Banjara Hills" disabled={false} />
 
                   <div className="grid grid-cols-2 gap-3 md:gap-4">
-                    <InputField label="City/town" name="city" value={formData.city} onChange={handleInputChange} disabled={disabledFields.city} />
-                    <InputField label="State" name="state" value={formData.state} onChange={handleInputChange} disabled={disabledFields.state} />
+                    <InputField label="City/town" name="city" value={formData.city} onChange={handleInputChange} disabled={false} />
+                    <InputField label="State" name="state" value={formData.state} onChange={handleInputChange} disabled={false} />
                   </div>
 
-                  <InputField label="PIN code" name="postalCode" value={formData.postalCode} onChange={handleInputChange} disabled={disabledFields.postalCode} />
+                  <InputField label="PIN code" name="postalCode" value={formData.postalCode} onChange={handleInputChange} disabled={false} />
 
                   <div className="md:col-span-2 rounded-2xl overflow-hidden h-[450px] bg-zinc-800 border border-zinc-700 relative shadow-2xl group/map">
                     <MapPicker
@@ -842,28 +840,37 @@ const AddPropertyModal = ({
                         const cleanField = (val: string | undefined) => {
                           if (!val) return '';
                           return val
-                            .replace(/Municipal Corporation|Municipal Council|M\.Corp|MC|Corporation|Municipality|Muncipality|Mpl/gi, '')
+                            .replace(/Municipal Corporation|Municipal Council|M\.Corp|MC|Corporation|Municipality|Muncipality|Mpl|Urban|Rural/gi, '')
                             .replace(/\s+/g, ' ')
                             .trim();
                         };
 
-                        const cityRaw = addressData.city || addressData.town || addressData.village || addressData.municipality;
-                        const cleanedCity = cleanField(cityRaw);
-                        
-                        const landmarkRaw = addressData.amenity || addressData.tourism || addressData.historic || addressData.building || addressData.shop || addressData.leisure || addressData.office || addressData.place || addressData.neighbourhood;
-                        
                         const toTitleCase = (str: string) => {
                           return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
                         };
 
-                        const districtRaw = addressData.suburb || addressData.neighbourhood || addressData.city_district || addressData.state_district || addressData.county;
+                        const districtRaw = addressData.suburb || addressData.neighbourhood || addressData.village || addressData.residential || addressData.city_district;
+                        const cleanedDistrict = districtRaw ? toTitleCase(cleanField(districtRaw)) : '';
+
+                        // Prioritize main city / county / state_district over village/suburb
+                        const cityRaw = addressData.city || addressData.county || addressData.state_district || addressData.city_district || addressData.town || addressData.municipality || addressData.village;
+                        let cleanedCity = cityRaw ? toTitleCase(cleanField(cityRaw)) : '';
+
+                        if ((!addressData.city || cleanedCity === cleanedDistrict) && (addressData.county || addressData.state_district)) {
+                          const fallbackCity = toTitleCase(cleanField(addressData.county || addressData.state_district));
+                          if (fallbackCity && fallbackCity !== cleanedDistrict) {
+                            cleanedCity = fallbackCity;
+                          }
+                        }
+
+                        const landmarkRaw = addressData.amenity || addressData.tourism || addressData.historic || addressData.building || addressData.shop || addressData.leisure || addressData.office || addressData.place;
 
                         const newAddressLine2 = addressData.road ? toTitleCase(addressData.road) : '';
                         const newLandmark = landmarkRaw ? toTitleCase(cleanField(landmarkRaw)) : '';
-                        const newCity = cleanedCity ? toTitleCase(cleanedCity) : '';
+                        const newCity = cleanedCity;
                         const newState = addressData.state ? toTitleCase(addressData.state) : '';
                         const newPostalCode = addressData.postcode || '';
-                        const newDistrict = districtRaw ? toTitleCase(cleanField(districtRaw)) : '';
+                        const newDistrict = cleanedDistrict;
 
                         setFormData(prev => ({
                           ...prev,
@@ -873,17 +880,6 @@ const AddPropertyModal = ({
                           state: newState,
                           postalCode: newPostalCode,
                           district: newDistrict,
-                        }));
-
-                        setDisabledFields(prev => ({
-                          ...prev,
-                          addressLine2: !!newAddressLine2,
-                          landmark: !!newLandmark,
-                          city: !!newCity,
-                          state: !!newState,
-                          postalCode: !!newPostalCode,
-                          district: !!newDistrict,
-                          country: !!(addressData.country || prev.country || formData.country),
                         }));
                       }}
                       address={[

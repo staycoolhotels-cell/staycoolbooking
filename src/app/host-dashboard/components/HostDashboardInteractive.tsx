@@ -899,8 +899,8 @@ const HostDashboardInteractive = ({
           formData.tax_bill_url,
           formData.current_bill_url
         ].filter(Boolean).length;
-        if (uploadedDocsCount < 2) {
-          alert('Please upload at least two of the following documents: Property License, Tax Bill, or Current Bill.');
+        if (uploadedDocsCount < 1) {
+          alert('Please upload at least 1 document (Property License).');
           return;
         }
       }

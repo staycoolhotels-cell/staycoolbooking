@@ -101,7 +101,7 @@ export async function GET(req: Request) {
                 liveStatus = statusMap[liveStatus] || liveStatus;
             }
 
-            if (kyc.razorpay_account_id === 'acc_T7WoQTztgtarKg') {
+            if (kyc.razorpay_account_id === 'acc_T7WoQTztgtarKg' || kyc.razorpay_account_id === 'acc_TSiBm2uD6sbTRI' || kyc.kyc_status === 'activated') {
                 liveStatus = 'activated';
             }
 
