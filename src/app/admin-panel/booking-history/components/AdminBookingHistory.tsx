@@ -62,7 +62,7 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
         const guestEmail = (b.guest?.email || '').toLowerCase();
         const propTitle = (b.property?.title || '').toLowerCase();
         const hostName = (b.property?.host?.name || '').toLowerCase();
-        const bookingCode = (`#BK${b.id.slice(0, 5)}` || '').toLowerCase();
+        const bookingCode = b.id ? `#BK${b.id.slice(0, 5)}`.toLowerCase() : '';
 
         const matchesSearch =
           guestName.includes(query) ||
