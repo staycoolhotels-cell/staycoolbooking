@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import BookingCard from './BookingCard';
 import { Booking } from '@/lib/types';
 import Icon from '@/components/ui/AppIcon';
+import { motion } from 'framer-motion';
 
 interface BookingsProps {
   bookings: Booking[];
@@ -71,6 +72,11 @@ const Bookings = ({ bookings, searchTerm, setSearchTerm, onAction }: BookingsPro
 
   // Filter Logic
   const filteredBookings = bookings.filter((booking) => {
+    // 0. Exclude pending payment or payment failed bookings from host reserve panel
+    if (booking.status === 'pending_payment' || booking.status === 'payment_failed') {
+      return false;
+    }
+
     // 1. Search term
     const searchLower = searchTerm.toLowerCase();
     const guestName = booking.guest?.name || '';
@@ -142,90 +148,75 @@ const Bookings = ({ bookings, searchTerm, setSearchTerm, onAction }: BookingsPro
           </div>
         </div>
 
-        {/* Search Input */}
-        <div className="relative z-10 w-full lg:w-80 shrink-0">
-          <div className="absolute inset-y-0 left-0 pl-3 md:pl-4 flex items-center pointer-events-none">
-            <Icon name="MagnifyingGlassIcon" size={16} className="text-zinc-500 lg:w-[18px] lg:h-[18px]" />
+        {/* Search & Filter Bar */}
+        <div className="relative z-10 w-full lg:w-96 shrink-0 flex items-center gap-2">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <Icon name="MagnifyingGlassIcon" size={16} className="text-zinc-500" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search by guest, booking ID, property..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-black/40 border border-white/10 hover:border-emerald-500/30 rounded-xl pl-10 pr-4 py-2.5 md:py-3 text-xs md:text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all font-medium placeholder:text-zinc-500 shadow-inner"
+            />
           </div>
-          <input
-            type="text"
-            placeholder="Search by guest or property..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-black/40 border border-white/10 hover:border-emerald-500/30 rounded-lg md:rounded-xl pl-9 md:pl-11 pr-3 md:pr-4 py-2.5 md:py-3.5 text-xs md:text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all font-medium placeholder:text-zinc-600 shadow-inner"
-          />
-        </div>
-      </div>
-
-      {/* 2. Advanced Status Filters */}
-      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="inline-flex flex-nowrap bg-black/40 border border-white/10 rounded-2xl p-1.5 shadow-inner min-w-max">
-          {filters.map((filter) => {
-            const isActive = activeFilter === filter.id;
-            return (
-              <button
-                key={filter.id}
-                onClick={() => setActiveFilter(filter.id as typeof activeFilter)}
-                className={`relative px-3 md:px-4 py-2 md:py-3 rounded-lg md:rounded-xl flex items-center gap-2 md:gap-3 transition-all duration-300
-                        ${isActive
-                    ? 'bg-zinc-800/80 shadow-md transform scale-[1.02]'
-                    : 'hover:bg-white/5 text-zinc-500 hover:text-zinc-300'}
-                     `}
-              >
-                <div className={`p-1 md:p-1.5 rounded-md md:rounded-lg ${isActive ? filter.bg : 'bg-transparent'}`}>
-                  <Icon name={filter.icon} size={14} className={isActive ? filter.color : 'text-current lg:w-4 lg:h-4'} />
-                </div>
-                <span className={`text-[10px] md:text-[11px] font-bold uppercase tracking-widest whitespace-nowrap ${isActive ? 'text-white' : ''}`}>
-                  {filter.label}
-                </span>
-                <span className={`px-1.5 md:px-2 py-0.5 rounded text-[8px] md:text-[9px] font-black ${isActive ? 'bg-black/40 text-white border border-white/10' : 'bg-transparent text-current'}`}>
-                  {filter.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Property Type Filter */}
-      {availableTypes.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 px-1.5 py-3 border-t border-b border-white/5">
-          <span className="text-[10px] uppercase text-zinc-500 font-bold tracking-wider mr-2">Filter by Stay:</span>
           <button
-            onClick={() => setSelectedType('all')}
-            className={`px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-300 border
-              ${selectedType === 'all'
-                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
-                : 'bg-zinc-900/60 text-zinc-400 border-zinc-800/80 hover:border-zinc-700 hover:text-zinc-200'
-              }`}
+            title="Filter Reservations"
+            className="p-2.5 md:p-3 bg-black/40 border border-white/10 hover:border-emerald-500/30 rounded-xl text-zinc-400 hover:text-white transition-all shrink-0"
           >
-            All ({bookings.length})
+            <Icon name="FunnelIcon" size={18} />
           </button>
-          {availableTypes.map((type) => {
-            const count = bookings.filter(b => getNormalizedType(b.properties) === type).length;
-            return (
-              <button
-                key={type}
-                onClick={() => setSelectedType(type)}
-                className={`px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-300 border
-                  ${selectedType === type
-                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
-                    : 'bg-zinc-900/60 text-zinc-400 border-zinc-800/80 hover:border-zinc-700 hover:text-zinc-200'
-                  }`}
-              >
-                {formatStayTypePlural(type)} ({count})
-              </button>
-            );
-          })}
         </div>
-      )}
+      </div>
+
+      {/* 2. Category & View Controls */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+          <button
+            title="Grid View"
+            className="p-2.5 bg-black/40 border border-white/10 rounded-xl text-emerald-400 shrink-0"
+          >
+            <Icon name="Squares2X2Icon" size={18} />
+          </button>
+
+          <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-2xl p-1 shadow-inner">
+            {filters.map((filter) => {
+              const isActive = activeFilter === filter.id;
+              return (
+                <button
+                  key={filter.id}
+                  onClick={() => setActiveFilter(filter.id as typeof activeFilter)}
+                  className={`relative px-3 md:px-4 py-2 rounded-xl flex items-center gap-2 transition-all duration-300
+                    ${isActive
+                      ? 'bg-zinc-800 text-white shadow-md'
+                      : 'hover:bg-white/5 text-zinc-400 hover:text-zinc-200'}`}
+                >
+                  <span className={`text-[10px] md:text-xs font-bold uppercase tracking-wider whitespace-nowrap ${isActive ? 'text-emerald-400' : ''}`}>
+                    {filter.label.replace(' Reservations', '').replace(' Stays', '').replace(' Guests', '')} ({filter.count})
+                  </span>
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeFilterUnderline"
+                      className="absolute bottom-0 left-3 right-3 h-0.5 bg-emerald-400 rounded-full"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+
 
       {/* 3. Deep Glassmorphic List Container */}
-      <div className="bg-[#0a0a0f]/60 backdrop-blur-xl rounded-[2.5rem] border border-white/10 shadow-2xl relative p-6 md:p-8 overflow-hidden min-h-[400px]">
+      <div className="bg-[#05060a]/90 backdrop-blur-xl rounded-[2rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl relative p-4 sm:p-6 md:p-8 overflow-hidden min-h-[400px]">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
 
-        <div className="space-y-4 relative z-10">
+        <div className="space-y-6 sm:space-y-8 relative z-10">
           {filteredBookings.length > 0 ? (
             filteredBookings.map((booking, index) => (
               <div

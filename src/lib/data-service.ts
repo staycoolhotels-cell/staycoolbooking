@@ -100,6 +100,7 @@ export const getHostBookings = cache(async (hostId: string) => {
     .from('bookings')
     .select('*, properties!inner(*), guest:users!guest_id(name, avatar_url), booking_rooms(rooms(room_type))')
     .eq('properties.host_id', hostId)
+    .not('status', 'in', '("pending_payment","payment_failed")')
     .order('created_at', { ascending: false });
 
   if (error) throw error;

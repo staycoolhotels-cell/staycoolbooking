@@ -1,18 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import { Booking } from '@/lib/types';
 import { approveBooking, rejectBooking } from '@/lib/booking-actions';
-import { useState } from 'react';
 import { generateInvoicePDF } from '@/lib/pdf-utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createDispute } from '@/lib/dispute-actions';
 import { toast } from 'sonner';
 import { createPortal } from 'react-dom';
-import { useEffect } from 'react';
 import ActionConfirmModal from '@/components/ui/ActionConfirmModal';
-
+import GuestDetailsModal from './GuestDetailsModal';
 
 interface BookingCardProps {
   booking: Booking;
@@ -99,6 +97,7 @@ const getStatusStyles = (status: Booking['status']) => {
 const BookingCard = ({ booking, onAction }: BookingCardProps) => {
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [isIdModalOpen, setIsIdModalOpen] = useState(false);
+  const [isGuestDetailsModalOpen, setIsGuestDetailsModalOpen] = useState(false);
   const [guestIdDoc, setGuestIdDoc] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
@@ -111,7 +110,6 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
     isOpen: boolean;
     type: 'reject' | 'cancel' | null;
   }>({ isOpen: false, type: null });
-
 
   useEffect(() => {
     setMounted(true);
@@ -167,9 +165,13 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
         });
       }
 
-      // Amenities & Cancellation Fee
-      const amenitiesTotalFromBooking = (booking as any).amenities?.reduce((sum: number, amenity: any) => sum + (amenity.price * amenity.count), 0) || 0;
+      // Amenities & Cancellation Fee (Only include amenities if explicitly selected by guest)
+      const amenitiesTotalFromBooking = (booking as any).amenities && Array.isArray((booking as any).amenities) && (booking as any).amenities.length > 0
+        ? (booking as any).amenities.reduce((sum: number, amenity: any) => sum + ((Number(amenity.price) || 0) * (Number(amenity.count) || 1)), 0)
+        : 0;
       const freeCancellationFee = booking.free_cancellation_fee || 0;
+
+      const amenitiesTotal = amenitiesTotalFromBooking;
 
       let baseAccommodation = 0;
       let serviceFee = 0;
@@ -182,15 +184,11 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
         discountSavings = Math.round(baseAccommodation * discountPct);
       } else {
         // Reverse engineer from total_price
-        const accommodationAndFee = booking.total_price - amenitiesTotalFromBooking - freeCancellationFee;
+        const accommodationAndFee = Math.max(0, booking.total_price - amenitiesTotal - freeCancellationFee);
         baseAccommodation = Math.round(accommodationAndFee / (1.1 - discountPct));
         serviceFee = Math.round(baseAccommodation * 0.1);
         discountSavings = Math.round(baseAccommodation * discountPct);
       }
-
-      const accommodationSubtotal = Math.round(baseAccommodation + serviceFee - discountSavings) + freeCancellationFee;
-      const dynamicAmenitiesTotal = booking.total_price - accommodationSubtotal;
-      const amenitiesTotal = dynamicAmenitiesTotal > 0 ? dynamicAmenitiesTotal : amenitiesTotalFromBooking;
 
       const computedBreakdown = {
         accommodation: baseAccommodation,
@@ -248,18 +246,57 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
     return `Standard Room (${totalRooms})`;
   })();
 
+  const parseRoomDetails = () => {
+    const rawStr = displayRoomTypes;
+    let name = rawStr;
+    let price = '';
+
+    const match = rawStr.match(/^(.*?)(?:\s(?:₹|Rs\.)\s?([\d,.]+))?$/);
+    if (match) {
+      name = match[1].trim();
+      if (match[2]) {
+        price = `₹${match[2]}`;
+      }
+    }
+
+    if (!price) {
+      const computedPrice = booking.total_price || (booking.properties as any)?.standard_price || (booking.properties as any)?.price;
+      if (computedPrice && computedPrice > 0) {
+        price = `₹${Number(computedPrice).toLocaleString('en-IN')}`;
+      }
+    }
+
+    return { name, price };
+  };
+
+  const roomDetails = parseRoomDetails();
+  const bookingCode = (booking as any).booking_code
+    ? `#${(booking as any).booking_code}`
+    : `#BK${booking.id.slice(0, 5).toUpperCase()}`;
+
   return (
-    <div className="relative group overflow-hidden bg-[#0a0a0f] backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl hover:shadow-[0_0_40px_rgba(255,255,255,0.05)] transition-all duration-500">
+    <div className={`relative group overflow-hidden bg-[#0d101c] backdrop-blur-2xl border ${statusStyles.border} rounded-[1.8rem] md:rounded-[2.2rem] p-4.5 sm:p-6 shadow-[0_14px_40px_rgba(0,0,0,0.85)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.95)] transition-all duration-300`}>
 
-      {/* Animated Top Border Glow */}
-      <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity duration-1000 ${statusStyles.glow}`} />
+      {/* Top Status Glow Bar */}
+      <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${statusStyles.glow} opacity-80 group-hover:opacity-100 transition-opacity duration-500`} />
 
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between p-5 md:p-8 gap-6 relative z-10">
-        {/* Left: Guest & Property & Dates */}
-        <div className="flex flex-row flex-nowrap items-center sm:items-start gap-4 md:gap-6 flex-1 min-w-0">
-          {/* Avatar Area */}
-          <div className="relative shrink-0">
-            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/20 transition-all bg-zinc-900 shadow-2xl relative">
+      <div className="relative z-10 space-y-4">
+        {/* 1. Top Bar: Booking ID & Status Badge */}
+        <div className="flex items-center justify-between gap-3 pb-3 border-b border-white/5">
+          <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold rounded-lg text-xs md:text-sm tracking-wider">
+            {bookingCode}
+          </span>
+
+          <span className={`px-3 py-1 text-[10px] md:text-xs font-black uppercase tracking-[0.15em] rounded-full border backdrop-blur-xl shrink-0 ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} ${statusStyles.shadow}`}>
+            {booking.status.replace('_', ' ')}
+          </span>
+        </div>
+
+        {/* 2. Header Row: Avatar + Name & Property + Booking Type */}
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-[200px]">
+            {/* Circle Avatar */}
+            <div className="w-11 h-11 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-emerald-950/80 border border-emerald-500/30 flex items-center justify-center text-emerald-300 font-bold text-base sm:text-lg md:text-xl shrink-0 overflow-hidden shadow-lg">
               {booking.guest?.avatar_url ? (
                 <img
                   src={booking.guest.avatar_url}
@@ -267,216 +304,208 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <Icon name="UserIcon" size={24} className="text-zinc-600" />
+                <span>{(booking.guest?.name?.trim() || 'G').charAt(0).toUpperCase()}</span>
               )}
-              {/* Subtle Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
             </div>
-            {/* Status Dot */}
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#0a0a0f] rounded-lg flex items-center justify-center border border-white/10 shadow-lg">
-              <div className={`w-2.5 h-2.5 rounded-full ${statusStyles.indicator}`} />
+
+            {/* Name & Property */}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base sm:text-lg md:text-xl font-heading font-black text-white leading-tight break-words">
+                {booking.guest?.name?.trim() ? booking.guest.name : 'Verified Guest'}
+              </h3>
+              <p className="text-xs md:text-sm text-zinc-400 font-bold flex items-center gap-1.5 mt-0.5 break-words">
+                <Icon name="HomeIcon" size={14} className="text-emerald-400/80 shrink-0" />
+                <span className="opacity-90">{booking.properties?.title || booking.properties?.name || 'Casa jabu'}</span>
+              </p>
             </div>
           </div>
 
-          <div className="flex-1 min-w-0 space-y-3 md:space-y-4">
-            <div>
-              <div className="flex flex-wrap items-center gap-3 mb-1.5">
-                <h3 className="text-lg md:text-xl font-heading font-black text-white truncate tracking-tight">
-                  {booking.guest?.name?.trim() ? booking.guest.name : 'Verified Guest'}
-                </h3>
-                <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] rounded-lg border backdrop-blur-xl shrink-0 ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} ${statusStyles.shadow}`}>
-                  {booking.status.replace('_', ' ')}
-                </span>
-                {booking.booking_type === 'bulk' ? (
-                  <span className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.15)]">
-                    Bulk {booking.bulk_booking_discount || booking.properties?.bulk_booking_discount ? `(${booking.bulk_booking_discount || booking.properties?.bulk_booking_discount}%)` : ''}
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
-                    Normal Booking
-                  </span>
-                )}
-              </div>
-              
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-                <p className="text-xs md:text-sm text-zinc-400 font-bold truncate flex items-center gap-2">
-                  <Icon name="HomeIcon" size={14} className="text-indigo-400/70 shrink-0" /> 
-                  <span className="truncate opacity-80">{booking.properties?.title || booking.properties?.name || 'Property'}</span>
-                </p>
-
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5 text-zinc-400">
-                    <Icon name="UsersIcon" size={14} className="text-indigo-400/70" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider">{booking.guests} {booking.guests === 1 ? 'Guest' : 'Guests'}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-zinc-400">
-                    <Icon name="HomeModernIcon" size={14} className="text-indigo-400/70" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider">{booking.total_rooms_booked || 1} {(booking.total_rooms_booked || 1) === 1 ? 'Room' : 'Rooms'}</span>
-                  </div>
-                  {booking.properties?.type && (
-                    <div className="flex items-center gap-1.5 text-zinc-400">
-                      <Icon name="TagIcon" size={14} className="text-indigo-400/70" />
-                      <span className="text-[11px] font-bold uppercase tracking-wider">
-                        {booking.properties.type.split('-').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Booked Room Types */}
-            {displayRoomTypes && (
-              <div className="mt-3 py-2 px-3 bg-white/[0.02] border border-white/5 rounded-xl space-y-1.5 w-fit max-w-full">
-                <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Icon name="KeyIcon" size={11} className="text-emerald-400 shrink-0" />
-                  Booked Room Types
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {displayRoomTypes.split(', ').map((room: string, idx: number) => (
-                    <span key={idx} className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[9px] font-bold px-2 py-0.5 rounded-md">
-                      {room}
-                    </span>
-                  ))}
-                </div>
-              </div>
+          {/* Booking Type Pill Badge */}
+          <div className="shrink-0 self-start sm:self-center mt-1 sm:mt-0">
+            {booking.booking_type === 'bulk' ? (
+              <span className="px-2.5 py-1 sm:px-3 sm:py-1.5 text-[9px] sm:text-[10px] md:text-xs font-black uppercase tracking-wider rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.15)]">
+                Bulk {booking.bulk_booking_discount || booking.properties?.bulk_booking_discount ? `(${booking.bulk_booking_discount || booking.properties?.bulk_booking_discount}%)` : ''}
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 sm:px-3 sm:py-1.5 text-[9px] sm:text-[10px] md:text-xs font-black uppercase tracking-wider rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.15)]">
+                NORMAL BOOKING
+              </span>
             )}
-
-            {/* Selected Premium Amenities */}
-            {(booking as any).amenities && (booking as any).amenities.length > 0 && (
-              <div className="mt-3 py-2 px-3 bg-white/[0.02] border border-white/5 rounded-xl space-y-1.5 w-fit max-w-full">
-                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Icon name="SparklesIcon" size={11} className="text-indigo-400 shrink-0" />
-                  Exclusive Upgrades
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {(booking as any).amenities.map((amenity: any, idx: number) => (
-                    <span key={idx} className="inline-flex items-center gap-1 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[9px] font-bold px-2 py-0.5 rounded-md">
-                      {amenity.name} (Qty: {amenity.count})
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-
-            {/* Date Container */}
-            <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 py-2 px-3 rounded-xl w-fit shadow-inner group-hover:bg-white/[0.05] transition-colors">
-              <Icon name="CalendarDaysIcon" size={14} className="text-indigo-400/80 shrink-0" />
-              <div suppressHydrationWarning className="flex items-center gap-2.5 text-white font-bold uppercase tracking-widest leading-none">
-                <div className="flex flex-col items-center">
-                  <span className="text-[8px] md:text-[9px] text-zinc-500 font-black mb-0.5">{new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</span>
-                  <span className="text-sm md:text-base text-white font-black">{new Date(booking.check_in).getDate()}</span>
-                </div>
-                <span className="text-zinc-700 font-light mx-0.5">/</span>
-                <div className="flex flex-col items-center">
-                  <span className="text-[8px] md:text-[9px] text-zinc-500 font-black mb-0.5">{new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</span>
-                  <span className="text-sm md:text-base text-white font-black">{new Date(booking.check_out).getDate()}</span>
-                </div>
-                <span className="text-indigo-400/40 font-black ml-1.5 text-[10px] md:text-[11px] self-end mb-0.5">{new Date(booking.check_out).getFullYear()}</span>
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex flex-col gap-3 shrink-0 lg:pl-8 lg:border-l border-white/5">
-          {booking.status === 'pending' && (
-            <div className="grid grid-cols-2 gap-2 w-full lg:w-auto">
-              <button
-                disabled={isApproving || isRejecting}
-                onClick={async () => {
-                    setIsApproving(true);
-                    try {
-                        await approveBooking(booking.id);
-                        toast.success('Successfully authorized the release!');
-                    } catch (err: any) {
-                        toast.error('Failed to authorize release. Please try again.');
-                    } finally {
-                        setIsApproving(false);
-                    }
-                }}
-                className="px-4 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(52,211,153,0.1)] hover:shadow-[0_0_30px_rgba(52,211,153,0.2)] disabled:opacity-50"
-              >
-                {isApproving ? <Icon name="ArrowPathIcon" size={16} className="animate-spin" /> : <Icon name="CheckCircleIcon" size={16} />}
-                <span>Authorize</span>
-              </button>
+        {/* 3. Middle Grid Section: 2 Columns Box Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          {/* LEFT COLUMN: Guests/Rooms Box + Dates Box */}
+          <div className="space-y-3 flex flex-col justify-between">
+            {/* Guests & Room Box */}
+            <div className="bg-[#0e131c]/80 border border-white/5 p-3 md:p-3.5 rounded-2xl flex items-center justify-around shadow-inner">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
+                  <Icon name="UsersIcon" size={18} />
+                </div>
+                <div>
+                  <span className="block text-[9px] md:text-[10px] font-black text-zinc-400 uppercase tracking-widest">GUESTS</span>
+                  <span className="block text-base md:text-lg font-black text-white">{booking.guests}</span>
+                </div>
+              </div>
 
-              <button
-                disabled={isApproving || isRejecting}
-                onClick={() => {
-                  setConfirmModal({ isOpen: true, type: 'reject' });
-                }}
+              <div className="w-[1px] h-8 bg-white/10 mx-2" />
 
-                className="px-4 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-              >
-                {isRejecting ? <Icon name="ArrowPathIcon" size={16} className="animate-spin" /> : <Icon name="NoSymbolIcon" size={16} />}
-                <span>Reject</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
+                  <Icon name="HomeModernIcon" size={18} />
+                </div>
+                <div>
+                  <span className="block text-[9px] md:text-[10px] font-black text-zinc-400 uppercase tracking-widest">ROOM</span>
+                  <span className="block text-base md:text-lg font-black text-white">{booking.total_rooms_booked || 1}</span>
+                </div>
+              </div>
             </div>
-          )}
 
-          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            {/* Check-In / Check-Out Box */}
+            <div className="bg-[#0e131c]/80 border border-white/5 p-3 md:p-3.5 rounded-2xl flex items-center justify-between shadow-inner">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
+                  <Icon name="CalendarDaysIcon" size={18} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">
+                    <span>CHECK-IN</span>
+                    <span>/</span>
+                    <span>CHECK-OUT</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs md:text-sm font-black text-white tracking-wide">
+                    <span>{new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short' }).toUpperCase()} {new Date(booking.check_in).getDate()}</span>
+                    <span className="text-zinc-500">/</span>
+                    <span>{new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short' }).toUpperCase()} {new Date(booking.check_out).getDate()}</span>
+                    <span className="text-indigo-400/60 text-xs ml-1">{new Date(booking.check_out).getFullYear()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: Booked Room Types Box + View Details Button */}
+          <div className="flex flex-col justify-between space-y-3">
+            {/* Booked Room Types Box */}
+            <div className="bg-[#0e131c]/80 border border-emerald-500/20 p-3 md:p-3.5 rounded-2xl flex-1 flex flex-col justify-center space-y-1.5 shadow-inner min-h-[76px]">
+              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Icon name="KeyIcon" size={13} className="text-emerald-400 shrink-0" />
+                BOOKED ROOM TYPES
+              </p>
+
+              <div className="space-y-0.5">
+                <p className="text-xs md:text-sm font-bold text-emerald-300">
+                  {roomDetails.name}
+                </p>
+                {roomDetails.price && (
+                  <div className="flex items-center justify-between gap-2 pt-0.5">
+                    <span className="text-sm md:text-base font-black text-white">
+                      {roomDetails.price}
+                    </span>
+                    <span className="text-[9px] md:text-[10px] font-black text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                      Payout: ₹{Math.max(0, Math.round((booking.total_price || 0) * 0.9)).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* View Details Button */}
             <button
-              onClick={() => onAction('unified-inbox', {
-                guest_id: booking.guest_id,
-                sender_name: booking.guest?.name || 'Verified Guest',
-                sender_avatar: booking.guest?.avatar_url,
-                property_id: booking.property_id,
-                property_name: booking.properties?.title || booking.properties?.name || 'Property'
-              })}
-              className="flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 sm:py-3 bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2 transition-all"
+              onClick={() => setIsGuestDetailsModalOpen(true)}
+              className="w-full py-3 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-black uppercase tracking-widest text-[11px] rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-emerald-500/20 active:scale-[0.99]"
             >
-              <Icon name="ChatBubbleLeftRightIcon" size={14} /> <span>Message</span>
-            </button>
-
-            {(booking.status === 'confirmed' || booking.status === 'checked_in') && (
-              <button
-                disabled={isRejecting}
-                onClick={() => {
-                  setConfirmModal({ isOpen: true, type: 'cancel' });
-                }}
-
-                className="flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 sm:py-3 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2 transition-all"
-              >
-                <Icon name="NoSymbolIcon" size={14} /> <span>Cancel</span>
-              </button>
-            )}
-
-            <button
-              onClick={() => setIsDisputeModalOpen(true)}
-              className="flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 sm:py-3 bg-zinc-800/50 hover:bg-zinc-800 border border-white/5 text-zinc-500 hover:text-red-400 rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2 transition-all"
-            >
-              <Icon name="ScaleIcon" size={14} /> <span>Dispute</span>
-            </button>
-
-            <button
-              onClick={() => {
-                if (guestIdDoc) setIsIdModalOpen(true);
-                else toast.error('ID not uploaded.');
-              }}
-              className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border font-bold text-[9px] sm:text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2 transition-all ${
-                guestIdDoc ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-900/50 border-white/5 text-zinc-700 cursor-not-allowed'
-              }`}
-            >
-              <Icon name="FingerPrintIcon" size={14} /> <span>ID</span>
-            </button>
-
-            <button
-              onClick={handleDownloadInvoice}
-              className="flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 sm:py-3 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 text-sky-400 rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2 transition-all shadow-lg shadow-sky-900/10"
-            >
-              <Icon name="DocumentTextIcon" size={14} /> <span>Invoice</span>
+              <span>VIEW DETAILS</span>
+              <Icon name="ChevronRightIcon" size={14} />
             </button>
           </div>
+        </div>
+
+        {/* 4. Action Buttons & Authorize/Reject */}
+        {booking.status === 'pending' && (
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <button
+              disabled={isApproving || isRejecting}
+              onClick={async () => {
+                setIsApproving(true);
+                try {
+                  await approveBooking(booking.id);
+                  toast.success('Successfully authorized the release!');
+                } catch (err: any) {
+                  toast.error('Failed to authorize release. Please try again.');
+                } finally {
+                  setIsApproving(false);
+                }
+              }}
+              className="px-4 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(52,211,153,0.1)] hover:shadow-[0_0_30px_rgba(52,211,153,0.2)] disabled:opacity-50"
+            >
+              {isApproving ? <Icon name="ArrowPathIcon" size={16} className="animate-spin" /> : <Icon name="CheckCircleIcon" size={16} />}
+              <span>Authorize</span>
+            </button>
+
+            <button
+              disabled={isApproving || isRejecting}
+              onClick={() => {
+                setConfirmModal({ isOpen: true, type: 'reject' });
+              }}
+              className="px-4 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            >
+              {isRejecting ? <Icon name="ArrowPathIcon" size={16} className="animate-spin" /> : <Icon name="NoSymbolIcon" size={16} />}
+              <span>Reject</span>
+            </button>
+          </div>
+        )}
+
+        {/* Bottom 4 Action Buttons Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-white/5">
+          <button
+            onClick={() => onAction('unified-inbox', {
+              guest_id: booking.guest_id,
+              sender_name: booking.guest?.name || 'Verified Guest',
+              sender_avatar: booking.guest?.avatar_url,
+              property_id: booking.property_id,
+              property_name: booking.properties?.title || booking.properties?.name || 'Property'
+            })}
+            className="px-3 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-300 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all"
+          >
+            <Icon name="ChatBubbleLeftRightIcon" size={14} /> <span>MESSAGE</span>
+          </button>
+
+          <button
+            onClick={() => setIsDisputeModalOpen(true)}
+            className="px-3 py-2.5 bg-zinc-800/60 hover:bg-zinc-800 border border-white/5 text-zinc-400 hover:text-red-400 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all"
+          >
+            <Icon name="ScaleIcon" size={14} /> <span>DISPUTE</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (guestIdDoc) setIsIdModalOpen(true);
+              else toast.error('ID not uploaded.');
+            }}
+            className={`px-3 py-2.5 rounded-xl border font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all ${
+              guestIdDoc ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' : 'bg-zinc-900/50 border-white/5 text-zinc-600 cursor-not-allowed'
+            }`}
+          >
+            <Icon name="FingerPrintIcon" size={14} /> <span>ID</span>
+          </button>
+
+          <button
+            onClick={handleDownloadInvoice}
+            className="px-3 py-2.5 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 text-sky-400 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-sky-900/10"
+          >
+            <Icon name="DocumentTextIcon" size={14} /> <span>INVOICE</span>
+          </button>
         </div>
       </div>
 
-      {/* Dispute Modal (Ultra-Premium) */}
+      {/* Dispute Modal */}
       {mounted && createPortal(
         <AnimatePresence>
           {isDisputeModalOpen && (
-            <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto" onClick={() => setIsIdModalOpen(false)}>
+            <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto" onClick={() => setIsDisputeModalOpen(false)}>
               <motion.div
                 initial={{ scale: 0.95, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -484,7 +513,6 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                 className="w-full max-w-lg bg-[#0a0a0f] border border-red-500/20 rounded-[2.5rem] p-6 sm:p-10 shadow-[0_0_100px_rgba(220,38,38,0.15)] overflow-hidden relative"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Deep Ambient Glow */}
                 <div className="absolute top-0 right-0 w-96 h-96 bg-red-500/10 rounded-full blur-[100px] pointer-events-none" />
 
                 <div className="relative z-10 flex items-center gap-4 mb-8">
@@ -596,6 +624,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
         document.body
       )}
 
+      {/* ID Modal */}
       {mounted && createPortal(
         <AnimatePresence>
           {isIdModalOpen && (
@@ -688,6 +717,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
         document.body
       )}
 
+      {/* Confirmation Modal */}
       <ActionConfirmModal
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ isOpen: false, type: null })}
@@ -713,8 +743,15 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
         confirmLabel={confirmModal.type === 'reject' ? "Reject" : "Cancel"}
         variant="warning"
       />
-    </div>
 
+      {/* Guest Details & Price Breakdown Modal */}
+      <GuestDetailsModal
+        userId={booking.guest_id}
+        isOpen={isGuestDetailsModalOpen}
+        onClose={() => setIsGuestDetailsModalOpen(false)}
+        booking={booking}
+      />
+    </div>
   );
 };
 

@@ -137,8 +137,11 @@ export default async function AdminPanelPage() {
       });
     }
 
-    const amenitiesTotalFromBooking = b.amenities?.reduce((sum: number, amenity: any) => sum + (amenity.price * amenity.count), 0) || 0;
+    const amenitiesTotalFromBooking = b.amenities && Array.isArray(b.amenities) && b.amenities.length > 0
+      ? b.amenities.reduce((sum: number, amenity: any) => sum + ((Number(amenity.price) || 0) * (Number(amenity.count) || 1)), 0)
+      : 0;
     const freeCancellationFee = b.free_cancellation_fee || 0;
+    const amenitiesTotal = amenitiesTotalFromBooking;
 
     let baseAccommodation = 0;
     let calculatedServiceFee = 0;
@@ -149,15 +152,11 @@ export default async function AdminPanelPage() {
       calculatedServiceFee = Math.round(baseAccommodation * 0.1);
       discountSavings = Math.round(baseAccommodation * discountPct);
     } else {
-      const accommodationAndFee = amount - amenitiesTotalFromBooking - freeCancellationFee;
+      const accommodationAndFee = Math.max(0, amount - amenitiesTotal - freeCancellationFee);
       baseAccommodation = Math.round(accommodationAndFee / (1.1 - discountPct));
       calculatedServiceFee = Math.round(baseAccommodation * 0.1);
       discountSavings = Math.round(baseAccommodation * discountPct);
     }
-
-    const accommodationSubtotal = Math.round(baseAccommodation + calculatedServiceFee - discountSavings) + freeCancellationFee;
-    const dynamicAmenitiesTotal = amount - accommodationSubtotal;
-    const amenitiesTotal = dynamicAmenitiesTotal > 0 ? dynamicAmenitiesTotal : amenitiesTotalFromBooking;
 
     const computedBreakdown = {
       accommodation: baseAccommodation,

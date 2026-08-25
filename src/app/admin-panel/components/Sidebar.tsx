@@ -16,11 +16,12 @@ interface NavLink {
   label: string;
   icon: string;
   isExternal?: boolean;
-  key?: 'dashboard' | 'properties' | 'financials' | 'kyc' | 'users' | 'marketing' | 'reviews' | 'chat';
+  key?: 'dashboard' | 'bookings' | 'properties' | 'financials' | 'kyc' | 'users' | 'marketing' | 'reviews' | 'chat';
 }
 
 const navLinks: NavLink[] = [
   { href: '/admin-panel', label: 'Dashboard', icon: 'ChartBarIcon', key: 'dashboard' },
+  { href: '/admin-panel/booking-history', label: 'Booking History', icon: 'ClockIcon', key: 'bookings' },
   { href: '/admin-panel/property-management', label: 'Property Management', icon: 'HomeModernIcon', key: 'properties' },
   { href: '/admin-panel/financials', label: 'Financials', icon: 'BanknotesIcon', key: 'financials' },
   { href: '/admin-panel/kyc-management', label: 'KYC Management', icon: 'IdentificationIcon', key: 'kyc' },
