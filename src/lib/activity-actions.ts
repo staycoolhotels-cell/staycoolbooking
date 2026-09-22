@@ -50,7 +50,7 @@ export async function broadcastRealtimeNotification(payload: {
     const channel = supabase.channel('staycool-global-alerts');
     await new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
-        try { supabase.removeChannel(channel); } catch {}
+        try { supabase.removeChannel(channel); } catch { /* Channel cleanup is best-effort. */ }
         resolve();
       }, 2000);
 
@@ -63,13 +63,13 @@ export async function broadcastRealtimeNotification(payload: {
           }).then(() => {
             clearTimeout(timeout);
             setTimeout(() => {
-              try { supabase.removeChannel(channel); } catch {}
+              try { supabase.removeChannel(channel); } catch { /* Channel cleanup is best-effort. */ }
             }, 500);
             resolve();
           }).catch((sendErr) => {
             clearTimeout(timeout);
             console.warn('[broadcastRealtimeNotification] Send error:', sendErr);
-            try { supabase.removeChannel(channel); } catch {}
+            try { supabase.removeChannel(channel); } catch { /* Channel cleanup is best-effort. */ }
             resolve();
           });
         }

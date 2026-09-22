@@ -58,7 +58,9 @@ export default function WebNotificationManager() {
               .eq('id', session.user.id)
               .maybeSingle();
             if (profile?.role) role = profile.role;
-          } catch {}
+          } catch {
+            // A missing profile is non-fatal; the guest role remains the fallback.
+          }
         }
         setCurrentUser({
           id: session.user.id,
