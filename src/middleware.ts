@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { checkRateLimit } from "@/lib/rate-limiter";
 
 export async function middleware(request: NextRequest) {
     let response = NextResponse.next({
@@ -8,69 +9,129 @@ export async function middleware(request: NextRequest) {
         },
     });
 
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                getAll() {
-                    return request.cookies.getAll();
-                },
-                setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                        request.cookies.set(name, value)
-                    );
-                    response = NextResponse.next({
-                        request: {
-                            headers: request.headers,
-                        },
-                    });
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                        response.cookies.set(name, value, options)
-                    );
-                },
-            },
-        }
-    );
+    // 0. API Rate Limiting (Protects against bots, DDoS, and brute-force attacks)
+    if (request.nextUrl.pathname.startsWith("/api")) {
+        const forwardedFor = request.headers.get("x-forwarded-for");
+        const ip = forwardedFor 
+            ? forwardedFor.split(",")[0].trim() 
+            : (request.headers.get("x-real-ip") || request.headers.get("cf-connecting-ip") || "127.0.0.1");
 
-    // 1. Refresh Session
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-
-    // 2. Protect Host Dashboard
-    if (request.nextUrl.pathname.startsWith("/host-dashboard")) {
-        if (!user) {
-            return NextResponse.redirect(new URL("/auth", request.url));
+        const pathname = request.nextUrl.pathname;
+        let tier: "auth" | "payment" | "write" | "api" = "api";
+        if (pathname.includes("/auth") || pathname.includes("/login") || pathname.includes("/register") || pathname.includes("/password")) {
+            tier = "auth";
+        } else if (pathname.includes("/payment") || pathname.includes("/razorpay") || pathname.includes("/webhook")) {
+            tier = "payment";
+        } else if (["POST", "PUT", "DELETE", "PATCH"].includes(request.method)) {
+            tier = "write";
         }
 
-        // Check Role and Status via Metadata (lightweight check first)
-        // NOTE: Metadata might be stale, but it's good for first line of defense.
-        // For critical strictness, we might query the DB, but middleware edge functions shouldn't contain complex DB logic if avoidable.
-        // However, since we need STRICT security, we rely on the `page.tsx` serverside check for the ultimate source of truth,
-        // but we can try to redirect early if metadata says 'pending'.
+        const rateLimitResult = await checkRateLimit(ip, tier);
 
-        // We can't easily query public.users in middleware roughly without service role or RLS setup complexity in edge.
-        // So we rely on the page logic, which WE HAVE UPDATED in the previous steps (or will update).
-        // The user requirement says: "Backend must enforce approval check on: Login, Protected routes".
-        // Since page.tsx IS the backend for App Router, checking there is valid backend enforcement.
-        // Middleware mainly ensures they are Authenticated.
+        if (!rateLimitResult.success) {
+            return new NextResponse(
+                JSON.stringify({
+                    error: "Too Many Requests",
+                    message: `Rate limit exceeded. High request volume detected. Please try again in ${rateLimitResult.retryAfter} seconds.`,
+                    retryAfter: rateLimitResult.retryAfter,
+                }),
+                {
+                    status: 429,
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Retry-After": String(rateLimitResult.retryAfter),
+                        "X-RateLimit-Limit": String(rateLimitResult.limit),
+                        "X-RateLimit-Remaining": "0",
+                        "X-RateLimit-Reset": String(rateLimitResult.reset),
+                    },
+                }
+            );
+        }
 
-        // However, if we put status in metadata, we can check it here. 
-        // Let's rely on the robust check in `src/app/host-dashboard/page.tsx` we verified earlier.
-        // But we MUST ensure the user is logged in.
+        response.headers.set("X-RateLimit-Limit", String(rateLimitResult.limit));
+        response.headers.set("X-RateLimit-Remaining", String(rateLimitResult.remaining));
+        response.headers.set("X-RateLimit-Reset", String(rateLimitResult.reset));
+
+        // Skip heavyweight session check for API routes to minimize DB load
+        return response;
     }
 
-    // 3. Protect Admin Panel
-    if (request.nextUrl.pathname.startsWith("/admin-panel")) {
-        if (!user) {
-            return NextResponse.redirect(new URL("/auth", request.url));
+    const pathname = request.nextUrl.pathname;
+    const isProtectedRoute = 
+        pathname.startsWith("/host-dashboard") || 
+        pathname.startsWith("/admin-panel") ||
+        pathname.startsWith("/user-profile") ||
+        pathname.startsWith("/host-onboarding") ||
+        pathname.startsWith("/list-property");
+
+    // Fast path: Check if user has any Supabase auth cookies
+    const allCookies = request.cookies.getAll();
+    const hasAuthCookie = allCookies.some(c => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
+
+    // If protected route and no auth cookies present, instantly redirect without remote network call
+    if (isProtectedRoute && !hasAuthCookie) {
+        return NextResponse.redirect(new URL("/auth", request.url));
+    }
+
+    // Only run Supabase session check for protected routes, or when auth cookie is present to refresh session
+    if (isProtectedRoute || hasAuthCookie) {
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() {
+                        return request.cookies.getAll();
+                    },
+                    setAll(cookiesToSet) {
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            request.cookies.set(name, value)
+                        );
+                        response = NextResponse.next({
+                            request: {
+                                headers: request.headers,
+                            },
+                        });
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            response.cookies.set(name, value, options)
+                        );
+                    },
+                },
+            }
+        );
+
+        // 1. Refresh Session / Get User safely
+        let user = null;
+        try {
+            const { data } = await supabase.auth.getUser();
+            user = data?.user ?? null;
+        } catch {
+            user = null;
         }
-        // Similar strictly checking role requires DB access or trusting metadata.
-        // We will trust metadata for redirect speed, but Page verify source of truth.
-        const role = user.user_metadata?.role;
-        if (role !== 'admin') {
-            return NextResponse.redirect(new URL("/", request.url));
+
+        // 2. Protect Host Dashboard
+        if (pathname.startsWith("/host-dashboard")) {
+            if (!user) {
+                return NextResponse.redirect(new URL("/auth", request.url));
+            }
+        }
+
+        // 3. Protect Admin Panel
+        if (pathname.startsWith("/admin-panel")) {
+            if (!user) {
+                return NextResponse.redirect(new URL("/auth", request.url));
+            }
+            const role = user.user_metadata?.role;
+            if (role !== 'admin') {
+                return NextResponse.redirect(new URL("/", request.url));
+            }
+        }
+
+        // 4. Protect User Profile & Onboarding
+        if (pathname.startsWith("/user-profile") || pathname.startsWith("/host-onboarding") || pathname.startsWith("/list-property")) {
+            if (!user) {
+                return NextResponse.redirect(new URL("/auth", request.url));
+            }
         }
     }
 

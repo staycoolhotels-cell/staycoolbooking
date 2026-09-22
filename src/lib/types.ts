@@ -11,6 +11,7 @@ export interface Stat {
   icon: string;
   trend: { value: string; isPositive: boolean };
   bgColor: string;
+  subtitle?: string;
   onClick?: () => void;
 }
 
@@ -51,12 +52,21 @@ export interface Transaction {
   transactionId: string;
   date: string;
   guestName: string;
+  guestEmail?: string;
+  guestPhone?: string;
+  guestLocation?: string;
+  guestAddress?: string;
   hostName: string;
+  hostEmail?: string;
+  hostPhone?: string;
+  hostLocation?: string;
   propertyName: string;
+  propertyLocation?: string;
+  propertyAddress?: string;
   amount: number;
   serviceFee?: number;
   netRevenue?: number;
-  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  status: 'pending' | 'completed' | 'failed' | 'refunded' | 'confirmed' | 'cancelled' | 'pending_payment' | 'payment_failed';
   paymentMethod: string;
   type?: 'payment' | 'refund';
   breakdown?: {
@@ -69,7 +79,6 @@ export interface Transaction {
   };
   invoice_id?: string;
   booking_id?: string;
-  guestAddress?: string;
   bookingDate?: string;
   cancellationDate?: string;
   refundDate?: string;
@@ -77,6 +86,20 @@ export interface Transaction {
   appliedPolicy?: string;
   refundPercentage?: number;
   room_type?: string | null;
+  checkIn?: string;
+  checkOut?: string;
+  nights?: number;
+  totalRooms?: number;
+  refundAmount?: number;
+  retainedPenalty?: number;
+  retainedServiceFee?: number;
+  netRefundablePool?: number;
+  rawDate?: string;
+  guestRefundAmount?: number;
+  hostShare?: number;
+  adminShare?: number;
+  hostPayoutAmount?: number;
+  adminCommissionAmount?: number;
 }
 
 export interface User {

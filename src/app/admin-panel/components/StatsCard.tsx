@@ -8,6 +8,7 @@ interface StatsCardProps {
   title: string;
   value: string | number;
   icon: string;
+  subtitle?: string;
   trend?: {
     value: string;
     isPositive: boolean;
@@ -18,6 +19,12 @@ interface StatsCardProps {
 }
 
 const colorMap: Record<string, { glow: string; border: string; icon: string; badge: string }> = {
+  'bg-blue-500': {
+    glow: 'rgba(59,130,246,0.35)',
+    border: 'rgba(59,130,246,0.25)',
+    icon: 'text-blue-400',
+    badge: 'from-blue-500/20 to-blue-600/10 border-blue-500/30 text-blue-300',
+  },
   'bg-indigo-500': {
     glow: 'rgba(99,102,241,0.35)',
     border: 'rgba(99,102,241,0.25)',
@@ -36,6 +43,18 @@ const colorMap: Record<string, { glow: string; border: string; icon: string; bad
     icon: 'text-emerald-400',
     badge: 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-300',
   },
+  'bg-purple-500': {
+    glow: 'rgba(168,85,247,0.35)',
+    border: 'rgba(168,85,247,0.25)',
+    icon: 'text-purple-400',
+    badge: 'from-purple-500/20 to-purple-600/10 border-purple-500/30 text-purple-300',
+  },
+  'bg-teal-500': {
+    glow: 'rgba(20,184,166,0.35)',
+    border: 'rgba(20,184,166,0.25)',
+    icon: 'text-teal-400',
+    badge: 'from-teal-500/20 to-teal-600/10 border-teal-500/30 text-teal-300',
+  },
   'bg-yellow-500': {
     glow: 'rgba(234,179,8,0.35)',
     border: 'rgba(234,179,8,0.25)',
@@ -50,7 +69,7 @@ const colorMap: Record<string, { glow: string; border: string; icon: string; bad
   },
 };
 
-const StatsCard = ({ title, value, icon, trend, bgColor, onClick }: StatsCardProps) => {
+const StatsCard = ({ title, value, icon, subtitle, trend, bgColor, onClick }: StatsCardProps) => {
   const colors = colorMap[bgColor] || colorMap['bg-indigo-500'];
 
   return (
@@ -104,12 +123,14 @@ const StatsCard = ({ title, value, icon, trend, bgColor, onClick }: StatsCardPro
         {/* Value + Label */}
         <div>
           <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] mb-1 md:mb-1.5">{title}</p>
-          <h3 className="text-2xl md:text-4xl font-heading font-black text-white tracking-tight leading-none">
+          <h3 className="text-2xl md:text-3xl lg:text-4xl font-heading font-black text-white tracking-tight leading-none">
             {value}
           </h3>
-          {trend && (
+          {subtitle ? (
+            <p className="text-[9px] md:text-[10px] text-zinc-400 mt-1 md:mt-1.5 font-medium">{subtitle}</p>
+          ) : trend ? (
             <p className="text-[8px] md:text-[10px] text-zinc-600 mt-1 md:mt-2 font-medium">compared to last month</p>
-          )}
+          ) : null}
         </div>
       </div>
     </motion.div>

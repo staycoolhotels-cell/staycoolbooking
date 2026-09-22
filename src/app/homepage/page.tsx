@@ -14,7 +14,7 @@ export default async function Homepage() {
 
   return (
     <main className="min-h-screen bg-[#080808]">
-      <Suspense fallback={<AnimatedLoader fullScreen text="Loading Experience..." />}>
+      <Suspense fallback={<AnimatedLoader fullScreen text="Loading..." />}>
         <HomepageInteractive initialProperties={properties || []} />
       </Suspense>
     </main>

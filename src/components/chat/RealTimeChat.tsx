@@ -18,8 +18,8 @@ interface Message {
 }
 
 interface RealTimeChatProps {
-    currentUser: { id: string; name?: string };
-    otherUser: { id: string; name?: string };
+    currentUser: { id: string; name?: string; role?: string };
+    otherUser: { id: string; name?: string; role?: string };
     propertyId?: string;
     contextTitle?: string;
     containerHeight?: string;
@@ -105,25 +105,35 @@ const RealTimeChat: React.FC<RealTimeChatProps> = ({
         } else if (data) {
             setMessages(prev => [...prev, data as Message]);
             
-            // Check if receiver is admin to log notification
+            // Notify the receiver in real time (Guest, Host, or Admin)
             try {
                 const { data: userData } = await supabase
                     .from('users')
                     .select('role')
                     .eq('id', otherUser.id)
-                    .single();
-                    
-                if (userData?.role === 'admin') {
-                    await createNotification(
-                        'message',
-                        'New Support Message',
-                        `New message from ${currentUser.name || 'User'}: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
-                        'message' as any,
-                        otherUser.id
-                    );
-                }
+                    .maybeSingle();
+
+                const receiverRole = (userData?.role || otherUser.role || 'guest') as 'guest' | 'host' | 'admin';
+                const targetUrl = receiverRole === 'admin' 
+                    ? '/admin-panel' 
+                    : receiverRole === 'host' 
+                    ? '/host-dashboard' 
+                    : '/user-profile?tab=messages';
+
+                const senderDisplayName = currentUser.name || (currentUser.role === 'host' ? 'Host' : 'Guest');
+                const snippet = content.length > 60 ? `${content.substring(0, 57)}...` : content;
+
+                await createNotification(
+                    'message',
+                    `💬 Message from ${senderDisplayName}`,
+                    `"${snippet}"`,
+                    'info',
+                    otherUser.id,
+                    receiverRole,
+                    targetUrl
+                );
             } catch (err) {
-                console.error('Error creating notification:', err);
+                console.error('Error creating chat notification:', err);
             }
         }
     };

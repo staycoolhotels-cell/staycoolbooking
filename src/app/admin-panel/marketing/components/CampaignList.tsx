@@ -560,27 +560,29 @@ const CampaignList = ({ initialCampaigns }: CampaignListProps) => {
                     <div>
                       <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Type</label>
                       <select
-                        className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition appearance-none"
+                        style={{ colorScheme: 'dark' }}
+                        className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition appearance-none [&>option]:bg-[#050505] [&>option]:text-white"
                         value={formData.type || 'email'}
                         onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
                       >
-                        <option value="email">Email</option>
-                        <option value="social_media">Social Media</option>
-                        <option value="promo_code">Promo Code</option>
+                        <option value="email" className="bg-[#050505] text-white">Email</option>
+                        <option value="social_media" className="bg-[#050505] text-white">Social Media</option>
+                        <option value="promo_code" className="bg-[#050505] text-white">Promo Code</option>
                       </select>
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Status</label>
                       <select
-                        className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition appearance-none"
+                        style={{ colorScheme: 'dark' }}
+                        className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition appearance-none [&>option]:bg-[#050505] [&>option]:text-white"
                         value={formData.status || 'draft'}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
                       >
-                        <option value="draft">Draft</option>
-                        <option value="scheduled">Scheduled</option>
-                        <option value="active">Active</option>
-                        <option value="paused">Paused</option>
-                        <option value="completed">Completed</option>
+                        <option value="draft" className="bg-[#050505] text-white">Draft</option>
+                        <option value="scheduled" className="bg-[#050505] text-white">Scheduled</option>
+                        <option value="active" className="bg-[#050505] text-white">Active</option>
+                        <option value="paused" className="bg-[#050505] text-white">Paused</option>
+                        <option value="completed" className="bg-[#050505] text-white">Completed</option>
                       </select>
                     </div>
                   </div>

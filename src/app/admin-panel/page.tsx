@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { getUsersData, syncAndFetchUsers, getAdminThreads } from '@/lib/admin-actions';
 import { createAdminSupabaseClient } from '@/lib/admin-actions';
 import { Suspense } from 'react';
-import { getRefundPercentage } from '@/lib/refund-policy';
+import { getRefundPercentage, calculateRefundDistribution } from '@/lib/refund-policy';
 import { autoProcessCheckedInBookings } from '@/lib/booking-actions';
 
 export const metadata: Metadata = {
@@ -39,48 +39,70 @@ export default async function AdminPanelPage() {
     .eq('id', session?.user?.id)
     .single();
 
-  if (error || !session || adminProfile?.role !== 'admin') {
-    redirect('/auth');
+  if (adminProfileError || adminProfile?.role !== 'admin') {
+    redirect('/homepage');
   }
 
-  // Automatically process checked-in bookings first
-  await autoProcessCheckedInBookings();
-
-  const [profiles, authUsers, supportThreads] = await Promise.all([
-    syncAndFetchUsers(),
-    getUsersData(),
-    getAdminThreads()
-  ]);
+  // Auto-process checked-in bookings in background without blocking SSR
+  autoProcessCheckedInBookings().catch(err => {
+    console.error('Background auto-processing error:', err);
+  });
 
   // Use the admin client to bypass RLS for dashboard stats
   const supabaseAdmin = await createAdminSupabaseClient();
 
-  const { data: properties, error: propertiesError } = await supabaseAdmin
-    .from('properties')
-    .select('*');
+  const [profiles, authUsers, supportThreads, propertiesRes, bookingsRes, transfersRes] = await Promise.all([
+    syncAndFetchUsers(),
+    getUsersData(),
+    getAdminThreads(),
+    supabaseAdmin.from('properties').select('*'),
+    supabaseAdmin
+      .from('bookings')
+      .select(`
+        *,
+        guest:users!guest_id ( name, email, phone ),
+        property:properties!property_id ( 
+          title,
+          location,
+          address_line1,
+          address_line2,
+          city,
+          state,
+          postal_code,
+          room_type_prices,
+          bulk_booking_discount,
+          host_id,
+          host:users!host_id ( name, email, phone )
+        ),
+        booking_rooms(rooms(room_type))
+      `)
+      .not('status', 'in', '("pending_payment","payment_failed")')
+      .order('created_at', { ascending: false }),
+    supabaseAdmin.from('payment_transfers').select('*')
+  ]);
 
-  const { data: bookingsWithDetails, error: bookingsError } = await supabaseAdmin
-    .from('bookings')
-    .select(`
-      *,
-      guest:users!guest_id ( name, email ),
-      property:properties!property_id ( 
-        title,
-        room_type_prices,
-        host:users!host_id ( name )
-      ),
-      booking_rooms(rooms(room_type))
-    `)
-    .order('created_at', { ascending: false });
+  const properties = propertiesRes.data;
+  const bookingsWithDetails = bookingsRes.data;
 
-  // Fetch guest location info separately
-  const guestIds = [...new Set((bookingsWithDetails || []).map((b: any) => b.guest_id).filter(Boolean))];
-  const { data: guestPersonalInfo } = guestIds.length > 0
-    ? await supabaseAdmin.from('user_personal_info').select('user_id, location').in('user_id', guestIds)
+  const transferMap: Record<string, any> = {};
+  (transfersRes?.data || []).forEach((t: any) => {
+    if (t.booking_id) transferMap[t.booking_id] = t;
+  });
+
+  // Fetch guest and host location / phone info from user_personal_info
+  const userIds = [...new Set([
+    ...(bookingsWithDetails || []).map((b: any) => b.guest_id),
+    ...(bookingsWithDetails || []).map((b: any) => b.property?.host_id)
+  ].filter(Boolean))];
+
+  const { data: personalInfoRows } = userIds.length > 0
+    ? await supabaseAdmin.from('user_personal_info').select('user_id, location, phone').in('user_id', userIds)
     : { data: [] };
   const locationMap: Record<string, string> = {};
-  (guestPersonalInfo || []).forEach((info: any) => {
+  const phoneMap: Record<string, string> = {};
+  (personalInfoRows || []).forEach((info: any) => {
     if (info.location) locationMap[info.user_id] = info.location;
+    if (info.phone) phoneMap[info.user_id] = info.phone;
   });
 
   // Map confirmed bookings to the Transaction interface
@@ -89,25 +111,69 @@ export default async function AdminPanelPage() {
     const amount = isNaN(rawAmount) ? 0 : rawAmount;
     const serviceFee = b.service_fee || (amount * 0.1);
     const netRevenue = amount - serviceFee;
-    const guestLocation = locationMap[b.guest_id];
-    const guestEmail = b.guest?.email;
-    const guestAddress = [guestEmail, guestLocation].filter(Boolean).join('\n') || 'Address not provided';
+
+    const guestEmail = b.guest?.email || '';
+    const guestPhone = b.guest?.phone || phoneMap[b.guest_id] || '';
+    const guestLocation = locationMap[b.guest_id] || '';
+    const guestAddress = [guestEmail, guestPhone, guestLocation].filter(Boolean).join('\n') || 'Address not provided';
+
+    const hostName = b.property?.host?.name || 'StayCool Host';
+    const hostEmail = b.property?.host?.email || '';
+    const hostPhone = b.property?.host?.phone || phoneMap[b.property?.host_id] || '';
+    const hostLocation = locationMap[b.property?.host_id] || '';
+    const propertyName = b.property?.title || 'Unknown Property';
+    const propertyLocation = b.property?.location || [b.property?.city, b.property?.state].filter(Boolean).join(', ') || hostLocation || '';
+    const propertyAddress = [b.property?.address_line1, b.property?.address_line2, b.property?.city, b.property?.state, b.property?.postal_code].filter(Boolean).join(', ') || propertyLocation;
+
+    const checkIn = b.check_in ? new Date(b.check_in).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : undefined;
+    const checkOut = b.check_out ? new Date(b.check_out).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : undefined;
     
     const isRefund = (b.status === 'cancelled' || b.status === 'refunded');
     let cancellationLead = undefined;
     let appliedPolicy = undefined;
     let refundPercentage = undefined;
+    let guestRefundAmount = undefined;
+    let hostShare = undefined;
+    let adminShare = undefined;
+    let retainedPenalty = undefined;
+    let retainedServiceFee = undefined;
+    let netRefundablePool = undefined;
 
-    if (isRefund && b.cancelled_at && b.check_in) {
-      const policyResult = getRefundPercentage(
-        b.check_in,
-        b.cancelled_at,
+    if (isRefund) {
+      const dist = calculateRefundDistribution(
+        amount,
+        b.check_in || b.created_at,
+        b.cancelled_at || new Date().toISOString(),
         b.created_at,
-        b.has_free_cancellation
+        b.has_free_cancellation,
+        Number(b.free_cancellation_fee || 0)
       );
-      cancellationLead = policyResult.daysBefore;
-      appliedPolicy = policyResult.policy;
-      refundPercentage = policyResult.percent;
+      cancellationLead = dist.daysBeforeCheckIn;
+      appliedPolicy = dist.appliedPolicy;
+      refundPercentage = dist.guestRefundPercent;
+      guestRefundAmount = dist.guestRefundAmount;
+      hostShare = dist.hostShare;
+      adminShare = dist.adminShare;
+      retainedPenalty = dist.netRefundablePool - dist.guestRefundAmount;
+      retainedServiceFee = dist.platformFee;
+      netRefundablePool = dist.netRefundablePool;
+    }
+
+    const transfer = transferMap[b.id];
+    let hostPayoutAmount = undefined;
+    let adminCommissionAmount = undefined;
+
+    if (!isRefund) {
+      if (transfer && Number(transfer.host_amount) > 0) {
+        hostPayoutAmount = Math.round(Number(transfer.host_amount));
+        adminCommissionAmount = Math.round(Number(transfer.platform_commission || (amount - hostPayoutAmount)));
+      } else {
+        const guestFee = serviceFee || Math.round((amount * 0.1) / 1.1);
+        const hostRevenue = Math.max(0, amount - guestFee);
+        const hostCommission = Math.round(hostRevenue * 0.10);
+        hostPayoutAmount = Math.max(0, hostRevenue - hostCommission);
+        adminCommissionAmount = Math.max(0, amount - hostPayoutAmount);
+      }
     }
 
     const roomTypePrices = b.property?.room_type_prices || {};
@@ -170,10 +236,20 @@ export default async function AdminPanelPage() {
     return {
       id: b.id,
       transactionId: `TXN-${b.id.slice(0, 8).toUpperCase()}`,
-      propertyName: b.property?.title || 'Unknown Property',
+      invoice_id: b.id.slice(0, 8).toUpperCase(),
+      booking_id: b.id,
+      propertyName,
+      propertyLocation,
+      propertyAddress,
       guestName: b.guest?.name || 'Unknown Guest',
+      guestEmail,
+      guestPhone,
+      guestLocation,
       guestAddress,
-      hostName: b.property?.host?.name || 'Unknown Host',
+      hostName,
+      hostEmail,
+      hostPhone,
+      hostLocation,
       amount: amount,
       serviceFee: serviceFee,
       netRevenue: netRevenue,
@@ -190,11 +266,24 @@ export default async function AdminPanelPage() {
       daysBeforeCheckIn: cancellationLead,
       appliedPolicy: appliedPolicy,
       refundPercentage: refundPercentage,
+      guestRefundAmount,
+      hostShare,
+      adminShare,
+      hostPayoutAmount,
+      adminCommissionAmount,
+      refundAmount: guestRefundAmount,
+      retainedPenalty,
+      retainedServiceFee,
+      netRefundablePool,
       rawDate: b.created_at,
       status: (b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed') ? 'completed' : 
               (b.status === 'refunded' ? 'refunded' : 'pending'),
       paymentMethod: 'Razorpay',
-      room_type: roomType
+      room_type: roomType,
+      checkIn,
+      checkOut,
+      nights,
+      totalRooms: b.total_rooms_booked || 1
     };
   });
 

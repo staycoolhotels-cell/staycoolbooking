@@ -97,10 +97,11 @@ const KycList = ({ initialRecords }: KycListProps) => {
         <select
           value={filter}
           onChange={e => setFilter(e.target.value)}
-          className="px-3 md:px-4 py-2 md:py-2.5 bg-white/5 border border-white/10 rounded-xl text-zinc-300 focus:outline-none focus:border-brand-default/50 text-xs md:text-sm"
+          style={{ colorScheme: 'dark' }}
+          className="px-3.5 md:px-4 py-2 md:py-2.5 bg-[#0f111a] border border-white/15 rounded-xl text-white font-semibold focus:outline-none focus:border-brand-default/50 text-xs md:text-sm cursor-pointer [&>option]:bg-[#0f111a] [&>option]:text-white"
         >
           {FILTERS.map(f => (
-            <option key={f} value={f} className="bg-[#0a0a0f]">
+            <option key={f} value={f} className="bg-[#0f111a] text-white py-1">
               {f === 'all' ? `All (${counts.all || 0})` : `${statusConfig[f]?.label} (${counts[f] || 0})`}
             </option>
           ))}

@@ -17,9 +17,19 @@ type FinancialTreasuryProps = {
 const FinancialTreasury: React.FC<FinancialTreasuryProps> = ({ transactions = [] }) => {
   const payouts = useMemo(() => {
     return transactions.map((t) => {
-      const totalPayout = Number(t.amount) || 0;
-      const platformFee = t.breakdown?.service_fee || (totalPayout * 0.1);
-      const netProfit = totalPayout - platformFee;
+      // Determine gross total and ensure platform service fee is 100% Admin
+      const rawAmount = Number(t.amount) || 0;
+      const guestServiceFee = Number(t.breakdown?.service_fee || t.serviceFee) || Math.round((rawAmount * 0.1) / 1.1);
+      
+      // If t.amount is already net payout (from mappedTransactions where amount = hostNetPayout)
+      const isAlreadyNet = t.netRevenue !== undefined && t.netRevenue === t.amount;
+      const hostRevenue = isAlreadyNet 
+        ? Math.round(t.amount / 0.90) 
+        : Math.max(0, rawAmount - guestServiceFee);
+      const hostCommission = Math.round(hostRevenue * 0.10);
+      const netProfit = isAlreadyNet ? t.amount : (hostRevenue - hostCommission);
+      const grossTotal = hostRevenue + guestServiceFee;
+      const platformFee = grossTotal - netProfit; // 100% Admin retained (Guest service fee + host platform commission)
 
       const statusMap: Record<string, string> = {
         'completed': 'Completed',
@@ -35,7 +45,7 @@ const FinancialTreasury: React.FC<FinancialTreasuryProps> = ({ transactions = []
         })(),
         platformFee,
         netProfit,
-        totalPayout,
+        totalPayout: grossTotal,
         status: statusMap[t.status] || 'Processing'
       };
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

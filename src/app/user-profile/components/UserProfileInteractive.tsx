@@ -326,7 +326,7 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
             {[
               <motion.section key="finance" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="group">
                 <SectionLabel icon="💳" label="Financial Treasury" />
-                <FinancialTreasury transactions={transactions} />
+                <FinancialTreasury transactions={transactions} bookings={bookings} />
               </motion.section>,
 
               <motion.div key="bookings" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.45 }}>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { AMENITIES } from '@/lib/amenities';
 
 interface Amenity {
   id: number;
@@ -19,10 +20,13 @@ const AmenitiesSection = ({ amenities, roomTypeAmenities, roomTypeCounts }: Amen
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
   const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
+    setExpandedSections(prev => {
+      const isCurrentlyExpanded = prev[section] !== undefined ? prev[section] : true;
+      return {
+        ...prev,
+        [section]: !isCurrentlyExpanded
+      };
+    });
   };
 
   // Group amenities by room type if data is available
@@ -34,36 +38,76 @@ const AmenitiesSection = ({ amenities, roomTypeAmenities, roomTypeCounts }: Amen
   if (hasRoomTypeAmenities) {
     // 1. Map amenities by ID for easy lookup
     const amenityMap = new Map<number, Amenity>();
-    amenities.forEach(a => amenityMap.set(a.id, a));
+    (amenities || []).forEach(a => {
+      if (a && a.id !== undefined) {
+        amenityMap.set(Number(a.id), a);
+      }
+    });
+
+    const resolveAmenity = (rawId: any): Amenity => {
+      const numId = Number(rawId);
+      const existing = amenityMap.get(numId);
+      if (existing) return existing;
+      const std = AMENITIES.find(x => x.id === numId);
+      if (std) {
+        return {
+          id: std.id,
+          name: std.name,
+          icon: std.iconName || 'CheckCircleIcon',
+          description: std.description || '',
+          available: true,
+        };
+      }
+      return {
+        id: numId,
+        name: `Amenity ${numId}`,
+        icon: 'CheckCircleIcon',
+        description: '',
+        available: true,
+      };
+    };
+
+    const countKeys = roomTypeCounts ? Object.keys(roomTypeCounts).filter(k => (roomTypeCounts[k] || 0) > 0) : [];
+    const isEntireResortListing = countKeys.includes('Entire Resort') || 
+      (countKeys.length === 0 && Object.keys(roomTypeAmenities).includes('Entire Resort'));
 
     // 2. Identify global amenities (those not assigned to any specific room type)
     const assignedIds = new Set<number>();
-    Object.values(roomTypeAmenities).forEach(ids => {
-        ids.forEach(id => assignedIds.add(id));
+    Object.entries(roomTypeAmenities).forEach(([roomType, ids]) => {
+      if (isEntireResortListing && roomType !== 'Entire Resort') return;
+      if (countKeys.length > 0 && !countKeys.includes(roomType)) return;
+      if (Array.isArray(ids)) {
+        ids.forEach(id => assignedIds.add(Number(id)));
+      }
     });
-    globalAmenities = amenities.filter(a => !assignedIds.has(a.id));
+    globalAmenities = (amenities || []).filter(a => !assignedIds.has(Number(a.id)));
 
     // 3. Group the rest by room type
     Object.entries(roomTypeAmenities).forEach(([roomType, ids]) => {
-      const validAmenities = ids
-        .map(id => amenityMap.get(id))
-        .filter((a): a is Amenity => a !== undefined);
-      
-      if (validAmenities.length > 0) {
-        groupedAmenities[roomType] = validAmenities;
+      if (isEntireResortListing && roomType !== 'Entire Resort') return;
+      if (countKeys.length > 0 && !countKeys.includes(roomType)) return;
+
+      if (Array.isArray(ids)) {
+        const validAmenities = ids
+          .map(id => resolveAmenity(id))
+          .filter((a): a is Amenity => a !== undefined);
+        
+        if (validAmenities.length > 0) {
+          groupedAmenities[roomType] = validAmenities;
+        }
       }
     });
   } else {
     // Fallback: treat all amenities as global if no grouping data
-    globalAmenities = amenities;
+    globalAmenities = amenities || [];
   }
 
   const renderAmenityGrid = (amenityList: Amenity[], title?: string) => {
     const sectionKey = title || 'Property';
-    const isExpanded = !!expandedSections[sectionKey];
+    const isExpanded = expandedSections[sectionKey] !== undefined ? expandedSections[sectionKey] : true;
 
-    const available = amenityList.filter((a) => a.available);
-    const unavailable = amenityList.filter((a) => !a.available);
+    const available = amenityList.filter((a) => a.available !== false);
+    const unavailable = amenityList.filter((a) => a.available === false);
 
     return (
       <div className="mb-4 last:mb-0">
@@ -72,7 +116,7 @@ const AmenitiesSection = ({ amenities, roomTypeAmenities, roomTypeCounts }: Amen
             className="w-full flex items-center justify-between text-left p-4 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.05] transition-colors group"
         >
             <div className="flex items-center gap-3 text-sm font-bold text-sky-400 uppercase tracking-widest">
-                <Icon name={title === 'Shared' ? 'SparklesIcon' : title ? 'Bed' : 'Squares2X2Icon'} size={18} />
+                <Icon name={title === 'Shared' ? 'Sparkles' : title ? 'Bed' : 'Squares2X2Icon'} size={18} />
                 {title ? `${title} Amenities` : 'All Amenities'}
                 <span className="text-xs text-white/30 ml-2 bg-white/5 px-2 py-0.5 rounded-full">{amenityList.length}</span>
             </div>

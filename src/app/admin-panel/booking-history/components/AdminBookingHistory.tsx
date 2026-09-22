@@ -46,13 +46,15 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
       const bDate = b.created_at ? new Date(b.created_at) : new Date(b.check_in);
       if (isNaN(bDate.getTime())) return false;
 
+      // Exclude pending payments and payment failures - only real success and cancelled bookings belong in history
+      if (b.status === 'pending_payment' || b.status === 'payment_failed') return false;
+
       // 1. Status Filter
       if (statusFilter !== 'all') {
         if (statusFilter === 'confirmed' && b.status !== 'confirmed') return false;
         if (statusFilter === 'completed' && b.status !== 'completed') return false;
         if (statusFilter === 'checked_in' && b.status !== 'checked_in') return false;
-        if (statusFilter === 'cancelled' && b.status !== 'cancelled') return false;
-        if (statusFilter === 'pending_payment' && b.status !== 'pending_payment' && b.status !== 'payment_failed') return false;
+        if (statusFilter === 'cancelled' && b.status !== 'cancelled' && b.status !== 'refunded') return false;
       }
 
       // 2. Search Query Filter
@@ -111,13 +113,19 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
   const metrics = useMemo(() => {
     const totalCount = filteredBookings.length;
     const totalAmount = filteredBookings.reduce((sum, b) => sum + Number(b.total_price || 0), 0);
+    const confirmedBookings = filteredBookings.filter(b => b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed');
+    const adminRevenue = confirmedBookings.reduce((sum, b) => {
+      const fee = b.service_fee ? Number(b.service_fee) : Math.round(Number(b.total_price || 0) * 0.1);
+      return sum + (isNaN(fee) ? 0 : fee);
+    }, 0);
     const avgAmount = totalCount > 0 ? Math.round(totalAmount / totalCount) : 0;
-    const confirmedCount = filteredBookings.filter(b => b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed').length;
+    const confirmedCount = confirmedBookings.length;
     const confirmedRate = totalCount > 0 ? Math.round((confirmedCount / totalCount) * 100) : 0;
 
     return {
       totalCount,
       totalAmount,
+      adminRevenue,
       avgAmount,
       confirmedCount,
       confirmedRate,
@@ -158,7 +166,7 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
     <div className="p-4 sm:p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto">
       
       {/* 1. TOP STATS CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Bookings */}
         <div className="bg-[#0f0f15]/90 border border-white/10 rounded-2xl p-5 shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -174,23 +182,36 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
 
         {/* Total Booking Value */}
         <div className="bg-[#0f0f15]/90 border border-white/10 rounded-2xl p-5 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Total Amount</span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Booking Revenue</span>
+            <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
               <Icon name="BanknotesIcon" size={20} />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-emerald-400">₹{metrics.totalAmount.toLocaleString('en-IN')}</div>
-          <p className="text-[10px] text-zinc-500 mt-1 font-medium">Sum of all total prices</p>
+          <div className="text-2xl sm:text-3xl font-black text-blue-400">₹{metrics.totalAmount.toLocaleString('en-IN')}</div>
+          <p className="text-[10px] text-zinc-500 mt-1 font-medium">Gross booking volume</p>
+        </div>
+
+        {/* Admin Platform Revenue */}
+        <div className="bg-[#0f0f15]/90 border border-white/10 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Admin Revenue</span>
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <Icon name="CurrencyRupeeIcon" size={20} />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-black text-emerald-400">₹{metrics.adminRevenue.toLocaleString('en-IN')}</div>
+          <p className="text-[10px] text-zinc-500 mt-1 font-medium">Platform commission (10%)</p>
         </div>
 
         {/* Avg Booking Value */}
         <div className="bg-[#0f0f15]/90 border border-white/10 rounded-2xl p-5 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Avg Order Value</span>
-            <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+            <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
               <Icon name="ChartBarIcon" size={20} />
             </div>
           </div>
@@ -293,10 +314,11 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
                   <select
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                    className="bg-[#12141f] border border-white/15 rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
+                    style={{ colorScheme: 'dark' }}
+                    className="bg-[#0f111a] border border-white/15 rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500 cursor-pointer [&>option]:bg-[#0f111a] [&>option]:text-white"
                   >
                     {monthNames.map((name, index) => (
-                      <option key={name} value={index}>
+                      <option key={name} value={index} className="bg-[#0f111a] text-white py-1">
                         {name}
                       </option>
                     ))}
@@ -308,10 +330,11 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
                   <select
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    className="bg-[#12141f] border border-white/15 rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
+                    style={{ colorScheme: 'dark' }}
+                    className="bg-[#0f111a] border border-white/15 rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500 cursor-pointer [&>option]:bg-[#0f111a] [&>option]:text-white"
                   >
                     {availableYears.map((yr) => (
-                      <option key={yr} value={yr}>
+                      <option key={yr} value={yr} className="bg-[#0f111a] text-white py-1">
                         {yr}
                       </option>
                     ))}
@@ -369,14 +392,14 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-zinc-300 focus:outline-none focus:border-emerald-500"
+              style={{ colorScheme: 'dark' }}
+              className="bg-[#0f111a] border border-white/15 rounded-xl px-3.5 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500 cursor-pointer shadow-lg [&>option]:bg-[#0f111a] [&>option]:text-white"
             >
-              <option value="all">All Statuses</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="checked_in">Checked In</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="pending_payment">Pending Payment</option>
+              <option value="all" className="bg-[#0f111a] text-white py-1.5">All Statuses</option>
+              <option value="confirmed" className="bg-[#0f111a] text-white py-1.5">Confirmed</option>
+              <option value="checked_in" className="bg-[#0f111a] text-white py-1.5">Checked In</option>
+              <option value="completed" className="bg-[#0f111a] text-white py-1.5">Completed</option>
+              <option value="cancelled" className="bg-[#0f111a] text-white py-1.5">Cancelled</option>
             </select>
 
             <button
@@ -417,8 +440,8 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
                     b.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                     b.status === 'completed' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                     b.status === 'checked_in' ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' :
-                    b.status === 'cancelled' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                    'bg-amber-500/10 text-amber-400 border-amber-500/20';
+                    (b.status === 'cancelled' || b.status === 'refunded') ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                    'bg-zinc-500/10 text-zinc-400 border-zinc-500/20';
 
                   return (
                     <tr key={b.id} className="hover:bg-white/[0.02] transition-colors">
@@ -520,65 +543,139 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
                 <Icon name="XMarkIcon" size={18} />
               </button>
 
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-bold rounded-lg text-sm">
-                  #BK{selectedBooking.id.slice(0, 5).toUpperCase()}
-                </span>
-                <span className="px-3 py-1 bg-white/10 border border-white/20 text-white font-bold text-xs uppercase rounded-full">
-                  {selectedBooking.status}
-                </span>
-              </div>
+              {/* Compute booking financial info */}
+              {(() => {
+                const isBookingPaid =
+                  selectedBooking.status === 'confirmed' ||
+                  selectedBooking.status === 'completed' ||
+                  selectedBooking.status === 'checked_in';
 
-              <div className="space-y-4 divide-y divide-white/10 text-xs">
-                {/* Guest & Property */}
-                <div className="pt-2 space-y-2">
-                  <p className="text-zinc-500 uppercase font-bold tracking-wider text-[10px]">Guest & Property</p>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400">Guest Name:</span>
-                    <span className="font-bold text-white">{selectedBooking.guest?.name || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400">Guest Email:</span>
-                    <span className="font-medium text-zinc-200">{selectedBooking.guest?.email || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400">Property:</span>
-                    <span className="font-bold text-white">{selectedBooking.property?.title || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400">Host Name:</span>
-                    <span className="font-medium text-zinc-200">{selectedBooking.property?.host?.name || 'N/A'}</span>
-                  </div>
-                </div>
+                const isBookingPending =
+                  selectedBooking.status === 'pending_payment' ||
+                  selectedBooking.status === 'pending';
 
-                {/* Dates & Stay */}
-                <div className="pt-3 space-y-2">
-                  <p className="text-zinc-500 uppercase font-bold tracking-wider text-[10px]">Stay Details</p>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400">Check-In:</span>
-                    <span className="font-semibold text-white">{selectedBooking.check_in}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400">Check-Out:</span>
-                    <span className="font-semibold text-white">{selectedBooking.check_out}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-400">Booking Date:</span>
-                    <span className="font-medium text-zinc-300">
-                      {selectedBooking.created_at ? new Date(selectedBooking.created_at).toLocaleString('en-IN') : 'N/A'}
-                    </span>
-                  </div>
-                </div>
+                const isBookingFailed =
+                  selectedBooking.status === 'payment_failed' ||
+                  selectedBooking.status === 'failed';
 
-                {/* Financial Breakdown */}
-                <div className="pt-3 space-y-2">
-                  <p className="text-zinc-500 uppercase font-bold tracking-wider text-[10px]">Financial Summary</p>
-                  <div className="flex justify-between text-sm font-bold text-white pt-1">
-                    <span>Total Amount Paid:</span>
-                    <span className="text-emerald-400 text-lg">₹{Number(selectedBooking.total_price || 0).toLocaleString('en-IN')}</span>
-                  </div>
-                </div>
-              </div>
+                const isBookingCancelled = selectedBooking.status === 'cancelled';
+
+                const totalPrice = Number(selectedBooking.total_price || 0);
+                const paidAmount = isBookingPaid ? totalPrice : 0;
+
+                const modalStatusStyle =
+                  isBookingPaid
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                    : isBookingPending
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    : isBookingFailed
+                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                    : isBookingCancelled
+                    ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                    : 'bg-white/10 text-white border-white/20';
+
+                return (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-bold rounded-lg text-sm">
+                        #BK{selectedBooking.id.slice(0, 5).toUpperCase()}
+                      </span>
+                      <span className={`px-3 py-1 font-bold text-xs uppercase rounded-full border ${modalStatusStyle}`}>
+                        {selectedBooking.status ? selectedBooking.status.replace(/_/g, ' ') : 'UNKNOWN'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-4 divide-y divide-white/10 text-xs">
+                      {/* Guest & Property */}
+                      <div className="pt-2 space-y-2">
+                        <p className="text-zinc-500 uppercase font-bold tracking-wider text-[10px]">Guest & Property</p>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Guest Name:</span>
+                          <span className="font-bold text-white">{selectedBooking.guest?.name || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Guest Email:</span>
+                          <span className="font-medium text-zinc-200">{selectedBooking.guest?.email || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Property:</span>
+                          <span className="font-bold text-white">{selectedBooking.property?.title || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Host Name:</span>
+                          <span className="font-medium text-zinc-200">{selectedBooking.property?.host?.name || 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      {/* Dates & Stay */}
+                      <div className="pt-3 space-y-2">
+                        <p className="text-zinc-500 uppercase font-bold tracking-wider text-[10px]">Stay Details</p>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Check-In:</span>
+                          <span className="font-semibold text-white">{selectedBooking.check_in}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Check-Out:</span>
+                          <span className="font-semibold text-white">{selectedBooking.check_out}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Booking Date:</span>
+                          <span className="font-medium text-zinc-300">
+                            {selectedBooking.created_at ? new Date(selectedBooking.created_at).toLocaleString('en-IN') : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Financial Breakdown */}
+                      <div className="pt-3 space-y-2.5">
+                        <p className="text-zinc-500 uppercase font-bold tracking-wider text-[10px]">Financial Summary</p>
+                        
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-zinc-400">Booking Amount:</span>
+                          <span className="font-bold text-white">₹{totalPrice.toLocaleString('en-IN')}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-zinc-400">Payment Status:</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${modalStatusStyle}`}>
+                            {selectedBooking.status ? selectedBooking.status.replace(/_/g, ' ') : 'UNKNOWN'}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center text-sm font-bold pt-1.5 border-t border-white/10">
+                          <span className="text-zinc-300">
+                            {isBookingPaid ? 'Total Amount Paid:' : 'Amount Paid:'}
+                          </span>
+                          <span className={`text-lg font-black ${isBookingPaid ? 'text-emerald-400' : 'text-zinc-400'}`}>
+                            ₹{paidAmount.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+
+                        {isBookingPending && (
+                          <div className="flex justify-between items-center text-xs text-amber-400 font-semibold bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 mt-1">
+                            <span>Pending / Due Amount:</span>
+                            <span className="font-bold text-sm">₹{totalPrice.toLocaleString('en-IN')}</span>
+                          </div>
+                        )}
+
+                        {isBookingFailed && (
+                          <div className="flex justify-between items-center text-xs text-rose-400 font-semibold bg-rose-500/10 border border-rose-500/20 rounded-xl px-3 py-2 mt-1">
+                            <span>Payment Note:</span>
+                            <span className="font-medium">Transaction Failed (Unpaid)</span>
+                          </div>
+                        )}
+
+                        {isBookingCancelled && (
+                          <div className="flex justify-between items-center text-xs text-red-400 font-semibold bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2 mt-1">
+                            <span>Booking Note:</span>
+                            <span className="font-medium">Booking Cancelled (Unpaid / Inactive)</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </motion.div>
           </div>
         )}

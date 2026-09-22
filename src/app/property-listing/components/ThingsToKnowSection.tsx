@@ -97,15 +97,29 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty, c
                                                         <strong className="text-zinc-100">Platform Fee:</strong> The platform fee is non-refundable in all circumstances.
                                                     </p>
                                                 </li>
+                                                <li className="flex items-start gap-3">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-400 mt-1.5 flex-shrink-0" />
+                                                    <p className="text-[12px] text-zinc-400 leading-relaxed">
+                                                        <strong className="text-zinc-100">StayCool No-Show Rule:</strong> If the guest fails to arrive at the property on the scheduled check-in date and check-in time, it will be considered a No-Show. No refund will be provided for No-Show bookings, unless StayCool&apos;s applicable refund policy applies.
+                                                    </p>
+                                                </li>
                                             </ul>
                                         </div>
                                     </div>
                                 </div>
 
                             ) : (
-                                <p className="text-text-secondary text-sm leading-relaxed whitespace-pre-wrap">
-                                    {cancellationPolicy.description}
-                                </p>
+                                <div className="space-y-4">
+                                    <p className="text-text-secondary text-sm leading-relaxed whitespace-pre-wrap">
+                                        {cancellationPolicy.description}
+                                    </p>
+                                    <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                                        <p className="text-xs font-bold text-rose-400 mb-1">StayCool No-Show Rule:</p>
+                                        <p className="text-xs text-zinc-300 leading-relaxed">
+                                            &ldquo;If the guest fails to arrive at the property on the scheduled check-in date and check-in time, it will be considered a No-Show. No refund will be provided for No-Show bookings, unless StayCool&apos;s applicable refund policy applies.&rdquo;
+                                        </p>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     </div>

@@ -113,51 +113,44 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         notFound();
     }
 
-    const { data: host, error: hostError } = await adminSupabase
-        .from('users')
-        .select('*')
-        .eq('id', property.host_id)
-        .single();
+    const fullAddress = property.show_specific_location
+        ? `${property.address_line1 || ''} ${property.address_line2 || ''}, ${property.city || ''}, ${property.state || ''} ${property.postal_code || ''}`.trim()
+        : property.location;
 
-    if (hostError || !host) {
-        console.error('Error fetching host:', hostError);
+    // Fetch all auxiliary property data and nearby places concurrently in a single parallel batch
+    const [
+        hostRes,
+        hostPersonalInfoRes,
+        reviewsRes,
+        upsellAmenitiesRes,
+        bookingsCountRes,
+        roomsListRes,
+        nearbyPlacesData
+    ] = await Promise.all([
+        adminSupabase.from('users').select('*').eq('id', property.host_id).single(),
+        adminSupabase.from('user_personal_info').select('bio, gender').eq('user_id', property.host_id).single(),
+        adminSupabase.from('reviews').select('*, guest:reviewer_id(name, avatar_url)').eq('property_id', id).order('created_at', { ascending: false }),
+        adminSupabase.from('amenities').select('id, name, description, price, currency, type').eq('host_id', property.host_id).eq('is_active', true).or(`property_id.eq.${id},property_id.is.null`),
+        adminSupabase.from('bookings').select('*', { count: 'exact', head: true }).eq('property_id', id).neq('status', 'cancelled'),
+        adminSupabase.from('rooms').select('room_type').eq('property_id', id),
+        getNearbyPlaces(fullAddress, property.latitude, property.longitude)
+    ]);
+
+    const host = hostRes.data;
+    if (hostRes.error || !host) {
+        console.error('Error fetching host:', hostRes.error);
         notFound();
     }
 
-    const { data: hostPersonalInfo, error: personalInfoError } = await adminSupabase
-        .from('user_personal_info')
-        .select('bio, gender')
-        .eq('user_id', property.host_id)
-        .single();
-
-    const { data: reviews, error: reviewsError } = await adminSupabase
-        .from('reviews')
-        .select('*, guest:reviewer_id(name, avatar_url)')
-        .eq('property_id', id)
-        .order('created_at', { ascending: false });
-
-    const { data: upsellAmenities } = await adminSupabase
-        .from('amenities')
-        .select('id, name, description, price, currency, type')
-        .eq('host_id', property.host_id)
-        .eq('is_active', true)
-        .or(`property_id.eq.${id},property_id.is.null`);
-
-    // Fetch real-time booking count (excluding cancelled)
-    const { count: totalBookingsCount } = await adminSupabase
-        .from('bookings')
-        .select('*', { count: 'exact', head: true })
-        .eq('property_id', id)
-        .neq('status', 'cancelled');
-
-    // Fetch room sub-units to count by type (Single / Double)
-    const { data: roomsList } = await adminSupabase
-        .from('rooms')
-        .select('room_type')
-        .eq('property_id', id);
+    const hostPersonalInfo = hostPersonalInfoRes.data;
+    const personalInfoError = hostPersonalInfoRes.error;
+    const reviews = reviewsRes.data || [];
+    const upsellAmenities = upsellAmenitiesRes.data || [];
+    const totalBookingsCount = bookingsCountRes.count ?? 0;
+    const roomsList = roomsListRes.data || [];
 
     // Build room type counts map
-    const roomTypeCountsMap: Record<string, number> = {};
+    let roomTypeCountsMap: Record<string, number> = {};
     
     // 1. Prioritize distributed counts from properties table if available
     const rawRoomTypeCounts = property.room_type_counts;
@@ -178,12 +171,14 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         });
     }
 
-    // Fetch real-time nearby places using Google Places API
-    const fullAddress = property.show_specific_location
-        ? `${property.address_line1 || ''} ${property.address_line2 || ''}, ${property.city || ''}, ${property.state || ''} ${property.postal_code || ''}`.trim()
-        : property.location;
-    
-    const nearbyPlacesData = await getNearbyPlaces(fullAddress, property.latitude, property.longitude);
+    // If property has 'Entire Resort' in room_types or roomTypeCountsMap, enforce only Entire Resort!
+    if (
+        (property.room_types && Array.isArray(property.room_types) && property.room_types.includes('Entire Resort')) ||
+        roomTypeCountsMap['Entire Resort'] !== undefined
+    ) {
+        roomTypeCountsMap = { 'Entire Resort': 1 };
+    }
+
     const nearbyAttractions = (nearbyPlacesData?.suggestions || []).map((p: { name: string; distance: string; type: string }) => ({
         name: p.name,
         distance: p.distance,
@@ -194,23 +189,59 @@ export default async function PropertyListingPage({ params }: { params: Promise<
     const processAmenities = (amenities: any[]) => {
         if (!amenities || !Array.isArray(amenities)) return [];
         return amenities.map((item: any, index) => {
-            if (typeof item === 'string') {
+            // Check if item is a numeric ID (e.g. 103, 2001) or numeric string (e.g. "103")
+            const numId = typeof item === 'number' ? item : (typeof item === 'string' && !isNaN(Number(item)) && item.trim() !== '') ? Number(item) : null;
+            if (numId !== null) {
+                const standard = AMENITIES.find(a => a.id === numId);
+                if (standard) {
+                    return {
+                        id: standard.id,
+                        name: standard.name,
+                        icon: standard.iconName || 'CheckCircleIcon',
+                        description: standard.description || '',
+                        available: true,
+                    };
+                }
                 return {
-                    id: index,
-                    name: item,
-                    icon: 'CheckCircleIcon', // Default icon
+                    id: numId,
+                    name: `Amenity ${numId}`,
+                    icon: 'CheckCircleIcon',
                     description: '',
                     available: true,
                 };
             }
-            // Fallback for existing amenities with missing icons
-            if (item && typeof item === 'object' && !item.icon) {
-                 const standard = AMENITIES.find(a => a.id === item.id || a.name === item.name);
-                 if (standard) {
-                     return { ...item, icon: standard.iconName };
-                 }
+
+            // String name (e.g. 'Wifi', 'Hot & Cold Water')
+            if (typeof item === 'string') {
+                const standard = AMENITIES.find(a => a.name.toLowerCase() === item.toLowerCase());
+                return {
+                    id: standard ? standard.id : index,
+                    name: standard ? standard.name : item,
+                    icon: standard ? (standard.iconName || 'CheckCircleIcon') : 'CheckCircleIcon',
+                    description: standard ? (standard.description || '') : '',
+                    available: true,
+                };
             }
-            return item;
+
+            // Object format (e.g. { id: 103, name: 'Hot & Cold Water', available: true })
+            if (item && typeof item === 'object') {
+                const standard = AMENITIES.find(a => a.id === Number(item.id) || (item.name && a.name.toLowerCase() === String(item.name).toLowerCase()));
+                return {
+                    id: item.id !== undefined ? Number(item.id) : (standard?.id ?? index),
+                    name: item.name || standard?.name || 'Amenity',
+                    icon: item.icon || standard?.iconName || 'CheckCircleIcon',
+                    description: item.description ?? standard?.description ?? '',
+                    available: item.available !== undefined ? Boolean(item.available) : true,
+                };
+            }
+
+            return {
+                id: index,
+                name: String(item),
+                icon: 'CheckCircleIcon',
+                description: '',
+                available: true,
+            };
         });
     };
 
@@ -235,6 +266,8 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         return parseFloat((sum / validReviews.length).toFixed(1));
     };
 
+    const isEntireResort = (property.tier === 'Resort' && Array.isArray(property.room_types) && property.room_types.includes('Entire Resort')) || (Array.isArray(property.room_types) && property.room_types.length === 1 && property.room_types[0] === 'Entire Resort');
+
     const propertyData = {
         id: property.id,
         name: property.title,
@@ -256,10 +289,12 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         bedrooms: property.bedrooms || 1,
         beds: property.beds || 1,
         bathrooms: property.bathrooms || 1,
-        totalRooms: property.total_rooms || 1,
+        totalRooms: isEntireResort ? 1 : (property.total_rooms || 1),
         area: property.area || 500,
-        highlights: property.amenities && Array.isArray(property.amenities) ? property.amenities.slice(0, 3).map((a: string | Record<string, any>) => typeof a === 'string' ? a : a.name) : ['Great location'],
         amenities: processAmenities(property.amenities),
+        highlights: property.amenities && Array.isArray(property.amenities)
+            ? processAmenities(property.amenities).slice(0, 3).map((a: any) => a.name).filter(Boolean)
+            : ['Great location'],
         upsellAmenities: upsellAmenities || [],
         reviews:
             reviews?.map((review) => ({
@@ -332,11 +367,12 @@ export default async function PropertyListingPage({ params }: { params: Promise<
             { name: 'Value', score: calculateAverage(reviews || [], 'value_rating'), icon: 'TagIcon' }
         ],
         badges: ['Great hospitality', 'Clean', 'Great communication', 'Quiet area', 'Value for money'],
-        bulkBookingDiscount: property.bulk_booking_discount !== undefined && property.bulk_booking_discount !== null ? property.bulk_booking_discount : 10,
+        bulkBookingDiscount: isEntireResort ? 0 : (property.bulk_booking_discount !== undefined && property.bulk_booking_discount !== null ? property.bulk_booking_discount : 10),
         roomTypeCounts: roomTypeCountsMap,
         roomTypeAmenities: property.room_type_amenities || {},
         roomTypePrices: property.room_type_prices || {},
         roomTypeWeekendPrices: property.room_type_weekend_prices || {},
+        roomTypeSpecs: (property as any).room_type_specs || (property.room_type_amenities as any)?._specs || {},
     };
 
     const jsonLd = {

@@ -1,17 +1,21 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Icon from '@/components/ui/AppIcon';
 import { Transaction } from '@/lib/types';
 import SpendingChart from '@/components/common/SpendingChart';
 import { generateInvoicePDF } from '@/lib/pdf-utils';
+import RefundTrackerCard from './RefundTrackerCard';
+import BookingDetailsModal from './BookingDetailsModal';
 
 type FinancialTreasuryProps = {
   transactions: Transaction[];
+  bookings?: any[];
 };
 
-const FinancialTreasury = ({ transactions = [] }: FinancialTreasuryProps) => {
+const FinancialTreasury = ({ transactions = [], bookings = [] }: FinancialTreasuryProps) => {
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const isPayment = (t: Transaction) => t.type === 'payment' || (!t.type && (t.amount || 0) > 0);
 
   const totalSpending = transactions
@@ -43,50 +47,62 @@ const FinancialTreasury = ({ transactions = [] }: FinancialTreasuryProps) => {
         <div className="space-y-3 md:space-y-4">
           <div>
             <h3 className="font-semibold text-sm md:text-base text-gray-300 mb-2 font-sans">Refund Tracker</h3>
-            <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-              {refunds.length > 0 ? (
-                refunds.map((refund) => (
-                  <div
-                    key={refund.id}
-                    className={`border rounded-xl p-3 md:p-4 flex justify-between items-center transition-all hover:scale-[1.01] ${
-                      refund.status === 'pending' 
-                        ? 'bg-yellow-900/10 border-yellow-500/20' 
-                        : 'bg-emerald-900/10 border-emerald-500/20'
-                    }`}
-                  >
-                    <div>
-                      <p className={`font-bold text-xs md:text-sm ${
-                        refund.status === 'pending' ? 'text-yellow-400' : 'text-emerald-400'
-                      }`}>
-                        {refund.status === 'pending' ? 'Refund Pending' : 'Refund Processed'}
-                      </p>
-                      <p className="text-[9px] md:text-[11px] text-zinc-500 mt-0.5">ID: {refund.booking_id}</p>
-                    </div>
-                    <div className="flex items-center gap-3 md:gap-4">
-                      <div className="text-right">
-                        <p className="text-sm md:text-base font-bold text-white font-sans">₹{Math.abs(refund.amount).toLocaleString('en-IN')}</p>
-                        <p className="text-[9px] md:text-[10px] text-zinc-500">{refund.date}</p>
-                      </div>
-                      <button
-                        onClick={() => downloadInvoice(refund)}
-                        className="p-2 md:p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-all text-zinc-400 hover:text-white group"
-                        title="Download Refund Receipt"
-                      >
-                        <Icon name="ArrowDownTrayIcon" size={16} className="group-hover:translate-y-0.5 transition-transform" />
-                      </button>
-                    </div>
+            {(() => {
+              const cancelled = (bookings || []).filter(b => b.status === 'cancelled');
+              if (cancelled.length > 0) {
+                return (
+                  <div className="space-y-3">
+                    {cancelled.slice(0, 2).map(b => (
+                      <RefundTrackerCard
+                        key={b.id}
+                        booking={b}
+                        guestName={transactions[0]?.guestName}
+                        onViewDetails={() => setSelectedBooking(b)}
+                      />
+                    ))}
                   </div>
-                ))
-              ) : (
+                );
+              }
+              if (refunds.length > 0) {
+                return (
+                  <div className="space-y-3">
+                    {refunds.map(refund => {
+                      const matchedBooking = (bookings || []).find(b => b.id === (refund.booking_id || refund.id));
+                      return (
+                        <RefundTrackerCard
+                          key={refund.id}
+                          amount={Math.abs(refund.amount)}
+                          guestName={refund.guestName}
+                          booking={{
+                            cancelled_at: refund.cancellationDate || refund.date,
+                            refund_amount: Math.abs(refund.amount),
+                            refund_status: refund.status
+                          }}
+                          onViewDetails={matchedBooking ? () => setSelectedBooking(matchedBooking) : undefined}
+                        />
+                      );
+                    })}
+                  </div>
+                );
+              }
+              return (
                 <div className="flex flex-col items-center justify-center py-8 md:py-12 bg-white/5 rounded-2xl border border-dashed border-zinc-800">
                   <Icon name="DocumentTextIcon" size={24} className="text-zinc-600 mb-2 md:w-8 md:h-8" />
                   <p className="text-xs md:text-sm text-zinc-500 italic">No refunds to track.</p>
                 </div>
-              )}
-            </div>
+              );
+            })()}
           </div>
         </div>
       </div>
+
+      {selectedBooking && (
+        <BookingDetailsModal
+          booking={selectedBooking}
+          onClose={() => setSelectedBooking(null)}
+          transactions={transactions}
+        />
+      )}
     </div>
   );
 };

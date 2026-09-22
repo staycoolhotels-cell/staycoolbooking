@@ -940,20 +940,45 @@ const HostDashboardInteractive = ({
       const finalSafetyItems = formData.safetyItems.length > 0 ? formData.safetyItems : ['N/A'];
       const finalCancellationPolicy = formData.cancellationPolicy || 'N/A';
 
-      // Calculate minimum room type price if room types are present
+      // Calculate minimum room type price if room types are present and prune unselected room types
       let finalPrice = parseFloat(String(formData.price)) || 0;
       let finalWeekendPrice = parseFloat(String(formData.weekendPrice)) || 0;
-      if (formData.roomTypes && formData.roomTypes.length > 0 && formData.roomTypePrices) {
-        const pricesList = Object.values(formData.roomTypePrices)
-          .map(p => parseFloat(String(p)) || 0)
+      let finalRoomTypePrices = formData.roomTypePrices || {};
+      let finalRoomTypeWeekendPrices = formData.roomTypeWeekendPrices || {};
+      let finalRoomTypeCounts = formData.roomTypeCounts || {};
+      let finalRoomTypeAmenities = formData.roomTypeAmenities || {};
+      let finalRoomTypeSpecs = formData.roomTypeSpecs || {};
+
+      if (formData.roomTypes && formData.roomTypes.length > 0) {
+        const prunedPrices: Record<string, any> = {};
+        const prunedWeekendPrices: Record<string, any> = {};
+        const prunedCounts: Record<string, any> = {};
+        const prunedAmenities: Record<string, any> = {};
+        const prunedSpecs: Record<string, any> = {};
+
+        formData.roomTypes.forEach(rt => {
+          if (formData.roomTypePrices?.[rt] !== undefined) prunedPrices[rt] = formData.roomTypePrices[rt];
+          if (formData.roomTypeWeekendPrices?.[rt] !== undefined) prunedWeekendPrices[rt] = formData.roomTypeWeekendPrices[rt];
+          if (formData.roomTypeCounts?.[rt] !== undefined) prunedCounts[rt] = formData.roomTypeCounts[rt];
+          if (formData.roomTypeAmenities?.[rt] !== undefined) prunedAmenities[rt] = formData.roomTypeAmenities[rt];
+          if (formData.roomTypeSpecs?.[rt] !== undefined) prunedSpecs[rt] = formData.roomTypeSpecs[rt];
+        });
+
+        finalRoomTypePrices = prunedPrices;
+        finalRoomTypeWeekendPrices = prunedWeekendPrices;
+        finalRoomTypeCounts = prunedCounts;
+        finalRoomTypeAmenities = prunedAmenities;
+        finalRoomTypeSpecs = prunedSpecs;
+
+        const pricesList = formData.roomTypes
+          .map(rt => parseFloat(String(prunedPrices[rt])) || 0)
           .filter(p => p > 0);
         if (pricesList.length > 0) {
           finalPrice = Math.min(...pricesList);
         }
-      }
-      if (formData.roomTypes && formData.roomTypes.length > 0 && formData.roomTypeWeekendPrices) {
-        const weekendPricesList = Object.values(formData.roomTypeWeekendPrices)
-          .map(p => parseFloat(String(p)) || 0)
+
+        const weekendPricesList = formData.roomTypes
+          .map(rt => parseFloat(String(prunedWeekendPrices[rt])) || 0)
           .filter(p => p > 0);
         if (weekendPricesList.length > 0) {
           finalWeekendPrice = Math.min(...weekendPricesList);
@@ -994,18 +1019,21 @@ const HostDashboardInteractive = ({
           postal_code: formData.postalCode,
           country: formData.country,
           location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
-          total_rooms: Number(formData.totalRooms) || 0,
+          total_rooms: (['Home Stay', 'Apartment', 'Villa'].includes(String(formData.type)) || (formData.roomTypes && formData.roomTypes.includes('Entire Resort'))) ? 1 : (Number(formData.totalRooms) || 0),
           room_types: formData.roomTypes,
-          room_type_amenities: formData.roomTypeAmenities,
-          room_type_counts: formData.roomTypeCounts,
-          room_type_prices: formData.roomTypePrices,
-          room_type_weekend_prices: formData.roomTypeWeekendPrices,
+          room_type_amenities: {
+            ...finalRoomTypeAmenities,
+            _specs: finalRoomTypeSpecs,
+          },
+          room_type_counts: finalRoomTypeCounts,
+          room_type_prices: finalRoomTypePrices,
+          room_type_weekend_prices: finalRoomTypeWeekendPrices,
           check_in_time: formData.checkInTime,
           check_out_time: formData.checkOutTime,
           latitude: formData.latitude,
           longitude: formData.longitude,
           show_specific_location: true,
-          bulk_booking_discount: Number(formData.bulkBookingDiscount) || 0,
+          bulk_booking_discount: (['Home Stay', 'Apartment', 'Villa'].includes(String(formData.type)) || (formData.roomTypes && formData.roomTypes.includes('Entire Resort'))) ? 0 : (Number(formData.bulkBookingDiscount) || 0),
           standard_price: finalPrice,
           updated_at: new Date().toISOString(),
         };
@@ -1073,18 +1101,21 @@ const HostDashboardInteractive = ({
             postal_code: formData.postalCode || '',
             country: formData.country || '',
             location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
-            total_rooms: Number(formData.totalRooms) || 0,
+            total_rooms: (['Home Stay', 'Apartment', 'Villa'].includes(String(formData.type)) || (formData.roomTypes && formData.roomTypes.includes('Entire Resort'))) ? 1 : (Number(formData.totalRooms) || 0),
             room_types: formData.roomTypes,
-            room_type_amenities: formData.roomTypeAmenities,
-            room_type_counts: formData.roomTypeCounts,
-            room_type_prices: formData.roomTypePrices,
-            room_type_weekend_prices: formData.roomTypeWeekendPrices,
+            room_type_amenities: {
+              ...finalRoomTypeAmenities,
+              _specs: finalRoomTypeSpecs,
+            },
+            room_type_counts: finalRoomTypeCounts,
+            room_type_prices: finalRoomTypePrices,
+            room_type_weekend_prices: finalRoomTypeWeekendPrices,
             check_in_time: formData.checkInTime || '12:00 PM',
             check_out_time: formData.checkOutTime || '11:00 AM',
             latitude: formData.latitude || null,
             longitude: formData.longitude || null,
             show_specific_location: true,
-            bulk_booking_discount: Number(formData.bulkBookingDiscount) || 0,
+            bulk_booking_discount: (['Home Stay', 'Apartment', 'Villa'].includes(String(formData.type)) || (formData.roomTypes && formData.roomTypes.includes('Entire Resort'))) ? 0 : (Number(formData.bulkBookingDiscount) || 0),
             standard_price: finalPrice,
           };
 
@@ -1275,6 +1306,40 @@ const HostDashboardInteractive = ({
         <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-sky-500/5 rounded-full blur-[120px] pointer-events-none" />
 
         <div className="px-4 sm:px-6 lg:px-10 py-6 md:py-8">
+          {/* Non-blocking Banking & KYC Setup Reminder Banner */}
+          {kycStatus !== 'activated' && activeTab !== 'banking-details' && (
+            <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-amber-500/25 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4 text-amber-200 shadow-xl backdrop-blur-md">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/20 shrink-0">
+                  <Banknote className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-white">Banking &amp; KYC Setup Pending</p>
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      Properties Live
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Your properties are live and visible to guests. Set up your banking details whenever you are ready to receive payouts.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('banking-details');
+                  const newParams = new URLSearchParams(searchParams.toString());
+                  newParams.set('tab', 'banking-details');
+                  router.push(`?${newParams.toString()}`, { scroll: false });
+                }}
+                className="shrink-0 px-4 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5"
+              >
+                Complete Setup &rarr;
+              </button>
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -1327,37 +1392,21 @@ const HostDashboardInteractive = ({
                       }}
 
                       onToggleStatus={async (id: string, newStatus: 'active' | 'pending' | 'rejected' | 'offline') => {
-                        if (newStatus === 'active') {
-                          if (!kycStatus || kycStatus !== 'activated') {
-                            toast.error(
-                              <div className="flex flex-col gap-1.5 text-zinc-100">
-                                <span className="font-bold text-red-400 text-sm md:text-base">
-                                  Banking & KYC వెరిఫికేషన్ అవసరం!
-                                </span>
-                                <span className="text-xs md:text-sm text-zinc-300">
-                                  మీ బ్యాంకింగ్ & KYC వెరిఫికేషన్ పూర్తయిన తర్వాతే ప్రాపర్టీని లైవ్ చేయగలరు.
-                                </span>
-                                <span className="text-[10px] md:text-xs text-zinc-400 mt-0.5 italic">
-                                  Please complete and activate your account in the "Banking & KYC" tab before making this property Live.
-                                </span>
-                              </div>,
-                              {
-                                duration: 8000,
-                                className: 'bg-[#0f0f15] border border-red-500/30 rounded-2xl shadow-2xl p-4',
-                              }
-                            );
-                            return;
-                          }
-                        }
                         try {
-                          const { error } = await supabase.rpc('toggle_property_status', {
-                            p_id: id,
-                            p_status: newStatus,
+                          const res = await fetch('/api/properties/update', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              propertyId: id,
+                              updatePayload: { status: newStatus },
+                            }),
                           });
 
-                          if (error) {
-                            console.error('Error toggling status:', error);
-                            toast.error(error.message || 'An unexpected error occurred. Please try again later.');
+                          const json = await res.json();
+
+                          if (!res.ok || json.error) {
+                            console.error('Error toggling status:', json.error);
+                            toast.error(json.error || 'Failed to update property status.');
                             return;
                           }
 
@@ -1368,7 +1417,7 @@ const HostDashboardInteractive = ({
                           toast.success(newStatus === 'active' ? 'Property is now Live!' : 'Property is now Offline.');
                         } catch (err) {
                           console.error('Unexpected error toggling status:', err);
-                          alert('An unexpected error occurred');
+                          toast.error('An unexpected error occurred while toggling status');
                         }
                       }}
                     />

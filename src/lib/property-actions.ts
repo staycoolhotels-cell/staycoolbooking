@@ -190,9 +190,21 @@ export async function addProperty(prevState: unknown, formData: FormData) {
     await logActivity('new_property', `New property added: ${name}`, host_id);
     await createNotification(
       'new_property',
-      'Property Published',
-      `Your property "${name}" was published automatically.`,
-      'success'
+      '🏡 Property Published',
+      `Your property "${name}" has been published and is now live!`,
+      'success',
+      host_id,
+      'host',
+      '/host-dashboard'
+    );
+    await createNotification(
+      'new_property',
+      '📋 New Property Listed',
+      `Host added a new property "${name}".`,
+      'info',
+      null,
+      'admin',
+      '/admin-panel'
     );
 
     // Invalidate caches
@@ -249,9 +261,21 @@ export const createProperty = async (propertyData: Omit<Property, 'id' | 'create
 
   await createNotification(
     'new_property',
-    'Property Published',
-    `Your new property was published automatically.`,
-    'success'
+    '🏡 Property Published',
+    `Your new property was published and is now live!`,
+    'success',
+    user.id,
+    'host',
+    '/host-dashboard'
+  );
+  await createNotification(
+    'new_property',
+    '📋 New Property Listed',
+    `A new property was listed by host.`,
+    'info',
+    null,
+    'admin',
+    '/admin-panel'
   );
 
   // Invalidate caches
@@ -324,7 +348,7 @@ export const updatePropertyRoomTypePrice = async (propertyId: string, roomType: 
   // 1. Manually verify ownership
   const { data: propData, error: propError } = await supabaseAdmin
     .from('properties')
-    .select('host_id, room_type_prices')
+    .select('host_id, room_types, room_type_prices')
     .eq('id', propertyId)
     .single();
 
@@ -345,8 +369,14 @@ export const updatePropertyRoomTypePrice = async (propertyId: string, roomType: 
     [roomType]: suggestedPrice.toString()
   };
 
-  // Find minimum price of all room types to update price_per_night and standard_price
-  const pricesList = Object.values(updatedPrices).map(p => parseFloat(String(p)) || 0).filter(p => p > 0);
+  // Find minimum price of active room types to update price_per_night and standard_price
+  const propRoomTypes = (propData as any).room_types;
+  const activeRoomTypes = Array.isArray(propRoomTypes) && propRoomTypes.length > 0
+    ? propRoomTypes
+    : Object.keys(updatedPrices);
+  const pricesList = activeRoomTypes
+    .map((rt: string) => parseFloat(String(updatedPrices[rt])) || 0)
+    .filter((p: number) => p > 0);
   const minPrice = pricesList.length > 0 ? Math.min(...pricesList) : 0;
 
   const updateFields: any = {

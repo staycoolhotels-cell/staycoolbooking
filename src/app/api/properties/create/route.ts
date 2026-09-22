@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase-server';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { revalidateTag, revalidatePath } from 'next/cache';
 import { CACHE_TAGS } from '@/lib/data-service';
+import { sendTargetedNotification } from '@/lib/activity-actions';
 
 // Server-side admin client — bypasses PostgREST schema cache entirely
 const supabaseAdmin = createSupabaseAdmin(
@@ -117,6 +118,31 @@ export async function POST(request: NextRequest) {
     revalidateTag(CACHE_TAGS.host_properties(hostId));
     revalidatePath('/homepage', 'page');
     revalidatePath('/', 'layout');
+
+    // Real-time notifications for Host and Admin
+    try {
+      const propName = property.title || property.name || 'Listing';
+      await sendTargetedNotification({
+        type: 'new_property',
+        title: '🎉 Listing Published!',
+        message: `"${propName}" is now live on StayCool for guest bookings.`,
+        status: 'success',
+        userId: hostId,
+        targetRole: 'host',
+        url: '/host-dashboard',
+      });
+      await sendTargetedNotification({
+        type: 'new_property',
+        title: '🏨 New Listing Added',
+        message: `A host listed a new property: "${propName}".`,
+        status: 'info',
+        userId: null,
+        targetRole: 'admin',
+        url: '/admin-panel',
+      });
+    } catch (notifErr) {
+      console.warn('Property creation notification note:', notifErr);
+    }
 
     return NextResponse.json({ data: property });
   } catch (err) {

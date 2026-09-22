@@ -73,7 +73,8 @@ export async function POST(req: Request) {
             : { data: null };
         const referralActive = Boolean(hostProfile?.referred_by && (hostProfile?.referral_commissions_remaining || 0) > 0);
         const commissionValue = referralActive ? 5 : 10;
-        const guestServiceFee = Number((booking.service_fee || 0));
+        // Platform service fee is strictly 100% retained by Admin. It must never be shared with host.
+        const guestServiceFee = Number(booking.service_fee) || Math.round((totalAmount * 0.1) / 1.1);
         const hostRevenue = Math.max(0, totalAmount - guestServiceFee);
         const hostCommission = Number((hostRevenue * (commissionValue / 100)).toFixed(2));
         const hostAmount = Number((hostRevenue - hostCommission).toFixed(2));

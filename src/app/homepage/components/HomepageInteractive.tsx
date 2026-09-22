@@ -88,12 +88,22 @@ const mapPropertyForCard = (property: Property): PropertyForCard => {
     displayImages = [{ url: '/assets/images/no_image.png', alt: 'No Image' }];
   }
 
+  let displayPrice = property.price_per_night || 0;
+  if (property.room_types && Array.isArray(property.room_types) && property.room_types.length > 0 && property.room_type_prices) {
+    const activePrices = property.room_types
+      .map((rt: string) => parseFloat(String((property.room_type_prices as any)[rt])) || 0)
+      .filter((p: number) => p > 0);
+    if (activePrices.length > 0) {
+      displayPrice = Math.min(...activePrices);
+    }
+  }
+
   return {
     id: property.id,
     title: property.title || property.name,
     location: property.location,
     type: property.tier || 'Elite',
-    price: property.price_per_night || 0,
+    price: displayPrice,
     rating: parseFloat((Math.random() * (5.0 - 4.0) + 4.0).toFixed(2)), // Random rating 4.0-5.0
     reviews: Math.floor(Math.random() * 200) + 10, // Random reviews
     images: displayImages,

@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { createPortal } from 'react-dom';
 import ActionConfirmModal from '@/components/ui/ActionConfirmModal';
 import GuestDetailsModal from './GuestDetailsModal';
+import { calculateRefundDistribution } from '@/lib/refund-policy';
 
 interface BookingCardProps {
   booking: Booking;
@@ -135,77 +136,211 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
 
   const statusStyles = getStatusStyles(booking.status);
 
+  const hostPricing = (() => {
+    const nights = Math.max(1, Math.round((new Date(booking.check_out).getTime() - new Date(booking.check_in).getTime()) / (1000 * 60 * 60 * 24)));
+    const totalAmount = Number(booking.total_price || 0);
+    const isBulkBooking = booking.booking_type === 'bulk';
+    const discountPct = isBulkBooking ? ((booking.bulk_booking_discount || (booking as any).properties?.bulk_booking_discount || 0) / 100) : 0;
+    const amenitiesTotal = (booking as any).amenities && Array.isArray((booking as any).amenities) && (booking as any).amenities.length > 0
+      ? (booking as any).amenities.reduce((sum: number, amenity: any) => sum + ((Number(amenity.price) || 0) * (Number(amenity.count) || 1)), 0)
+      : 0;
+    const freeCancellationFee = booking.free_cancellation_fee || 0;
+
+    let baseAccommodation = 0;
+    if (booking.room_type) {
+      booking.room_type.split(', ').forEach((type) => {
+        const match = type.match(/^(.*)\s\((\d+)\)(?:\s(?:₹|Rs\.)\s?([\d,.]+))?$/);
+        const count = match ? parseInt(match[2]) : 1;
+        const pricePerUnit = match && match[3] ? parseFloat(match[3].replace(/,/g, '')) : 0;
+        baseAccommodation += count * pricePerUnit * nights;
+      });
+    }
+
+    const netAccommodationFromTotal = totalAmount > 0
+      ? Math.round((Math.max(0, totalAmount - amenitiesTotal - freeCancellationFee) / 1.1) / (discountPct < 1 ? (1 - discountPct) : 1))
+      : 0;
+
+    if (baseAccommodation === 0 || (netAccommodationFromTotal > 0 && Math.abs(baseAccommodation - netAccommodationFromTotal) > 50)) {
+      if (netAccommodationFromTotal > 0) {
+        baseAccommodation = netAccommodationFromTotal;
+      } else {
+        const propPrice = Number((booking.properties as any)?.standard_price || (booking.properties as any)?.price_per_night || (booking.properties as any)?.price || 0);
+        if (propPrice > 0) {
+          baseAccommodation = propPrice * nights;
+        }
+      }
+    }
+
+    const hostBaseAmount = baseAccommodation;
+    const hostGrossAmount = hostBaseAmount + amenitiesTotal;
+    const hostCommission = Math.round(hostGrossAmount * 0.10);
+    const hostPayout = Math.max(0, hostGrossAmount - hostCommission);
+
+    let hostPenaltyShare = 0;
+    if (booking.status === 'cancelled') {
+      const cancelDate = booking.cancelled_at ? new Date(booking.cancelled_at) : new Date(booking.created_at || Date.now());
+      const dist = calculateRefundDistribution(
+        totalAmount,
+        booking.check_in,
+        cancelDate,
+        booking.created_at,
+        booking.has_free_cancellation,
+        freeCancellationFee
+      );
+      hostPenaltyShare = dist.hostShare;
+    }
+
+    return {
+      nights,
+      totalAmount,
+      isBulkBooking,
+      discountPct,
+      amenitiesTotal,
+      freeCancellationFee,
+      hostBaseAmount,
+      hostGrossAmount,
+      hostCommission,
+      hostPayout,
+      hostPenaltyShare
+    };
+  })();
+
+  const roomDetails = (() => {
+    const nights = hostPricing.nights;
+    const totalRooms = booking.total_rooms_booked || 1;
+    const baseAmount = hostPricing.hostBaseAmount;
+    const unitPricePerNight = baseAmount > 0 ? Math.round(baseAmount / (nights * totalRooms)) : 0;
+
+    // 1. If explicit room_type was set (from booking_rooms):
+    if (booking.room_type) {
+      const match = booking.room_type.match(/^(.*?)(?:\s(?:₹|Rs\.)\s?([\d,.]+))?$/);
+      if (match) {
+        const name = match[1].trim();
+        const price = match[2] ? `₹${match[2]}` : (unitPricePerNight > 0 ? `₹${unitPricePerNight.toLocaleString('en-IN')}` : '');
+        return { name, price, fullString: `${name}${price ? ` ${price}` : ''}`, unitPricePerNight };
+      }
+      const price = unitPricePerNight > 0 ? `₹${unitPricePerNight.toLocaleString('en-IN')}` : '';
+      return { name: booking.room_type, price, fullString: `${booking.room_type}${price ? ` ${price}` : ''}`, unitPricePerNight };
+    }
+
+    // 2. Derive room type name based on property tier, room types, and booking price
+    const propTier = (((booking.properties as any)?.tier || (booking.properties as any)?.type || '') as string).trim().toLowerCase();
+    const propertyRoomTypes: string[] = Array.isArray((booking.properties as any)?.room_types)
+      ? (booking.properties as any).room_types
+      : ((booking.properties as any)?.room_type_counts ? Object.keys((booking.properties as any).room_type_counts) : []);
+
+    let name = '';
+
+    if (propTier === 'resort') {
+      const standardPrice = Number((booking.properties as any)?.standard_price || 0);
+      // Entire Resort is ONLY valid if the booking rate per night is consistent with an Entire Resort buyout (e.g. >= 10,000 or >= 50% standard_price)
+      const isEntireResortRate = unitPricePerNight >= Math.min(10000, standardPrice > 0 ? standardPrice * 0.5 : 10000);
+      const hasEntireResort = propertyRoomTypes.includes('Entire Resort');
+
+      if (hasEntireResort && isEntireResortRate) {
+        name = `Entire Resort (${totalRooms})`;
+      } else {
+        const nonEntireTypes = propertyRoomTypes.filter(t => t !== 'Entire Resort');
+        name = nonEntireTypes.length > 0 ? `${nonEntireTypes[0]} (${totalRooms})` : `Standard Room (${totalRooms})`;
+      }
+    } else if (propTier === 'home stay' || propTier === 'homestay') {
+      name = `Entire Home (${totalRooms})`;
+    } else if (propTier === 'apartment') {
+      name = `Entire Apartment (${totalRooms})`;
+    } else if (propTier === 'villa') {
+      name = `Entire Villa (${totalRooms})`;
+    } else if (propTier === 'tent' || propTier === 'camp' || propTier === 'tents') {
+      name = `Tent (${totalRooms})`;
+    } else if (propTier === 'hotel') {
+      const nonEntireTypes = propertyRoomTypes.filter(t => t !== 'Entire Resort');
+      if (nonEntireTypes.length > 0) {
+        const roomTypePrices = (booking.properties as any)?.room_type_prices || {};
+        let closestType = nonEntireTypes[0];
+        let smallestDiff = Infinity;
+        for (const t of nonEntireTypes) {
+          if (roomTypePrices[t]) {
+            const diff = Math.abs(Number(roomTypePrices[t]) - unitPricePerNight);
+            if (diff < smallestDiff) {
+              smallestDiff = diff;
+              closestType = t;
+            }
+          }
+        }
+        name = `${closestType} (${totalRooms})`;
+      } else {
+        name = `Standard Room (${totalRooms})`;
+      }
+    } else {
+      const nonEntireTypes = propertyRoomTypes.filter(t => t !== 'Entire Resort');
+      name = nonEntireTypes.length > 0 ? `${nonEntireTypes[0]} (${totalRooms})` : `Standard Room (${totalRooms})`;
+    }
+
+    // 3. Price to display: based on actual booking base accommodation rate per night
+    let price = '';
+    if (unitPricePerNight > 0) {
+      price = `₹${unitPricePerNight.toLocaleString('en-IN')}`;
+    } else {
+      const fallbackPrice = Number((booking.properties as any)?.standard_price || (booking.properties as any)?.price_per_night || (booking.properties as any)?.price || 0);
+      if (fallbackPrice > 0) {
+        price = `₹${fallbackPrice.toLocaleString('en-IN')}`;
+      }
+    }
+
+    return {
+      name,
+      price,
+      fullString: `${name}${price ? ` ${price}` : ''}`,
+      unitPricePerNight
+    };
+  })();
+
+  const displayRoomTypes = roomDetails.fullString;
+
   const handleDownloadInvoice = async () => {
     try {
-      const nights = Math.max(1, Math.round((new Date(booking.check_out).getTime() - new Date(booking.check_in).getTime()) / (1000 * 60 * 60 * 24)));
-      const discountPct = (booking.bulk_booking_discount || (booking as any).properties?.bulk_booking_discount || 0) / 100;
+      const nights = hostPricing.nights;
+      const isBulkBooking = hostPricing.isBulkBooking;
+      const displayRoomType = roomDetails.fullString;
 
-      const displayRoomType = (() => {
-        if (booking.room_type) return booking.room_type;
-        const totalRooms = booking.total_rooms_booked || 1;
-        const propertyRoomTypes = (booking.properties as any)?.room_types || 
-                              ((booking.properties as any)?.room_type_counts 
-                                ? Object.keys((booking.properties as any).room_type_counts) 
-                                : []);
-        const standardPrice = booking.properties?.standard_price || booking.properties?.price || 0;
-        if (propertyRoomTypes.length > 0) {
-            return `${propertyRoomTypes[0]} (${totalRooms})${standardPrice ? ` ₹${Number(standardPrice).toLocaleString('en-IN')}` : ''}`;
-        }
-        return `Standard Room (${totalRooms})${standardPrice ? ` ₹${Number(standardPrice).toLocaleString('en-IN')}` : ''}`;
-      })();
-
-      // Compute pre-discount base from room_type breakdown × nights
-      let baseAccommodationFromRoomType = 0;
-      if (displayRoomType) {
-        displayRoomType.split(', ').forEach((type) => {
-            const match = type.match(/^(.*)\s\((\d+)\)(?:\s(?:₹|Rs\.)\s?([\d,.]+))?$/);
-            const count = match ? parseInt(match[2]) : 1;
-            const pricePerUnit = match && match[3] ? parseFloat(match[3].replace(/,/g, '')) : 0;
-            baseAccommodationFromRoomType += count * pricePerUnit * nights;
-        });
-      }
-
-      // Amenities & Cancellation Fee (Only include amenities if explicitly selected by guest)
-      const amenitiesTotalFromBooking = (booking as any).amenities && Array.isArray((booking as any).amenities) && (booking as any).amenities.length > 0
-        ? (booking as any).amenities.reduce((sum: number, amenity: any) => sum + ((Number(amenity.price) || 0) * (Number(amenity.count) || 1)), 0)
-        : 0;
-      const freeCancellationFee = booking.free_cancellation_fee || 0;
-
-      const amenitiesTotal = amenitiesTotalFromBooking;
-
-      let baseAccommodation = 0;
-      let serviceFee = 0;
-      let discountSavings = 0;
-
-      // Source of truth for display: room breakdown if available, else reverse-engineer from total_price
-      if (baseAccommodationFromRoomType > 0) {
-        baseAccommodation = baseAccommodationFromRoomType;
-        serviceFee = Math.round(baseAccommodation * 0.1);
-        discountSavings = Math.round(baseAccommodation * discountPct);
-      } else {
-        // Reverse engineer from total_price
-        const accommodationAndFee = Math.max(0, booking.total_price - amenitiesTotal - freeCancellationFee);
-        baseAccommodation = Math.round(accommodationAndFee / (1.1 - discountPct));
-        serviceFee = Math.round(baseAccommodation * 0.1);
-        discountSavings = Math.round(baseAccommodation * discountPct);
-      }
+      const baseAccommodation = hostPricing.hostBaseAmount > 0
+        ? hostPricing.hostBaseAmount
+        : Math.round(Math.max(0, booking.total_price - hostPricing.amenitiesTotal - hostPricing.freeCancellationFee) / (1.1 - hostPricing.discountPct));
+      const serviceFee = Math.round(baseAccommodation * 0.1);
+      const discountSavings = Math.round(baseAccommodation * hostPricing.discountPct);
 
       const computedBreakdown = {
         accommodation: baseAccommodation,
         service_fee: serviceFee,
         taxes: 0,
-        discount: booking.booking_type === 'bulk' ? discountSavings : 0,
-        upgrades: amenitiesTotal,
-        cancellation_fee: freeCancellationFee
+        discount: isBulkBooking ? discountSavings : 0,
+        upgrades: hostPricing.amenitiesTotal,
+        cancellation_fee: hostPricing.freeCancellationFee
       };
 
       const formatDate = (dateString: string) => {
         const d = new Date(dateString);
         const day = String(d.getDate()).padStart(2, '0');
-        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const month = months[d.getMonth()];
         const year = d.getFullYear();
-        return `${day}/${month}/${year}`;
+        return `${day} ${month} ${year}`;
       };
+
+      const isCancelled = booking.status === 'cancelled' || booking.status === 'refunded';
+      if (booking.status === 'pending_payment' || booking.status === 'payment_failed') {
+        toast.error('Invoice is not available for unpaid or pending payment bookings.');
+        return;
+      }
+      const cancelDateObj = booking.cancelled_at ? new Date(booking.cancelled_at) : new Date(booking.created_at || Date.now());
+      const computedRefund = calculateRefundDistribution(
+        Number(booking.total_price || 0),
+        booking.check_in,
+        cancelDateObj,
+        booking.created_at,
+        booking.has_free_cancellation,
+        booking.free_cancellation_fee || 0
+      );
+      const refundAmount = (booking as any).refund_amount || computedRefund.guestRefundAmount || 0;
 
       const transactionData = {
         id: booking.id,
@@ -213,14 +348,27 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
         amount: booking.total_price,
         date: formatDate(booking.created_at),
         status: booking.status,
-        type: (booking.status === 'cancelled' || booking.status === 'refunded') ? 'refund' : 'payment',
+        type: isCancelled ? 'refund' : 'payment',
         guestName: booking.guest?.name || 'Valued Guest',
+        hostName: (booking.properties as any)?.host?.name || 'Host',
         guestAddress: (booking.guest as any)?.email || 'Address not provided',
         propertyName: booking.properties?.title || booking.properties?.name || 'Property',
         booking_id: booking.id,
         room_type: displayRoomType,
         paymentMethod: 'Razorpay',
-        breakdown: computedBreakdown
+        breakdown: computedBreakdown,
+        bookingDate: formatDate(booking.created_at),
+        checkIn: formatDate(booking.check_in),
+        checkOut: formatDate(booking.check_out),
+        nights: nights,
+        appliedPolicy: computedRefund.appliedPolicy,
+        daysBeforeCheckIn: computedRefund.daysBeforeCheckIn,
+        refundPercentage: computedRefund.guestRefundPercent,
+        cancellationDate: booking.cancelled_at ? formatDate(booking.cancelled_at) : undefined,
+        refundAmount: refundAmount,
+        retainedPenalty: Math.max(0, computedRefund.netRefundablePool - computedRefund.guestRefundAmount),
+        retainedServiceFee: computedRefund.commissionAmount,
+        netRefundablePool: computedRefund.netRefundablePool
       };
 
       await generateInvoicePDF(transactionData as any);
@@ -231,45 +379,6 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
     }
   };
 
-  const displayRoomTypes = (() => {
-    if (booking.room_type) return booking.room_type;
-    
-    const totalRooms = booking.total_rooms_booked || 1;
-    const propertyRoomTypes = (booking.properties as any)?.room_types || 
-                          ((booking.properties as any)?.room_type_counts 
-                            ? Object.keys((booking.properties as any).room_type_counts) 
-                            : []);
-                            
-    if (propertyRoomTypes.length > 0) {
-      return `${propertyRoomTypes[0]} (${totalRooms})`;
-    }
-    return `Standard Room (${totalRooms})`;
-  })();
-
-  const parseRoomDetails = () => {
-    const rawStr = displayRoomTypes;
-    let name = rawStr;
-    let price = '';
-
-    const match = rawStr.match(/^(.*?)(?:\s(?:₹|Rs\.)\s?([\d,.]+))?$/);
-    if (match) {
-      name = match[1].trim();
-      if (match[2]) {
-        price = `₹${match[2]}`;
-      }
-    }
-
-    if (!price) {
-      const computedPrice = booking.total_price || (booking.properties as any)?.standard_price || (booking.properties as any)?.price;
-      if (computedPrice && computedPrice > 0) {
-        price = `₹${Number(computedPrice).toLocaleString('en-IN')}`;
-      }
-    }
-
-    return { name, price };
-  };
-
-  const roomDetails = parseRoomDetails();
   const bookingCode = (booking as any).booking_code
     ? `#${(booking as any).booking_code}`
     : `#BK${booking.id.slice(0, 5).toUpperCase()}`;
@@ -315,7 +424,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
               </h3>
               <p className="text-xs md:text-sm text-zinc-400 font-bold flex items-center gap-1.5 mt-0.5 break-words">
                 <Icon name="HomeIcon" size={14} className="text-emerald-400/80 shrink-0" />
-                <span className="opacity-90">{booking.properties?.title || booking.properties?.name || 'Casa jabu'}</span>
+                <span className="opacity-90">{booking.properties?.title || booking.properties?.name || 'Property'}</span>
               </p>
             </div>
           </div>
@@ -404,8 +513,18 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                     <span className="text-sm md:text-base font-black text-white">
                       {roomDetails.price}
                     </span>
-                    <span className="text-[9px] md:text-[10px] font-black text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                      Payout: ₹{Math.max(0, Math.round((booking.total_price || 0) * 0.9)).toLocaleString('en-IN')}
+                    <span className={`text-[9px] md:text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                      booking.status === 'cancelled'
+                        ? hostPricing.hostPenaltyShare > 0
+                          ? 'text-amber-400 bg-amber-500/15 border border-amber-500/30'
+                          : 'text-rose-400 bg-rose-500/15 border border-rose-500/30'
+                        : 'text-emerald-400 bg-emerald-500/15 border border-emerald-500/30'
+                    }`}>
+                      {booking.status === 'cancelled'
+                        ? hostPricing.hostPenaltyShare > 0
+                          ? `Payout: +₹${hostPricing.hostPenaltyShare.toLocaleString('en-IN')}`
+                          : 'Payout: Cancelled'
+                        : `Payout: ₹${hostPricing.hostPayout.toLocaleString('en-IN')}`}
                     </span>
                   </div>
                 )}

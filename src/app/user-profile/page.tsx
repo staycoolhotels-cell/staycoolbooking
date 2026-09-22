@@ -7,8 +7,10 @@ import { calculateRefundAmount } from '@/lib/refund-policy';
 import { autoProcessCheckedInBookings } from '@/lib/booking-actions';
 
 export default async function ProfilePage() {
-  // Automatically check-in bookings that have arrived on or before today
-  await autoProcessCheckedInBookings();
+  // Automatically process check-in bookings asynchronously in background without blocking page render
+  autoProcessCheckedInBookings().catch((err) => {
+    console.error('[AutoCheckIn background error in ProfilePage]:', err);
+  });
 
   const cookieStore = await cookies();
   const supabase = createServerClient(
@@ -60,58 +62,45 @@ export default async function ProfilePage() {
     redirect('/');
   }
 
+  // Concurrently fetch all auxiliary profile data in a single parallel batch
+  const [
+    profilePointsRes,
+    personalInfoRes,
+    verificationsRes,
+    reviewsRes,
+    bookingsRes,
+    activitiesRes
+  ] = await Promise.all([
+    supabase.from('profiles').select('reward_points').eq('id', user.id).maybeSingle(),
+    supabase.from('user_personal_info').select('*').eq('user_id', user.id).maybeSingle(),
+    supabase.from('verifications').select('*').eq('user_id', user.id).maybeSingle(),
+    supabase.from('reviews').select('*, reviewer:users!reviewer_id(name)').eq('receiver_id', user.id),
+    supabase
+      .from('bookings')
+      .select('*, properties!inner(*, host:users!host_id(name, avatar:avatar_url)), booking_rooms(rooms(room_type))')
+      .eq('guest_id', user.id)
+      .order('created_at', { ascending: false }),
+    supabase.from('activities').select('*').eq('type', 'booking_amenities').eq('user_id', user.id),
+  ]);
+
   const userData = {
     ...profile,
     email: user.email,
     name: user.user_metadata.name || profile.name,
     avatar_url: user.user_metadata.avatar_url || profile.avatar_url,
-    reward_points: 0, // Default value
+    reward_points: profilePointsRes.data?.reward_points ?? 0,
   };
 
-  const { data: profilePoints } = await supabase
-    .from('profiles')
-    .select('reward_points')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (profilePoints) {
-    userData.reward_points = profilePoints.reward_points;
-  }
-
-  const { data: personalInfo, error: personalInfoError } = await supabase
-    .from('user_personal_info')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  const { data: verifications, error: verificationsError } = await supabase
-    .from('verifications')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  const { data: rawReviews, error: reviewsError } = await supabase
-    .from('reviews')
-    .select('*, reviewer:users!reviewer_id(name)')
-    .eq('receiver_id', user.id);
+  const personalInfo = personalInfoRes.data;
+  const verifications = verificationsRes.data;
+  const rawReviews = reviewsRes.data;
+  const rawBookings = bookingsRes.data;
+  const bookingActivities = activitiesRes.data;
 
   const reviews = rawReviews?.map((rev: any) => ({
     ...rev,
     guestName: rev.reviewer?.name || 'Host',
   })) || [];
-
-  const { data: rawBookings, error: bookingsError } = await supabase
-    .from('bookings')
-    .select('*, properties!inner(*, host:users!host_id(name, avatar:avatar_url)), booking_rooms(rooms(room_type))')
-    .eq('guest_id', user.id)
-    .order('created_at', { ascending: false });
-
-  // Fetch amenities log from activities table to load selected amenities
-  const { data: bookingActivities } = await supabase
-    .from('activities')
-    .select('*')
-    .eq('type', 'booking_amenities')
-    .eq('user_id', user.id);
 
   const bookings = (rawBookings || []).map((b: any) => {
     const activity = (bookingActivities || []).find((a: any) => {

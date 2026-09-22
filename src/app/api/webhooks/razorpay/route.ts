@@ -105,7 +105,8 @@ export async function POST(req: Request) {
 
                         if (booking) {
                             const amount = Number(booking.total_price);
-                            const guestServiceFee = Number(booking.service_fee || 0);
+                            // Platform service fee is strictly 100% retained by Admin. It must never be shared with host.
+                            const guestServiceFee = Number(booking.service_fee) || Math.round((amount * 0.1) / 1.1);
                             const hostRevenue = Math.max(0, amount - guestServiceFee);
                             const hostPayout = Number((hostRevenue * 0.90).toFixed(2));
                             const platformFee = Number((amount - hostPayout).toFixed(2));
@@ -123,12 +124,44 @@ export async function POST(req: Request) {
                                     status: 'completed'
                                 });
                             
-                            // Log Notification for Admin
+                            const propTitle = booking.property?.title || 'Hotel Stay';
+                            const bookingRef = `#${bookingId.slice(0, 8).toUpperCase()}`;
+
+                            // 1. Guest Notification
+                            if (booking.guest_id) {
+                                await createNotification(
+                                    'booking',
+                                    '🎉 Booking Confirmed!',
+                                    `Your reservation ${bookingRef} for "${propTitle}" is confirmed. Enjoy your stay!`,
+                                    'success',
+                                    booking.guest_id,
+                                    'guest',
+                                    '/user-profile'
+                                );
+                            }
+
+                            // 2. Host Notification
+                            if (booking.property?.host_id) {
+                                await createNotification(
+                                    'booking',
+                                    '🏨 New Reservation Received!',
+                                    `New booking ${bookingRef} for "${propTitle}". Total: ₹${amount}. Payout scheduled on check-in.`,
+                                    'success',
+                                    booking.property.host_id,
+                                    'host',
+                                    '/host-dashboard'
+                                );
+                            }
+
+                            // 3. Admin Notification
                             await createNotification(
                                 'booking',
-                                'New Booking Payment',
-                                `Payment captured for booking ${bookingId}. Amount: ₹${amount}`,
-                                'success'
+                                '💼 Booking Payment Captured',
+                                `Payment captured for booking ${bookingRef}. Amount: ₹${amount}, Commission: ₹${platformFee}.`,
+                                'success',
+                                null,
+                                'admin',
+                                '/admin-panel'
                             );
                         }
                     } catch (txnError) {
@@ -186,12 +219,35 @@ export async function POST(req: Request) {
 
                 console.log(`[Webhook] transfer.settled: Transfer ${razorpayTransferId} settled.`);
                 
+                // Find host to notify
+                const { data: xfer } = await supabase
+                    .from('payment_transfers')
+                    .select('host_amount, booking_id, bookings(property:properties(host_id))')
+                    .eq('razorpay_payment_id', razorpaySourceId)
+                    .maybeSingle();
+
+                const hostId = (xfer as any)?.bookings?.property?.host_id;
+                if (hostId) {
+                    await createNotification(
+                        'payout',
+                        '💰 Payout Settled!',
+                        `Host payout of ₹${xfer?.host_amount || ''} for booking #${xfer?.booking_id?.slice(0, 8) || ''} has been settled to your bank account.`,
+                        'success',
+                        hostId,
+                        'host',
+                        '/host-dashboard'
+                    );
+                }
+
                 // Log Notification for Admin
                 await createNotification(
                     'payout',
-                    'Withdrawal Processed',
+                    '💼 Host Payout Settled',
                     `Payout transfer ${razorpayTransferId} has been settled successfully.`,
-                    'success'
+                    'success',
+                    null,
+                    'admin',
+                    '/admin-panel'
                 );
                 break;
             }
@@ -285,12 +341,34 @@ export async function POST(req: Request) {
                     
                     console.log(`[Webhook] refund.processed: Booking ${bookingId} marked as refunded.`);
                     
-                    // 3. Log Notification for Admin
+                    const refundRupees = refund.amount / 100;
+                    // 3. Notify Guest and Admin
+                    const { data: bData } = await supabase
+                        .from('bookings')
+                        .select('guest_id')
+                        .eq('id', bookingId)
+                        .maybeSingle();
+
+                    if (bData?.guest_id) {
+                        await createNotification(
+                            'booking',
+                            '💰 Refund Processed',
+                            `Refund of ₹${refundRupees} has been processed for booking #${bookingId.slice(0, 8)}.`,
+                            'success',
+                            bData.guest_id,
+                            'guest',
+                            '/user-profile'
+                        );
+                    }
+
                     await createNotification(
                         'booking',
-                        'Refund Processed',
-                        `Refund of ₹${refund.amount / 100} processed for booking ${bookingId}.`,
-                        'info'
+                        '🔄 Refund Processed',
+                        `Refund of ₹${refundRupees} processed for booking #${bookingId.slice(0, 8)}.`,
+                        'info',
+                        null,
+                        'admin',
+                        '/admin-panel'
                     );
                 } else if (razorpayPaymentId) {
                     // Fallback: Find booking by payment ID if booking_id not in notes

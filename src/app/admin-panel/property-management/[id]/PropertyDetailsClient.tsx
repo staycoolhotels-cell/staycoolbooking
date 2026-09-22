@@ -758,7 +758,11 @@ const PropertyDetailsClient = ({ property, kycRecord }: PropertyDetailsClientPro
                         <div className="grid grid-cols-2 gap-3">
                             {currentProperty.amenities?.map((amenity, i) => {
                                 if (!amenity) return null;
-                                const name = typeof amenity === 'string' ? amenity : (amenity as any).name;
+                                const name = typeof amenity === 'string' 
+                                    ? amenity 
+                                    : typeof amenity === 'number'
+                                        ? (AMENITIES.find(a => a.id === amenity)?.name || `Amenity #${amenity}`)
+                                        : (amenity as any).name || (AMENITIES.find(a => a.id === Number((amenity as any).id))?.name);
                                 if (!name) return null;
                                 return (
                                     <div key={i} className="flex items-center gap-2 p-2 rounded bg-white/5 border border-white/5 text-xs text-zinc-400">

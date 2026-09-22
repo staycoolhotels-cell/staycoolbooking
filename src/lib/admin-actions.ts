@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
-import { logActivity } from './activity-actions';
+import { logActivity, createNotification } from './activity-actions';
 import { revalidateTag, revalidatePath } from 'next/cache';
 import { CACHE_TAGS } from './data-service';
 
@@ -260,6 +260,15 @@ export async function approveHost(userId: string) {
   }
 
   await logActivity('host_approval', `Host ${userId} has been approved.`, userId, 'Host Approved', 'success');
+  await createNotification(
+    'host_approval',
+    '🎉 Host Account Approved!',
+    'Congratulations! Your StayCool Host application has been approved by admin. You can now list properties and accept guests.',
+    'success',
+    userId,
+    'host',
+    '/host-dashboard'
+  );
   return { success: true, data };
 }
 
@@ -329,6 +338,15 @@ export async function rejectHostWithReason(userId: string, reason: string) {
   }
 
   await logActivity('host_approval', `Host ${userId} has been rejected. Reason: ${reason}`, userId, 'Host Rejected', 'error');
+  await createNotification(
+    'host_approval',
+    'Host Application Update',
+    `Your host application was not approved. Reason: ${reason}`,
+    'error',
+    userId,
+    'host',
+    '/host-dashboard'
+  );
   return { success: true, data };
 }
 
@@ -477,6 +495,18 @@ export const approveProperty = async (propertyId: string) => {
   revalidatePath('/', 'layout');
   revalidatePath('/property-listing/[id]', 'page');
 
+  if (prop?.host_id) {
+    await createNotification(
+      'property_review',
+      '🏡 Property Approved!',
+      `Your property "${data?.title || 'Listing'}" has been approved by admin. Status: ${targetStatus}.`,
+      'success',
+      prop.host_id,
+      'host',
+      '/host-dashboard'
+    );
+  }
+
   return data ? { ...data, kycPending: !isKycActive } : null;
 };
 
@@ -487,7 +517,9 @@ export const rejectProperty = async (propertyId: string, rejectionReason: string
   const { data, error } = await supabase
     .from('properties')
     .update({ status: 'rejected', rejection_reason: rejectionReason, updated_at: new Date().toISOString() })
-    .eq('id', propertyId);
+    .eq('id', propertyId)
+    .select('host_id, title')
+    .maybeSingle();
 
   if (error) {
     console.error('Error rejecting property:', error);
@@ -496,6 +528,18 @@ export const rejectProperty = async (propertyId: string, rejectionReason: string
 
   // Log activity
   await logActivity('property_review', `Property ${propertyId} has been rejected. Reason: ${rejectionReason}`, undefined, 'Property Rejected', 'error');
+
+  if (data?.host_id) {
+    await createNotification(
+      'property_review',
+      'Property Application Update',
+      `Your property "${data.title || 'Listing'}" was rejected. Reason: ${rejectionReason}`,
+      'error',
+      data.host_id,
+      'host',
+      '/host-dashboard'
+    );
+  }
 
   // Invalidate caches
   revalidateTag(CACHE_TAGS.properties);

@@ -177,8 +177,9 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
   const nightCount = nights();
   // Base calculation without service fee
   const pricePerNight = property?.price_per_night || property?.price || 0;
-  // If bulk, multiply by roomCount
-  const effectiveRooms = bookingType === 'bulk' ? roomCount : 1;
+  // If bulk, multiply by roomCount (unless Entire Resort)
+  const isEntireResort = (property?.room_types && property.room_types.includes('Entire Resort')) || (property?.tier === 'Resort' && parsedRoomIds.length <= 1);
+  const effectiveRooms = (bookingType === 'bulk' && !isEntireResort) ? roomCount : 1;
 
   const getRoomPrice = (roomType: string | null) => {
     const roomTypePrices = property?.room_type_prices || {};
@@ -297,11 +298,11 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
 
   const serviceFee = baseTotal * 0.1;
 
-  // Calculate Bulk Discount using property's custom discount
+  // Calculate Bulk Discount using property's custom discount (disabled for Entire Resort)
   let discount = 0;
-  const bulkDiscountPercentage = property?.bulk_booking_discount !== undefined && property?.bulk_booking_discount !== null ? property.bulk_booking_discount : 10;
+  const bulkDiscountPercentage = isEntireResort ? 0 : (property?.bulk_booking_discount !== undefined && property?.bulk_booking_discount !== null ? property.bulk_booking_discount : 10);
 
-  if (bookingType === 'bulk') {
+  if (bookingType === 'bulk' && !isEntireResort) {
     // If it's a bulk booking, apply the custom discount percentage
     discount = baseTotal * (bulkDiscountPercentage / 100);
   }
@@ -527,6 +528,59 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
             </div>
           </div>
 
+          {/* Cancellation Policy Section */}
+          <div className="mt-4 p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] transition-all">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-rose-400 flex items-center gap-2">
+                <Icon name="CalendarDaysIcon" size={14} />
+                Cancellation Policy
+              </h3>
+              <a 
+                href="/cancellation" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-[10px] font-bold text-sky-400 hover:text-sky-300 uppercase tracking-wider flex items-center gap-1 hover:underline"
+              >
+                Full Policy <Icon name="ArrowTopRightOnSquareIcon" size={10} />
+              </a>
+            </div>
+
+            {/* 4-Tier Refund Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+              {[
+                { period: '10+ Days Before', refund: '100%', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+                { period: '5-10 Days Before', refund: '70%', color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
+                { period: '2-5 Days Before', refund: '50%', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+                { period: '< 2 Days Before', refund: '30%', color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
+              ].map((tier, i) => (
+                <div key={i} className={`p-2.5 rounded-xl ${tier.bg} border ${tier.border} text-center`}>
+                  <span className="block text-[9px] font-black uppercase tracking-wider text-zinc-400">{tier.period}</span>
+                  <span className={`text-sm font-black ${tier.color}`}>{tier.refund} Refund</span>
+                </div>
+              ))}
+            </div>
+
+            {/* StayCool No-Show Rule & Policy Notes */}
+            <div className="space-y-2 text-[11px]">
+              <div className="flex items-start gap-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl p-3">
+                <Icon name="ClockIcon" size={15} className="text-rose-400 mt-0.5 flex-shrink-0" />
+                <p className="text-zinc-200 leading-relaxed text-[11px]">
+                  <strong className="text-rose-400 font-bold block mb-0.5">StayCool No-Show Rule:</strong>
+                  If the guest fails to arrive at the property on the scheduled check-in date and check-in time, it will be considered a No-Show. No refund will be provided for No-Show bookings, unless StayCool&apos;s applicable refund policy applies.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 text-[10px] text-zinc-400 px-1 pt-1">
+                <span>• Platform service fee (10%) is non-refundable in all circumstances.</span>
+                {filters.hasFreeCancellation ? (
+                  <span className="text-sky-400 font-bold">• Free Cancellation (₹70) Active (100% same-day refund)</span>
+                ) : (
+                  <span className="text-zinc-500">• Same-day cancellations non-refundable without Protection</span>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Amenities Upsell Section */}
           {!loadingAmenities && amenities.length > 0 && (
             <div className="mt-6 border-t border-brand-energetic/20 pt-4">
@@ -706,6 +760,27 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
           <div className="flex justify-between font-bold text-lg pt-2 mt-2 border-t border-border-secondary">
             <span>Total</span>
             <span>₹{total.toLocaleString('en-IN')}</span>
+          </div>
+
+          {/* Cancellation Policy Quick Info in Summary */}
+          <div className="mt-4 pt-3 border-t border-white/10 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-text-primary flex items-center gap-1.5">
+                <Icon name="ShieldCheckIcon" size={13} className="text-rose-400" />
+                Cancellation Policy
+              </span>
+              <a 
+                href="/cancellation" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-[10px] font-semibold text-sky-400 hover:underline flex items-center gap-0.5"
+              >
+                Details <Icon name="ArrowTopRightOnSquareIcon" size={9} />
+              </a>
+            </div>
+            <p className="text-[10px] text-text-secondary leading-relaxed">
+              Tiered refund schedule applies. No-Show bookings are non-refundable. Platform fee is 100% non-refundable.
+            </p>
           </div>
 
           {total > 100000 && (

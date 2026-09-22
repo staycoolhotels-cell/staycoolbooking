@@ -12,7 +12,12 @@ import { differenceInDays, startOfDay, isSameDay } from 'date-fns';
  *    - 5 – 9 days before check-in: 70%  refund
  *    - 2 – 4 days before check-in: 50%  refund
  *    - < 2 days before check-in  : 30%  refund
+ *
+ * 3. StayCool No-Show Rule:
+ *    "If the guest fails to arrive at the property on the scheduled check-in date and check-in time, it will be considered a No-Show. No refund will be provided for No-Show bookings, unless StayCool's applicable refund policy applies."
  */
+export const STAYCOOL_NO_SHOW_RULE = "If the guest fails to arrive at the property on the scheduled check-in date and check-in time, it will be considered a No-Show. No refund will be provided for No-Show bookings, unless StayCool's applicable refund policy applies.";
+
 export function getRefundPercentage(
   checkInDate: string | Date,
   cancellationDate: string | Date,
@@ -61,20 +66,22 @@ export function calculateRefundDistribution(
   cancellationDate: string | Date,
   bookingDate?: string | Date,
   hasFreeCancellation: any = false,
-  platformFee: number = 0
+  platformFee: number = 0,
+  explicitServiceFee?: number
 ) {
   const isFreeCancellationActive = hasFreeCancellation === true || hasFreeCancellation === 1 || hasFreeCancellation === 'true' || hasFreeCancellation === '1';
 
-  // 1. Free Cancellation fee (₹70) — stays with Admin always
-  const actualPlatformFee = isFreeCancellationActive ? platformFee : 0;
-  const priceExcludingProtection = Math.max(0, totalPrice - actualPlatformFee);
+  // 1. Free Cancellation protection fee (e.g. ₹70) — stays with Admin always (non-refundable)
+  const actualProtectionFee = isFreeCancellationActive ? platformFee : 0;
+  const priceExcludingProtection = Math.max(0, totalPrice - actualProtectionFee);
 
-  // 2. Extract base accommodation from total (total = accommodation * 1.1)
-  // E.g. ₹1,100 / 1.1 = ₹1,000 accommodation, ₹100 platform fee
-  const baseAccommodation = Math.round(priceExcludingProtection / 1.1);
-  const adminPlatformFee = priceExcludingProtection - baseAccommodation; // exactly ₹100
+  // 2. Platform Service Fee (10%) — 100% Retained by Admin. NEVER shared with host (host gets ₹0).
+  const adminPlatformFee = (explicitServiceFee !== undefined && explicitServiceFee > 0)
+    ? explicitServiceFee
+    : Math.round((priceExcludingProtection * 0.1) / 1.1);
 
-  // 3. Net Refundable Pool = base accommodation (₹1,000)
+  // 3. Base accommodation pool (strictly excluding platform service fee and protection fee)
+  const baseAccommodation = Math.max(0, priceExcludingProtection - adminPlatformFee);
   const netRefundablePool = baseAccommodation;
 
   const { percent: guestRefundPercent, policy: appliedPolicy, daysBefore: daysBeforeCheckIn } =
@@ -91,13 +98,15 @@ export function calculateRefundDistribution(
   return {
     guestRefundAmount,
     hostShare,
-    adminShare: adminPlatformFee + adminShareFromPenalty + actualPlatformFee,
+    adminShare: adminPlatformFee + adminShareFromPenalty + actualProtectionFee,
     totalRetained: totalPrice - guestRefundAmount,
     guestRefundPercent,
     appliedPolicy,
     daysBeforeCheckIn,
     basePrice: baseAccommodation,
-    platformFee: adminPlatformFee + actualPlatformFee,
+    platformFee: adminPlatformFee + actualProtectionFee,
+    adminPlatformFee,
+    hostPlatformFeeShare: 0, // Explicit guarantee that host receives ₹0 from platform fee
     commissionAmount: adminPlatformFee,
     netRefundablePool,
     hostSharePercent: baseAccommodation > 0 ? (hostShare / baseAccommodation) * 100 : 0,

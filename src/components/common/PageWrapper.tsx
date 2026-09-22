@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
+import WebNotificationManager from '../notifications/WebNotificationManager';
 
 export default function PageWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -13,6 +14,7 @@ export default function PageWrapper({ children }: { children: React.ReactNode })
     return (
         <div className={`flex-grow ${isTransparentHeader || isAdminPanel ? '' : 'pt-[100px]'}`}>
             {children}
+            <WebNotificationManager />
         </div>
     );
 }

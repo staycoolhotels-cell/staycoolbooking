@@ -4,6 +4,7 @@ import AdminPageHeader from './AdminPageHeader';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
+import { playNotificationSound, triggerWebNotification } from '@/lib/web-notifications';
 import { jsPDF } from 'jspdf';
 import StatsCard from './StatsCard';
 import DisputeCard from './DisputeCard';
@@ -71,7 +72,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     datasets: [
       {
         type: 'bar' as const,
-        label: 'Booking Volume',
+        label: 'Booking Volume (Stays)',
         data: [] as number[],
         backgroundColor: 'rgba(99, 102, 241, 0.5)',
         borderColor: 'rgba(99, 102, 241, 0.8)',
@@ -81,7 +82,19 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       },
       {
         type: 'line' as const,
-        label: 'Platform Revenue (₹)',
+        label: 'Booking Revenue (₹)',
+        data: [] as number[],
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.05)',
+        borderWidth: 2,
+        pointBackgroundColor: 'rgb(59, 130, 246)',
+        fill: false,
+        tension: 0.4,
+        yAxisID: 'y1',
+      },
+      {
+        type: 'line' as const,
+        label: 'Admin Revenue (₹)',
         data: [] as number[],
         borderColor: 'rgb(34, 197, 94)',
         backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -126,10 +139,10 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
             let label = context.dataset.label || '';
             if (label) label += ': ';
             if (context.parsed.y !== null) {
-              if (context.datasetIndex === 1) {
-                label += '₹' + context.parsed.y.toLocaleString('en-IN');
-              } else {
+              if (context.datasetIndex === 0) {
                 label += context.parsed.y + ' stays';
+              } else {
+                label += '₹' + context.parsed.y.toLocaleString('en-IN');
               }
             }
             return label;
@@ -210,7 +223,14 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   useEffect(() => {
     fetchNotifications();
 
-    const channel = supabase.channel('admin-notifications')
+    const channel = supabase.channel('staycool-admin-alerts')
+      .on('broadcast', { event: 'new_notification' }, (payload: any) => {
+        const item = payload?.payload || payload;
+        if (item) {
+          fetchNotifications();
+          toast.info(`New Notification: ${item.title || 'StayCool Alert'}`);
+        }
+      })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload: { new: any }) => {
         if (payload.new) {
           setNotifications(prev => [payload.new as AppNotification, ...prev].slice(0, 10));
@@ -232,7 +252,13 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       })
       .subscribe();
 
+    // Auto-poll notifications every 15 seconds to guarantee fresh alerts
+    const pollTimer = setInterval(() => {
+      fetchNotifications();
+    }, 15000);
+
     return () => {
+      clearInterval(pollTimer);
       supabase.removeChannel(channel);
     };
   }, []);
@@ -247,6 +273,47 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
       toast.success('All notifications marked as read');
+    }
+  };
+
+  const handleTestBrowserNotification = async () => {
+    if (typeof window === 'undefined') return;
+
+    if (!('Notification' in window)) {
+      toast.error('This browser does not support desktop notifications.');
+      return;
+    }
+
+    let perm = Notification.permission;
+    if (perm !== 'granted') {
+      try {
+        perm = await Notification.requestPermission();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    if (perm === 'granted') {
+      try {
+        const notif = new Notification('🔔 StayCool Admin Alert', {
+          body: 'Real-time Browser Notification is 100% WORKING on your desktop!',
+          icon: `${window.location.origin}/assets/images/logo-round.png`,
+          badge: `${window.location.origin}/assets/images/logo-round.png`,
+          requireInteraction: true,
+        });
+
+        notif.onclick = () => {
+          window.focus();
+          notif.close();
+        };
+      } catch (err) {
+        console.warn('Direct notification error:', err);
+      }
+
+      playNotificationSound();
+      toast.success('Browser notification sent to your screen!');
+    } else {
+      toast.error('Notifications are blocked! Please click the lock/settings icon next to localhost:3000 in your browser URL bar and set Notifications to "Allow".');
     }
   };
 
@@ -313,7 +380,8 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
 
   useEffect(() => {
-    const totalRevenue = bookings.reduce((sum: number, b: Booking) => {
+    // 1. Calculate Booking Revenue (Gross booking volume)
+    const bookingRevenue = bookings.reduce((sum: number, b: Booking) => {
       const statusStr = (b.status || '').toLowerCase();
       if (statusStr !== 'cancelled' && statusStr !== 'refunded' && statusStr !== 'failed') {
         const amt = Number(b.total_price ?? (b as any).amount ?? (b as any).price ?? 0);
@@ -322,11 +390,41 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       return sum;
     }, 0);
 
+    // 2. Calculate Admin Revenue (Platform Service Fee - 10%)
+    const adminRevenue = transactions.length > 0
+      ? transactions
+          .filter(t => {
+            const st = (t.status || '').toLowerCase();
+            const type = (t.type || '').toLowerCase();
+            return type !== 'refund' && st !== 'refunded' && st !== 'failed';
+          })
+          .reduce((sum, t) => sum + (t.serviceFee || Math.round((t.amount || 0) * 0.1)), 0)
+      : bookings
+          .filter(b => {
+            const st = (b.status || '').toLowerCase();
+            return st !== 'cancelled' && st !== 'refunded' && st !== 'failed';
+          })
+          .reduce((sum, b) => {
+            const amt = Number(b.total_price ?? (b as any).amount ?? (b as any).price ?? 0);
+            const fee = (b as any).service_fee ? Number((b as any).service_fee) : Math.round(amt * 0.1);
+            return sum + (isNaN(fee) ? 0 : fee);
+          }, 0);
+
     setStats([
       {
-        title: 'Total Revenue',
-        value: `₹${totalRevenue.toLocaleString()}`,
+        title: 'Booking Revenue',
+        value: `₹${bookingRevenue.toLocaleString('en-IN')}`,
+        subtitle: 'Gross volume',
         icon: 'BanknotesIcon',
+        trend: { value: '+8%', isPositive: true },
+        bgColor: 'bg-blue-500',
+        onClick: () => setActiveTab('transactions'),
+      },
+      {
+        title: 'Admin Revenue',
+        value: `₹${adminRevenue.toLocaleString('en-IN')}`,
+        subtitle: 'Platform fee (10%)',
+        icon: 'CurrencyRupeeIcon',
         trend: { value: '+8%', isPositive: true },
         bgColor: 'bg-emerald-500',
         onClick: () => setActiveTab('transactions'),
@@ -358,7 +456,8 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
     ]);
 
     const monthlyBookings = new Array(12).fill(0);
-    const monthlyRevenue = new Array(12).fill(0);
+    const monthlyBookingRevenue = new Array(12).fill(0);
+    const monthlyAdminRevenue = new Array(12).fill(0);
     bookings.forEach((booking: Booking) => {
       const dateVal = booking.created_at ? new Date(booking.created_at) : new Date();
       const month = isNaN(dateVal.getTime()) ? new Date().getMonth() : dateVal.getMonth();
@@ -366,14 +465,19 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       const statusStr = (booking.status || '').toLowerCase();
       if (statusStr !== 'cancelled' && statusStr !== 'refunded' && statusStr !== 'failed') {
         const amt = Number(booking.total_price ?? (booking as any).amount ?? (booking as any).price ?? 0);
-        monthlyRevenue[month] += isNaN(amt) ? 0 : amt;
+        if (!isNaN(amt)) {
+          monthlyBookingRevenue[month] += amt;
+          const fee = (booking as any).service_fee ? Number((booking as any).service_fee) : Math.round(amt * 0.1);
+          monthlyAdminRevenue[month] += isNaN(fee) ? Math.round(amt * 0.1) : fee;
+        }
       }
     });
 
     setAnalyticsData((prev) => {
       const newDatasets = [...prev.datasets];
       newDatasets[0] = { ...newDatasets[0], data: monthlyBookings };
-      newDatasets[1] = { ...newDatasets[1], data: monthlyRevenue };
+      newDatasets[1] = { ...newDatasets[1], data: monthlyBookingRevenue };
+      newDatasets[2] = { ...newDatasets[2], data: monthlyAdminRevenue };
       return { ...prev, datasets: newDatasets };
     });
 
@@ -493,13 +597,29 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
               cancellation_fee: freeCancellationFee
             };
 
+            const hostEmail = (booking.property as any)?.host?.email || '';
+            const hostPhone = (booking.property as any)?.host?.phone || '';
+            const propertyLocation = booking.property?.location || [(booking.property as any)?.city, (booking.property as any)?.state].filter(Boolean).join(', ') || '';
+            const propertyAddress = [(booking.property as any)?.address_line1, (booking.property as any)?.address_line2, (booking.property as any)?.city, (booking.property as any)?.state, (booking.property as any)?.postal_code].filter(Boolean).join(', ') || propertyLocation;
+            const checkIn = booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : undefined;
+            const checkOut = booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : undefined;
+
             const mappedTransaction = {
               id: booking.id,
               transactionId: `TXN-${booking.id.slice(0, 8).toUpperCase()}`,
+              invoice_id: booking.id.slice(0, 8).toUpperCase(),
+              booking_id: booking.id,
               propertyName: booking.property?.title || 'Unknown Property',
+              propertyLocation,
+              propertyAddress,
               guestName: booking.guest?.name || 'Unknown Guest',
+              guestEmail,
+              guestPhone: (booking.guest as any)?.phone || '',
+              guestLocation,
               guestAddress,
               hostName: booking.property?.host?.name || 'Unknown Host',
+              hostEmail,
+              hostPhone,
               amount,
               serviceFee,
               netRevenue: amount - serviceFee,
@@ -520,7 +640,11 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
               status: (booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'completed') ? 'completed' :
                       (booking.status === 'refunded' ? 'refunded' : 'pending'),
               paymentMethod: 'Razorpay',
-              room_type: roomType
+              room_type: roomType,
+              checkIn,
+              checkOut,
+              nights,
+              totalRooms: (booking as any).total_rooms_booked || 1
             } as unknown as Transaction;
             setTransactions((prev) => {
               const filtered = prev.filter((t) => t.id !== mappedTransaction.id);
@@ -780,24 +904,26 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       doc.setTextColor(100, 116, 139);
       doc.text('Key performance metrics and aggregate totals', 15, 65);
 
-      // Grid stats boxes (2x2 layout)
+      // Grid stats boxes (2x3 layout)
       const statsList = [
-        { label: 'Total Revenue', val: stats[0]?.value || '₹0', desc: 'Net revenue capture' },
-        { label: 'Total Bookings', val: stats[1]?.value || '0', desc: 'Bookings successfully scheduled' },
+        { label: 'Booking Revenue', val: stats[0]?.value || '₹0', desc: 'Gross booking volume' },
+        { label: 'Admin Revenue', val: stats[1]?.value || '₹0', desc: 'Platform service earnings' },
+        { label: 'Total Bookings', val: stats[2]?.value || '0', desc: 'Bookings successfully scheduled' },
         { label: 'Total Registered Users', val: users.length.toString(), desc: 'Active platform participants' },
         { label: 'Active Listings', val: properties.filter((p: Property) => p.status === 'active').length.toString(), desc: 'Properties live online' },
+        { label: 'Platform Commission', val: '10%', desc: 'Standard service fee rate' },
       ];
 
       const boxX = 15;
-      const boxY = 72;
+      const boxY = 70;
       const boxW = 85;
-      const boxH = 28;
+      const boxH = 20;
 
       statsList.forEach((stat, idx) => {
         const col = idx % 2;
         const row = Math.floor(idx / 2);
         const curX = boxX + (col * (boxW + 10));
-        const curY = boxY + (row * (boxH + 8));
+        const curY = boxY + (row * (boxH + 4));
 
         // Draw stat box
         doc.setFillColor(255, 255, 255);
@@ -811,19 +937,19 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
         // Text inside boxes
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9);
+        doc.setFontSize(8);
         doc.setTextColor(100, 116, 139); // slate-500
-        doc.text(stat.label.toUpperCase(), curX + 7, curY + 8);
+        doc.text(stat.label.toUpperCase(), curX + 6, curY + 6);
 
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(15);
+        doc.setFontSize(12);
         doc.setTextColor(15, 23, 42); // slate-900
-        doc.text(stat.val, curX + 7, curY + 16);
+        doc.text(stat.val, curX + 6, curY + 13);
 
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7.5);
+        doc.setFontSize(7);
         doc.setTextColor(148, 163, 184); // slate-400
-        doc.text(stat.desc, curX + 7, curY + 23);
+        doc.text(stat.desc, curX + 6, curY + 18);
       });
 
       // Section 2: Financial Transactions Breakdown Title
@@ -1080,6 +1206,15 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                   </div>
 
                   <button
+                    onClick={handleTestBrowserNotification}
+                    className="px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white rounded-xl shadow-lg shadow-sky-500/25 flex items-center gap-2 font-bold text-xs uppercase tracking-wider transition-all duration-300 active:scale-95"
+                    title="Send an instant OS browser notification"
+                  >
+                    <Icon name="BellIcon" size={18} className="animate-bounce" />
+                    <span>Test Browser Notification</span>
+                  </button>
+
+                  <button
                     onClick={handleExportReport}
                     className="px-4 py-3 bg-white/5 backdrop-blur-sm text-zinc-300 border border-white/10 rounded-xl hover:text-white hover:border-white/25 hover:bg-white/10 transition-all duration-300 flex items-center gap-2"
                   >
@@ -1091,7 +1226,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-5 mb-8">
               {stats.map((stat, index) => (
                 <StatsCard key={index} {...stat} />
               ))}

@@ -8,6 +8,7 @@ import SpendingChart from '@/components/common/SpendingChart';
 import { generateInvoicePDF, exportTransactionsToPDF } from '@/lib/pdf-utils';
 import RealTimeInvoice from '@/components/common/RealTimeInvoice';
 import { supabase } from '@/lib/supabaseClient';
+import { calculateRefundDistribution } from '@/lib/refund-policy';
 import {
   Dialog,
   DialogContent,
@@ -29,40 +30,151 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
 
     const fetchFinancialData = async () => {
       try {
-        const { data: bookingsData } = await supabase
-          .from('bookings')
-          .select(`
-            *,
-            guest:users!guest_id(name, email),
-            property:properties!property_id(title, host:users!host_id(name))
-          `)
-          .order('created_at', { ascending: false });
+        const [{ data: bookingsData }, { data: transfersData }] = await Promise.all([
+          supabase
+            .from('bookings')
+            .select(`
+              *,
+              guest:users!guest_id(name, email, phone),
+              property:properties!property_id(
+                title,
+                location,
+                address_line1,
+                address_line2,
+                city,
+                state,
+                postal_code,
+                host:users!host_id(name, email, phone)
+              )
+            `)
+            .not('status', 'in', '("pending_payment","payment_failed")')
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('payment_transfers')
+            .select('*')
+        ]);
+
+        const transferMap: Record<string, any> = {};
+        (transfersData || []).forEach((t: any) => {
+          if (t.booking_id) transferMap[t.booking_id] = t;
+        });
 
         if (bookingsData && bookingsData.length > 0) {
           const mapped: Transaction[] = bookingsData.map((b: any) => {
             const rawAmount = Number(b.total_price ?? b.amount ?? b.price ?? b.grand_total ?? 0);
             const amount = isNaN(rawAmount) ? 0 : rawAmount;
-            const serviceFee = b.service_fee || Math.round(amount * 0.1);
+            const serviceFee = b.service_fee || Math.round((amount * 0.1) / 1.1);
             const statusStr = (b.status || '').toLowerCase();
             const isRefund = statusStr === 'cancelled' || statusStr === 'refunded' || statusStr === 'failed';
+
+            const guestEmail = b.guest?.email || '';
+            const guestPhone = b.guest?.phone || '';
+            const guestAddress = [guestEmail, guestPhone].filter(Boolean).join('\n') || 'Address not provided';
+
+            const hostName = b.property?.host?.name || 'Platform Host';
+            const hostEmail = b.property?.host?.email || '';
+            const hostPhone = b.property?.host?.phone || '';
+            const propertyName = b.property?.title || 'Property Stays';
+            const propertyLocation = b.property?.location || [b.property?.city, b.property?.state].filter(Boolean).join(', ') || '';
+            const propertyAddress = [b.property?.address_line1, b.property?.address_line2, b.property?.city, b.property?.state, b.property?.postal_code].filter(Boolean).join(', ') || propertyLocation;
+
+            const checkIn = b.check_in ? new Date(b.check_in).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : undefined;
+            const checkOut = b.check_out ? new Date(b.check_out).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : undefined;
+            const nights = b.check_in && b.check_out 
+              ? Math.max(1, Math.round((new Date(b.check_out).getTime() - new Date(b.check_in).getTime()) / (1000 * 60 * 60 * 24)))
+              : 1;
+
+            let guestRefundAmount = undefined;
+            let hostShare = undefined;
+            let adminShare = undefined;
+            let retainedPenalty = undefined;
+            let retainedServiceFee = undefined;
+            let netRefundablePool = undefined;
+            let appliedPolicy = undefined;
+            let daysBeforeCheckIn = undefined;
+            let refundPercentage = undefined;
+
+            if (isRefund) {
+              const dist = calculateRefundDistribution(
+                amount,
+                b.check_in || b.created_at,
+                b.cancelled_at || new Date().toISOString(),
+                b.created_at,
+                b.has_free_cancellation,
+                Number(b.free_cancellation_fee || 0)
+              );
+              daysBeforeCheckIn = dist.daysBeforeCheckIn;
+              appliedPolicy = dist.appliedPolicy;
+              refundPercentage = dist.guestRefundPercent;
+              guestRefundAmount = dist.guestRefundAmount;
+              hostShare = dist.hostShare;
+              adminShare = dist.adminShare;
+              retainedPenalty = dist.netRefundablePool - dist.guestRefundAmount;
+              retainedServiceFee = dist.platformFee;
+              netRefundablePool = dist.netRefundablePool;
+            }
+
+            const transfer = transferMap[b.id];
+            let hostPayoutAmount = undefined;
+            let adminCommissionAmount = undefined;
+
+            if (!isRefund) {
+              if (transfer && Number(transfer.host_amount) > 0) {
+                hostPayoutAmount = Math.round(Number(transfer.host_amount));
+                adminCommissionAmount = Math.round(Number(transfer.platform_commission || (amount - hostPayoutAmount)));
+              } else {
+                const guestFee = serviceFee || Math.round((amount * 0.1) / 1.1);
+                const hostRevenue = Math.max(0, amount - guestFee);
+                const hostCommission = Math.round(hostRevenue * 0.10);
+                hostPayoutAmount = Math.max(0, hostRevenue - hostCommission);
+                adminCommissionAmount = Math.max(0, amount - hostPayoutAmount);
+              }
+            }
 
             return {
               id: b.id,
               transactionId: `TXN-${String(b.id).slice(0, 8).toUpperCase()}`,
-              propertyName: b.property?.title || 'Property Stays',
+              invoice_id: String(b.id).slice(0, 8).toUpperCase(),
+              booking_id: b.id,
+              propertyName,
+              propertyLocation,
+              propertyAddress,
               guestName: b.guest?.name || 'Guest User',
-              hostName: b.property?.host?.name || 'Platform Host',
+              guestEmail,
+              guestPhone,
+              guestAddress,
+              hostName,
+              hostEmail,
+              hostPhone,
               amount: amount,
               serviceFee: serviceFee,
               netRevenue: amount - serviceFee,
               type: isRefund ? 'refund' : 'payment',
               status: isRefund ? 'refunded' : 'completed',
               date: b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN') : 'N/A',
+              bookingDate: b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN') : undefined,
+              cancellationDate: b.cancelled_at ? new Date(b.cancelled_at).toLocaleDateString('en-IN') : undefined,
+              checkIn,
+              checkOut,
+              nights,
               paymentMethod: 'Razorpay',
+              daysBeforeCheckIn,
+              appliedPolicy,
+              refundPercentage,
+              guestRefundAmount,
+              hostShare,
+              adminShare,
+              hostPayoutAmount,
+              adminCommissionAmount,
+              refundAmount: guestRefundAmount,
+              retainedPenalty,
+              retainedServiceFee,
+              netRefundablePool,
               breakdown: {
-                accommodation: Math.round(amount * 0.9),
+                accommodation: Math.round(amount / 1.1),
                 service_fee: serviceFee,
                 taxes: 0,
+                cancellation_fee: Number(b.free_cancellation_fee || 0)
               }
             };
           });
@@ -131,17 +243,17 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
           <h3 className="font-bold text-zinc-400 text-center mb-4 md:mb-6 text-[10px] md:text-xs uppercase tracking-widest">Revenue Allocation Matrix</h3>
           <SpendingChart transactions={activeData} />
           <div className="mt-6 md:mt-8 flex flex-col sm:grid sm:grid-cols-2 gap-3 sm:gap-4">
-            <div className="text-center p-3 md:p-4 border border-white/5 rounded-xl bg-black/20">
+            <div className="text-center p-3 md:p-4 border border-blue-500/20 rounded-xl bg-blue-500/5">
               <p className="text-lg md:text-2xl font-black text-white font-mono">
                 ₹{totalRevenue.toLocaleString('en-IN')}
               </p>
-              <p className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">Gross Volume</p>
+              <p className="text-[9px] md:text-[10px] font-bold text-blue-400 uppercase tracking-widest mt-1">Booking Revenue (Gross)</p>
             </div>
             <div className="text-center p-3 md:p-4 border border-emerald-500/20 rounded-xl bg-emerald-500/5">
               <p className="text-lg md:text-2xl font-black text-emerald-400 font-mono">
                 ₹{platformEarnings.toLocaleString('en-IN')}
               </p>
-              <p className="text-[9px] md:text-[10px] font-bold text-emerald-500/70 uppercase tracking-widest mt-1">Platform Revenue</p>
+              <p className="text-[9px] md:text-[10px] font-bold text-emerald-400 uppercase tracking-widest mt-1">Admin Revenue (Platform Fee)</p>
             </div>
           </div>
         </div>
@@ -156,18 +268,46 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
             </div>
             {pendingRefunds.length > 0 ? (
               <div className="space-y-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                {pendingRefunds.map((refund) => (
-                  <div
-                    key={refund.id}
-                    className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-4 flex justify-between items-center group hover:border-rose-500/40 transition-all"
-                  >
-                    <div>
-                      <p className="text-xs font-bold text-rose-400 uppercase tracking-widest mb-1">Refund Required</p>
-                      <p className="text-sm font-medium text-white">{refund.guestName || 'System Guest'}</p>
+                {pendingRefunds.map((refund) => {
+                  const guestRefund = refund.guestRefundAmount !== undefined ? refund.guestRefundAmount : (refund.refundAmount !== undefined ? refund.refundAmount : Math.abs(refund.amount || 0));
+                  return (
+                    <div
+                      key={refund.id}
+                      className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-3 sm:p-4 flex justify-between items-center group hover:border-rose-500/40 transition-all gap-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">Refund</span>
+                          <span className="text-[9px] font-mono text-zinc-500">#{refund.invoice_id || refund.id.slice(0, 8)}</span>
+                        </div>
+                        <p className="text-sm font-medium text-white truncate">{refund.guestName || 'System Guest'}</p>
+                        <p className="text-[10px] text-zinc-400 truncate">{refund.propertyName}</p>
+                      </div>
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                        <div className="text-right">
+                          <p className="text-base sm:text-lg font-black text-rose-400 font-mono tracking-tight">
+                            ₹{guestRefund.toLocaleString('en-IN')}
+                          </p>
+                          <p className="text-[8px] text-zinc-500 font-bold uppercase">To Guest</p>
+                        </div>
+                        <button 
+                          onClick={() => setPreviewTransaction(refund)}
+                          className="p-1.5 text-zinc-400 hover:text-white transition-colors bg-white/5 rounded-lg border border-white/5"
+                          title="Live Preview Refund Invoice"
+                        >
+                          <Icon name="EyeIcon" size={15} />
+                        </button>
+                        <button 
+                          onClick={async () => await generateInvoicePDF(refund)}
+                          className="p-1.5 text-zinc-400 hover:text-rose-400 transition-colors bg-white/5 rounded-lg border border-white/5"
+                          title="Download Refund Invoice PDF"
+                        >
+                          <Icon name="DocumentArrowDownIcon" size={15} />
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-lg font-black text-white font-mono tracking-tight">₹{Math.abs(refund.amount || 0).toLocaleString()}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="bg-white/[0.02] border border-dashed border-white/10 rounded-xl p-8 flex flex-col items-center justify-center text-center">

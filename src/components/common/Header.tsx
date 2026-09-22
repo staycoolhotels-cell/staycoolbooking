@@ -17,6 +17,8 @@ import { signOutUser } from '@/lib/auth-actions';
 const Header = () => {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [copiedReferral, setCopiedReferral] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -28,14 +30,14 @@ const Header = () => {
   const headerBg = useTransform(scrollY, [0, 100], ['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 1)']);
 
   useEffect(() => {
-    // Initial fetch to sync state
+    // Initial fetch to sync state from local session cache
     const syncUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
     };
     syncUser();
 
-    // Auth state synchronization
+    // Auth state synchronization (fires automatically on sign in, sign out, token refresh)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -47,7 +49,36 @@ const Header = () => {
       }
     });
     return () => subscription.unsubscribe();
-  }, [pathname]);
+  }, []);
+
+  // Fetch host's actual unique referral code from users table
+  useEffect(() => {
+    let isMounted = true;
+    const fetchUserReferral = async (userId: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('referral_code')
+          .eq('id', userId)
+          .maybeSingle();
+        if (isMounted && data?.referral_code) {
+          setReferralCode(data.referral_code);
+        }
+      } catch (err) {
+        console.error('Failed to fetch referral code:', err);
+      }
+    };
+
+    if (user?.id) {
+      fetchUserReferral(user.id);
+    } else {
+      setReferralCode(null);
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]);
 
   // Click outside to close dropdown
   useEffect(() => {
@@ -91,21 +122,21 @@ const Header = () => {
 
   // Determine role-based navigation links
   const baseLinks = [
-    { name: 'Home', path: '/homepage' },
-    { name: 'About Us', path: '/about-us' },
-    { name: 'Community', path: '/community' },
-    { name: 'Contact', path: '/contact' },
+    { name: 'Home', path: '/homepage', icon: 'HomeIcon' },
+    { name: 'About Us', path: '/about-us', icon: 'InformationCircleIcon' },
+    { name: 'Community', path: '/community', icon: 'UserGroupIcon' },
+    { name: 'Contact', path: '/contact', icon: 'PhoneIcon' },
   ];
 
   const role = user?.user_metadata?.role?.toLowerCase();
 
   const roleSpecificLinks = [];
   if (role === 'guest') {
-    roleSpecificLinks.push({ name: 'User Profile', path: '/user-profile' });
+    roleSpecificLinks.push({ name: 'User Profile', path: '/user-profile', icon: 'UserCircleIcon' });
   } else if (role === 'host') {
-    roleSpecificLinks.push({ name: 'Host Panel', path: '/host-dashboard' });
+    roleSpecificLinks.push({ name: 'Host Panel', path: '/host-dashboard', icon: 'HomeModernIcon' });
   } else if (role === 'admin') {
-    roleSpecificLinks.push({ name: 'Admin Panel', path: '/admin-panel' });
+    roleSpecificLinks.push({ name: 'Admin Panel', path: '/admin-panel', icon: 'ShieldCheckIcon' });
   }
 
   const navLinks = [...baseLinks, ...roleSpecificLinks];
@@ -362,9 +393,24 @@ const Header = () => {
                       {role === 'host' && (
                         <div className="px-3 py-1.5">
                           <div className="bg-zinc-950 border border-white/5 rounded-2xl p-4 text-xs">
-                            <p className="font-bold text-zinc-400 uppercase tracking-wider text-[9px]">Your Referral Code</p>
+                            <div className="flex items-center justify-between">
+                              <p className="font-bold text-zinc-400 uppercase tracking-wider text-[9px]">Your Referral Code</p>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const codeToCopy = referralCode || user.user_metadata?.referral_code || (user?.id ? `SC-${user.id.slice(0, 6).toUpperCase()}` : 'SC-HOST');
+                                  navigator.clipboard.writeText(codeToCopy);
+                                  setCopiedReferral(true);
+                                  setTimeout(() => setCopiedReferral(false), 2000);
+                                }}
+                                className="text-[10px] text-sky-400 hover:text-sky-300 font-bold transition-colors"
+                              >
+                                {copiedReferral ? 'COPIED!' : 'COPY'}
+                              </button>
+                            </div>
                             <p className="font-mono text-sm text-sky-400 font-bold mt-1.5 select-all">
-                              {user.user_metadata?.referral_code || 'SC-HOST'}
+                              {referralCode || user.user_metadata?.referral_code || (user?.id ? `SC-${user.id.slice(0, 6).toUpperCase()}` : 'SC-HOST')}
                             </p>
                           </div>
                         </div>
@@ -431,42 +477,84 @@ const Header = () => {
               <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-sky-500/10 rounded-full blur-[120px]" />
               <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-[100px]" />
             </div>
-            <nav className="flex flex-col items-center gap-4 sm:gap-6 z-10 w-full px-8">
-              {mobileNavLinks.map((link, i) => (
-                <motion.div
-                  key={link.path}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 + (i * 0.07), type: "spring", stiffness: 100 }}
-                  className="w-full text-center"
-                >
-                  <Link
-                    href={link.path}
-                    className="block text-xl sm:text-2xl font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em] text-white hover:text-sky-400 transition-all duration-300 w-full py-2 sm:py-3"
+            <nav className="flex flex-col items-center gap-3 sm:gap-4 z-10 w-full px-6 max-w-sm mx-auto">
+              {mobileNavLinks.map((link, i) => {
+                const active = pathname === link.path;
+                return (
+                  <motion.div
+                    key={link.path}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.08 + (i * 0.05), type: "spring", stiffness: 100 }}
+                    className="w-full flex justify-center"
                   >
-                    {link.name}
-                  </Link>
-                </motion.div>
-              ))}
+                    <Link
+                      href={link.path}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`group flex items-center justify-center gap-3 px-6 py-2.5 sm:py-3 rounded-2xl transition-all duration-300 w-full max-w-[280px] sm:max-w-[320px] border ${
+                        active 
+                          ? 'text-sky-400 bg-sky-500/15 border-sky-500/30 shadow-[0_0_20px_rgba(14,165,233,0.2)]' 
+                          : 'text-zinc-200 hover:text-white hover:bg-white/5 border-transparent hover:border-white/10'
+                      }`}
+                    >
+                      <div className={`p-1.5 rounded-lg transition-all duration-300 ${
+                        active 
+                          ? 'text-sky-400 bg-sky-500/20' 
+                          : 'text-zinc-400 group-hover:text-sky-400 group-hover:bg-sky-500/10'
+                      }`}>
+                        <Icon name={link.icon} size={22} />
+                      </div>
+                      <span className="text-lg sm:text-xl font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em]">
+                        {link.name}
+                      </span>
+                    </Link>
+                  </motion.div>
+                );
+              })}
 
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, type: "spring", stiffness: 100 }}
-                className="mt-8 sm:mt-12 w-full max-w-[240px] sm:max-w-[280px]"
+                transition={{ delay: 0.4, type: "spring", stiffness: 100 }}
+                className="mt-6 sm:mt-8 w-full max-w-[240px] sm:max-w-[280px]"
               >
                 {!user?.id ? (
                   <div className="space-y-3">
-                    <Link href="/auth?role=guest" className="block w-full rounded-xl border border-sky-500/30 bg-sky-500/10 px-6 py-3 text-center text-sm font-black uppercase tracking-[0.15em] text-sky-400 transition-all hover:bg-sky-500 hover:text-white">Guest Login</Link>
-                    <Link href="/auth?role=host" className="block w-full rounded-xl border border-sky-500/30 bg-sky-500/10 px-6 py-3 text-center text-sm font-black uppercase tracking-[0.15em] text-sky-400 transition-all hover:bg-sky-500 hover:text-white">Host Login</Link>
-                    <Link href="/auth?role=admin" className="block w-full rounded-xl border border-sky-500/30 bg-sky-500/10 px-6 py-3 text-center text-sm font-black uppercase tracking-[0.15em] text-sky-400 transition-all hover:bg-sky-500 hover:text-white">Admin Login</Link>
+                    <Link 
+                      href="/auth?role=guest" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-center gap-2.5 w-full rounded-xl border border-sky-500/30 bg-sky-500/10 px-6 py-3.5 text-center text-sm font-black uppercase tracking-[0.15em] text-sky-400 transition-all hover:bg-sky-500 hover:text-white"
+                    >
+                      <Icon name="UserIcon" size={18} />
+                      <span>Guest Login</span>
+                    </Link>
+                    <Link 
+                      href="/auth?role=host" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-center gap-2.5 w-full rounded-xl border border-sky-500/30 bg-sky-500/10 px-6 py-3.5 text-center text-sm font-black uppercase tracking-[0.15em] text-sky-400 transition-all hover:bg-sky-500 hover:text-white"
+                    >
+                      <Icon name="HomeModernIcon" size={18} />
+                      <span>Host Login</span>
+                    </Link>
+                    <Link 
+                      href="/auth?role=admin" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-center gap-2.5 w-full rounded-xl border border-sky-500/30 bg-sky-500/10 px-6 py-3.5 text-center text-sm font-black uppercase tracking-[0.15em] text-sky-400 transition-all hover:bg-sky-500 hover:text-white"
+                    >
+                      <Icon name="ShieldCheckIcon" size={18} />
+                      <span>Admin Login</span>
+                    </Link>
                   </div>
                 ) : (
                   <button
-                    onClick={handleLogout}
-                    className="w-full relative px-8 sm:px-12 py-3.5 sm:py-5 border border-sky-500/30 bg-sky-500/10 text-sky-400 font-black text-sm sm:text-base uppercase tracking-[0.15em] sm:tracking-[0.2em] hover:bg-sky-500 hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(14,165,233,0.15)] rounded-xl"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full flex items-center justify-center gap-2.5 px-8 sm:px-12 py-3.5 sm:py-5 border border-sky-500/30 bg-sky-500/10 text-sky-400 font-black text-sm sm:text-base uppercase tracking-[0.15em] sm:tracking-[0.2em] hover:bg-sky-500 hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(14,165,233,0.15)] rounded-xl group"
                   >
-                    Sign Out
+                    <Icon name="ArrowRightOnRectangleIcon" size={20} className="transition-transform group-hover:translate-x-1" />
+                    <span>Sign Out</span>
                   </button>
                 )}
               </motion.div>

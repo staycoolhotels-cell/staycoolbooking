@@ -29,7 +29,7 @@ const createSupabaseServerClient = async () => {
   );
 };
 
-import { logActivity } from './activity-actions';
+import { logActivity, sendTargetedNotification } from './activity-actions';
 import { createServiceClient } from './supabase-server';
 import { getGeminiModel } from './gemini';
 
@@ -539,6 +539,35 @@ export async function processCheckInAndPayout(bookingId: string, adminSupabase: 
   if (updateError) {
     console.error('[CheckIn] Failed to update booking status:', updateError);
     return { error: 'Failed to update booking status' };
+  }
+
+  // Automated notifications for Guest and Host upon Check-in
+  try {
+    const bookingRef = `#${bookingId.slice(0, 8).toUpperCase()}`;
+    if (booking.guest_id) {
+      await sendTargetedNotification({
+        type: 'booking',
+        title: '🏨 Welcome & Checked In!',
+        message: `You are now checked in for reservation ${bookingRef}. Have a wonderful stay!`,
+        status: 'success',
+        userId: booking.guest_id,
+        targetRole: 'guest',
+        url: '/user-profile',
+      });
+    }
+    if (hostId) {
+      await sendTargetedNotification({
+        type: 'booking',
+        title: '✅ Guest Checked In',
+        message: `Guest has checked in for booking ${bookingRef}. Host payout is processing.`,
+        status: 'info',
+        userId: hostId,
+        targetRole: 'host',
+        url: '/host-dashboard',
+      });
+    }
+  } catch (notifErr) {
+    console.error('CheckIn notification error:', notifErr);
   }
 
   // 3. Process splits

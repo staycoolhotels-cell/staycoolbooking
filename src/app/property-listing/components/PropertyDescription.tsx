@@ -68,6 +68,9 @@ const PropertyDescription = ({
     return 'BuildingStorefrontIcon';
   };
 
+  const normalizedType = propertyType?.trim().toLowerCase() || '';
+  const isHotelOrResort = normalizedType === 'hotel' || normalizedType === 'resort';
+
   const baseFeatures = [
     { icon: 'BuildingOfficeIcon', label: 'Total Units', value: totalRooms },
     { icon: 'HomeIcon', label: 'Bedrooms', value: bedrooms },
@@ -91,7 +94,13 @@ const PropertyDescription = ({
     { icon: 'ArrowLeftStartOnRectangleIcon', label: 'Check-out', value: checkOutTime || '11:00 AM' },
   ];
 
-  const features = [...baseFeatures, ...roomTypeFeatures, ...checkTimings];
+  // For Hotel and Resort, show ONLY: Total Units, Check-in, and Check-out
+  const features = isHotelOrResort
+    ? [
+        { icon: 'BuildingOfficeIcon', label: 'Total Units', value: totalRooms },
+        ...checkTimings,
+      ]
+    : [...baseFeatures, ...roomTypeFeatures, ...checkTimings];
 
   return (
     <motion.div
@@ -141,7 +150,7 @@ const PropertyDescription = ({
         </p>
       </motion.div>
 
-      {highlights && highlights.length > 0 && (
+      {!isHotelOrResort && highlights && highlights.length > 0 && (
         <motion.div variants={itemVariants}>
           <h3 className="text-sm font-semibold tracking-widest text-white/40 uppercase mb-4 flex items-center gap-2">
             <Icon name="StarIcon" size={16} />

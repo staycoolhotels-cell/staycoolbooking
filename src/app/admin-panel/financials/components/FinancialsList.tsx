@@ -23,6 +23,10 @@ const processData = (transactions: Transaction[]) => {
     .filter((t) => t.status === 'completed')
     .reduce((acc, t) => acc + (t.amount || 0), 0);
 
+  const adminRevenue = transactions
+    .filter((t) => t.status === 'completed')
+    .reduce((acc, t) => acc + (t.serviceFee || Math.round((t.amount || 0) * 0.1)), 0);
+
   const totalRefunds = transactions
     .filter((t) => t.status === 'refunded')
     .reduce((acc, t) => acc + (t.amount || 0), 0);
@@ -32,20 +36,24 @@ const processData = (transactions: Transaction[]) => {
   const monthlyData = transactions.reduce(
     (acc, t) => {
       const month = format(new Date(t.date), 'MMM');
-      if (!acc[month]) acc[month] = { revenue: 0, refunds: 0 };
-      if (t.status === 'completed') acc[month].revenue += t.amount || 0;
+      if (!acc[month]) acc[month] = { revenue: 0, adminRevenue: 0, refunds: 0 };
+      if (t.status === 'completed') {
+        acc[month].revenue += t.amount || 0;
+        acc[month].adminRevenue += t.serviceFee || Math.round((t.amount || 0) * 0.1);
+      }
       return acc;
     },
-    {} as Record<string, { revenue: number; refunds: number }>
+    {} as Record<string, { revenue: number; adminRevenue: number; refunds: number }>
   );
 
   const chartData = Object.keys(monthlyData).map((month) => ({
     name: month,
-    Revenue: monthlyData[month].revenue,
+    'Booking Revenue': monthlyData[month].revenue,
+    'Admin Revenue': monthlyData[month].adminRevenue,
     Refunds: Math.abs(monthlyData[month].refunds),
   }));
 
-  return { totalRevenue, totalRefunds, netRevenue, pendingCount, chartData };
+  return { totalRevenue, adminRevenue, totalRefunds, netRevenue, pendingCount, chartData };
 };
 
 // ─── Custom Tooltip ──────────────────────────────────────────────────────────
@@ -175,7 +183,7 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { totalRevenue, totalRefunds, netRevenue, pendingCount, chartData } = processData(transactions);
+  const { totalRevenue, adminRevenue, totalRefunds, netRevenue, pendingCount, chartData } = processData(transactions);
 
   useEffect(() => {
     setTransactions(initialTransactions);
@@ -235,15 +243,27 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
 
   const kpiCards: KpiCardProps[] = [
     {
-      title: 'Total Revenue',
+      title: 'Booking Revenue',
       value: `₹${totalRevenue.toLocaleString('en-IN')}`,
       icon: 'CurrencyRupeeIcon',
       glow: 'rgba(99,102,241,0.35)',
       border: 'rgba(99,102,241,0.25)',
       iconColor: 'text-indigo-400',
       blobColor: 'rgba(99,102,241,0.5)',
-      subtitle: 'From completed transactions',
+      subtitle: 'Gross completed volume',
       active: statusFilter === 'all',
+      onClick: () => setStatusFilter('all'),
+    },
+    {
+      title: 'Admin Revenue',
+      value: `₹${adminRevenue.toLocaleString('en-IN')}`,
+      icon: 'BanknotesIcon',
+      glow: 'rgba(16,185,129,0.35)',
+      border: 'rgba(16,185,129,0.25)',
+      iconColor: 'text-emerald-400',
+      blobColor: 'rgba(16,185,129,0.5)',
+      subtitle: 'Platform fee (10%)',
+      active: false,
       onClick: () => setStatusFilter('all'),
     },
     {
@@ -261,13 +281,13 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
     {
       title: 'Net Revenue',
       value: `₹${netRevenue.toLocaleString('en-IN')}`,
-      icon: 'BanknotesIcon',
-      glow: 'rgba(16,185,129,0.35)',
-      border: 'rgba(16,185,129,0.25)',
-      iconColor: 'text-emerald-400',
-      blobColor: 'rgba(16,185,129,0.5)',
+      icon: 'ShieldCheckIcon',
+      glow: 'rgba(59,130,246,0.35)',
+      border: 'rgba(59,130,246,0.25)',
+      iconColor: 'text-blue-400',
+      blobColor: 'rgba(59,130,246,0.5)',
       subtitle: 'Revenue minus refunds',
-      active: false, // Just informational
+      active: false,
       onClick: () => setStatusFilter('all'),
     },
     {
@@ -287,7 +307,7 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
   return (
     <div className="space-y-8">
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-5">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-5">
         {kpiCards.map((card, i) => (
           <motion.div
             key={card.title}
@@ -317,7 +337,11 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
             <div className="flex items-center gap-4 text-xs text-zinc-500">
               <span className="flex items-center gap-1.5">
                 <span className="w-3 h-0.5 rounded-full bg-indigo-400 inline-block" />
-                Revenue
+                Booking Revenue
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-0.5 rounded-full bg-emerald-400 inline-block" />
+                Admin Revenue
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-3 h-0.5 rounded-full bg-rose-400 inline-block" />
@@ -332,6 +356,10 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
                   <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#818cf8" stopOpacity={0.3} />
                     <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="adminRevenueGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#34d399" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="refundsGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#fb7185" stopOpacity={0.3} />
@@ -354,12 +382,21 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
                 <Tooltip content={<CustomTooltip />} />
                 <Area
                   type="monotone"
-                  dataKey="Revenue"
+                  dataKey="Booking Revenue"
                   stroke="#818cf8"
                   strokeWidth={2.5}
                   fill="url(#revenueGrad)"
                   dot={{ r: 4, fill: '#818cf8', strokeWidth: 0 }}
                   activeDot={{ r: 6, fill: '#818cf8' }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Admin Revenue"
+                  stroke="#34d399"
+                  strokeWidth={2.5}
+                  fill="url(#adminRevenueGrad)"
+                  dot={{ r: 4, fill: '#34d399', strokeWidth: 0 }}
+                  activeDot={{ r: 6, fill: '#34d399' }}
                 />
                 <Area
                   type="monotone"
@@ -405,13 +442,14 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-zinc-300 focus:outline-none focus:border-indigo-500/50 transition-colors appearance-none cursor-pointer"
+              style={{ colorScheme: 'dark' }}
+              className="px-3.5 py-2 rounded-xl bg-[#0f111a] border border-white/15 text-sm font-semibold text-white focus:outline-none focus:border-indigo-500/50 transition-colors appearance-none cursor-pointer shadow-lg [&>option]:bg-[#0f111a] [&>option]:text-white"
             >
-              <option value="all" className="bg-zinc-900">All Status</option>
-              <option value="completed" className="bg-zinc-900">Completed</option>
-              <option value="pending" className="bg-zinc-900">Pending</option>
-              <option value="failed" className="bg-zinc-900">Failed</option>
-              <option value="refunded" className="bg-zinc-900">Refunded</option>
+              <option value="all" className="bg-[#0f111a] text-white py-1.5">All Status</option>
+              <option value="completed" className="bg-[#0f111a] text-white py-1.5">Completed</option>
+              <option value="pending" className="bg-[#0f111a] text-white py-1.5">Pending</option>
+              <option value="failed" className="bg-[#0f111a] text-white py-1.5">Failed</option>
+              <option value="refunded" className="bg-[#0f111a] text-white py-1.5">Refunded</option>
             </select>
           </div>
         </div>

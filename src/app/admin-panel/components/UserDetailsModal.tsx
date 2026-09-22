@@ -91,10 +91,11 @@ const UserDetailsModal = ({
                   <select
                     value={editedRole}
                     onChange={(e) => setEditedRole(e.target.value as 'guest' | 'host')}
-                    className="w-full p-2 rounded-md bg-muted border border-border"
+                    style={{ colorScheme: 'dark' }}
+                    className="w-full p-2 rounded-md bg-[#12141f] border border-white/15 text-white font-medium [&>option]:bg-[#12141f] [&>option]:text-white"
                   >
-                    <option value="guest">Guest</option>
-                    <option value="host">Host</option>
+                    <option value="guest" className="bg-[#12141f] text-white">Guest</option>
+                    <option value="host" className="bg-[#12141f] text-white">Host</option>
                   </select>
                 )}
               </div>
@@ -107,11 +108,12 @@ const UserDetailsModal = ({
                       e.target.value as 'active' | 'pending' | 'rejected'
                     )
                   }
-                  className="w-full p-2 rounded-md bg-muted border border-border"
+                  style={{ colorScheme: 'dark' }}
+                  className="w-full p-2 rounded-md bg-[#12141f] border border-white/15 text-white font-medium [&>option]:bg-[#12141f] [&>option]:text-white"
                 >
-                  <option value="active">Active</option>
-                  <option value="pending">Pending</option>
-                  <option value="rejected">Rejected</option>
+                  <option value="active" className="bg-[#12141f] text-white">Active</option>
+                  <option value="pending" className="bg-[#12141f] text-white">Pending</option>
+                  <option value="rejected" className="bg-[#12141f] text-white">Rejected</option>
                 </select>
               </div>
               <p>

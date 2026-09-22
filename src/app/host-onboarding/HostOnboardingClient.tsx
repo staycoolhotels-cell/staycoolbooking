@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, CheckCircle2, ChevronRight, Landmark, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Building2, CheckCircle2, ChevronRight, Clock, Landmark, LayoutDashboard, ShieldCheck } from 'lucide-react';
 import BankingDetails from '@/app/host-dashboard/components/BankingDetails';
 import AddPropertyModal, { FormData as PropertyFormData } from '@/app/host-dashboard/components/AddPropertyModal';
 
@@ -112,17 +112,54 @@ export default function HostOnboardingClient({
             </div>
           ) : (
             <>
-              <div className="mb-7">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-400">Step 2 of 2 · Banking &amp; KYC</p>
-                <h1 className="mt-3 text-3xl font-black">Complete your payout setup</h1>
-                <p className="mt-2 text-zinc-400">After Banking &amp; KYC is activated, your full host dashboard will open automatically.</p>
+              <div className="mb-7 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-400">Step 2 of 2 · Banking &amp; KYC</p>
+                  <h1 className="mt-2 text-3xl font-black">Complete your payout setup</h1>
+                  <p className="mt-1 text-sm text-zinc-400">
+                    Your property is <span className="font-semibold text-emerald-400">Live</span>! Complete Banking &amp; KYC now to receive payouts, or skip and do it later.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={openDashboard}
+                  className="self-start md:self-auto inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/30 px-5 py-2.5 text-sm font-bold text-white transition-all shadow-lg active:scale-95 shrink-0"
+                >
+                  <Clock className="h-4 w-4 text-amber-400" />
+                  Skip / Remind me later
+                  <ArrowRight className="h-4 w-4 text-zinc-400" />
+                </button>
               </div>
               {propertyCreated && (
-                <div className="mb-6 flex gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">
-                  <ShieldCheck className="h-5 w-5 shrink-0" /> Your property was created successfully. Now complete Banking &amp; KYC.
+                <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200 shadow-lg">
+                  <div className="flex items-center gap-2.5">
+                    <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-400" />
+                    <span>
+                      <strong>Property is LIVE!</strong> Your listing was published successfully. You can complete Banking &amp; KYC now or skip directly to your dashboard.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openDashboard}
+                    className="shrink-0 text-xs font-bold text-emerald-400 hover:text-emerald-300 underline"
+                  >
+                    Go to Dashboard &rarr;
+                  </button>
                 </div>
               )}
               <BankingDetails onActivated={openDashboard} />
+              <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-xs text-zinc-400">
+                  Want to explore your bookings and manage your listings first?
+                </p>
+                <button
+                  type="button"
+                  onClick={openDashboard}
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 px-4 py-2 text-xs font-bold text-zinc-300 hover:text-white transition-all"
+                >
+                  Remind me later · Open Host Dashboard <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </>
           )}
         </section>

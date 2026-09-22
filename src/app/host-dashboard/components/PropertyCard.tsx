@@ -180,7 +180,20 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
           <div className="grid grid-cols-2 gap-1.5 md:gap-2 mt-2 md:mt-3">
             <div className="bg-white/[0.02] border border-white/5 rounded-lg md:rounded-xl p-1.5 md:p-2.5">
               <p className="text-[7px] md:text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Base Price</p>
-              <p className="text-[10px] md:text-xs font-black text-white">₹{property.price_per_night || property.price || 0}</p>
+              {(() => {
+                let displayPrice = property.price_per_night || property.price || 0;
+                const roomTypes = (property as any).room_types;
+                const roomTypePrices = (property as any).room_type_prices;
+                if (roomTypes && Array.isArray(roomTypes) && roomTypes.length > 0 && roomTypePrices) {
+                  const activePrices = roomTypes
+                    .map((rt: string) => parseFloat(String(roomTypePrices[rt])) || 0)
+                    .filter((p: number) => p > 0);
+                  if (activePrices.length > 0) {
+                    displayPrice = Math.min(...activePrices);
+                  }
+                }
+                return <p className="text-[10px] md:text-xs font-black text-white">₹{displayPrice}</p>;
+              })()}
             </div>
             <div className="bg-white/[0.02] border border-white/5 rounded-lg md:rounded-xl p-1.5 md:p-2.5">
               <p className="text-[7px] md:text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Est. Earnings</p>

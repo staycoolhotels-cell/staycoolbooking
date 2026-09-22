@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Property } from '@/lib/types';
 import { AMENITIES, CATEGORIZED_AMENITIES, AmenityItem } from '@/lib/amenities';
-import { Plus, X, ChevronRight, ChevronLeft, Home, Sparkles, Layers, Users, Bed, Building2, CheckCircle, Bath, Clock, AlertCircle, ChevronDown, Palmtree, Tent, LayoutGrid, Castle, Trees, Building, BadgePercent, DollarSign, ListPlus, IndianRupee } from 'lucide-react';
+import { Plus, X, ChevronRight, ChevronLeft, Home, Sparkles, Layers, Users, User, Bed, Building2, CheckCircle, Bath, Clock, AlertCircle, ChevronDown, Palmtree, Tent, LayoutGrid, Castle, Trees, Building, BadgePercent, DollarSign, ListPlus, IndianRupee, Maximize2, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient'; // Import supabase client
 import { NumberInput } from '@/components/ui/number-input';
@@ -12,6 +12,30 @@ import MapPicker from '@/components/common/MapPicker';
 const BUCKETS = {
   propertyPhotos: 'images', // Use the 'images' bucket for photos
   propertyDocuments: 'documents', // Use the 'documents' bucket for other documents
+};
+
+export interface RoomTypeSpec {
+  guestsCount: number;
+  bed: string;
+  sqft: string;
+  view: string;
+}
+
+export const getDefaultSpecsForRoomType = (type: string): RoomTypeSpec => {
+  const t = type.toLowerCase();
+  if (t === 'entire resort') {
+    return { guestsCount: 20, bed: 'Multiple King & Queen Beds (Full Resort)', sqft: '5000', view: 'Full Resort Landscape' };
+  }
+  if (t.includes('entire') || t.includes('resort')) {
+    return { guestsCount: 4, bed: '1 King Bed', sqft: '500', view: 'Nature View' };
+  }
+  if (t.includes('suite') || t.includes('presidential') || t.includes('executive')) {
+    return { guestsCount: 3, bed: '1 King Bed', sqft: '350', view: 'City View' };
+  }
+  if (t.includes('deluxe') || t.includes('superior') || t.includes('premium') || t.includes('cottage')) {
+    return { guestsCount: 2, bed: '1 Queen Bed', sqft: '220', view: 'City View' };
+  }
+  return { guestsCount: 2, bed: '1 Double Bed', sqft: '180', view: 'City View' };
 };
 
 export interface FormData {
@@ -62,6 +86,7 @@ export interface FormData {
   roomTypeCounts: Record<string, number>; // New field for inventory per room type
   roomTypePrices: Record<string, number | string>; // New field for pricing per room type
   roomTypeWeekendPrices: Record<string, number | string>; // New field for weekend pricing per room type
+  roomTypeSpecs: Record<string, RoomTypeSpec>; // Configurable specs per room type (guests, bed, sqft, view)
   latitude?: number;
   longitude?: number;
   bulkBookingDiscount: number | string;
@@ -72,7 +97,7 @@ const PROPERTY_ROOM_TYPES: Record<string, string[]> = {
   'home stay': ['Entire Home'],
   'apartment': ['Entire Apartment'],
   'villa': ['Entire Villa'],
-  'resort': ['Standard Room', 'AC Room', 'Deluxe Room', 'Cottage', 'Suite'],
+  'resort': ['Entire Resort', 'Standard Room', 'AC Room', 'Deluxe Room', 'Cottage', 'Suite'],
   'dormitory': ['Dorm Bed', 'Single Bed', 'Double Bed', 'AC Bed'],
   'tent': ['Standard Tent', 'Luxury Tent'],
   'wooden stay': ['Standard Wooden Room', 'Deluxe Wooden Cabin'],
@@ -138,6 +163,7 @@ const AddPropertyModal = ({
     roomTypeCounts: {}, // Initialize as empty object
     roomTypePrices: {}, // Initialize as empty object
     roomTypeWeekendPrices: {}, // Initialize as empty object
+    roomTypeSpecs: {}, // Initialize as empty object
     latitude: undefined,
     longitude: undefined,
     bulkBookingDiscount: 10, // Default 10%
@@ -156,6 +182,7 @@ const AddPropertyModal = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [expandedRoomTypes, setExpandedRoomTypes] = useState<Record<string, boolean>>({});
+  const [expandedRoomSpecs, setExpandedRoomSpecs] = useState<Record<string, boolean>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
@@ -221,7 +248,15 @@ const AddPropertyModal = ({
       }
       return;
     }
-    
+
+    // If Resort has "Entire Resort" selected, set totalRooms to 1
+    if (formData.type === 'Resort' && formData.roomTypes.includes('Entire Resort')) {
+      if (formData.totalRooms !== 1 || hasChanges) {
+        setFormData(prev => ({ ...prev, totalRooms: 1, roomTypeCounts: updatedCounts }));
+      }
+      return;
+    }
+
     if (formData.roomTypes.length > 0) {
       let sum = 0;
       for (const type of formData.roomTypes) {
@@ -296,6 +331,39 @@ const AddPropertyModal = ({
         ? propertyToEdit.images.map((img: any) => typeof img === 'string' ? img : img.url)
         : (propertyToEdit.image_url ? [propertyToEdit.image_url] : []);
 
+      const rawRoomTypes: string[] = (propertyToEdit.room_types && propertyToEdit.room_types.length > 0)
+        ? propertyToEdit.room_types
+        : (
+            propertyToEdit.room_type && 
+            !propertyToEdit.room_type.includes('[') && 
+            !propertyToEdit.room_type.includes(',') && 
+            propertyToEdit.room_type.length < 50
+              ? [propertyToEdit.room_type]
+              : []
+          );
+      const isEntireResortEdit = rawRoomTypes.includes('Entire Resort');
+      const initialRoomTypes = isEntireResortEdit ? ['Entire Resort'] : rawRoomTypes;
+
+      const rawAmenities = (propertyToEdit as any).room_type_amenities || {};
+      const rawCounts = (propertyToEdit as any).room_type_counts || {};
+      const rawPrices = (propertyToEdit as any).room_type_prices || {};
+      const rawWeekendPrices = (propertyToEdit as any).room_type_weekend_prices || {};
+      const rawSpecs = (propertyToEdit as any).room_type_specs || (propertyToEdit as any).room_type_amenities?._specs || {};
+
+      const initialAmenities: Record<string, number[]> = {};
+      const initialCounts: Record<string, number> = {};
+      const initialPrices: Record<string, number | string> = {};
+      const initialWeekendPrices: Record<string, number | string> = {};
+      const initialSpecs: Record<string, RoomTypeSpec> = {};
+
+      initialRoomTypes.forEach(rt => {
+        if (rawAmenities[rt]) initialAmenities[rt] = rawAmenities[rt];
+        initialCounts[rt] = rawCounts[rt] || 1;
+        if (rawPrices[rt] !== undefined) initialPrices[rt] = rawPrices[rt];
+        if (rawWeekendPrices[rt] !== undefined) initialWeekendPrices[rt] = rawWeekendPrices[rt];
+        initialSpecs[rt] = rawSpecs[rt] || getDefaultSpecsForRoomType(rt);
+      });
+
       setFormData({
         name: propertyToEdit.title || propertyToEdit.name || '',
         description: propertyToEdit.description || '',
@@ -303,16 +371,7 @@ const AddPropertyModal = ({
         weekendPrice: propertyToEdit.weekend_price_per_night || propertyToEdit.weekendPrice || '',
         location: propertyToEdit.location || '',
         type: propertyToEdit.tier || '',
-        roomTypes: (propertyToEdit.room_types && propertyToEdit.room_types.length > 0)
-          ? propertyToEdit.room_types
-          : (
-              propertyToEdit.room_type && 
-              !propertyToEdit.room_type.includes('[') && 
-              !propertyToEdit.room_type.includes(',') && 
-              propertyToEdit.room_type.length < 50
-                ? [propertyToEdit.room_type]
-                : (PROPERTY_ROOM_TYPES[(propertyToEdit.tier || propertyToEdit.type || '').toLowerCase()] || [])
-            ),
+        roomTypes: initialRoomTypes,
         photos: [], // Reset photos when editing
         photo_urls: initialPhotoUrls,
         amenities: propertyToEdit.amenities?.map((a: any) => a.id) || [],
@@ -350,13 +409,14 @@ const AddPropertyModal = ({
         customAmenities: propertyToEdit.amenities
           ?.filter((a: any) => !AMENITIES.some(std => std.id === a.id))
           ?.map((a: any) => a.name) || [],
-        roomTypeAmenities: (propertyToEdit as any).room_type_amenities || {},
-        roomTypeCounts: (propertyToEdit as any).room_type_counts || {},
-        roomTypePrices: (propertyToEdit as any).room_type_prices || {},
-        roomTypeWeekendPrices: (propertyToEdit as any).room_type_weekend_prices || {},
+        roomTypeAmenities: initialAmenities,
+        roomTypeCounts: initialCounts,
+        roomTypePrices: initialPrices,
+        roomTypeWeekendPrices: initialWeekendPrices,
+        roomTypeSpecs: initialSpecs,
         latitude: propertyToEdit.latitude,
         longitude: propertyToEdit.longitude,
-        bulkBookingDiscount: ['Home Stay', 'Apartment', 'Villa'].includes(propertyToEdit.tier || '') ? 0 : (propertyToEdit.bulk_booking_discount !== undefined && propertyToEdit.bulk_booking_discount !== null ? propertyToEdit.bulk_booking_discount : 10),
+        bulkBookingDiscount: (['Home Stay', 'Apartment', 'Villa'].includes(propertyToEdit.tier || '') || initialRoomTypes.includes('Entire Resort')) ? 0 : (propertyToEdit.bulk_booking_discount !== undefined && propertyToEdit.bulk_booking_discount !== null ? propertyToEdit.bulk_booking_discount : 10),
       });
       setDisabledFields({
         name: false,
@@ -368,7 +428,7 @@ const AddPropertyModal = ({
         postalCode: false,
         country: false,
       });
-      const isSingleUnitType = ['Home Stay', 'Apartment', 'Villa'].includes(propertyToEdit.tier || '');
+      const isSingleUnitType = ['Home Stay', 'Apartment', 'Villa'].includes(propertyToEdit.tier || '') || initialRoomTypes.includes('Entire Resort');
       const discountVal = isSingleUnitType ? 0 : (propertyToEdit.bulk_booking_discount !== undefined && propertyToEdit.bulk_booking_discount !== null ? propertyToEdit.bulk_booking_discount : 10);
       setIsBulkDiscountEnabled(discountVal > 0);
       lastNonZeroDiscount.current = discountVal > 0 ? discountVal : 10;
@@ -421,6 +481,7 @@ const AddPropertyModal = ({
         roomTypeCounts: {},
         roomTypePrices: {},
         roomTypeWeekendPrices: {},
+        roomTypeSpecs: {},
         latitude: undefined,
         longitude: undefined,
         bulkBookingDiscount: 10,
@@ -463,12 +524,14 @@ const AddPropertyModal = ({
         const filteredPrices: Record<string, number | string> = {};
         const filteredWeekendPrices: Record<string, number | string> = {};
         const filteredAmenities: Record<string, number[]> = {};
+        const filteredSpecs: Record<string, RoomTypeSpec> = {};
 
         filteredRoomTypes.forEach(rt => {
           if (prev.roomTypeCounts[rt] !== undefined) filteredCounts[rt] = prev.roomTypeCounts[rt];
           if (prev.roomTypePrices[rt] !== undefined) filteredPrices[rt] = prev.roomTypePrices[rt];
           if (prev.roomTypeWeekendPrices[rt] !== undefined) filteredWeekendPrices[rt] = prev.roomTypeWeekendPrices[rt];
           if (prev.roomTypeAmenities[rt] !== undefined) filteredAmenities[rt] = prev.roomTypeAmenities[rt];
+          if (prev.roomTypeSpecs && prev.roomTypeSpecs[rt] !== undefined) filteredSpecs[rt] = prev.roomTypeSpecs[rt];
         });
 
         return {
@@ -491,7 +554,8 @@ const AddPropertyModal = ({
             : filteredWeekendPrices,
           roomTypeAmenities: isSingleUnitType && validRoomTypes.length === 1 
             ? { [validRoomTypes[0]]: prev.roomTypeAmenities[validRoomTypes[0]] || [] } 
-            : filteredAmenities
+            : filteredAmenities,
+          roomTypeSpecs: isSingleUnitType ? {} : filteredSpecs
         };
       });
       if (isSingleUnitType) {
@@ -621,20 +685,40 @@ const AddPropertyModal = ({
       updatedFormData.amenities = Array.from(allAmenityIds);
       
       if (formData.roomTypes.length > 0) {
-        const finalPrices = { ...formData.roomTypePrices };
-        const finalWeekendPrices = { ...formData.roomTypeWeekendPrices };
+        const finalPrices: Record<string, number | string> = {};
+        const finalWeekendPrices: Record<string, number | string> = {};
+        const finalCounts: Record<string, number> = {};
+        const finalAmenities: Record<string, number[]> = {};
+        const finalSpecs: Record<string, RoomTypeSpec> = {};
+
+        formData.roomTypes.forEach(rt => {
+          if (formData.roomTypePrices[rt] !== undefined) finalPrices[rt] = formData.roomTypePrices[rt];
+          if (formData.roomTypeWeekendPrices[rt] !== undefined) finalWeekendPrices[rt] = formData.roomTypeWeekendPrices[rt];
+          if (formData.roomTypeCounts[rt] !== undefined) finalCounts[rt] = formData.roomTypeCounts[rt];
+          if (formData.roomTypeAmenities[rt] !== undefined) finalAmenities[rt] = formData.roomTypeAmenities[rt];
+          if (formData.roomTypeSpecs?.[rt] !== undefined) finalSpecs[rt] = formData.roomTypeSpecs[rt];
+        });
+
         updatedFormData.roomTypePrices = finalPrices;
         updatedFormData.roomTypeWeekendPrices = finalWeekendPrices;
+        updatedFormData.roomTypeCounts = finalCounts;
+        updatedFormData.roomTypeAmenities = finalAmenities;
+        updatedFormData.roomTypeSpecs = finalSpecs;
         
-        // Find minimum custom prices for global indexing
-        const pricesList = Object.values(finalPrices).map(p => parseFloat(String(p)) || 0).filter(p => p > 0);
+        // Find minimum custom prices for global indexing ONLY from active room types
+        const pricesList = formData.roomTypes.map(rt => parseFloat(String(finalPrices[rt])) || 0).filter(p => p > 0);
         const minPrice = pricesList.length > 0 ? Math.min(...pricesList) : 0;
 
-        const weekendPricesList = Object.values(finalWeekendPrices).map(p => parseFloat(String(p)) || 0).filter(p => p > 0);
+        const weekendPricesList = formData.roomTypes.map(rt => parseFloat(String(finalWeekendPrices[rt])) || 0).filter(p => p > 0);
         const minWeekendPrice = weekendPricesList.length > 0 ? Math.min(...weekendPricesList) : 0;
         
         updatedFormData.price = minPrice > 0 ? String(minPrice) : '';
         updatedFormData.weekendPrice = minWeekendPrice > 0 ? String(minWeekendPrice) : '';
+      }
+
+      if (formData.roomTypes.includes('Entire Resort') || ['Home Stay', 'Apartment', 'Villa'].includes(formData.type)) {
+        updatedFormData.bulkBookingDiscount = 0;
+        updatedFormData.totalRooms = 1;
       }
       
       const propertyNameSlug = formData.name.replace(/\s+/g, '-');
@@ -978,117 +1062,525 @@ const AddPropertyModal = ({
                   
                   if (!roomTypes) return null;
 
+                  const isHotelOrResort = formData.type === 'Hotel' || formData.type === 'Resort';
+
                   return (
                     <div className="space-y-1.5 md:space-y-2 animate-fade-in py-2">
-                      <label className="text-xs md:text-sm font-medium text-zinc-400">Room Type Selection</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs md:text-sm font-medium text-zinc-400">Room Type Selection</label>
+                        {isHotelOrResort && (
+                          <span className="text-[10px] text-sky-400 font-semibold bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                            Click room to configure rooms, guests, bed & view
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 items-start">
                         {roomTypes.map((roomType) => {
                           const isSelected = formData.roomTypes.includes(roomType);
                           const count = isSelected ? (formData.roomTypeCounts[roomType] || 1) : 0;
+                          const isSpecsExpanded = isHotelOrResort && isSelected && !!expandedRoomSpecs[roomType];
+                          const currentSpecs = formData.roomTypeSpecs[roomType] || getDefaultSpecsForRoomType(roomType);
+                          const isEntireResort = roomType === 'Entire Resort';
                           
                           return (
                             <div
                               key={roomType}
-                              className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-300 ${
+                              className={`flex flex-col rounded-xl border transition-all duration-300 overflow-hidden ${
                                 isSelected
                                   ? 'bg-sky-500/10 border-sky-400 text-white shadow-[0_0_15px_rgba(14,165,233,0.15)]'
                                   : 'bg-zinc-800/40 border-zinc-700/60 text-zinc-400 hover:border-sky-500/50 hover:bg-zinc-800/80 hover:text-white'
                               }`}
                             >
-                              {/* Click name to toggle selection */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (['Home Stay', 'Apartment', 'Villa'].includes(formData.type)) return;
-                                  setFormData(prev => {
-                                    const isSel = prev.roomTypes.includes(roomType);
-                                    const newRoomTypes = isSel
-                                      ? prev.roomTypes.filter(t => t !== roomType)
-                                      : [...prev.roomTypes, roomType];
+                              {/* Main Card Header */}
+                              <div className="flex items-center justify-between p-3">
+                                {/* Click name to toggle selection or expand specs */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (['Home Stay', 'Apartment', 'Villa'].includes(formData.type)) return;
                                     
-                                    const newCounts = { ...prev.roomTypeCounts };
-                                    if (isSel) {
-                                      delete newCounts[roomType];
-                                    } else {
-                                      newCounts[roomType] = 1;
+                                    if (isHotelOrResort && isSelected) {
+                                      // If already selected in Hotel/Resort, toggle the configuration dropdown
+                                      setExpandedRoomSpecs(prev => ({
+                                        ...prev,
+                                        [roomType]: !prev[roomType]
+                                      }));
+                                      return;
                                     }
-                                    
-                                    return { ...prev, roomTypes: newRoomTypes, roomTypeCounts: newCounts };
-                                  });
-                                }}
-                                className={`flex-1 text-left font-bold text-xs md:text-sm outline-none ${
-                                  ['Home Stay', 'Apartment', 'Villa'].includes(formData.type) ? 'cursor-default' : ''
-                                }`}
-                              >
-                                {roomType}
-                              </button>
 
-                              {/* Plus/Minus Controls */}
-                              <div className="flex items-center gap-2.5 ml-2">
-                                {isSelected ? (
-                                  ['Home Stay', 'Apartment', 'Villa'].includes(formData.type) ? (
-                                    <div className="flex items-center justify-center bg-zinc-950/60 border border-zinc-800 rounded-lg px-3 py-1">
-                                      <span className="text-xs md:text-sm font-black select-none text-white">1</span>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-2 bg-zinc-950/60 border border-zinc-800 rounded-lg p-1">
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setFormData(prev => {
-                                            const currentCount = prev.roomTypeCounts[roomType] || 1;
-                                            const newCount = currentCount - 1;
-                                            if (newCount <= 0) {
+                                    setFormData(prev => {
+                                      const isSel = prev.roomTypes.includes(roomType);
+                                      const isSelectingEntireResort = roomType === 'Entire Resort';
+
+                                      let newRoomTypes: string[];
+                                      if (isSelectingEntireResort) {
+                                        newRoomTypes = isSel ? [] : ['Entire Resort'];
+                                      } else {
+                                        newRoomTypes = isSel
+                                          ? prev.roomTypes.filter(t => t !== roomType)
+                                          : [...prev.roomTypes.filter(t => t !== 'Entire Resort'), roomType];
+                                      }
+
+                                      const newCounts: Record<string, number> = {};
+                                      const newSpecs: Record<string, RoomTypeSpec> = {};
+                                      const newPrices: Record<string, number | string> = {};
+                                      const newWeekendPrices: Record<string, number | string> = {};
+                                      const newAmenities: Record<string, number[]> = {};
+
+                                      newRoomTypes.forEach(t => {
+                                        newCounts[t] = prev.roomTypeCounts[t] || 1;
+                                        newSpecs[t] = prev.roomTypeSpecs?.[t] || getDefaultSpecsForRoomType(t);
+                                        if (prev.roomTypePrices?.[t] !== undefined) newPrices[t] = prev.roomTypePrices[t];
+                                        if (prev.roomTypeWeekendPrices?.[t] !== undefined) newWeekendPrices[t] = prev.roomTypeWeekendPrices[t];
+                                        if (prev.roomTypeAmenities?.[t] !== undefined) newAmenities[t] = prev.roomTypeAmenities[t];
+                                      });
+
+                                      return {
+                                        ...prev,
+                                        roomTypes: newRoomTypes,
+                                        roomTypeCounts: newCounts,
+                                        roomTypeSpecs: newSpecs,
+                                        roomTypePrices: newPrices,
+                                        roomTypeWeekendPrices: newWeekendPrices,
+                                        roomTypeAmenities: newAmenities,
+                                        totalRooms: newRoomTypes.includes('Entire Resort') ? 1 : prev.totalRooms,
+                                        bulkBookingDiscount: newRoomTypes.includes('Entire Resort') ? 0 : prev.bulkBookingDiscount,
+                                      };
+                                    });
+
+                                    if (roomType === 'Entire Resort') {
+                                      setIsBulkDiscountEnabled(false);
+                                    }
+
+                                    if (isHotelOrResort) {
+                                      setExpandedRoomSpecs(prev => ({ ...prev, [roomType]: true }));
+                                    }
+                                  }}
+                                  className={`flex-1 flex items-center gap-1.5 text-left font-bold text-xs md:text-sm outline-none group ${
+                                    ['Home Stay', 'Apartment', 'Villa'].includes(formData.type) ? 'cursor-default' : 'cursor-pointer'
+                                  }`}
+                                >
+                                  <span>{roomType}</span>
+                                  {isHotelOrResort && isSelected && (
+                                    <ChevronDown className={`w-3.5 h-3.5 text-sky-400 transition-transform duration-200 ${isSpecsExpanded ? 'rotate-180' : ''}`} />
+                                  )}
+                                </button>
+
+                                {/* Plus/Minus Controls */}
+                                <div className="flex items-center gap-2.5 ml-2">
+                                  {isSelected ? (
+                                    ['Home Stay', 'Apartment', 'Villa'].includes(formData.type) ? (
+                                      <div className="flex items-center justify-center bg-zinc-950/60 border border-zinc-800 rounded-lg px-3 py-1">
+                                        <span className="text-xs md:text-sm font-black select-none text-white">1</span>
+                                      </div>
+                                    ) : isHotelOrResort ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setExpandedRoomSpecs(prev => ({
+                                              ...prev,
+                                              [roomType]: !prev[roomType]
+                                            }));
+                                          }}
+                                          className="text-[11px] font-bold text-sky-400 bg-sky-500/15 border border-sky-400/30 px-2 py-0.5 rounded-md select-none whitespace-nowrap hover:bg-sky-500/25 transition-colors cursor-pointer"
+                                          title="Click to view specs and adjust count"
+                                        >
+                                          {isEntireResort 
+                                            ? (count === 1 ? 'Entire Resort' : `${count} Entire Resorts`)
+                                            : `${count} ${count === 1 ? 'Room' : 'Rooms'}`
+                                          }
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setFormData(prev => {
                                               const newRoomTypes = prev.roomTypes.filter(t => t !== roomType);
                                               const newCounts = { ...prev.roomTypeCounts };
+                                              const newSpecs = { ...prev.roomTypeSpecs };
+                                              const newPrices = { ...prev.roomTypePrices };
+                                              const newWeekendPrices = { ...prev.roomTypeWeekendPrices };
+                                              const newAmenities = { ...prev.roomTypeAmenities };
                                               delete newCounts[roomType];
-                                              return { ...prev, roomTypes: newRoomTypes, roomTypeCounts: newCounts };
-                                            } else {
+                                              delete newSpecs[roomType];
+                                              delete newPrices[roomType];
+                                              delete newWeekendPrices[roomType];
+                                              delete newAmenities[roomType];
                                               return {
                                                 ...prev,
-                                                roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: newCount }
+                                                roomTypes: newRoomTypes,
+                                                roomTypeCounts: newCounts,
+                                                roomTypeSpecs: newSpecs,
+                                                roomTypePrices: newPrices,
+                                                roomTypeWeekendPrices: newWeekendPrices,
+                                                roomTypeAmenities: newAmenities,
                                               };
-                                            }
+                                            });
+                                          }}
+                                          className="w-6 h-6 flex items-center justify-center rounded-md bg-zinc-800/80 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 transition-colors"
+                                          title="Remove room type"
+                                        >
+                                          <X className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2 bg-zinc-950/60 border border-zinc-800 rounded-lg p-1">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setFormData(prev => {
+                                              const currentCount = prev.roomTypeCounts[roomType] || 1;
+                                              const newCount = currentCount - 1;
+                                              if (newCount <= 0) {
+                                                const newRoomTypes = prev.roomTypes.filter(t => t !== roomType);
+                                                const newCounts = { ...prev.roomTypeCounts };
+                                                delete newCounts[roomType];
+                                                return { ...prev, roomTypes: newRoomTypes, roomTypeCounts: newCounts };
+                                              } else {
+                                                return {
+                                                  ...prev,
+                                                  roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: newCount }
+                                                };
+                                              }
+                                            });
+                                          }}
+                                          className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-sm select-none"
+                                        >
+                                          -
+                                        </button>
+                                        <span className="text-xs md:text-sm font-black w-4 text-center select-none text-white">{count}</span>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setFormData(prev => {
+                                              const currentCount = prev.roomTypeCounts[roomType] || 1;
+                                              return {
+                                                ...prev,
+                                                roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: currentCount + 1 }
+                                              };
+                                            });
+                                          }}
+                                          className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-sm select-none"
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                    )
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setFormData(prev => {
+                                          const isSelectingEntireResort = roomType === 'Entire Resort';
+                                          let newRoomTypes: string[];
+                                          if (isSelectingEntireResort) {
+                                            newRoomTypes = ['Entire Resort'];
+                                          } else {
+                                            newRoomTypes = [...prev.roomTypes.filter(t => t !== 'Entire Resort'), roomType];
+                                          }
+
+                                          const newCounts: Record<string, number> = {};
+                                          const newSpecs: Record<string, RoomTypeSpec> = {};
+                                          const newPrices: Record<string, number | string> = {};
+                                          const newWeekendPrices: Record<string, number | string> = {};
+                                          const newAmenities: Record<string, number[]> = {};
+
+                                          newRoomTypes.forEach(t => {
+                                            newCounts[t] = prev.roomTypeCounts[t] || 1;
+                                            newSpecs[t] = prev.roomTypeSpecs?.[t] || getDefaultSpecsForRoomType(t);
+                                            if (prev.roomTypePrices?.[t] !== undefined) newPrices[t] = prev.roomTypePrices[t];
+                                            if (prev.roomTypeWeekendPrices?.[t] !== undefined) newWeekendPrices[t] = prev.roomTypeWeekendPrices[t];
+                                            if (prev.roomTypeAmenities?.[t] !== undefined) newAmenities[t] = prev.roomTypeAmenities[t];
                                           });
-                                        }}
-                                        className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-sm select-none"
-                                      >
-                                        -
-                                      </button>
-                                      <span className="text-xs md:text-sm font-black w-4 text-center select-none text-white">{count}</span>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setFormData(prev => {
-                                            const currentCount = prev.roomTypeCounts[roomType] || 1;
-                                            return {
-                                              ...prev,
-                                              roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: currentCount + 1 }
-                                            };
-                                          });
-                                        }}
-                                        className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-sm select-none"
-                                      >
-                                        +
-                                      </button>
-                                    </div>
-                                  )
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => {
-                                      const newRoomTypes = [...prev.roomTypes, roomType];
-                                      const newCounts = { ...prev.roomTypeCounts, [roomType]: 1 };
-                                      return { ...prev, roomTypes: newRoomTypes, roomTypeCounts: newCounts };
-                                    })}
-                                    className="px-2.5 py-1 text-[11px] font-black uppercase tracking-wider bg-zinc-800 hover:bg-sky-500 hover:text-white rounded border border-zinc-700/60 transition-all text-zinc-350"
-                                  >
-                                    Add
-                                  </button>
-                                )}
+
+                                          return {
+                                            ...prev,
+                                            roomTypes: newRoomTypes,
+                                            roomTypeCounts: newCounts,
+                                            roomTypeSpecs: newSpecs,
+                                            roomTypePrices: newPrices,
+                                            roomTypeWeekendPrices: newWeekendPrices,
+                                            roomTypeAmenities: newAmenities,
+                                            totalRooms: newRoomTypes.includes('Entire Resort') ? 1 : prev.totalRooms,
+                                            bulkBookingDiscount: newRoomTypes.includes('Entire Resort') ? 0 : prev.bulkBookingDiscount,
+                                          };
+                                        });
+
+                                        if (roomType === 'Entire Resort') {
+                                          setIsBulkDiscountEnabled(false);
+                                        }
+
+                                        if (isHotelOrResort) {
+                                          setExpandedRoomSpecs(prev => ({ ...prev, [roomType]: true }));
+                                        }
+                                      }}
+                                      className="px-2.5 py-1 text-[11px] font-black uppercase tracking-wider bg-zinc-800 hover:bg-sky-500 hover:text-white rounded border border-zinc-700/60 transition-all text-zinc-350"
+                                    >
+                                      Add
+                                    </button>
+                                  )}
+                                </div>
                               </div>
+
+                              {/* Dropdown Configuration Panel for Hotel & Resort */}
+                              {isHotelOrResort && isSelected && isSpecsExpanded && (
+                                <div className="px-3 pb-3 pt-2.5 border-t border-sky-400/20 bg-zinc-950/90 space-y-3 animate-fade-in text-left">
+                                  <div className="flex items-center justify-between pb-1 border-b border-zinc-800/80">
+                                    <span className="text-[10px] font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1">
+                                      {isEntireResort ? 'Entire Resort Specs & Buyout' : 'Room Specs & Inventory'}
+                                    </span>
+                                    <span className="text-[9px] text-zinc-500 font-medium">Hotel & Resort</span>
+                                  </div>
+
+                                  {/* 1. Total Rooms with - or + button */}
+                                  <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-300 mb-1 flex items-center justify-between">
+                                      <span className="flex items-center gap-1.5">
+                                        <Building2 className="w-3.5 h-3.5 text-sky-400" />
+                                        <span>{isEntireResort ? 'Entire Resort Units' : 'Total Rooms'}</span>
+                                      </span>
+                                      <span className="text-[9px] text-zinc-500">{isEntireResort ? 'Full property buyout' : 'Inventory count'}</span>
+                                    </label>
+                                    <div className="flex items-center justify-between bg-zinc-900 border border-zinc-700/60 rounded-lg p-1.5">
+                                      <span className="text-xs font-bold text-zinc-200 pl-2">
+                                        {isEntireResort 
+                                          ? (count === 1 ? '1 Entire Resort' : `${count} Entire Resorts`)
+                                          : `${count} ${count === 1 ? 'Room' : 'Rooms'}`
+                                        }
+                                      </span>
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setFormData(prev => {
+                                              const currentCount = prev.roomTypeCounts[roomType] || 1;
+                                              const newCount = currentCount - 1;
+                                              if (newCount <= 0) {
+                                                const newRoomTypes = prev.roomTypes.filter(t => t !== roomType);
+                                                const newCounts = { ...prev.roomTypeCounts };
+                                                const newSpecs = { ...prev.roomTypeSpecs };
+                                                delete newCounts[roomType];
+                                                delete newSpecs[roomType];
+                                                return { ...prev, roomTypes: newRoomTypes, roomTypeCounts: newCounts, roomTypeSpecs: newSpecs };
+                                              } else {
+                                                return {
+                                                  ...prev,
+                                                  roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: newCount }
+                                                };
+                                              }
+                                            });
+                                          }}
+                                          className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-sm select-none transition-all"
+                                          title="Decrease"
+                                        >
+                                          -
+                                        </button>
+                                        <span className="text-xs font-black w-4 text-center select-none text-white">{count}</span>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setFormData(prev => {
+                                              const currentCount = prev.roomTypeCounts[roomType] || 1;
+                                              return {
+                                                ...prev,
+                                                roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: currentCount + 1 }
+                                              };
+                                            });
+                                          }}
+                                          className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-sm select-none transition-all"
+                                          title="Increase"
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* 2. Guests with - or + button */}
+                                  <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-300 mb-1 flex items-center gap-1.5">
+                                      <User className="w-3.5 h-3.5 text-purple-400" />
+                                      <span>{isEntireResort ? 'Total Guests Capacity (Full Resort)' : 'Guests'}</span>
+                                    </label>
+                                    <div className="flex items-center justify-between bg-zinc-900 border border-zinc-700/60 rounded-lg p-1.5">
+                                      <span className="text-xs font-bold text-zinc-200 pl-2">
+                                        {currentSpecs.guestsCount} Guest{currentSpecs.guestsCount > 1 ? 's' : ''}
+                                      </span>
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const step = isEntireResort && (currentSpecs.guestsCount || 20) > 10 ? 2 : 1;
+                                            const newCount = Math.max(1, (currentSpecs.guestsCount || (isEntireResort ? 20 : 2)) - step);
+                                            setFormData(prev => ({
+                                              ...prev,
+                                              roomTypeSpecs: {
+                                                ...prev.roomTypeSpecs,
+                                                [roomType]: { ...currentSpecs, guestsCount: newCount }
+                                              }
+                                            }));
+                                          }}
+                                          disabled={currentSpecs.guestsCount <= 1}
+                                          className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-purple-400 font-black text-sm select-none transition-all disabled:opacity-40"
+                                        >
+                                          -
+                                        </button>
+                                        <span className="text-xs font-black min-w-5 text-center select-none text-white">
+                                          {currentSpecs.guestsCount}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const maxLimit = isEntireResort ? 100 : 10;
+                                            const step = isEntireResort && (currentSpecs.guestsCount || 20) >= 10 ? 2 : 1;
+                                            const newCount = Math.min(maxLimit, (currentSpecs.guestsCount || (isEntireResort ? 20 : 2)) + step);
+                                            setFormData(prev => ({
+                                              ...prev,
+                                              roomTypeSpecs: {
+                                                ...prev.roomTypeSpecs,
+                                                [roomType]: { ...currentSpecs, guestsCount: newCount }
+                                              }
+                                            }));
+                                          }}
+                                          disabled={currentSpecs.guestsCount >= (isEntireResort ? 100 : 10)}
+                                          className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-purple-400 font-black text-sm select-none transition-all disabled:opacity-40"
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* 3. Bed Type Select */}
+                                  <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-300 mb-1 flex items-center gap-1.5">
+                                      <Bed className="w-3.5 h-3.5 text-indigo-400" />
+                                      <span>{isEntireResort ? 'Beds Setup (Across Resort)' : 'Bed Type'}</span>
+                                    </label>
+                                    <select
+                                      value={currentSpecs.bed}
+                                      onChange={(e) => {
+                                        const newBed = e.target.value;
+                                        setFormData(prev => ({
+                                          ...prev,
+                                          roomTypeSpecs: {
+                                            ...prev.roomTypeSpecs,
+                                            [roomType]: { ...currentSpecs, bed: newBed }
+                                          }
+                                        }));
+                                      }}
+                                      className="w-full bg-zinc-900 border border-zinc-700/60 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white focus:outline-none focus:border-sky-400 cursor-pointer"
+                                    >
+                                      {isEntireResort ? (
+                                        <>
+                                          <option value="Multiple King & Queen Beds (Full Resort)" className="bg-zinc-900 text-white">Multiple King & Queen Beds (Full Resort)</option>
+                                          <option value="All Cottages & Rooms Included" className="bg-zinc-900 text-white">All Cottages & Rooms Included</option>
+                                          <option value="5+ Bedrooms (Multiple Beds)" className="bg-zinc-900 text-white">5+ Bedrooms (Multiple Beds)</option>
+                                          <option value="10+ Beds (Full Resort)" className="bg-zinc-900 text-white">10+ Beds (Full Resort)</option>
+                                          <option value="15+ Beds (Full Resort)" className="bg-zinc-900 text-white">15+ Beds (Full Resort)</option>
+                                          <option value="20+ Beds (Full Resort)" className="bg-zinc-900 text-white">20+ Beds (Full Resort)</option>
+                                          <option value="Multiple King Beds" className="bg-zinc-900 text-white">Multiple King Beds</option>
+                                          <option value="Multiple Double & Single Beds" className="bg-zinc-900 text-white">Multiple Double & Single Beds</option>
+                                          <option value="Dormitory & Private Beds Combination" className="bg-zinc-900 text-white">Dormitory & Private Beds Combination</option>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <option value="1 King Bed" className="bg-zinc-900 text-white">1 King Bed</option>
+                                          <option value="1 Queen Bed" className="bg-zinc-900 text-white">1 Queen Bed</option>
+                                          <option value="1 Double Bed" className="bg-zinc-900 text-white">1 Double Bed</option>
+                                          <option value="2 Double Beds" className="bg-zinc-900 text-white">2 Double Beds</option>
+                                          <option value="2 Single Beds" className="bg-zinc-900 text-white">2 Single Beds</option>
+                                          <option value="1 Single Bed" className="bg-zinc-900 text-white">1 Single Bed</option>
+                                          <option value="3 Single Beds" className="bg-zinc-900 text-white">3 Single Beds</option>
+                                          <option value="4 Bunk Beds" className="bg-zinc-900 text-white">4 Bunk Beds</option>
+                                        </>
+                                      )}
+                                    </select>
+                                  </div>
+
+                                  {/* 4. Room / Resort sq.ft Input */}
+                                  <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-300 mb-1 flex items-center gap-1.5">
+                                      <Maximize2 className="w-3.5 h-3.5 text-sky-400" />
+                                      <span>{isEntireResort ? 'Total Resort Area' : 'Room sq.ft'}</span>
+                                    </label>
+                                    <div className="relative flex items-center">
+                                      <input
+                                        type="text"
+                                        value={currentSpecs.sqft}
+                                        onChange={(e) => {
+                                          const newSqft = e.target.value;
+                                          setFormData(prev => ({
+                                            ...prev,
+                                            roomTypeSpecs: {
+                                              ...prev.roomTypeSpecs,
+                                              [roomType]: { ...currentSpecs, sqft: newSqft }
+                                            }
+                                          }));
+                                        }}
+                                        placeholder={isEntireResort ? 'e.g. 5,000 sq.ft or 2 Acres' : 'e.g. 180'}
+                                        className="w-full bg-zinc-900 border border-zinc-700/60 rounded-lg pl-2.5 pr-12 py-1.5 text-xs font-bold text-white placeholder-zinc-500 focus:outline-none focus:border-sky-400"
+                                      />
+                                      <span className="absolute right-2.5 text-[10px] font-semibold text-zinc-400 pointer-events-none">
+                                        {isEntireResort ? 'Area' : 'sq.ft'}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* 5. Room View / Resort Landscape Select */}
+                                  <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-300 mb-1 flex items-center gap-1.5">
+                                      <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                                      <span>{isEntireResort ? 'Resort Landscape View' : 'Room View'}</span>
+                                    </label>
+                                    <select
+                                      value={currentSpecs.view}
+                                      onChange={(e) => {
+                                        const newView = e.target.value;
+                                        setFormData(prev => ({
+                                          ...prev,
+                                          roomTypeSpecs: {
+                                            ...prev.roomTypeSpecs,
+                                            [roomType]: { ...currentSpecs, view: newView }
+                                          }
+                                        }));
+                                      }}
+                                      className="w-full bg-zinc-900 border border-zinc-700/60 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white focus:outline-none focus:border-sky-400 cursor-pointer"
+                                    >
+                                      {isEntireResort ? (
+                                        <>
+                                          <option value="Full Resort Landscape" className="bg-zinc-900 text-white">Full Resort Landscape</option>
+                                          <option value="Panoramic Mountain View" className="bg-zinc-900 text-white">Panoramic Mountain View</option>
+                                          <option value="Nature & Forest View" className="bg-zinc-900 text-white">Nature & Forest View</option>
+                                          <option value="Beachfront / Sea View" className="bg-zinc-900 text-white">Beachfront / Sea View</option>
+                                          <option value="Private Pool & Garden View" className="bg-zinc-900 text-white">Private Pool & Garden View</option>
+                                          <option value="Lake View" className="bg-zinc-900 text-white">Lake View</option>
+                                          <option value="Scenic Valley View" className="bg-zinc-900 text-white">Scenic Valley View</option>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <option value="City View" className="bg-zinc-900 text-white">City View</option>
+                                          <option value="Garden View" className="bg-zinc-900 text-white">Garden View</option>
+                                          <option value="Pool View" className="bg-zinc-900 text-white">Pool View</option>
+                                          <option value="Sea View" className="bg-zinc-900 text-white">Sea View</option>
+                                          <option value="Mountain View" className="bg-zinc-900 text-white">Mountain View</option>
+                                          <option value="Nature View" className="bg-zinc-900 text-white">Nature View</option>
+                                          <option value="Lake View" className="bg-zinc-900 text-white">Lake View</option>
+                                          <option value="Courtyard View" className="bg-zinc-900 text-white">Courtyard View</option>
+                                          <option value="No View" className="bg-zinc-900 text-white">No View</option>
+                                        </>
+                                      )}
+                                    </select>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -1153,103 +1645,107 @@ const AddPropertyModal = ({
                 </div>
 
                 {/* NEW FIELDS: Bedrooms, Bathrooms, Area, Max Guests, Total Rooms */}
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+                {!formData.roomTypes.includes('Entire Resort') && (
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
 
-                  {/* Total Rooms / Units Input */}
-                  <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(formData.type) ? 'opacity-40 pointer-events-none' : ''}`}>
-                    <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
-                      <Building2 className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
-                      <label htmlFor="totalRooms" className="block text-xs md:text-sm font-medium text-zinc-300">
-                        {formData.type === 'Tent' ? 'Total Tents/Units' : 'Total Rooms/Units'}
-                      </label>
-                      {['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(formData.type) && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
+                    {/* Total Rooms / Units Input */}
+                    <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(formData.type) ? 'opacity-40 pointer-events-none' : ''}`}>
+                      <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
+                        <Building2 className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                        <label htmlFor="totalRooms" className="block text-xs md:text-sm font-medium text-zinc-300">
+                          {formData.type === 'Tent' ? 'Total Tents/Units' : 'Total Rooms/Units'}
+                        </label>
+                        {['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(formData.type) && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
+                      </div>
+                      <div className="flex justify-center">
+                        <NumberInput
+                          value={formData.totalRooms}
+                          onChange={(val) => setFormData(prev => ({ ...prev, totalRooms: val }))}
+                          min={1}
+                          disabled={['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(formData.type)}
+                        />
+                      </div>
+                      <p className="text-[10px] md:text-xs text-zinc-500 mt-1 text-center">
+                        {formData.type === 'Tent' ? 'For tent bookings.' : 'For bulk bookings.'}
+                      </p>
                     </div>
-                    <div className="flex justify-center">
-                      <NumberInput
-                        value={formData.totalRooms}
-                        onChange={(val) => setFormData(prev => ({ ...prev, totalRooms: val }))}
-                        min={1}
-                        disabled={['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(formData.type)}
-                      />
+                    <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${['Tent', 'Dormitory', 'Hotel', 'Resort'].includes(formData.type) ? 'opacity-40 pointer-events-none' : ''}`}>
+                      <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
+                        <Home className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                        <label htmlFor="bedrooms" className="block text-xs md:text-sm font-medium text-zinc-300">Bedrooms</label>
+                        {['Tent', 'Dormitory', 'Hotel', 'Resort'].includes(formData.type) && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
+                      </div>
+                      <div className="flex justify-center">
+                                <NumberInput
+                          value={formData.bedrooms}
+                          onChange={(val) => !['Tent', 'Dormitory', 'Hotel', 'Resort'].includes(formData.type) && setFormData(prev => ({ ...prev, bedrooms: val }))}
+                          min={0}
+                        />
+                      </div>
                     </div>
-                    <p className="text-[10px] md:text-xs text-zinc-500 mt-1 text-center">
-                      {formData.type === 'Tent' ? 'For tent bookings.' : 'For bulk bookings.'}
-                    </p>
-                  </div>
-                  <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${['Tent', 'Dormitory', 'Hotel', 'Resort'].includes(formData.type) ? 'opacity-40 pointer-events-none' : ''}`}>
-                    <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
-                      <Home className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
-                      <label htmlFor="bedrooms" className="block text-xs md:text-sm font-medium text-zinc-300">Bedrooms</label>
-                      {['Tent', 'Dormitory', 'Hotel', 'Resort'].includes(formData.type) && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
-                    </div>
-                    <div className="flex justify-center">
-                              <NumberInput
-                        value={formData.bedrooms}
-                        onChange={(val) => !['Tent', 'Dormitory', 'Hotel', 'Resort'].includes(formData.type) && setFormData(prev => ({ ...prev, bedrooms: val }))}
-                        min={0}
-                      />
-                    </div>
-                  </div>
 
-                  <div className="bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50">
-                    <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
-                      <Bed className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
-                      <label htmlFor="beds" className="block text-xs md:text-sm font-medium text-zinc-300">Beds</label>
+                    <div className="bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50">
+                      <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
+                        <Bed className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                        <label htmlFor="beds" className="block text-xs md:text-sm font-medium text-zinc-300">Beds</label>
+                      </div>
+                      <div className="flex justify-center">
+                        <NumberInput
+                          value={formData.beds}
+                          onChange={(val) => setFormData(prev => ({ ...prev, beds: val }))}
+                          min={0}
+                        />
+                      </div>
                     </div>
-                    <div className="flex justify-center">
-                      <NumberInput
-                        value={formData.beds}
-                        onChange={(val) => setFormData(prev => ({ ...prev, beds: val }))}
-                        min={0}
-                      />
-                    </div>
-                  </div>
 
-                  <div className="bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50">
-                    <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
-                      <Bath className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
-                      <label htmlFor="bathrooms" className="block text-xs md:text-sm font-medium text-zinc-300">Bathrooms</label>
-                    </div>
-                    <div className="flex justify-center">
-                      <NumberInput
-                        value={formData.bathrooms}
-                        onChange={(val) => setFormData(prev => ({ ...prev, bathrooms: val }))}
-                        min={0}
-                      />
-                    </div>
-                  </div>
+                    {!['Hotel', 'Resort'].includes(formData.type) && (
+                      <div className="bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50">
+                        <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
+                          <Bath className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                          <label htmlFor="bathrooms" className="block text-xs md:text-sm font-medium text-zinc-300">Bathrooms</label>
+                        </div>
+                        <div className="flex justify-center">
+                          <NumberInput
+                            value={formData.bathrooms}
+                            onChange={(val) => setFormData(prev => ({ ...prev, bathrooms: val }))}
+                            min={0}
+                          />
+                        </div>
+                      </div>
+                    )}
 
-                  <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
-                    <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
-                      <Layers className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
-                      <label htmlFor="area" className="block text-xs md:text-sm font-medium text-zinc-300">Area (sq ft)</label>
-                      {formData.type === 'Tent' && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
+                    <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${formData.type === 'Tent' ? 'opacity-40 pointer-events-none' : ''}`}>
+                      <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
+                        <Layers className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                        <label htmlFor="area" className="block text-xs md:text-sm font-medium text-zinc-300">Area (sq ft)</label>
+                        {formData.type === 'Tent' && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
+                      </div>
+                      <div className="flex justify-center">
+                        <NumberInput
+                          value={formData.area}
+                          onChange={(val) => formData.type !== 'Tent' && setFormData(prev => ({ ...prev, area: val }))}
+                          min={0}
+                          max={100000}
+                          step={10}
+                        />
+                      </div>
                     </div>
-                    <div className="flex justify-center">
-                      <NumberInput
-                        value={formData.area}
-                        onChange={(val) => formData.type !== 'Tent' && setFormData(prev => ({ ...prev, area: val }))}
-                        min={0}
-                        max={100000}
-                        step={10}
-                      />
-                    </div>
-                  </div>
 
-                  <div className="bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50">
-                    <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
-                      <Users className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
-                      <label htmlFor="maxGuests" className="block text-xs md:text-sm font-medium text-zinc-300">{formData.type === 'Dormitory' ? 'Max Guests/per bed' : 'Max Guests/per unit'}</label>
-                    </div>
-                    <div className="flex justify-center">
-                      <NumberInput
-                        value={formData.maxGuests}
-                        onChange={(val) => setFormData(prev => ({ ...prev, maxGuests: val }))}
-                        min={1}
-                      />
+                    <div className="bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50">
+                      <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
+                        <Users className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
+                        <label htmlFor="maxGuests" className="block text-xs md:text-sm font-medium text-zinc-300">{formData.type === 'Dormitory' ? 'Max Guests/per bed' : 'Max Guests/per unit'}</label>
+                      </div>
+                      <div className="flex justify-center">
+                        <NumberInput
+                          value={formData.maxGuests}
+                          onChange={(val) => setFormData(prev => ({ ...prev, maxGuests: val }))}
+                          min={1}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
 
 
@@ -2019,7 +2515,7 @@ const AddPropertyModal = ({
                 ) : null}
                 
                 {/* Bulk Booking Discount with toggle and +/- buttons */}
-                {['Home Stay', 'Apartment', 'Villa'].includes(formData.type) ? (
+                {['Home Stay', 'Apartment', 'Villa'].includes(formData.type) || formData.roomTypes.includes('Entire Resort') ? (
                   <div className="bg-zinc-800/40 p-4 md:p-6 rounded-2xl md:rounded-3xl border border-zinc-700/30 flex items-start gap-3 md:gap-4 relative overflow-hidden group">
                     <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/3 to-amber-500/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                     <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-400 shrink-0 border border-amber-500/20">
@@ -2030,7 +2526,9 @@ const AddPropertyModal = ({
                         Bulk Booking Discount
                       </h4>
                       <p className="text-[10px] md:text-xs text-zinc-500 font-medium leading-relaxed">
-                        Bulk discounts are only applicable to multi-unit listings (Hotels and Resorts). Since this listing is categorized as a {formData.type || 'single unit'}, bulk discounts are disabled.
+                        {formData.roomTypes.includes('Entire Resort')
+                          ? 'Entire Resort is booked as a single exclusive unit. Bulk discounts are not applicable.'
+                          : `Bulk discounts are only applicable to multi-unit listings (Hotels and multi-room Resorts). Since this listing is categorized as a ${formData.type || 'single unit'}, bulk discounts are disabled.`}
                       </p>
                     </div>
                   </div>

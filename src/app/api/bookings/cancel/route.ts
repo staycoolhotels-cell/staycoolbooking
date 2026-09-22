@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { razorpay } from '@/lib/razorpay';
 import { differenceInDays, startOfDay } from 'date-fns';
 import { calculateRefundDistribution } from '@/lib/refund-policy';
+import { sendTargetedNotification } from '@/lib/activity-actions';
 
 export async function POST(req: Request) {
     try {
@@ -176,6 +177,49 @@ export async function POST(req: Request) {
                 console.error('Transfer record update error:', transferError);
                 // Non-critical: the booking itself is cancelled, but transfer record remains stale.
             }
+        }
+
+        // 5. Automated Segregated Browser Notifications (No manual button click needed)
+        try {
+            const propTitle = booking.property?.title || 'Hotel Stay';
+            const bookingRef = `#${bookingId.slice(0, 8).toUpperCase()}`;
+
+            // A. Guest Notification (Only the cancelling guest sees this)
+            await sendTargetedNotification({
+                type: 'booking',
+                title: '❌ Booking Cancelled',
+                message: `Your booking ${bookingRef} for "${propTitle}" has been cancelled. Expected refund: ₹${guestRefundAmount}.`,
+                status: 'warning',
+                userId: booking.guest_id,
+                targetRole: 'guest',
+                url: '/user-profile',
+            });
+
+            // B. Host Notification (Only the host of this property sees this)
+            if (booking.property?.host_id) {
+                await sendTargetedNotification({
+                    type: 'booking',
+                    title: '⚠️ Reservation Cancelled',
+                    message: `Reservation ${bookingRef} for "${propTitle}" was cancelled by guest. Your compensation: ₹${newHostAmount}.`,
+                    status: 'warning',
+                    userId: booking.property.host_id,
+                    targetRole: 'host',
+                    url: '/host-dashboard',
+                });
+            }
+
+            // C. Admin Notification (Only Admin sees this)
+            await sendTargetedNotification({
+                type: 'booking',
+                title: '🔄 Booking Cancellation & Refund',
+                message: `Booking ${bookingRef} cancelled. Refund to guest: ₹${guestRefundAmount}, Admin retained: ₹${newAdminAmount}.`,
+                status: 'info',
+                userId: null,
+                targetRole: 'admin',
+                url: '/admin-panel',
+            });
+        } catch (notifErr) {
+            console.error('Cancellation notification error (non-fatal):', notifErr);
         }
 
         return NextResponse.json({

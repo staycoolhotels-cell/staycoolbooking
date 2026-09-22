@@ -64,6 +64,13 @@ const CancellationPolicyPage = () => {
                                         The platform fee is non-refundable in all circumstances.
                                     </p>
                                 </li>
+                                <li className="flex items-start gap-3">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-2 flex-shrink-0" />
+                                    <p className="text-sm text-zinc-400 leading-relaxed">
+                                        <strong className="text-zinc-100 block mb-0.5">StayCool No-Show Rule</strong>
+                                        If the guest fails to arrive at the property on the scheduled check-in date and check-in time, it will be considered a No-Show. No refund will be provided for No-Show bookings, unless StayCool's applicable refund policy applies.
+                                    </p>
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -85,6 +92,22 @@ const CancellationPolicyPage = () => {
             title: '5. Non-Refundable Service Fees',
             content: 'Please note that certain administrative and service fees may be non-refundable once a booking is confirmed, depending on the payment method and jurisdiction. These will be clearly itemized during the checkout process.',
             icon: 'BanknotesIcon'
+        },
+        {
+            title: '6. StayCool No-Show Rule',
+            content: (
+                <div className="space-y-4">
+                    <div className="p-5 bg-rose-500/10 border border-rose-500/20 rounded-2xl">
+                        <p className="text-base text-zinc-100 font-medium leading-relaxed">
+                            &ldquo;If the guest fails to arrive at the property on the scheduled check-in date and check-in time, it will be considered a No-Show. No refund will be provided for No-Show bookings, unless StayCool&apos;s applicable refund policy applies.&rdquo;
+                        </p>
+                    </div>
+                    <p className="text-sm text-zinc-400 leading-relaxed">
+                        When a guest does not check in by the property&apos;s scheduled check-in time without prior communication or a valid cancellation request, the reservation is treated as a No-Show. The room inventory is held exclusively for the guest, and no refund will be issued unless an applicable StayCool refund policy applies.
+                    </p>
+                </div>
+            ),
+            icon: 'ClockIcon'
         }
     ];
 

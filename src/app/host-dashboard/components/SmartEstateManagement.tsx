@@ -124,10 +124,16 @@ const SmartEstateManagement: React.FC<SmartEstateManagementProps> = ({ propertie
       if (onToggleStatus) {
         await onToggleStatus(id, newStatus);
       } else {
-        const { error } = await supabase
-          .rpc('toggle_property_status', { p_id: id, p_status: newStatus });
-
-        if (error) throw error;
+        const res = await fetch('/api/properties/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            propertyId: id,
+            updatePayload: { status: newStatus },
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok || json.error) throw new Error(json.error || 'Failed to update status');
       }
 
       toast.success(`${name} is now ${newStatus === 'active' ? 'Live on Market' : 'Off-Market'}`, {

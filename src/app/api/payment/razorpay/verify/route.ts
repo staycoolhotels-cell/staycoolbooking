@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
 import crypto from 'crypto';
+import { sendTargetedNotification } from '@/lib/activity-actions';
 
 /**
  * POST /api/payment/razorpay/verify
@@ -81,7 +82,8 @@ export async function POST(req: Request) {
             if (booking) {
                 const hostId = booking.property?.host_id;
                 const amount = Number(booking.total_price);
-                const guestServiceFee = Number(booking.service_fee || 0);
+                // Platform service fee is strictly 100% retained by Admin. It must never be shared with host.
+                const guestServiceFee = Number(booking.service_fee) || Math.round((amount * 0.1) / 1.1);
                 const hostRevenue = Math.max(0, amount - guestServiceFee);
                 const { data: hostProfile } = hostId
                     ? await supabase.from('users').select('referred_by, referral_commissions_remaining').eq('id', hostId).single()
@@ -120,6 +122,47 @@ export async function POST(req: Request) {
                         console.log(`📉 Decremented referral commissions for host ${hostId}. Remaining: ${referralProfile.referral_commissions_remaining - 1}`);
                     }
                 }
+
+                // C. Segregated Browser Notifications (Automated - No Button Click Required)
+                const propTitle = booking.property?.title || 'Hotel Stay';
+                const bookingRef = `#${bookingId.slice(0, 8).toUpperCase()}`;
+
+                // 1. Guest Side Notification (Only this Guest sees)
+                if (booking.guest_id) {
+                    await sendTargetedNotification({
+                        type: 'booking',
+                        title: '🎉 Booking Confirmed!',
+                        message: `Your reservation ${bookingRef} for "${propTitle}" is confirmed. Enjoy your stay!`,
+                        status: 'success',
+                        userId: booking.guest_id,
+                        targetRole: 'guest',
+                        url: '/user-profile',
+                    });
+                }
+
+                // 2. Host Side Notification (Only this Host sees)
+                if (hostId) {
+                    await sendTargetedNotification({
+                        type: 'booking',
+                        title: '🏨 New Reservation Received!',
+                        message: `New booking ${bookingRef} for "${propTitle}". Total: ₹${amount}. Payout scheduled upon check-in.`,
+                        status: 'success',
+                        userId: hostId,
+                        targetRole: 'host',
+                        url: '/host-dashboard',
+                    });
+                }
+
+                // 3. Admin Side Notification (Only Admin sees)
+                await sendTargetedNotification({
+                    type: 'booking',
+                    title: '💼 Booking Payment Captured',
+                    message: `Booking ${bookingRef} confirmed: ₹${amount} received. Platform commission: ₹${platformFee}.`,
+                    status: 'success',
+                    userId: null,
+                    targetRole: 'admin',
+                    url: '/admin-panel',
+                });
             }
         } catch (txnError) {
             // Log but don't fail the verification response if the secondary tasks fail

@@ -59,6 +59,7 @@ const BookingHistoryPage = async () => {
       ),
       booking_rooms(rooms(room_type))
     `)
+    .not('status', 'in', '("pending_payment","payment_failed")')
     .order('created_at', { ascending: false });
 
   if (bookingsError) {

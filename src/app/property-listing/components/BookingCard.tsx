@@ -39,6 +39,8 @@ interface BookingCardProps {
   roomTypePrices?: Record<string, number>;
   roomTypeWeekendPrices?: Record<string, number>;
   weekendPrice?: number;
+  roomTypeCounts?: Record<string, number>;
+  roomTypeSpecs?: Record<string, { guestsCount?: number; bed?: string; sqft?: string | number; view?: string }>;
 }
 
 const BookingCard = ({
@@ -59,20 +61,32 @@ const BookingCard = ({
   roomTypePrices = {},
   roomTypeWeekendPrices = {},
   weekendPrice = 0,
+  roomTypeCounts = {},
+  roomTypeSpecs = {},
 }: BookingCardProps) => {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
   const [checkIn, setCheckIn] = useState<Date | null>(() => {
     if (typeof window !== 'undefined') {
       const val = sessionStorage.getItem(`booking_${propertyId}_checkIn`);
-      return val ? new Date(val) : null;
+      if (val) {
+        const d = new Date(val);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (!isNaN(d.getTime()) && d >= today) return d;
+      }
     }
     return null;
   });
   const [checkOut, setCheckOut] = useState<Date | null>(() => {
     if (typeof window !== 'undefined') {
       const val = sessionStorage.getItem(`booking_${propertyId}_checkOut`);
-      return val ? new Date(val) : null;
+      if (val) {
+        const d = new Date(val);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (!isNaN(d.getTime()) && d >= today) return d;
+      }
     }
     return null;
   });
@@ -152,13 +166,131 @@ const BookingCard = ({
   const isDormitory = safePropertyType.toLowerCase().trim() === 'dormitory';
   const unitName = isTent ? 'Tent' : isDormitory ? 'Bed' : 'Room';
   const unitsName = isTent ? 'Tents' : isDormitory ? 'Beds' : 'Rooms';
+  const isHotelOrResort = safePropertyType.toLowerCase().trim() === 'hotel' || safePropertyType.toLowerCase().trim() === 'resort';
+
+  const hotelRoomTypes = useMemo(() => {
+    const countKeys = Object.keys(roomTypeCounts || {}).filter(k => (roomTypeCounts?.[k] || 0) > 0);
+    if (countKeys.length > 0) {
+      if (countKeys.includes('Entire Resort')) return ['Entire Resort'];
+      return countKeys;
+    }
+
+    const priceKeys = Object.keys(roomTypePrices || {}).filter(k => k && k.trim().length > 0);
+    if (priceKeys.length > 0) {
+      if (priceKeys.includes('Entire Resort')) return ['Entire Resort'];
+      return priceKeys;
+    }
+
+    const groupedKeys = Object.keys(groupedRooms);
+    if (groupedKeys.length > 0) {
+      if (groupedKeys.includes('Entire Resort')) return ['Entire Resort'];
+      return groupedKeys;
+    }
+
+    return ['Deluxe Room', 'Superior Room', 'Executive Suite'];
+  }, [roomTypeCounts, roomTypePrices, groupedRooms]);
+
+  const [selectedHotelRoomType, setSelectedHotelRoomType] = useState<string>('');
+
+  useEffect(() => {
+    if (hotelRoomTypes.length > 0 && (!selectedHotelRoomType || !hotelRoomTypes.includes(selectedHotelRoomType))) {
+      setSelectedHotelRoomType(hotelRoomTypes[0]);
+    }
+  }, [hotelRoomTypes, selectedHotelRoomType]);
+
+  useEffect(() => {
+    if (!isHotelOrResort || bookingType !== 'single') return;
+    if (availableRoomsList.length > 0 && selectedHotelRoomType) {
+      const match = availableRoomsList.find(
+        (r: any) => r.is_available && (r.room_type || '').toLowerCase() === selectedHotelRoomType.toLowerCase()
+      ) || availableRoomsList.find(
+        (r: any) => (r.room_type || '').toLowerCase() === selectedHotelRoomType.toLowerCase()
+      ) || availableRoomsList.find((r: any) => r.is_available) || availableRoomsList[0];
+
+      if (match && (!selectedRoomIds.includes(match.id) || selectedRoomIds.length !== 1)) {
+        setSelectedRoomIds([match.id]);
+      }
+    }
+  }, [isHotelOrResort, bookingType, selectedHotelRoomType, availableRoomsList]);
+
+  const getRoomTypeSpecs = (type: string) => {
+    // If custom specs are configured by host in property, use them!
+    const custom = roomTypeSpecs?.[type];
+    if (custom) {
+      const parsedGuests = Number(custom.guestsCount) || 2;
+      const parsedBed = custom.bed || '1 Double Bed';
+      const rawSqft = custom.sqft ? String(custom.sqft).trim() : '180';
+      const parsedSqft = rawSqft.toLowerCase().includes('sq.ft') ? rawSqft : `${rawSqft} sq.ft`;
+      const parsedView = custom.view || 'City View';
+      return {
+        guestsCount: parsedGuests,
+        bed: parsedBed,
+        sqft: parsedSqft,
+        view: parsedView,
+      };
+    }
+
+    const t = type.toLowerCase();
+    let guestsCount = 2;
+    let bed = '1 Double Bed';
+    let sqft = '180 sq.ft';
+    let view = 'City View';
+
+    if (t.includes('entire resort')) {
+      guestsCount = 20;
+      bed = 'Multiple King & Queen Beds (Full Resort)';
+      sqft = '5000 sq.ft';
+      view = 'Full Resort Landscape';
+    } else if (t.includes('executive') || t.includes('suite') || t.includes('presidential')) {
+      guestsCount = 3;
+      bed = '1 King Bed';
+      sqft = '350 sq.ft';
+      view = 'City View';
+    } else if (t.includes('superior') || t.includes('premium') || t.includes('luxury')) {
+      guestsCount = 2;
+      bed = '1 Queen Bed';
+      sqft = '220 sq.ft';
+      view = 'City View';
+    } else if (t.includes('deluxe')) {
+      guestsCount = 2;
+      bed = '1 Double Bed';
+      sqft = '180 sq.ft';
+      view = 'City View';
+    } else if (t.includes('standard') || t.includes('ac')) {
+      guestsCount = 2;
+      bed = '1 Double Bed';
+      sqft = '180 sq.ft';
+      view = 'City View';
+    }
+
+    return { guestsCount, bed, sqft, view };
+  };
+
+  const getRoomCountLeft = (type: string) => {
+    if (availableRoomsList.length > 0) {
+      const available = availableRoomsList.filter(
+        (r: any) => r.is_available && (r.room_type || '').toLowerCase() === type.toLowerCase()
+      ).length;
+      if (available > 0) return available;
+    }
+    if (roomTypeCounts && roomTypeCounts[type] !== undefined) {
+      return roomTypeCounts[type];
+    }
+    const t = type.toLowerCase();
+    if (t.includes('executive') || t.includes('suite')) return 1;
+    if (t.includes('superior')) return 2;
+    return 3;
+  };
 
   // Check if bulk booking is allowed for this property type
   const isBulkBookingAllowed = useMemo(() => {
     const type = safePropertyType.toLowerCase().trim();
     const disallowedTypes = ['home stay', 'homestay', 'villa', 'apartment', 'flat'];
+    if (disallowedTypes.some(disallowed => type.includes(disallowed))) return false;
+    // Entire Resort NEVER allows bulk booking
+    if (hotelRoomTypes.includes('Entire Resort') || selectedHotelRoomType === 'Entire Resort') return false;
     return !disallowedTypes.some(disallowed => type.includes(disallowed));
-  }, [safePropertyType]);
+  }, [safePropertyType, hotelRoomTypes, selectedHotelRoomType]);
 
   useEffect(() => {
     setIsHydrated(true);
@@ -293,29 +425,30 @@ const BookingCard = ({
 
   // Effect to handle booking type changes
   useEffect(() => {
-    if (bookingType === 'single' && availableRoomsList.length > 0) {
-      const firstAvailable = availableRoomsList.find((r: any) => r.is_available) || availableRoomsList[0];
-      setSelectedRoomIds([firstAvailable.id]);
+    if (bookingType === 'single') {
+      if (availableRoomsList.length > 0) {
+        const firstAvailable = availableRoomsList.find((r: any) => r.is_available) || availableRoomsList[0];
+        setSelectedRoomIds([firstAvailable.id]);
+      }
       setSelectedRoomCountsByType({});
       setSelectedRooms(1);
     } else if (bookingType === 'bulk') {
-        // Initial bulk state
-        setSelectedRooms(1);
-        setSelectedRoomIds([]);
-        setSelectedRoomCountsByType({});
+      setSelectedRooms(0);
+      setSelectedRoomIds([]);
+      setSelectedRoomCountsByType({});
     }
   }, [bookingType, availableRoomsList]);
 
   // Auto-selection of units — sync with selectedRoomCountsByType for bulk
   useEffect(() => {
-    if (!availableRoomsList || availableRoomsList.length === 0) return;
-
     if (bookingType === 'single') {
+      if (availableRoomsList && availableRoomsList.length > 0) {
         const available = availableRoomsList.filter(r => r.is_available);
         if (available.length > 0 && selectedRoomIds.length === 0) {
-            setSelectedRoomIds([available[0].id]);
+          setSelectedRoomIds([available[0].id]);
         }
-        return;
+      }
+      return;
     }
 
     // Bulk Booking Logic: Pick specific IDs based on counts per type
@@ -323,14 +456,20 @@ const BookingCard = ({
     let totalCount = 0;
 
     Object.entries(selectedRoomCountsByType).forEach(([type, count]) => {
-        const availableInType = availableRoomsList.filter(r => r.is_available && (r.room_type || 'Standard') === type);
+      if (availableRoomsList && availableRoomsList.length > 0) {
+        const availableInType = availableRoomsList.filter(
+          r => r.is_available && (r.room_type || 'Standard').toLowerCase() === type.toLowerCase()
+        );
         newSelectedIds.push(...availableInType.slice(0, count).map(r => r.id));
-        totalCount += count;
+      }
+      totalCount += (count || 0);
     });
 
     setSelectedRoomIds(newSelectedIds);
-    setSelectedRooms(totalCount);
-  }, [availableRoomsList, bookingType, selectedRoomCountsByType]);
+    if (isHotelOrResort) {
+      setSelectedRooms(totalCount);
+    }
+  }, [availableRoomsList, bookingType, selectedRoomCountsByType, isHotelOrResort]);
 
   // Auto-update guests when selected units change
   useEffect(() => {
@@ -357,12 +496,12 @@ const BookingCard = ({
 
   // Reset booking type if bulk is not allowed
   useEffect(() => {
-    if (!isBulkBookingAllowed && bookingType === 'bulk') {
+    if ((!isBulkBookingAllowed || selectedHotelRoomType === 'Entire Resort' || hotelRoomTypes.includes('Entire Resort')) && bookingType === 'bulk') {
       setBookingType('single');
       setSelectedRooms(1);
       setSelectedRoomIds([]);
     }
-  }, [isBulkBookingAllowed, bookingType]);
+  }, [isBulkBookingAllowed, selectedHotelRoomType, hotelRoomTypes, bookingType]);
 
   const calculateNights = () => {
     if (!checkIn || !checkOut) return 0;
@@ -385,8 +524,14 @@ const BookingCard = ({
     
     if (isWeekendDay) {
       // 1. Check room type weekend price
-      if (roomType && roomTypeWeekendPrices && roomTypeWeekendPrices[roomType] !== undefined && Number(roomTypeWeekendPrices[roomType]) > 0) {
-        return Number(roomTypeWeekendPrices[roomType]);
+      if (roomType && roomTypeWeekendPrices) {
+        if (roomTypeWeekendPrices[roomType] !== undefined && Number(roomTypeWeekendPrices[roomType]) > 0) {
+          return Number(roomTypeWeekendPrices[roomType]);
+        }
+        const wkKey = Object.keys(roomTypeWeekendPrices).find(k => k.toLowerCase() === roomType.toLowerCase());
+        if (wkKey && roomTypeWeekendPrices[wkKey] !== undefined && Number(roomTypeWeekendPrices[wkKey]) > 0) {
+          return Number(roomTypeWeekendPrices[wkKey]);
+        }
       }
       // 2. Check property-level weekend price
       if (weekendPrice && Number(weekendPrice) > 0) {
@@ -395,29 +540,42 @@ const BookingCard = ({
     }
     
     // Regular weekday price
-    if (roomType && roomTypePrices && roomTypePrices[roomType] !== undefined) {
-      return Number(roomTypePrices[roomType]);
+    if (roomType && roomTypePrices) {
+      if (roomTypePrices[roomType] !== undefined) {
+        return Number(roomTypePrices[roomType]);
+      }
+      const pKey = Object.keys(roomTypePrices).find(k => k.toLowerCase() === roomType.toLowerCase());
+      if (pKey && roomTypePrices[pKey] !== undefined) {
+        return Number(roomTypePrices[pKey]);
+      }
     }
-    return pricePerNight;
+    return pricePerNight || 0;
   };
 
   // Room-specific price helper
   const getRoomPrice = (roomType: string | null) => {
-    if (!roomType || !roomTypePrices || Object.keys(roomTypePrices).length === 0) return pricePerNight;
-    return roomTypePrices[roomType] || pricePerNight;
+    if (!roomType || !roomTypePrices || Object.keys(roomTypePrices).length === 0) return pricePerNight || 0;
+    if (roomTypePrices[roomType] !== undefined) return roomTypePrices[roomType];
+    const key = Object.keys(roomTypePrices).find(k => k.toLowerCase() === roomType.toLowerCase());
+    if (key && roomTypePrices[key] !== undefined) return roomTypePrices[key];
+    return pricePerNight || 0;
   };
 
   const selectedRoomsData = availableRoomsList.filter(r => selectedRoomIds.includes(r.id));
 
   // Current display price (per night)
   const displayPrice = useMemo(() => {
+    if (isHotelOrResort) {
+      const type = selectedHotelRoomType || hotelRoomTypes[0];
+      if (type) return getRoomPrice(type);
+    }
     if (bookingType === 'single') {
       const selectedRoom = selectedRoomsData[0];
-      return selectedRoom ? getRoomPrice(selectedRoom.room_type) : pricePerNight;
+      return selectedRoom ? getRoomPrice(selectedRoom.room_type) : (pricePerNight || 0);
     } else {
-      return pricePerNight;
+      return pricePerNight || 0;
     }
-  }, [bookingType, selectedRoomsData, pricePerNight, roomTypePrices]);
+  }, [bookingType, selectedRoomsData, pricePerNight, roomTypePrices, isHotelOrResort, selectedHotelRoomType, hotelRoomTypes]);
 
   const stayDates = useMemo(() => {
     if (!checkIn || !checkOut) return [];
@@ -440,17 +598,38 @@ const BookingCard = ({
 
   const displayWeekendPrice = useMemo(() => {
     if (bookingType === 'single') {
-      const selectedRoom = selectedRoomsData[0];
-      const roomType = selectedRoom ? selectedRoom.room_type : null;
+      const roomType = (isHotelOrResort && selectedHotelRoomType)
+        ? selectedHotelRoomType
+        : (selectedRoomsData[0] ? selectedRoomsData[0].room_type : null);
       if (roomType && roomTypeWeekendPrices && roomTypeWeekendPrices[roomType] !== undefined && Number(roomTypeWeekendPrices[roomType]) > 0) {
         return Number(roomTypeWeekendPrices[roomType]);
       }
     }
     return weekendPrice || 0;
-  }, [bookingType, selectedRoomsData, weekendPrice, roomTypeWeekendPrices]);
+  }, [bookingType, selectedRoomsData, weekendPrice, roomTypeWeekendPrices, isHotelOrResort, selectedHotelRoomType]);
+
+  // Hotel bulk rooms selected sum
+  const totalBulkRoomsSelected = useMemo(() => {
+    return Object.values(selectedRoomCountsByType).reduce((sum, count) => sum + (count || 0), 0);
+  }, [selectedRoomCountsByType]);
 
   // Price Calculation
-  const roomsToBook = bookingType === 'bulk' ? selectedRooms : 1;
+  const roomsToBook = useMemo(() => {
+    if (bookingType === 'single') return 1;
+    if (isHotelOrResort) {
+      return totalBulkRoomsSelected;
+    }
+    return selectedRooms;
+  }, [bookingType, isHotelOrResort, totalBulkRoomsSelected, selectedRooms]);
+
+  const bulkPerNightTotal = useMemo(() => {
+    if (isHotelOrResort) {
+      return Object.entries(selectedRoomCountsByType).reduce((sum, [type, count]) => {
+        return sum + (getRoomPrice(type) * (count || 0));
+      }, 0);
+    }
+    return (pricePerNight || 0) * (selectedRooms > 0 ? selectedRooms : 0);
+  }, [isHotelOrResort, selectedRoomCountsByType, roomTypePrices, pricePerNight, selectedRooms]);
   
   const weekdayTotal = useMemo(() => {
     if (nights <= 0 || stayDates.length === 0) return 0;
@@ -458,26 +637,39 @@ const BookingCard = ({
     if (weekdayDates.length === 0) return 0;
 
     if (bookingType === 'single') {
-        const selectedRoom = selectedRoomsData[0];
-        const roomType = selectedRoom ? selectedRoom.room_type : null;
-        return weekdayDates.reduce((sum, date) => sum + getRoomPriceForDate(roomType, date), 0);
+      const selectedRoom = selectedRoomsData[0];
+      const roomType = (isHotelOrResort && selectedHotelRoomType)
+        ? selectedHotelRoomType
+        : (selectedRoom ? selectedRoom.room_type : null);
+      return weekdayDates.reduce((sum, date) => sum + getRoomPriceForDate(roomType, date), 0);
     } else {
-        if (selectedRoomsData.length > 0) {
-            return selectedRoomsData.reduce((roomSum, room) => {
-              const roomType = room.room_type;
-              return roomSum + weekdayDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(roomType, date), 0);
-            }, 0);
-        }
+      if (isHotelOrResort) {
         const hasSelectedCounts = Object.values(selectedRoomCountsByType).some(count => count > 0);
         if (hasSelectedCounts) {
-            return Object.entries(selectedRoomCountsByType).reduce((sum, [type, count]) => {
-                const typeStayTotal = weekdayDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(type, date), 0);
-                return sum + (count * typeStayTotal);
-            }, 0);
+          return Object.entries(selectedRoomCountsByType).reduce((sum, [type, count]) => {
+            const typeStayTotal = weekdayDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(type, date), 0);
+            return sum + ((count || 0) * typeStayTotal);
+          }, 0);
         }
-        return weekdayDates.reduce((sum, date) => sum + (getRoomPriceForDate(null, date) * selectedRooms), 0);
+        return 0;
+      }
+
+      if (selectedRoomsData.length > 0) {
+        return selectedRoomsData.reduce((roomSum, room) => {
+          const roomType = room.room_type;
+          return roomSum + weekdayDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(roomType, date), 0);
+        }, 0);
+      }
+      const hasSelectedCounts = Object.values(selectedRoomCountsByType).some(count => count > 0);
+      if (hasSelectedCounts) {
+        return Object.entries(selectedRoomCountsByType).reduce((sum, [type, count]) => {
+          const typeStayTotal = weekdayDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(type, date), 0);
+          return sum + ((count || 0) * typeStayTotal);
+        }, 0);
+      }
+      return weekdayDates.reduce((sum, date) => sum + (getRoomPriceForDate(null, date) * roomsToBook), 0);
     }
-  }, [nights, bookingType, selectedRoomsData, pricePerNight, roomTypePrices, selectedRooms, selectedRoomCountsByType, stayDates]);
+  }, [nights, bookingType, selectedRoomsData, pricePerNight, roomTypePrices, roomsToBook, selectedRoomCountsByType, stayDates, isHotelOrResort, selectedHotelRoomType]);
 
   const weekendTotal = useMemo(() => {
     if (nights <= 0 || stayDates.length === 0) return 0;
@@ -485,26 +677,39 @@ const BookingCard = ({
     if (weekendDates.length === 0) return 0;
 
     if (bookingType === 'single') {
-        const selectedRoom = selectedRoomsData[0];
-        const roomType = selectedRoom ? selectedRoom.room_type : null;
-        return weekendDates.reduce((sum, date) => sum + getRoomPriceForDate(roomType, date), 0);
+      const selectedRoom = selectedRoomsData[0];
+      const roomType = (isHotelOrResort && selectedHotelRoomType)
+        ? selectedHotelRoomType
+        : (selectedRoom ? selectedRoom.room_type : null);
+      return weekendDates.reduce((sum, date) => sum + getRoomPriceForDate(roomType, date), 0);
     } else {
-        if (selectedRoomsData.length > 0) {
-            return selectedRoomsData.reduce((roomSum, room) => {
-              const roomType = room.room_type;
-              return roomSum + weekendDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(roomType, date), 0);
-            }, 0);
-        }
+      if (isHotelOrResort) {
         const hasSelectedCounts = Object.values(selectedRoomCountsByType).some(count => count > 0);
         if (hasSelectedCounts) {
-            return Object.entries(selectedRoomCountsByType).reduce((sum, [type, count]) => {
-                const typeStayTotal = weekendDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(type, date), 0);
-                return sum + (count * typeStayTotal);
-            }, 0);
+          return Object.entries(selectedRoomCountsByType).reduce((sum, [type, count]) => {
+            const typeStayTotal = weekendDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(type, date), 0);
+            return sum + ((count || 0) * typeStayTotal);
+          }, 0);
         }
-        return weekendDates.reduce((sum, date) => sum + (getRoomPriceForDate(null, date) * selectedRooms), 0);
+        return 0;
+      }
+
+      if (selectedRoomsData.length > 0) {
+        return selectedRoomsData.reduce((roomSum, room) => {
+          const roomType = room.room_type;
+          return roomSum + weekendDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(roomType, date), 0);
+        }, 0);
+      }
+      const hasSelectedCounts = Object.values(selectedRoomCountsByType).some(count => count > 0);
+      if (hasSelectedCounts) {
+        return Object.entries(selectedRoomCountsByType).reduce((sum, [type, count]) => {
+          const typeStayTotal = weekendDates.reduce((dateSum, date) => dateSum + getRoomPriceForDate(type, date), 0);
+          return sum + ((count || 0) * typeStayTotal);
+        }, 0);
+      }
+      return weekendDates.reduce((sum, date) => sum + (getRoomPriceForDate(null, date) * roomsToBook), 0);
     }
-  }, [nights, bookingType, selectedRoomsData, pricePerNight, roomTypePrices, roomTypeWeekendPrices, weekendPrice, selectedRooms, selectedRoomCountsByType, stayDates]);
+  }, [nights, bookingType, selectedRoomsData, pricePerNight, roomTypePrices, roomTypeWeekendPrices, weekendPrice, roomsToBook, selectedRoomCountsByType, stayDates, isHotelOrResort, selectedHotelRoomType]);
 
   const baseTotal = useMemo(() => {
     return weekdayTotal + weekendTotal;
@@ -512,17 +717,26 @@ const BookingCard = ({
 
   const weekdayAveragePrice = useMemo(() => {
     if (weekdayNightsCount <= 0) return 0;
-    return weekdayTotal / (bookingType === 'single' ? weekdayNightsCount : (weekdayNightsCount * roomsToBook));
+    const divisor = bookingType === 'single' ? weekdayNightsCount : (weekdayNightsCount * roomsToBook);
+    if (divisor <= 0) return 0;
+    const calculated = weekdayTotal / divisor;
+    return isNaN(calculated) || !isFinite(calculated) ? 0 : calculated;
   }, [weekdayNightsCount, weekdayTotal, bookingType, roomsToBook]);
 
   const weekendAveragePrice = useMemo(() => {
     if (weekendNightsCount <= 0) return 0;
-    return weekendTotal / (bookingType === 'single' ? weekendNightsCount : (weekendNightsCount * roomsToBook));
+    const divisor = bookingType === 'single' ? weekendNightsCount : (weekendNightsCount * roomsToBook);
+    if (divisor <= 0) return 0;
+    const calculated = weekendTotal / divisor;
+    return isNaN(calculated) || !isFinite(calculated) ? 0 : calculated;
   }, [weekendNightsCount, weekendTotal, bookingType, roomsToBook]);
 
   const averagePrice = useMemo(() => {
     if (nights <= 0) return displayPrice;
-    return baseTotal / (bookingType === 'single' ? nights : (nights * roomsToBook));
+    const divisor = bookingType === 'single' ? nights : (nights * roomsToBook);
+    if (divisor <= 0) return displayPrice;
+    const calculated = baseTotal / divisor;
+    return isNaN(calculated) || !isFinite(calculated) ? displayPrice : calculated;
   }, [nights, baseTotal, bookingType, roomsToBook, displayPrice]);
 
   const serviceFee = baseTotal * 0.1;
@@ -562,6 +776,16 @@ const BookingCard = ({
       return;
     }
 
+    if (!checkIn || !checkOut || nights <= 0) {
+      toast.info('Please select check-in and check-out dates.');
+      return;
+    }
+
+    if (bookingType === 'bulk' && roomsToBook <= 0) {
+      toast.info('Please select at least 1 room to continue.');
+      return;
+    }
+
     if (!isAuthenticated) {
       // Keep the selected stay details and take the guest to the booking flow.
       // That flow presents login as its first step and resumes afterwards.
@@ -590,6 +814,7 @@ const BookingCard = ({
       bookingType,
       roomCount: roomsToBook.toString(),
       selectedRoomIds: JSON.stringify(selectedRoomIds),
+      selectedRoomType: isHotelOrResort ? selectedHotelRoomType : '',
       hasFreeCancellation: hasFreeCancellation.toString(),
       freeCancellationFee: freeCancellationFee.toString(),
     });
@@ -782,20 +1007,513 @@ const BookingCard = ({
               </p>
             </div>
           </div>
+        ) : isHotelOrResort ? (
+          <>
+            {/* Header: Price & Rating + Bulk Booking Pill Button */}
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                    {bookingType === 'bulk'
+                      ? (roomsToBook > 0
+                          ? (nights > 0 ? `${currency}${total.toLocaleString('en-IN')}` : `${currency}${bulkPerNightTotal.toLocaleString('en-IN')}`)
+                          : `${currency}0`
+                        )
+                      : `${currency}${(nights > 0 ? averagePrice : displayPrice).toLocaleString('en-IN')}`
+                    }
+                  </span>
+                  <span className="text-slate-400 text-xs font-medium">
+                    {bookingType === 'bulk'
+                      ? (roomsToBook > 0
+                          ? (nights > 0 ? '/ total' : '/ night')
+                          : (nights > 0 ? '/ total' : '/ night')
+                        )
+                      : (nights > 0 ? '/ night (average)' : '/ night')
+                    }
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-300">
+                  <Icon name="StarIcon" size={13} variant="solid" className="text-amber-400" />
+                  <span className="font-bold text-white">{rating.toFixed(2)}</span>
+                  <span className="text-slate-500">·</span>
+                  <span className="text-slate-400 font-medium">{reviewCount} reviews</span>
+                </div>
+              </div>
+
+              {/* Bulk Booking Pill Button */}
+              <button
+                onClick={() => {
+                  if (bookingType === 'bulk') {
+                    setBookingType('single');
+                    setSelectedRooms(1);
+                    setSelectedRoomCountsByType({});
+                  } else {
+                    setBookingType('bulk');
+                    setSelectedRoomCountsByType({});
+                    setSelectedRooms(0);
+                    setSelectedRoomIds([]);
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 ${
+                  bookingType === 'bulk'
+                    ? 'bg-sky-400 text-black shadow-sky-500/30'
+                    : 'bg-[#00b4d8] hover:bg-[#0096c7] text-white shadow-cyan-500/25'
+                }`}
+              >
+                <Icon name="UserGroupIcon" size={15} />
+                <span>{bookingType === 'bulk' ? 'Single Room' : 'Bulk Booking'}</span>
+              </button>
+            </div>
+
+            {/* Date Pickers (Check-in & Check-out) */}
+            <div className="flex gap-2.5 mb-4">
+              {/* Check-in */}
+              <div
+                className="flex-1 bg-[#0c121e]/90 border border-slate-800 rounded-2xl p-3 cursor-pointer hover:border-sky-500/50 transition-colors relative"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isCheckInOpen) {
+                    setIsCheckOutOpen(false);
+                    setIsCheckInOpen(true);
+                  }
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-extrabold text-sky-400 uppercase tracking-wider mb-1">
+                      CHECK-IN
+                    </p>
+                    <p className={`text-sm tracking-wide ${checkIn ? 'font-bold text-white' : 'font-medium text-slate-400'}`}>
+                      {checkIn ? format(checkIn, 'dd MM yyyy') : 'Select Date'}
+                    </p>
+                  </div>
+                  <Icon name="CalendarIcon" size={18} className="text-sky-400 shrink-0" />
+                </div>
+                <div className="opacity-0 absolute inset-0 pointer-events-none">
+                  <DatePicker
+                    value={checkIn}
+                    onChange={(newValue) => {
+                      setCheckIn(newValue);
+                      if (newValue) {
+                        setIsCheckInOpen(false);
+                        if (checkOut && newValue >= checkOut) {
+                          setCheckOut(null);
+                        }
+                        setTimeout(() => {
+                          setIsCheckOutOpen(true);
+                        }, 400);
+                      }
+                    }}
+                    open={isCheckInOpen}
+                    onOpen={() => {
+                      setIsCheckOutOpen(false);
+                      setIsCheckInOpen(true);
+                    }}
+                    onClose={() => setIsCheckInOpen(false)}
+                    minDate={new Date()}
+                    format="dd MM yyyy"
+                    desktopModeMediaQuery="@media (min-width: 0px)"
+                    slotProps={{
+                      textField: {
+                        size: 'small',
+                        placeholder: 'DD MM YYYY',
+                        onKeyDown: (e: React.KeyboardEvent) => e.preventDefault(),
+                        inputProps: { readOnly: true },
+                      },
+                      popper: { sx: popperSx }
+                    }}
+                    sx={datePickerSx}
+                  />
+                </div>
+              </div>
+
+              {/* Check-out */}
+              <div
+                className="flex-1 bg-[#0c121e]/90 border border-slate-800 rounded-2xl p-3 cursor-pointer hover:border-sky-500/50 transition-colors relative"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isCheckOutOpen) {
+                    setIsCheckInOpen(false);
+                    setIsCheckOutOpen(true);
+                  }
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-extrabold text-sky-400 uppercase tracking-wider mb-1">
+                      CHECK-OUT
+                    </p>
+                    <p className={`text-sm tracking-wide ${checkOut ? 'font-bold text-white' : 'font-medium text-slate-400'}`}>
+                      {checkOut ? format(checkOut, 'dd MM yyyy') : 'Select Date'}
+                    </p>
+                  </div>
+                  <Icon name="CalendarIcon" size={18} className="text-sky-400 shrink-0" />
+                </div>
+                <div className="opacity-0 absolute inset-0 pointer-events-none">
+                  <DatePicker
+                    value={checkOut}
+                    onChange={(newValue) => {
+                      setCheckOut(newValue);
+                      if (newValue) {
+                        setIsCheckOutOpen(false);
+                      }
+                    }}
+                    open={isCheckOutOpen}
+                    onOpen={() => {
+                      setIsCheckInOpen(false);
+                      setIsCheckOutOpen(true);
+                    }}
+                    onClose={() => setIsCheckOutOpen(false)}
+                    minDate={checkIn || new Date()}
+                    format="dd MM yyyy"
+                    desktopModeMediaQuery="@media (min-width: 0px)"
+                    slotProps={{
+                      textField: {
+                        size: 'small',
+                        placeholder: 'DD MM YYYY',
+                        onKeyDown: (e: React.KeyboardEvent) => e.preventDefault(),
+                        inputProps: { readOnly: true },
+                      },
+                      popper: { sx: popperSx }
+                    }}
+                    sx={datePickerSx}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* SELECT ROOM Title */}
+            <div className="text-[11px] font-extrabold tracking-wider uppercase text-sky-400 mb-3">
+              SELECT ROOM
+            </div>
+
+            {/* Room Type Cards */}
+            <div className="space-y-3 mb-4">
+              {hotelRoomTypes.map((type) => {
+                const isSelected = bookingType === 'single'
+                  ? selectedHotelRoomType.toLowerCase() === type.toLowerCase()
+                  : (selectedRoomCountsByType[type] || 0) > 0;
+                const roomPrice = getRoomPrice(type);
+                const specs = getRoomTypeSpecs(type);
+                const roomsLeft = getRoomCountLeft(type);
+
+                return (
+                  <div
+                    key={type}
+                    onClick={() => {
+                      if (bookingType === 'single') {
+                        setSelectedHotelRoomType(type);
+                        setGuests(specs.guestsCount);
+                      }
+                    }}
+                    className={`relative rounded-2xl p-4 transition-all cursor-pointer border ${
+                      isSelected
+                        ? 'bg-[#0b1322] border-sky-500/80 shadow-lg shadow-sky-950/40 ring-1 ring-sky-500/30'
+                        : 'bg-[#0c121e]/90 border-slate-800/80 hover:border-slate-700'
+                    }`}
+                  >
+                    {/* Room Name & Rooms Left Badge */}
+                    <div className="flex items-center justify-between mb-3 gap-2">
+                      <h4 className="text-base font-bold text-white tracking-tight">
+                        {type}
+                      </h4>
+                      {roomsLeft > 0 ? (
+                        <div className="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#ffd1dc] text-[#d63384] whitespace-nowrap">
+                          Only {roomsLeft} room{roomsLeft > 1 ? 's' : ''} left
+                        </div>
+                      ) : (
+                        <div className="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-red-950/40 text-red-400 border border-red-800/40 whitespace-nowrap">
+                          Sold out
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-[1.1fr_auto_1fr] items-center gap-2 sm:gap-3">
+                      {/* Left Column: Room Specs */}
+                      <div className="space-y-1.5 text-xs text-slate-300 font-medium">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400 w-4 flex justify-center text-sm">👤</span>
+                          <span>{specs.guestsCount} Guests</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400 w-4 flex justify-center text-sm">🛏️</span>
+                          <span>{specs.bed}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400 w-4 flex justify-center text-sm">⛶</span>
+                          <span>{specs.sqft}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400 w-4 flex justify-center text-sm">🏙️</span>
+                          <span>{specs.view}</span>
+                        </div>
+                      </div>
+
+                      {/* Vertical Divider */}
+                      <div className="w-[1px] h-20 bg-slate-800 self-center" />
+
+                      {/* Right Column: Price & Selection */}
+                      <div className="flex flex-col justify-between h-full py-0.5 pl-1">
+                        <div>
+                          <div className="text-xs text-slate-400">
+                            <span className="text-white font-bold text-sm">
+                              {currency}{roomPrice.toLocaleString('en-IN')}
+                            </span>{' '}
+                            / night
+                          </div>
+                          <div className="text-[10px] text-slate-400">+ Taxes</div>
+                        </div>
+
+                        {/* Selection Indicator */}
+                        {bookingType === 'single' ? (
+                          <div className="flex items-center gap-1.5 mt-2">
+                            <div
+                              className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${
+                                isSelected
+                                  ? 'border-2 border-sky-400 bg-sky-950/40 shadow-[0_0_8px_rgba(56,189,248,0.5)]'
+                                  : 'border-2 border-slate-600 bg-transparent'
+                              }`}
+                            >
+                              {isSelected && (
+                                <div className="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.9)]" />
+                              )}
+                            </div>
+                            {isSelected && (
+                              <span className="text-[10px] font-medium text-sky-400 tracking-tight">Active</span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 mt-2" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => setSelectedRoomCountsByType(prev => ({ ...prev, [type]: Math.max(0, (prev[type] || 0) - 1) }))}
+                              disabled={(selectedRoomCountsByType[type] || 0) <= 0}
+                              className="w-6 h-6 rounded-full border border-slate-700 flex items-center justify-center text-slate-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors bg-black/40"
+                            >
+                              <Icon name="MinusIcon" size={10} />
+                            </button>
+                            <span className="text-xs font-bold text-white px-1">
+                              {selectedRoomCountsByType[type] || 0}
+                            </span>
+                            <button
+                              onClick={() => setSelectedRoomCountsByType(prev => ({ ...prev, [type]: Math.min(roomsLeft, (prev[type] || 0) + 1) }))}
+                              disabled={(selectedRoomCountsByType[type] || 0) >= roomsLeft}
+                              className="w-6 h-6 rounded-full border border-slate-700 flex items-center justify-center text-slate-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors bg-black/40"
+                            >
+                              <Icon name="PlusIcon" size={10} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Free Cancellation Option — only for same-day check-in */}
+            {isSameDayCheckIn && (
+              <div className="mb-4 bg-sky-900/10 border border-sky-500/20 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-gradient-to-r from-emerald-500/20 to-sky-500/20 px-4 py-2 border-b border-sky-500/10 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-emerald-500 rounded p-1">
+                      <Icon name="CheckIcon" size={10} className="text-black" />
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Enjoy Full Refund</span>
+                  </div>
+                  <div className="bg-sky-500/20 px-2 py-0.5 rounded text-[10px] font-bold text-sky-400 border border-sky-500/30">
+                    FREE CANCELLATION
+                  </div>
+                </div>
+
+                <div className="p-4 space-y-3">
+                  <div
+                    onClick={() => setHasFreeCancellation(true)}
+                    className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${hasFreeCancellation
+                      ? 'bg-sky-500/10 border-sky-500/50 shadow-inner'
+                      : 'bg-black/20 border-gray-800 hover:border-gray-700'
+                      }`}
+                  >
+                    <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${hasFreeCancellation ? 'border-sky-500' : 'border-gray-600'
+                      }`}>
+                      {hasFreeCancellation && <div className="w-2.5 h-2.5 bg-sky-500 rounded-full shadow-[0_0_8px_rgba(14,165,233,0.8)]" />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="text-sm font-bold text-white">Yes, I want Free Cancellation</p>
+                        <span className="text-xs font-bold text-sky-400">₹70</span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-emerald-400/90">
+                          <Icon name="CheckCircleIcon" size={14} />
+                          <span className="text-[11px] font-medium">Get full refund of {currency}{total.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-400">
+                          <Icon name="NoSymbolIcon" size={14} />
+                          <span className="text-[11px] font-medium">₹0 Cancellation fee</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setHasFreeCancellation(false)}
+                    className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${!hasFreeCancellation
+                      ? 'bg-zinc-800/50 border-gray-600'
+                      : 'bg-black/20 border-gray-800 hover:border-gray-700'
+                      }`}
+                  >
+                    <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${!hasFreeCancellation ? 'border-gray-400' : 'border-gray-600'
+                      }`}>
+                      {!hasFreeCancellation && <div className="w-2.5 h-2.5 bg-gray-400 rounded-full" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-300">No, I don't want Free Cancellation</p>
+                      <div className="space-y-1 mt-1">
+                        <div className="flex items-center gap-2 text-amber-500/70">
+                          <Icon name="ExclamationTriangleIcon" size={12} />
+                          <span className="text-[11px] font-semibold">Only 50% refund will apply</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Primary Reserve Button */}
+            <button
+              onClick={handleBookClick}
+              disabled={!isOnline || checkingAvailability}
+              className="w-full bg-[#00b4d8] hover:bg-[#0096c7] active:scale-[0.99] text-black font-bold text-base py-3.5 rounded-2xl shadow-lg shadow-cyan-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mb-2"
+            >
+              {!isOnline ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Icon name="WifiOff" size={18} />
+                  <span>Offline</span>
+                </div>
+              ) : (
+                <span>
+                  {nights > 0
+                    ? (bookingType === 'bulk'
+                        ? (roomsToBook > 0 ? `Reserve ${roomsToBook} Room${roomsToBook > 1 ? 's' : ''}` : 'Select Rooms')
+                        : 'Reserve')
+                    : 'Select Dates'
+                  }
+                </span>
+              )}
+            </button>
+
+            {/* Clear Dates Button */}
+            {(checkIn || checkOut) && (
+              <button
+                onClick={() => {
+                  setCheckIn(null);
+                  setCheckOut(null);
+                  setGuests(2);
+                  setSelectedRooms(1);
+                  setBookingType('single');
+                }}
+                className="w-full py-2 text-xs font-semibold text-gray-400 hover:text-white transition-all active:scale-[0.98] mb-2 text-center"
+              >
+                Clear selection
+              </button>
+            )}
+
+            {/* Price Breakdown */}
+            {nights > 0 && (bookingType === 'single' || roomsToBook > 0) && (
+              <div className="space-y-3 pt-3 border-t border-slate-800/80 animate-in fade-in slide-in-from-top-2">
+                <p className="text-center text-xs text-gray-400">You won't be charged yet</p>
+                <div className="space-y-2 text-sm">
+                  {weekdayNightsCount > 0 && (
+                    <div className="flex justify-between text-gray-300">
+                      <span>
+                        {bookingType === 'single' ? (
+                          `${currency}${weekdayAveragePrice.toLocaleString('en-IN')} x ${weekdayNightsCount} weekday ${weekdayNightsCount === 1 ? 'night' : 'nights'}`
+                        ) : (
+                          `${roomsToBook} rooms x ${weekdayNightsCount} weekday ${weekdayNightsCount === 1 ? 'night' : 'nights'}`
+                        )}
+                      </span>
+                      <span>{currency}{weekdayTotal.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {weekendNightsCount > 0 && (
+                    <div className="flex justify-between text-gray-300">
+                      <span>
+                        {bookingType === 'single' ? (
+                          `${currency}${weekendAveragePrice.toLocaleString('en-IN')} x ${weekendNightsCount} weekend ${weekendNightsCount === 1 ? 'night' : 'nights'}`
+                        ) : (
+                          `${roomsToBook} rooms x ${weekendNightsCount} weekend ${weekendNightsCount === 1 ? 'night' : 'nights'}`
+                        )}
+                      </span>
+                      <span>{currency}{weekendTotal.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {discount > 0 && (
+                    <div className="flex justify-between text-emerald-400">
+                      <span className="flex items-center gap-1">
+                        <Icon name="TagIcon" size={14} />
+                        Bulk Discount Savings
+                      </span>
+                      <span>-{currency}{discount.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-gray-300">
+                    <span>Platform Service Fee (10%)</span>
+                    <span>{currency}{serviceFee.toLocaleString()}</span>
+                  </div>
+                  {upgradesTotal > 0 && (
+                    <div className="flex justify-between text-amber-400">
+                      <span className="flex items-center gap-1">
+                        <Icon name="SparklesIcon" size={14} />
+                        Exclusive Upgrades
+                      </span>
+                      <span>+{currency}{upgradesTotal.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {hasFreeCancellation && (
+                    <div className="flex justify-between text-sky-400">
+                      <span className="flex items-center gap-1">
+                        <Icon name="ShieldCheckIcon" size={14} />
+                        Free Cancellation
+                      </span>
+                      <span>+{currency}70</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-sky-900/40 pt-3 flex justify-between font-bold text-base text-white">
+                  <span>Total</span>
+                  <span>{currency}{total.toLocaleString()}</span>
+                </div>
+              </div>
+            )}
+
+            {nights > 0 && bookingType === 'bulk' && roomsToBook === 0 && (
+              <div className="pt-3 border-t border-slate-800/80 text-center animate-in fade-in">
+                <p className="text-xs text-slate-400">Please select at least 1 room to view price breakdown</p>
+              </div>
+            )}
+          </>
         ) : (
           <>
             {/* Header: Price & Rating */}
             <div className="flex items-end justify-between mb-5 animate-in fade-in duration-300">
               <div>
                 <span className="text-2xl font-bold text-white">
-                  {bookingType === 'bulk' && nights > 0
-                    ? `${currency}${total.toLocaleString()}`
+                  {bookingType === 'bulk'
+                    ? (roomsToBook > 0
+                        ? (nights > 0 ? `${currency}${total.toLocaleString()}` : `${currency}${bulkPerNightTotal.toLocaleString()}`)
+                        : `${currency}0`
+                      )
                     : `${currency}${(nights > 0 ? averagePrice : displayPrice).toLocaleString('en-IN')}`
                   }
                 </span>
                 <span className="text-stone-400 text-xs font-medium ml-1">
                   {bookingType === 'bulk'
-                    ? (nights > 0 ? '/ total' : `/ ${unitName.toLowerCase()} / night`)
+                    ? (roomsToBook > 0
+                        ? (nights > 0 ? '/ total' : `/ ${unitName.toLowerCase()} / night`)
+                        : (nights > 0 ? '/ total' : `/ 0 ${unitsName.toLowerCase()}`)
+                      )
                     : (nights > 0 ? '/ night (average)' : '/ night')
                   }
                 </span>
@@ -815,7 +1533,7 @@ const BookingCard = ({
             </div>
 
             {/* Booking Type Toggle */}
-            {totalRooms > 1 && isBulkBookingAllowed && (
+            {totalRooms > 1 && isBulkBookingAllowed && !hotelRoomTypes.includes('Entire Resort') && selectedHotelRoomType !== 'Entire Resort' && (
               <div className="mb-4 p-1 bg-gray-900/80 rounded-xl flex">
                 <button
                   onClick={() => { setBookingType('single'); setSelectedRooms(1); }}
@@ -1223,7 +1941,7 @@ const BookingCard = ({
 
 
             {/* Price Breakdown */}
-            {nights > 0 && (
+            {nights > 0 && (bookingType === 'single' || roomsToBook > 0) && (
               <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-2">
                 <p className="text-center text-sm text-gray-400">You won't be charged yet</p>
                 <div className="space-y-3">
@@ -1260,7 +1978,7 @@ const BookingCard = ({
                   {discount > 0 && (
                     <div className="flex justify-between text-emerald-400">
                       <span className="flex items-center gap-1">
-                        <Icon name="TagIcon" size={14} />
+                        <Icon name="TagIcon" size={16} />
                         Bulk Discount Savings
                       </span>
                       <span>-{currency}{discount.toLocaleString()}</span>
@@ -1273,7 +1991,7 @@ const BookingCard = ({
                   {upgradesTotal > 0 && (
                     <div className="flex justify-between text-amber-400">
                       <span className="flex items-center gap-1">
-                        <Icon name="SparklesIcon" size={14} />
+                        <Icon name="SparklesIcon" size={16} />
                         Exclusive Upgrades
                       </span>
                       <span>+{currency}{upgradesTotal.toLocaleString('en-IN')}</span>
@@ -1282,7 +2000,7 @@ const BookingCard = ({
                   {hasFreeCancellation && (
                     <div className="flex justify-between text-sky-400">
                       <span className="flex items-center gap-1">
-                        <Icon name="ShieldCheckIcon" size={14} />
+                        <Icon name="ShieldCheckIcon" size={16} />
                         Free Cancellation
                       </span>
                       <span>+{currency}70</span>
@@ -1294,6 +2012,12 @@ const BookingCard = ({
                   <span>Total</span>
                   <span>{currency}{total.toLocaleString()}</span>
                 </div>
+              </div>
+            )}
+
+            {nights > 0 && bookingType === 'bulk' && roomsToBook === 0 && (
+              <div className="pt-2 text-center text-sm text-gray-400">
+                <p>Please select at least 1 {unitName.toLowerCase()} to view price breakdown</p>
               </div>
             )}
 
@@ -1320,7 +2044,7 @@ const BookingCard = ({
         onClose={() => setShowConfirmation(false)}
         onConfirm={proceedToBooking}
         bookingDetails={{
-          roomCount: selectedRooms,
+          roomCount: roomsToBook,
           nights: nights,
           pricePerNight: averagePrice,
           totalPrice: total,

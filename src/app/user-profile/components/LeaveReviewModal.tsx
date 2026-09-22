@@ -89,12 +89,30 @@ const LeaveReviewModal: React.FC<LeaveReviewModalProps> = ({ booking, onClose, o
             }
         } else {
             toast.success('Review submitted! Thank you 🌟');
-            // Log notification for admin
+            // Notify Host and Admin
+            const hostId = booking.properties?.host_id;
+            const propTitle = booking.properties?.title || 'Unknown Property';
+
+            if (hostId) {
+                await createNotification(
+                    'new_review',
+                    '⭐ New Guest Review!',
+                    `A guest reviewed "${propTitle}" with ${rating} stars!`,
+                    'info',
+                    hostId,
+                    'host',
+                    '/host-dashboard'
+                );
+            }
+
             await createNotification(
                 'new_review',
-                'New Review Submitted',
-                `A new review was submitted for property: ${booking.properties?.title || 'Unknown Property'}`,
-                'info'
+                '⭐ New Review Submitted',
+                `A new ${rating}★ review was submitted for "${propTitle}".`,
+                'info',
+                null,
+                'admin',
+                '/admin-panel'
             );
             onSuccess?.();
             onClose();

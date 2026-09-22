@@ -71,9 +71,13 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
         if (!bookingsError && bookingsData) {
             const mappedTransfers: PaymentTransfer[] = bookingsData.map(b => {
                 const total = Number(b.total_price);
-                const commissionRate = 20; // Platform default is 20%
-                const commission = total * (commissionRate / 100);
-                const hostShare = total - commission;
+                // Platform service fee is strictly 100% retained by Admin. It must never be shared with host.
+                const guestServiceFee = Number(b.service_fee) || Math.round((total * 0.1) / 1.1);
+                const hostRevenue = Math.max(0, total - guestServiceFee);
+                const commissionRate = 10; // Host platform commission is 10%
+                const hostCommission = hostRevenue * (commissionRate / 100);
+                const hostShare = hostRevenue - hostCommission;
+                const totalAdminCommission = total - hostShare;
                 
                 return {
                     id: b.id,
@@ -81,7 +85,7 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
                     razorpay_payment_id: 'LEGACY-REF',
                     razorpay_transfer_id: null,
                     total_amount: total,
-                    platform_commission: commission,
+                    platform_commission: totalAdminCommission,
                     host_amount: hostShare,
                     commission_type: 'percentage',
                     commission_value: commissionRate,

@@ -1,6 +1,11 @@
 'use server';
 
-export async function getNearbyPlaces(address: string, lat?: number | null, lng?: number | null) {
+import { unstable_cache } from 'next/cache';
+
+// In-memory cache for ultra-fast same-instance resolution
+const memoryPlacesCache = new Map<string, { coordinates: { lat: number; lng: number } | null; suggestions: any[] }>();
+
+async function fetchNearbyPlacesInternal(address: string, lat?: number | null, lng?: number | null) {
   try {
     let finalLat: number | undefined = lat ?? undefined;
     let finalLng: number | undefined = lng ?? undefined;
@@ -8,29 +13,35 @@ export async function getNearbyPlaces(address: string, lat?: number | null, lng?
     // 1. Geocode the address if coordinates not provided
     if (finalLat === undefined || finalLng === undefined) {
       const geocodeUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
-      const geocodeRes = await fetch(geocodeUrl, {
-        headers: { 'Accept-Language': 'en', 'User-Agent': 'StayCoolBooking/1.0' },
-      });
-      const geocodeData = await geocodeRes.json();
-      finalLat = geocodeData?.[0]?.lat ? parseFloat(geocodeData[0].lat) : undefined;
-      finalLng = geocodeData?.[0]?.lon ? parseFloat(geocodeData[0].lon) : undefined;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
+      try {
+        const geocodeRes = await fetch(geocodeUrl, {
+          headers: { 'Accept-Language': 'en', 'User-Agent': 'StayCoolBooking/1.0' },
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        const geocodeData = await geocodeRes.json();
+        finalLat = geocodeData?.[0]?.lat ? parseFloat(geocodeData[0].lat) : undefined;
+        finalLng = geocodeData?.[0]?.lon ? parseFloat(geocodeData[0].lon) : undefined;
+      } catch {
+        clearTimeout(timeoutId);
+      }
     }
 
     if (!finalLat || !finalLng) {
       return { coordinates: null, suggestions: [] };
     }
 
-    // 2. Fetch real nearby places via Overpass API
-    // We search for tourism, leisure, and upscale amenities
+    // 2. Fetch real nearby places via Overpass API with strict 2.5s timeout
     const overpassEndpoints = [
       'https://overpass-api.de/api/interpreter',
       'https://lz4.overpass-api.de/api/interpreter',
-      'https://z.overpass-api.de/api/interpreter',
       'https://overpass.kumi.systems/api/interpreter'
     ];
 
     const query = `
-      [out:json][timeout:25];
+      [out:json][timeout:5];
       (
         node["tourism"~"attraction|museum|viewpoint|zoo|theme_park|gallery|monument"](around:5000, ${finalLat}, ${finalLng});
         node["amenity"~"restaurant|cafe|bar"](around:1500, ${finalLat}, ${finalLng});
@@ -40,9 +51,10 @@ export async function getNearbyPlaces(address: string, lat?: number | null, lng?
     `;
 
     let response = null;
-    let lastError = null;
 
     for (const endpoint of overpassEndpoints) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500); // 2.5s max timeout per endpoint
       try {
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -51,25 +63,23 @@ export async function getNearbyPlaces(address: string, lat?: number | null, lng?
             'Content-Type': 'application/x-www-form-urlencoded',
             'User-Agent': 'StayCoolBooking/1.0 (https://staycoolbooking.com)',
             'Accept': 'application/json'
-          }
+          },
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
 
         if (res.ok) {
           response = res;
           break;
-        } else {
-          const status = res.status;
-          console.warn(`Overpass endpoint ${endpoint} failed with status ${status}`);
-          lastError = new Error(`Overpass API failed with status ${status}`);
         }
-      } catch (err: unknown) {
-        console.warn(`Overpass endpoint ${endpoint} connection failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
-        lastError = err instanceof Error ? err : new Error('Unknown error');
+      } catch {
+        clearTimeout(timeoutId);
       }
     }
 
     if (!response) {
-      throw lastError || new Error('All Overpass API endpoints failed');
+      // Fallback quickly with coordinates so map can still render without suggestions
+      return { coordinates: { lat: finalLat, lng: finalLng }, suggestions: [] };
     }
     
     const data = await response.json();
@@ -113,4 +123,15 @@ export async function getNearbyPlaces(address: string, lat?: number | null, lng?
     console.error('Error fetching nearby places:', error);
     return { coordinates: null, suggestions: [] };
   }
+}
+
+export async function getNearbyPlaces(address: string, lat?: number | null, lng?: number | null) {
+  const cacheKey = `${address}_${lat ?? ''}_${lng ?? ''}`;
+  if (memoryPlacesCache.has(cacheKey)) {
+    return memoryPlacesCache.get(cacheKey)!;
+  }
+
+  const result = await fetchNearbyPlacesInternal(address, lat, lng);
+  memoryPlacesCache.set(cacheKey, result);
+  return result;
 }

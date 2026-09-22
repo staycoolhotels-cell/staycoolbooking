@@ -123,6 +123,10 @@ const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistory
                 return 'text-sky-400 bg-sky-500/10 border-sky-500/20';
             case 'cancelled':
                 return 'text-red-400 bg-red-500/10 border-red-500/20';
+            case 'pending_payment':
+                return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+            case 'payment_failed':
+                return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
             default:
                 return 'text-gray-400 bg-gray-500/10 border-gray-500/20';
         }
@@ -277,8 +281,14 @@ const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistory
                                             booking.status
                                         )}`}
                                     >
-                                        {booking.status}
+                                        {booking.status.replace(/_/g, ' ')}
                                     </span>
+                                    {booking.status === 'cancelled' && (
+                                        <span className="text-[9px] font-bold text-emerald-400 flex items-center gap-1 mt-0.5">
+                                            <Icon name="ArrowPathIcon" size={10} />
+                                            Track Refund
+                                        </span>
+                                    )}
                                     
                                     {/* Action icons for mobile view */}
                                     <div className="flex md:hidden items-center gap-2 mt-1">

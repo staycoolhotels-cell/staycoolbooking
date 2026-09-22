@@ -15,6 +15,15 @@ const Earnings = ({ earnings }: EarningsProps) => {
   const [selectedPeriod, setSelectedPeriod] = useState('This Year');
   const [isExporting, setIsExporting] = useState(false);
 
+  const getHostNetAmount = (t: Transaction) => {
+    if (t.netRevenue !== undefined) return Number(t.netRevenue);
+    const gross = Number(t.amount) || 0;
+    // Platform service fee is strictly 100% retained by Admin. It must never be shared with host.
+    const fee = Number(t.breakdown?.service_fee || t.serviceFee) || Math.round((gross * 0.1) / 1.1);
+    const hostRev = Math.max(0, gross - fee);
+    return Math.round(hostRev * 0.90);
+  };
+
   // Transform transactions to chart data
   const chartData = useMemo(() => {
     const now = new Date();
@@ -32,7 +41,7 @@ const Earnings = ({ earnings }: EarningsProps) => {
     filtered.forEach(t => {
       const date = new Date(t.date || new Date());
       const month = date.getMonth();
-      grouped[month] += Number(t.amount);
+      grouped[month] += getHostNetAmount(t);
     });
 
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -40,7 +49,7 @@ const Earnings = ({ earnings }: EarningsProps) => {
   }, [earnings, selectedPeriod]);
 
   const totalEarnings = useMemo(() => {
-    return earnings.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    return earnings.reduce((acc, curr) => acc + getHostNetAmount(curr), 0);
   }, [earnings]);
 
   const recentEarnings = useMemo(() => {
