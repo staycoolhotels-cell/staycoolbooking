@@ -123,7 +123,7 @@ const Header = () => {
   // Determine role-based navigation links
   const baseLinks = [
     { name: 'Home', path: '/homepage', icon: 'HomeIcon' },
-    { name: 'About Us', path: '/about-us', icon: 'InformationCircleIcon' },
+    { name: 'About Us', path: '/about', icon: 'InformationCircleIcon' },
     { name: 'Community', path: '/community', icon: 'UserGroupIcon' },
     { name: 'Contact', path: '/contact', icon: 'PhoneIcon' },
   ];

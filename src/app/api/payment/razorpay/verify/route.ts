@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { createServiceClient } from '@/lib/supabase-server';
 import crypto from 'crypto';
 import { sendTargetedNotification } from '@/lib/activity-actions';
 
@@ -36,36 +36,46 @@ export async function POST(req: Request) {
         }
 
         // ─────────────────────────────────────────────
-        // 2. Update booking status to confirmed
+        // 2. Update booking status to confirmed (use service client to bypass RLS)
         // ─────────────────────────────────────────────
-        const supabase = await createClient();
+        const supabase = createServiceClient();
 
         const { error: bookingUpdateError } = await supabase
             .from('bookings')
             .update({
                 status: 'confirmed',
+                razorpay_order_id: razorpayOrderId,
                 razorpay_payment_id: razorpayPaymentId,
             })
             .eq('id', bookingId);
 
         if (bookingUpdateError) {
             console.error('Booking update failed:', bookingUpdateError);
-            // Payment is valid even if DB update fails — log but don't block response
+            return NextResponse.json({ error: 'Failed to update booking status in database.' }, { status: 500 });
         }
 
         // ─────────────────────────────────────────────
-        // 3. Update payment_transfers with payment ID
+        // 3. Update or Insert payment_transfers
         // ─────────────────────────────────────────────
-        const { error: transferUpdateError } = await supabase
+        const { data: existingTransfer } = await supabase
             .from('payment_transfers')
-            .update({
-                razorpay_payment_id: razorpayPaymentId,
-                transfer_status: 'processing',
-            })
-            .eq('razorpay_order_id', razorpayOrderId);
+            .select('id')
+            .or(`razorpay_order_id.eq.${razorpayOrderId},booking_id.eq.${bookingId}`)
+            .maybeSingle();
 
-        if (transferUpdateError) {
-            console.error('Transfer record update failed:', transferUpdateError);
+        if (existingTransfer) {
+            const { error: transferUpdateError } = await supabase
+                .from('payment_transfers')
+                .update({
+                    razorpay_order_id: razorpayOrderId,
+                    razorpay_payment_id: razorpayPaymentId,
+                    transfer_status: 'pending',
+                })
+                .eq('id', existingTransfer.id);
+
+            if (transferUpdateError) {
+                console.error('Transfer record update failed:', transferUpdateError);
+            }
         }
 
         // ─────────────────────────────────────────────
@@ -91,6 +101,29 @@ export async function POST(req: Request) {
                 const commissionRate = hostProfile?.referred_by && (hostProfile.referral_commissions_remaining || 0) > 0 ? 5 : 10;
                 const hostPayout = Number((hostRevenue * (1 - commissionRate / 100)).toFixed(2));
                 const platformFee = Number((amount - hostPayout).toFixed(2));
+
+                // If transfer was not present, upsert it now with full host/platform breakdown
+                if (!existingTransfer && hostId) {
+                    await supabase
+                        .from('payment_transfers')
+                        .upsert(
+                            {
+                                booking_id: bookingId,
+                                host_id: hostId,
+                                razorpay_order_id: razorpayOrderId,
+                                razorpay_payment_id: razorpayPaymentId,
+                                total_amount: amount,
+                                platform_commission: platformFee,
+                                host_amount: hostPayout,
+                                commission_type: 'percentage',
+                                commission_value: commissionRate,
+                                transfer_status: 'pending',
+                                referrer_id: hostProfile?.referred_by || null,
+                                referrer_amount: 0,
+                            },
+                            { onConflict: 'booking_id' }
+                        );
+                }
 
                 // A. Record Transaction (Secondary Ledger)
                 await supabase

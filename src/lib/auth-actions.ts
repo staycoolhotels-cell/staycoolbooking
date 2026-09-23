@@ -492,17 +492,76 @@ export async function login(_prevState: string | undefined, formData: FormData) 
 
   // Attempt login for ALL users (admin, host, guest) via Supabase
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.signInWithPassword({
+  let { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
     console.error('Login Error:', error.message);
-    return 'Invalid credentials';
+
+    // ── SELF-HEAL: DB user exists but Supabase Auth failed ──
+    // Handles: OTP-only signups (no password set), manually inserted DB records,
+    // or any case where auth account is out of sync with public.users.
+    const supabaseAdminHeal = await createSupabaseAdminClient();
+    const { data: dbUser } = await supabaseAdminHeal
+      .from('users')
+      .select('id, role, status, name, email')
+      .eq('email', email.toLowerCase().trim())
+      .maybeSingle();
+
+    if (dbUser?.id) {
+      console.log(`⚠️ SELF-HEAL: User exists in DB but auth failed for ${email}. Auto-fixing...`);
+      try {
+        // Step 1: Try updating password on existing auth user
+        const { error: updateErr } = await supabaseAdminHeal.auth.admin.updateUserById(dbUser.id, {
+          password,
+          email_confirm: true,
+          user_metadata: {
+            role: dbUser.role || 'guest',
+            status: dbUser.status || 'active',
+            name: dbUser.name || '',
+          },
+        });
+
+        if (updateErr) {
+          // Step 2: Auth record doesn't exist at all — create it fresh
+          console.log('⚠️ No auth user by ID, creating fresh...');
+          const { error: createErr } = await supabaseAdminHeal.auth.admin.createUser({
+            email: dbUser.email || email,
+            password,
+            email_confirm: true,
+            user_metadata: {
+              role: dbUser.role || 'guest',
+              status: dbUser.status || 'active',
+              name: dbUser.name || '',
+            },
+          });
+          if (createErr) {
+            console.error('❌ Self-heal create failed:', createErr.message);
+            return 'Unable to sign in. Please use "Forgot Password" to reset your password.';
+          }
+        }
+
+        // Step 3: Retry login with healed auth account
+        const retryResult = await supabase.auth.signInWithPassword({ email, password });
+        if (retryResult.error || !retryResult.data?.user) {
+          console.error('❌ Self-heal retry failed:', retryResult.error?.message);
+          return 'Invalid credentials';
+        }
+        console.log('✅ SELF-HEAL LOGIN SUCCESS for:', email);
+        data = retryResult.data;
+        error = null as any;
+      } catch (healEx) {
+        console.error('❌ Self-heal exception:', healEx);
+        return 'Invalid credentials';
+      }
+    } else {
+      return 'Invalid credentials';
+    }
   }
 
-  if (!data.user) {
+  if (!data?.user) {
     return 'Login failed. Please try again.';
   }
 

@@ -9,7 +9,6 @@ import { supabase } from '@/lib/supabaseClient';
 import { signOutUser } from '@/lib/auth-actions';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { triggerWebNotification } from '@/lib/web-notifications';
 
 const adminNavLinks = [
     { name: 'Home', path: '/' },
@@ -57,34 +56,6 @@ const AdminHeader = ({ onMenuToggle, isMobileMenuOpen }: AdminHeaderProps) => {
             router.push('/auth');
         } catch {
             router.push('/auth');
-        }
-    };
-
-    const handleTestBrowserNotification = async () => {
-        if (typeof window === 'undefined') return;
-
-        if (!('Notification' in window)) {
-            alert('Your browser does not support desktop notifications.');
-            return;
-        }
-
-        let perm = Notification.permission;
-        if (perm !== 'granted') {
-            try {
-                perm = await Notification.requestPermission();
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        if (perm === 'granted') {
-            triggerWebNotification({
-                title: '🏨 StayCool Admin Live Alert',
-                body: 'Desktop Browser Notification is 100% ACTIVE and working on your screen!',
-                url: '/admin-panel',
-            });
-        } else {
-            alert('Notifications are blocked in your browser! Please click the tune/lock icon on the left of localhost:3000 in your URL bar, change Notifications to "Allow", then click this button again.');
         }
     };
 
@@ -166,17 +137,8 @@ const AdminHeader = ({ onMenuToggle, isMobileMenuOpen }: AdminHeaderProps) => {
 
                     {/* RIGHT: Admin info + Sign Out (desktop) / Hamburger (mobile) */}
                     <div className="flex items-center gap-3 flex-shrink-0">
-                        {/* Desktop: Admin badge + Notification Test + Sign Out */}
+                        {/* Desktop: Admin badge + Sign Out */}
                         <div className="hidden lg:flex items-center gap-3">
-                            <button
-                                onClick={handleTestBrowserNotification}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 hover:bg-sky-500 hover:text-black transition-all text-[10px] font-bold tracking-wider shadow-[0_0_12px_rgba(14,165,233,0.2)]"
-                                title="Click to test desktop browser notification"
-                            >
-                                <Icon name="BellIcon" size={14} className="animate-bounce" />
-                                <span>Browser Notification</span>
-                            </button>
-
                             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
                                 <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
                                 <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">{adminName}</span>

@@ -21,7 +21,7 @@ const AmenitiesSection = ({ amenities, roomTypeAmenities, roomTypeCounts }: Amen
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {
-      const isCurrentlyExpanded = prev[section] !== undefined ? prev[section] : true;
+      const isCurrentlyExpanded = prev[section] !== undefined ? prev[section] : false;
       return {
         ...prev,
         [section]: !isCurrentlyExpanded
@@ -104,7 +104,7 @@ const AmenitiesSection = ({ amenities, roomTypeAmenities, roomTypeCounts }: Amen
 
   const renderAmenityGrid = (amenityList: Amenity[], title?: string) => {
     const sectionKey = title || 'Property';
-    const isExpanded = expandedSections[sectionKey] !== undefined ? expandedSections[sectionKey] : true;
+    const isExpanded = expandedSections[sectionKey] !== undefined ? expandedSections[sectionKey] : false;
 
     const available = amenityList.filter((a) => a.available !== false);
     const unavailable = amenityList.filter((a) => a.available === false);

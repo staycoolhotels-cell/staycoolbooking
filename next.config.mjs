@@ -151,6 +151,11 @@ const nextConfig = {
         destination: '/homepage',
         permanent: false,
       },
+      {
+        source: '/about-us',
+        destination: '/about',
+        permanent: true,
+      },
     ];
   },
 };

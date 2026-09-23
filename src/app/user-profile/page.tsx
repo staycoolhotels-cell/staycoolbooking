@@ -79,6 +79,7 @@ export default async function ProfilePage() {
       .from('bookings')
       .select('*, properties!inner(*, host:users!host_id(name, avatar:avatar_url)), booking_rooms(rooms(room_type))')
       .eq('guest_id', user.id)
+      .not('status', 'eq', 'pending')           // Hide pending-payment bookings from guest panel
       .order('created_at', { ascending: false }),
     supabase.from('activities').select('*').eq('type', 'booking_amenities').eq('user_id', user.id),
   ]);
@@ -102,7 +103,9 @@ export default async function ProfilePage() {
     guestName: rev.reviewer?.name || 'Host',
   })) || [];
 
-  const bookings = (rawBookings || []).map((b: any) => {
+  // Only show bookings that are confirmed, active, completed, cancelled, or refunded
+  // Never show 'pending' (payment not completed) bookings to the guest
+  const bookings = (rawBookings || []).filter((b: any) => b.status !== 'pending').map((b: any) => {
     const activity = (bookingActivities || []).find((a: any) => {
       try {
         const payload = JSON.parse(a.description);
@@ -148,7 +151,10 @@ export default async function ProfilePage() {
     .select('*')
     .eq('user_id', user.id);
 
-  const mappedTransactions = (bookings || []).map(b => {
+  // Transactions: only confirmed/completed = payment, refunded = refund. Skip pending entirely.
+  const mappedTransactions = (bookings || []).filter((b: any) =>
+    ['confirmed', 'checked_in', 'completed', 'cancelled', 'refunded'].includes(b.status)
+  ).map(b => {
     const isCancelledOrRefunded = b.status === 'cancelled' || b.status === 'refunded';
     return {
       id: b.id,

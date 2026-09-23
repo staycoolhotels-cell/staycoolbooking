@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { razorpay } from '@/lib/razorpay';
 
 /**
@@ -180,17 +180,19 @@ export async function POST(req: Request) {
         const order = await razorpay.orders.create(orderOptions);
 
         // ─────────────────────────────────────────────
-        // 5. Persist order ID on booking
+        // 5. Persist order ID on booking (use serviceClient to bypass RLS)
         // ─────────────────────────────────────────────
-        await supabase
+        const serviceClient = createServiceClient();
+
+        await serviceClient
             .from('bookings')
             .update({ razorpay_order_id: order.id })
             .eq('id', bookingId);
 
         // ─────────────────────────────────────────────
-        // 6. Create pending payment_transfers record
+        // 6. Create pending payment_transfers record (use serviceClient to bypass RLS)
         // ─────────────────────────────────────────────
-        await supabase
+        await serviceClient
             .from('payment_transfers')
             .upsert(
                 {
