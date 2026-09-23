@@ -1,3 +1,4 @@
+// Admin Control Center Interactive View
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AdminPageHeader from './AdminPageHeader';
@@ -273,47 +274,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
       toast.success('All notifications marked as read');
-    }
-  };
-
-  const handleTestBrowserNotification = async () => {
-    if (typeof window === 'undefined') return;
-
-    if (!('Notification' in window)) {
-      toast.error('This browser does not support desktop notifications.');
-      return;
-    }
-
-    let perm = Notification.permission;
-    if (perm !== 'granted') {
-      try {
-        perm = await Notification.requestPermission();
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    if (perm === 'granted') {
-      try {
-        const notif = new Notification('🔔 StayCool Admin Alert', {
-          body: 'Real-time Browser Notification is 100% WORKING on your desktop!',
-          icon: `${window.location.origin}/assets/images/logo-round.png`,
-          badge: `${window.location.origin}/assets/images/logo-round.png`,
-          requireInteraction: true,
-        });
-
-        notif.onclick = () => {
-          window.focus();
-          notif.close();
-        };
-      } catch (err) {
-        console.warn('Direct notification error:', err);
-      }
-
-      playNotificationSound();
-      toast.success('Browser notification sent to your screen!');
-    } else {
-      toast.error('Notifications are blocked! Please click the lock/settings icon next to localhost:3000 in your browser URL bar and set Notifications to "Allow".');
     }
   };
 
@@ -1204,15 +1164,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                       )}
                     </AnimatePresence>
                   </div>
-
-                  <button
-                    onClick={handleTestBrowserNotification}
-                    className="px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white rounded-xl shadow-lg shadow-sky-500/25 flex items-center gap-2 font-bold text-xs uppercase tracking-wider transition-all duration-300 active:scale-95"
-                    title="Send an instant OS browser notification"
-                  >
-                    <Icon name="BellIcon" size={18} className="animate-bounce" />
-                    <span>Test Browser Notification</span>
-                  </button>
 
                   <button
                     onClick={handleExportReport}
