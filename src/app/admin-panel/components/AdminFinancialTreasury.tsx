@@ -263,7 +263,7 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
         <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 md:p-6 relative overflow-hidden group">
           <div className="absolute -right-20 -top-20 w-48 h-48 bg-sky-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-sky-500/15 transition-all" />
           <h3 className="font-bold text-zinc-400 text-center mb-4 md:mb-6 text-[10px] md:text-xs uppercase tracking-widest">Revenue Allocation Matrix</h3>
-          <SpendingChart transactions={activeData} />
+          <SpendingChart transactions={activeData} mode="admin" />
           <div className="mt-6 md:mt-8 flex flex-col sm:grid sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="text-center p-3 md:p-4 border border-blue-500/20 rounded-xl bg-blue-500/5">
               <p className="text-lg md:text-2xl font-black text-white font-mono">

@@ -123,7 +123,15 @@ const TripCommandCenter = ({ activeBooking }: TripCommandCenterProps) => {
     }
   };
 
-  if (!activeBooking) {
+  const bookingStatus = (activeBooking?.status || '').toLowerCase();
+  const isInvalidBooking =
+    !activeBooking ||
+    bookingStatus === 'cancelled' ||
+    bookingStatus === 'refunded' ||
+    bookingStatus === 'pending_payment' ||
+    bookingStatus === 'payment_failed';
+
+  if (isInvalidBooking) {
     return (
       <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-2xl shadow-lg p-6 flex flex-col items-center justify-center text-center h-full">
         <Icon name="LuggageIcon" className="w-12 h-12 text-zinc-500 mb-4" />

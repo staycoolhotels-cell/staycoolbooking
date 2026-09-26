@@ -16,6 +16,14 @@ interface PaymentTransfer {
     commission_value: number;
     transfer_status: 'pending' | 'processing' | 'settled' | 'failed' | 'reversed';
     created_at: string;
+    bookings?: {
+        total_price?: number;
+        service_fee?: number;
+        status?: string;
+        properties?: {
+            title?: string;
+        };
+    };
 }
 
 const statusConfig = {
@@ -40,11 +48,10 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
 
     async function fetchTransfers() {
         setLoading(true);
-        // 1. Try to fetch actual transfers filtered by host_id
-        // The table has a direct host_id column which is more reliable than joins
+        // 1. Fetch actual transfers joined with bookings to extract accommodation earnings excluding guest fees
         const { data: transfersData, error: transfersError } = await supabase
             .from('payment_transfers')
-            .select('*')
+            .select('*, bookings(total_price, service_fee, status, properties(title))')
             .eq('host_id', hostId)
             .order('created_at', { ascending: false })
             .limit(50);
@@ -59,7 +66,7 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
             return;
         }
 
-        // 2. Fallback: Derive from bookings if transfers are not being recorded yet (for legacy bookings)
+        // 2. Fallback: Derive from bookings if transfers are not recorded
         const { data: bookingsData, error: bookingsError } = await supabase
             .from('bookings')
             .select('*, properties!inner(*)')
@@ -75,22 +82,27 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
                 const guestServiceFee = Number(b.service_fee) || Math.round((total * 0.1) / 1.1);
                 const hostRevenue = Math.max(0, total - guestServiceFee);
                 const commissionRate = 10; // Host platform commission is 10%
-                const hostCommission = hostRevenue * (commissionRate / 100);
+                const hostCommission = Math.round(hostRevenue * (commissionRate / 100));
                 const hostShare = hostRevenue - hostCommission;
-                const totalAdminCommission = total - hostShare;
                 
                 return {
                     id: b.id,
                     booking_id: b.id,
                     razorpay_payment_id: 'LEGACY-REF',
                     razorpay_transfer_id: null,
-                    total_amount: total,
-                    platform_commission: totalAdminCommission,
+                    total_amount: hostRevenue,
+                    platform_commission: hostCommission,
                     host_amount: hostShare,
                     commission_type: 'percentage',
                     commission_value: commissionRate,
                     transfer_status: b.status === 'completed' ? 'settled' : 'pending',
-                    created_at: b.created_at
+                    created_at: b.created_at,
+                    bookings: {
+                        total_price: b.total_price,
+                        service_fee: guestServiceFee,
+                        status: b.status,
+                        properties: b.properties
+                    }
                 };
             });
             setTransfers(mappedTransfers);
@@ -217,7 +229,7 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
                             <thead>
                                 <tr className="border-b border-white/5">
                                     <th className="text-left px-6 md:px-8 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Date</th>
-                                    <th className="text-right px-6 md:px-8 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Booking Total</th>
+                                    <th className="text-right px-6 md:px-8 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Earnings Total</th>
                                     <th className="text-right px-6 md:px-8 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Commission</th>
                                     <th className="text-right px-6 md:px-8 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Your Share</th>
                                     <th className="text-center px-6 md:px-8 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Status</th>
@@ -229,6 +241,13 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
                                     const StatusIcon = config.icon;
                                     const date = new Date(transfer.created_at);
 
+                                    // Guest total paid vs Host gross earnings (excluding guest 10% service fee)
+                                    const guestTotalPaid = Number(transfer.bookings?.total_price || transfer.total_amount || 0);
+                                    const guestServiceFee = Number(transfer.bookings?.service_fee) || Math.round((guestTotalPaid * 0.1) / 1.1);
+                                    const hostGrossEarnings = Math.max(0, guestTotalPaid - guestServiceFee);
+                                    const hostCommission = Math.round(hostGrossEarnings * 0.10);
+                                    const hostShare = Number(transfer.host_amount);
+
                                     return (
                                         <tr key={transfer.id} className="hover:bg-white/2 transition-colors group">
                                             <td className="px-6 md:px-8 py-4 text-zinc-300">
@@ -238,18 +257,16 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
                                                 </div>
                                             </td>
                                             <td className="px-6 md:px-8 py-4 text-right font-semibold text-white">
-                                                ₹{Number(transfer.total_amount).toLocaleString('en-IN')}
+                                                ₹{hostGrossEarnings.toLocaleString('en-IN')}
                                             </td>
                                             <td className="px-6 md:px-8 py-4 text-right text-red-400">
-                                                -₹{Number(transfer.platform_commission).toLocaleString('en-IN')}
+                                                -₹{hostCommission.toLocaleString('en-IN')}
                                                 <div className="text-xs text-zinc-600 mt-0.5">
-                                                    {transfer.commission_type === 'percentage'
-                                                        ? `${transfer.commission_value}%`
-                                                        : `Fixed`}
+                                                    10%
                                                 </div>
                                             </td>
                                             <td className="px-6 md:px-8 py-4 text-right font-black text-emerald-400">
-                                                ₹{Number(transfer.host_amount).toLocaleString('en-IN')}
+                                                ₹{hostShare.toLocaleString('en-IN')}
                                             </td>
                                             <td className="px-6 md:px-8 py-4">
                                                 <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${config.bg} ${config.color} mx-auto`}>

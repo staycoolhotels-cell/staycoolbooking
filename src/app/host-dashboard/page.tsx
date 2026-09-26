@@ -184,7 +184,7 @@ export default async function HostDashboardPage() {
         guestName: b.guest?.name || 'Unknown Guest',
         hostName: host.name || 'Me',
         amount: hostNetPayout, // Host net earnings (₹0 from platform service fee)
-        serviceFee: guestServiceFee,
+        serviceFee: 0,
         netRevenue: hostNetPayout,
         date: new Date(b.created_at).toLocaleDateString(),
         status: txStatus,
@@ -194,7 +194,7 @@ export default async function HostDashboardPage() {
         room_type: b.room_type,
         breakdown: {
           accommodation: hostRevenue,
-          service_fee: guestServiceFee,
+          service_fee: 0,
           taxes: 0,
         }
       };

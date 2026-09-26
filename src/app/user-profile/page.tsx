@@ -79,7 +79,7 @@ export default async function ProfilePage() {
       .from('bookings')
       .select('*, properties!inner(*, host:users!host_id(name, avatar:avatar_url)), booking_rooms(rooms(room_type))')
       .eq('guest_id', user.id)
-      .not('status', 'eq', 'pending')           // Hide pending-payment bookings from guest panel
+      .not('status', 'in', '("pending","pending_payment","payment_failed")') // Hide uncompleted checkout bookings from guest panel
       .order('created_at', { ascending: false }),
     supabase.from('activities').select('*').eq('type', 'booking_amenities').eq('user_id', user.id),
   ]);
@@ -104,8 +104,10 @@ export default async function ProfilePage() {
   })) || [];
 
   // Only show bookings that are confirmed, active, completed, cancelled, or refunded
-  // Never show 'pending' (payment not completed) bookings to the guest
-  const bookings = (rawBookings || []).filter((b: any) => b.status !== 'pending').map((b: any) => {
+  // Never show unpaid/pending-payment or failed checkout bookings to the guest
+  const bookings = (rawBookings || [])
+    .filter((b: any) => b.status !== 'pending' && b.status !== 'pending_payment' && b.status !== 'payment_failed')
+    .map((b: any) => {
     const activity = (bookingActivities || []).find((a: any) => {
       try {
         const payload = JSON.parse(a.description);
@@ -156,6 +158,12 @@ export default async function ProfilePage() {
     ['confirmed', 'checked_in', 'completed', 'cancelled', 'refunded'].includes(b.status)
   ).map(b => {
     const isCancelledOrRefunded = b.status === 'cancelled' || b.status === 'refunded';
+    const bTotalPrice = Number(b.total_price || 0);
+    const bServiceFee = (b.service_fee !== undefined && b.service_fee !== null)
+      ? Number(b.service_fee)
+      : Math.round((bTotalPrice * 0.1) / 1.1);
+    const bAccommodation = Math.max(0, bTotalPrice - bServiceFee);
+
     return {
       id: b.id,
       transactionId: b.id.slice(0, 8).toUpperCase(),
@@ -165,8 +173,9 @@ export default async function ProfilePage() {
       propertyName: b.properties?.title || 'Property',
       hostName: 'StayCool Host',
       amount: isCancelledOrRefunded
-        ? calculateRefundAmount(Number(b.total_price), b.check_in, b.cancelled_at || b.created_at, b.created_at, b.has_free_cancellation)
-        : Number(b.total_price),
+        ? calculateRefundAmount(bTotalPrice, b.check_in, b.cancelled_at || b.created_at, b.created_at, b.has_free_cancellation)
+        : bTotalPrice,
+      serviceFee: bServiceFee,
       date: new Date(b.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
       bookingDate: new Date(b.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
       cancellationDate: b.cancelled_at
@@ -182,8 +191,8 @@ export default async function ProfilePage() {
       paymentMethod: 'Razorpay',
       room_type: b.room_type,
       breakdown: {
-        accommodation: Number(b.total_price) * 0.9,
-        service_fee: Number(b.total_price) * 0.1,
+        accommodation: bAccommodation,
+        service_fee: bServiceFee,
         taxes: 0
       }
     };

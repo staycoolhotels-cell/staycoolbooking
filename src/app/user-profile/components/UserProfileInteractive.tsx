@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -157,12 +157,35 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
     }
   };
 
+  const handleBookingStatusChange = (bookingId?: string, newStatus: string = 'cancelled') => {
+    if (bookingId) {
+      setBookings((prev) =>
+        prev.map((b) => (b.id === bookingId ? { ...b, status: newStatus as any } : b))
+      );
+    }
+  };
+
   if (status === 'loading') return <AnimatedLoader fullScreen text="Loading Profile..." />;
 
-  const activeBooking = bookings.find((b) =>
-    (b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'pending_payment') &&
-    new Date(b.check_out) >= new Date()
-  ) || null;
+  // Active booking for Trip Command Center:
+  // Must STRICTLY be confirmed or checked_in (NEVER cancelled, refunded, pending_payment, failed)
+  // and must not be in the past.
+  const activeBooking = useMemo(() => {
+    const valid = bookings.filter((b) => {
+      const st = (b.status || '').toLowerCase();
+      if (st !== 'confirmed' && st !== 'checked_in') return false;
+      const checkOutDate = new Date(b.check_out);
+      return !isNaN(checkOutDate.getTime()) && checkOutDate >= new Date();
+    });
+
+    if (valid.length === 0) return null;
+
+    // Prioritize currently checked_in booking, then the earliest upcoming confirmed booking
+    const checkedIn = valid.find((b) => b.status === 'checked_in');
+    if (checkedIn) return checkedIn;
+
+    return valid.sort((a, b) => new Date(a.check_in).getTime() - new Date(b.check_in).getTime())[0] || null;
+  }, [bookings]);
 
   return (
     <div className="min-h-screen bg-[#070711] text-zinc-100 font-sans selection:bg-indigo-500/30 overflow-x-hidden">
@@ -330,7 +353,12 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
               </motion.section>,
 
               <motion.div key="bookings" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.45 }}>
-                <BookingHistory bookings={bookings} guestId={user?.id} transactions={transactions} />
+                <BookingHistory
+                  bookings={bookings}
+                  guestId={user?.id}
+                  transactions={transactions}
+                  onStatusChange={handleBookingStatusChange}
+                />
               </motion.div>,
 
               user && (

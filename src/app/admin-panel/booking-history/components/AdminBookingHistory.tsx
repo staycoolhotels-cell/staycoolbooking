@@ -112,13 +112,43 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
   // Compute Metrics
   const metrics = useMemo(() => {
     const totalCount = filteredBookings.length;
-    const totalAmount = filteredBookings.reduce((sum, b) => sum + Number(b.total_price || 0), 0);
-    const confirmedBookings = filteredBookings.filter(b => b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed');
+    
+    // Active / Confirmed Bookings (realized business)
+    const confirmedBookings = filteredBookings.filter(
+      (b) => b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed'
+    );
+    const cancelledBookings = filteredBookings.filter(
+      (b) => b.status === 'cancelled' || b.status === 'refunded'
+    );
+
+    const isCancelledFilter = statusFilter === 'cancelled';
+
+    // Booking Revenue: Realized volume for active bookings (or cancelled volume if user selected 'cancelled' filter)
+    const totalAmount = isCancelledFilter
+      ? cancelledBookings.reduce((sum, b) => sum + Number(b.total_price || 0), 0)
+      : confirmedBookings.reduce((sum, b) => sum + Number(b.total_price || 0), 0);
+
+    const cancelledAmount = cancelledBookings.reduce((sum, b) => sum + Number(b.total_price || 0), 0);
+
+    // Admin Revenue: 10% Guest Service Fee + 10% Host Commission (20% total platform revenue)
     const adminRevenue = confirmedBookings.reduce((sum, b) => {
-      const fee = b.service_fee ? Number(b.service_fee) : Math.round(Number(b.total_price || 0) * 0.1);
-      return sum + (isNaN(fee) ? 0 : fee);
+      const transfer = Array.isArray(b.payment_transfers) ? b.payment_transfers[0] : b.payment_transfers;
+      if (
+        transfer?.platform_commission !== undefined &&
+        transfer?.platform_commission !== null &&
+        Number(transfer.platform_commission) > 0
+      ) {
+        return sum + Number(transfer.platform_commission);
+      }
+      const amt = Number(b.total_price || 0);
+      const guestFee = b.service_fee ? Number(b.service_fee) : Math.round((amt * 0.1) / 1.1);
+      const hostRev = Math.max(0, amt - guestFee);
+      const hostComm = Math.round(hostRev * 0.10);
+      return sum + (guestFee + hostComm);
     }, 0);
-    const avgAmount = totalCount > 0 ? Math.round(totalAmount / totalCount) : 0;
+
+    const countForAvg = isCancelledFilter ? cancelledBookings.length : confirmedBookings.length;
+    const avgAmount = countForAvg > 0 ? Math.round(totalAmount / countForAvg) : 0;
     const confirmedCount = confirmedBookings.length;
     const confirmedRate = totalCount > 0 ? Math.round((confirmedCount / totalCount) * 100) : 0;
 
@@ -129,32 +159,69 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
       avgAmount,
       confirmedCount,
       confirmedRate,
+      cancelledCount: cancelledBookings.length,
+      cancelledAmount,
+      isCancelledFilter,
     };
-  }, [filteredBookings]);
+  }, [filteredBookings, statusFilter]);
 
   // Export CSV
   const handleExportCSV = () => {
     if (filteredBookings.length === 0) return;
 
-    const headers = ['Booking ID', 'Guest Name', 'Guest Email', 'Property Title', 'Host Name', 'Check-In', 'Check-Out', 'Total Amount (INR)', 'Status', 'Booking Date'];
-    const rows = filteredBookings.map((b) => [
-      `#BK${b.id.slice(0, 5).toUpperCase()}`,
-      `"${b.guest?.name || 'N/A'}"`,
-      `"${b.guest?.email || 'N/A'}"`,
-      `"${b.property?.title || 'N/A'}"`,
-      `"${b.property?.host?.name || 'N/A'}"`,
-      b.check_in,
-      b.check_out,
-      b.total_price || 0,
-      b.status || 'unknown',
-      b.created_at ? new Date(b.created_at).toLocaleString('en-IN') : 'N/A'
-    ]);
+    const headers = [
+      'Booking ID',
+      'Guest Name',
+      'Guest Email',
+      'Property Title',
+      'Host Name',
+      'Check-In',
+      'Check-Out',
+      'Total Amount (INR)',
+      'Admin Revenue (INR)',
+      'Status',
+      'Booking Date',
+    ];
+    const rows = filteredBookings.map((b) => {
+      const amt = Number(b.total_price || 0);
+      const isPaid = b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed';
+      const transfer = Array.isArray(b.payment_transfers) ? b.payment_transfers[0] : b.payment_transfers;
+      let bAdminRev = 0;
+      if (isPaid) {
+        if (
+          transfer?.platform_commission !== undefined &&
+          transfer?.platform_commission !== null &&
+          Number(transfer.platform_commission) > 0
+        ) {
+          bAdminRev = Number(transfer.platform_commission);
+        } else {
+          const guestFee = b.service_fee ? Number(b.service_fee) : Math.round((amt * 0.1) / 1.1);
+          const hostRev = Math.max(0, amt - guestFee);
+          const hostComm = Math.round(hostRev * 0.10);
+          bAdminRev = guestFee + hostComm;
+        }
+      }
+      return [
+        `#BK${b.id.slice(0, 5).toUpperCase()}`,
+        `"${b.guest?.name || 'N/A'}"`,
+        `"${b.guest?.email || 'N/A'}"`,
+        `"${b.property?.title || 'N/A'}"`,
+        `"${b.property?.host?.name || 'N/A'}"`,
+        b.check_in,
+        b.check_out,
+        amt,
+        bAdminRev,
+        b.status || 'unknown',
+        b.created_at ? new Date(b.created_at).toLocaleString('en-IN') : 'N/A',
+      ];
+    });
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const csvContent =
+      'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `StayCool_Booking_History_${timeMode}_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute('download', `StayCool_Booking_History_${timeMode}_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -190,7 +257,13 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-black text-blue-400">₹{metrics.totalAmount.toLocaleString('en-IN')}</div>
-          <p className="text-[10px] text-zinc-500 mt-1 font-medium">Gross booking volume</p>
+          <p className="text-[10px] text-zinc-500 mt-1 font-medium">
+            {metrics.isCancelledFilter
+              ? 'Cancelled booking volume'
+              : metrics.cancelledCount > 0 && statusFilter === 'all'
+              ? `Realized volume (${metrics.cancelledCount} cancelled)`
+              : 'Gross booking volume'}
+          </p>
         </div>
 
         {/* Admin Platform Revenue */}
@@ -203,7 +276,7 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-black text-emerald-400">₹{metrics.adminRevenue.toLocaleString('en-IN')}</div>
-          <p className="text-[10px] text-zinc-500 mt-1 font-medium">Platform commission (10%)</p>
+          <p className="text-[10px] text-zinc-500 mt-1 font-medium">Platform fee (Guest 10% + Host 10%)</p>
         </div>
 
         {/* Avg Booking Value */}
@@ -216,7 +289,9 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-black text-white">₹{metrics.avgAmount.toLocaleString('en-IN')}</div>
-          <p className="text-[10px] text-zinc-500 mt-1 font-medium">Average price per booking</p>
+          <p className="text-[10px] text-zinc-500 mt-1 font-medium">
+            {metrics.isCancelledFilter ? 'Avg cancelled price' : 'Average realized price'}
+          </p>
         </div>
 
         {/* Confirmed Rate */}
@@ -563,6 +638,31 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
                 const totalPrice = Number(selectedBooking.total_price || 0);
                 const paidAmount = isBookingPaid ? totalPrice : 0;
 
+                const transfer = Array.isArray(selectedBooking.payment_transfers)
+                  ? selectedBooking.payment_transfers[0]
+                  : selectedBooking.payment_transfers;
+
+                const guestFee = selectedBooking.service_fee
+                  ? Number(selectedBooking.service_fee)
+                  : Math.round((totalPrice * 0.1) / 1.1);
+
+                const hostBase = Math.max(0, totalPrice - guestFee);
+                const hostCommission = Math.round(hostBase * 0.1);
+
+                const bookingAdminRevenue =
+                  transfer?.platform_commission !== undefined &&
+                  transfer?.platform_commission !== null &&
+                  Number(transfer.platform_commission) > 0
+                    ? Number(transfer.platform_commission)
+                    : guestFee + hostCommission;
+
+                const netHostPayout =
+                  transfer?.host_amount !== undefined &&
+                  transfer?.host_amount !== null &&
+                  Number(transfer.host_amount) > 0
+                    ? Number(transfer.host_amount)
+                    : Math.max(0, hostBase - hostCommission);
+
                 const modalStatusStyle =
                   isBookingPaid
                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
@@ -650,6 +750,38 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
                             ₹{paidAmount.toLocaleString('en-IN')}
                           </span>
                         </div>
+
+                        {/* Revenue & Commission Split for Admin */}
+                        {isBookingPaid && (
+                          <div className="mt-3 p-3.5 bg-white/[0.03] border border-white/10 rounded-xl space-y-2">
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Revenue & Commission Split</p>
+                            
+                            <div className="flex justify-between text-xs">
+                              <span className="text-zinc-400">Host Base Price:</span>
+                              <span className="font-semibold text-white">₹{hostBase.toLocaleString('en-IN')}</span>
+                            </div>
+
+                            <div className="flex justify-between text-xs">
+                              <span className="text-zinc-400">Guest Service Fee (10%):</span>
+                              <span className="font-semibold text-emerald-400">+₹{guestFee.toLocaleString('en-IN')}</span>
+                            </div>
+
+                            <div className="flex justify-between text-xs">
+                              <span className="text-zinc-400">Host Commission (10%):</span>
+                              <span className="font-semibold text-emerald-400">+₹{hostCommission.toLocaleString('en-IN')}</span>
+                            </div>
+
+                            <div className="flex justify-between text-xs font-bold pt-1.5 border-t border-white/10">
+                              <span className="text-emerald-300">Total Admin Revenue (20%):</span>
+                              <span className="font-black text-emerald-400">₹{bookingAdminRevenue.toLocaleString('en-IN')}</span>
+                            </div>
+
+                            <div className="flex justify-between text-xs font-semibold pt-1 border-t border-white/5">
+                              <span className="text-blue-300">Net Host Payout:</span>
+                              <span className="font-bold text-blue-400">₹{netHostPayout.toLocaleString('en-IN')}</span>
+                            </div>
+                          </div>
+                        )}
 
                         {isBookingPending && (
                           <div className="flex justify-between items-center text-xs text-amber-400 font-semibold bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 mt-1">

@@ -15,9 +15,10 @@ type BookingHistoryProps = {
     bookings: (Booking & { properties: Partial<Property> })[];
     guestId?: string;
     transactions?: any[];
+    onStatusChange?: (bookingId?: string, newStatus?: string) => void;
 };
 
-const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistoryProps) => {
+const BookingHistory = ({ bookings, guestId, transactions = [], onStatusChange }: BookingHistoryProps) => {
     const router = useRouter();
     const [showAll, setShowAll] = useState(false);
     const [selectedBooking, setSelectedBooking] = useState<(Booking & { properties: Partial<Property> }) | null>(null);
@@ -360,7 +361,8 @@ const BookingHistory = ({ bookings, guestId, transactions = [] }: BookingHistory
                 booking={selectedBooking}
                 transactions={transactions}
                 onClose={() => setSelectedBooking(null)}
-                onStatusChange={() => {
+                onStatusChange={(bookingId, status) => {
+                    if (onStatusChange) onStatusChange(bookingId, status);
                     router.refresh();
                 }}
             />

@@ -253,8 +253,8 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
                               <span>Guest: <strong className="text-zinc-200">{guest?.name || 'All Guests'}</strong></span>
                             </span>
                             <span className="text-zinc-600">•</span>
-                            <span>
-                              Guest Refund: <strong className="text-emerald-400 font-mono">₹{(pricing.refundInfo?.guestRefundAmount || 0).toLocaleString('en-IN')}</strong>
+                            <span className="text-zinc-400">
+                              Status: <strong className="text-rose-400 font-mono">Cancelled</strong>
                             </span>
                           </div>
                         </div>
@@ -317,23 +317,17 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
 
                     {/* 2. CANCELLED BOOKING BREAKDOWN */}
                     <div className="space-y-4 bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5">
-                      {/* Total Booking Amount */}
+                      {/* Accommodation Rate / Value */}
                       <div className="flex items-center justify-between gap-3 text-sm sm:text-base font-semibold">
                         <div className="flex flex-col">
-                          <span className="text-zinc-200">Total Booking Amount</span>
+                          <span className="text-zinc-200">Accommodation Value</span>
                           <span className="text-xs text-zinc-500 font-normal">
-                            {pricing.nights} {pricing.nights === 1 ? 'night' : 'nights'} · {pricing.dateRangeStr} (Total Paid by Guest)
+                            {pricing.nights} {pricing.nights === 1 ? 'night' : 'nights'} · {pricing.dateRangeStr}
                           </span>
                         </div>
                         <span className="font-bold text-white text-base sm:text-lg">
-                          ₹{pricing.totalAmount.toLocaleString('en-IN')}.00
+                          ₹{pricing.hostBaseAmount.toLocaleString('en-IN')}.00
                         </span>
-                      </div>
-
-                      {/* Accommodation Breakdown sub-card */}
-                      <div className="flex items-center justify-between gap-3 text-xs font-medium text-zinc-400 bg-white/[0.03] px-3 py-2 rounded-xl border border-white/5">
-                        <span className="text-zinc-400">Accommodation Pool: <strong className="text-zinc-200">₹{pricing.hostBaseAmount.toLocaleString('en-IN')}.00</strong></span>
-                        <span className="text-zinc-500">Platform Fee: <strong className="text-zinc-400">₹{(pricing.totalAmount - pricing.hostBaseAmount).toLocaleString('en-IN')}.00</strong></span>
                       </div>
 
                       {/* Cancellation Policy */}

@@ -57,7 +57,8 @@ const BookingHistoryPage = async () => {
         room_type_prices,
         host:users!host_id ( name, email )
       ),
-      booking_rooms(rooms(room_type))
+      booking_rooms(rooms(room_type)),
+      payment_transfers(platform_commission, host_amount, transfer_status)
     `)
     .not('status', 'in', '("pending_payment","payment_failed")')
     .order('created_at', { ascending: false });

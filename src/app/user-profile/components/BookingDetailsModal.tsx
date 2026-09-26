@@ -12,7 +12,7 @@ interface BookingDetailsModalProps {
     booking: (Booking & { properties: Partial<Property> }) | null;
     transactions?: any[];
     onClose: () => void;
-    onStatusChange?: () => void;
+    onStatusChange?: (bookingId?: string, newStatus?: string) => void;
 }
 
 const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChange }: BookingDetailsModalProps) => {
@@ -641,7 +641,7 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                                     { duration: 5000 }
                                                 );
                                                 setShowCancelConfirm(false);
-                                                if (onStatusChange) onStatusChange();
+                                                if (onStatusChange) onStatusChange(booking.id, 'cancelled');
                                             } catch (err: any) {
                                                 toast.error(err.message || "Failed to cancel booking");
                                             } finally {
