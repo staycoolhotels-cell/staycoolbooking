@@ -17,6 +17,7 @@ import DisputeDetailsModal from './DisputeDetailsModal';
 import RealTimeChat from '@/components/chat/RealTimeChat';
 import PropertyApproval from './PropertyApproval';
 import AdminFinancialTreasury from './AdminFinancialTreasury';
+import TransferToBankModal from '@/app/admin-panel/financials/components/TransferToBankModal';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -207,6 +208,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   const fetchNotifications = async () => {
     const { data, error } = await supabase
@@ -339,6 +341,39 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   }, [adminData]);
 
 
+  // Calculate Admin Revenue: Guest 10% Service Fee + Host 10% Commission (20% total)
+  const calculatedAdminRevenue = React.useMemo(() => {
+    return transactions.length > 0
+      ? transactions
+          .filter(t => {
+            const st = (t.status || '').toLowerCase();
+            const type = (t.type || '').toLowerCase();
+            return type !== 'refund' && st !== 'refunded' && st !== 'failed';
+          })
+          .reduce((sum, t) => {
+            if (t.adminCommissionAmount !== undefined && t.adminCommissionAmount !== null) {
+              return sum + Number(t.adminCommissionAmount);
+            }
+            const amt = Number(t.amount || 0);
+            const guestFee = Number(t.serviceFee) || Math.round((amt * 0.1) / 1.1);
+            const hostRev = Math.max(0, amt - guestFee);
+            const hostComm = Math.round(hostRev * 0.10);
+            return sum + (guestFee + hostComm);
+          }, 0)
+      : bookings
+          .filter(b => {
+            const st = (b.status || '').toLowerCase();
+            return st !== 'cancelled' && st !== 'refunded' && st !== 'failed';
+          })
+          .reduce((sum, b) => {
+            const amt = Number(b.total_price ?? (b as any).amount ?? (b as any).price ?? 0);
+            const guestFee = (b as any).service_fee ? Number((b as any).service_fee) : Math.round((amt * 0.1) / 1.1);
+            const hostRev = Math.max(0, amt - guestFee);
+            const hostComm = Math.round(hostRev * 0.10);
+            return sum + (guestFee + hostComm);
+          }, 0);
+  }, [transactions, bookings]);
+
   useEffect(() => {
     // 1. Calculate Booking Revenue (Gross booking volume)
     const bookingRevenue = bookings.reduce((sum: number, b: Booking) => {
@@ -349,26 +384,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       }
       return sum;
     }, 0);
-
-    // 2. Calculate Admin Revenue (Platform Service Fee - 10%)
-    const adminRevenue = transactions.length > 0
-      ? transactions
-          .filter(t => {
-            const st = (t.status || '').toLowerCase();
-            const type = (t.type || '').toLowerCase();
-            return type !== 'refund' && st !== 'refunded' && st !== 'failed';
-          })
-          .reduce((sum, t) => sum + (t.serviceFee || Math.round((t.amount || 0) * 0.1)), 0)
-      : bookings
-          .filter(b => {
-            const st = (b.status || '').toLowerCase();
-            return st !== 'cancelled' && st !== 'refunded' && st !== 'failed';
-          })
-          .reduce((sum, b) => {
-            const amt = Number(b.total_price ?? (b as any).amount ?? (b as any).price ?? 0);
-            const fee = (b as any).service_fee ? Number((b as any).service_fee) : Math.round(amt * 0.1);
-            return sum + (isNaN(fee) ? 0 : fee);
-          }, 0);
 
     setStats([
       {
@@ -382,12 +397,12 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
       },
       {
         title: 'Admin Revenue',
-        value: `₹${adminRevenue.toLocaleString('en-IN')}`,
-        subtitle: 'Platform fee (10%)',
+        value: `₹${calculatedAdminRevenue.toLocaleString('en-IN')}`,
+        subtitle: 'Guest (10%) + Host (10%)',
         icon: 'CurrencyRupeeIcon',
         trend: { value: '+8%', isPositive: true },
         bgColor: 'bg-emerald-500',
-        onClick: () => setActiveTab('transactions'),
+        onClick: () => setIsTransferModalOpen(true),
       },
       {
         title: 'Total Bookings',
@@ -427,8 +442,10 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         const amt = Number(booking.total_price ?? (booking as any).amount ?? (booking as any).price ?? 0);
         if (!isNaN(amt)) {
           monthlyBookingRevenue[month] += amt;
-          const fee = (booking as any).service_fee ? Number((booking as any).service_fee) : Math.round(amt * 0.1);
-          monthlyAdminRevenue[month] += isNaN(fee) ? Math.round(amt * 0.1) : fee;
+          const guestFee = (booking as any).service_fee ? Number((booking as any).service_fee) : Math.round((amt * 0.1) / 1.1);
+          const hostRev = Math.max(0, amt - guestFee);
+          const hostComm = Math.round(hostRev * 0.10);
+          monthlyAdminRevenue[month] += (guestFee + hostComm);
         }
       }
     });
@@ -1165,6 +1182,17 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                     </AnimatePresence>
                   </div>
 
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setIsTransferModalOpen(true)}
+                    className="px-4 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-xl transition-all duration-300 flex items-center gap-2 shadow-lg shadow-emerald-500/20 cursor-pointer shrink-0"
+                    title="Transfer verified Admin Platform Revenue to Bank"
+                  >
+                    <Icon name="BuildingLibraryIcon" size={18} />
+                    <span className="text-sm font-bold tracking-tight">Transfer to Bank</span>
+                  </motion.button>
+
                   <button
                     onClick={handleExportReport}
                     className="px-4 py-3 bg-white/5 backdrop-blur-sm text-zinc-300 border border-white/10 rounded-xl hover:text-white hover:border-white/25 hover:bg-white/10 transition-all duration-300 flex items-center gap-2"
@@ -1580,6 +1608,11 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         dispute={selectedDispute}
         onClose={handleCloseModal}
         onUpdateStatus={handleUpdateDisputeStatus}
+      />
+      <TransferToBankModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        adminRevenue={calculatedAdminRevenue}
       />
     </div>
   );

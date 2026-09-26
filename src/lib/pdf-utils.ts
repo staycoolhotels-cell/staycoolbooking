@@ -1,12 +1,30 @@
 import { Transaction } from './types';
 
 export const generateInvoicePDF = async (t: Transaction) => {
-  // Use UMD import for better compatibility with Next.js dynamic chunks
-  const jspdfModule = await import('jspdf/dist/jspdf.umd.min.js') as any;
-  const jsPDF = jspdfModule.jsPDF || jspdfModule.default?.jsPDF || jspdfModule.default;
-  const autoTable = (await import('jspdf-autotable')).default;
+  // Use standard dynamic import for Next.js client bundles
+  const jspdfModule = await import('jspdf');
+  const jsPDF = jspdfModule.default?.jsPDF || jspdfModule.jsPDF || jspdfModule.default;
+  const autoTableModule = await import('jspdf-autotable');
+  const autoTable = autoTableModule.default?.default || autoTableModule.default || autoTableModule.autoTable || (autoTableModule as any);
 
   const doc = new jsPDF();
+
+  const runAutoTable = (options: any) => {
+    try {
+      if (typeof (doc as any).autoTable === 'function') {
+        (doc as any).autoTable(options);
+      } else if (typeof autoTable === 'function') {
+        autoTable(doc, options);
+      } else if (typeof (autoTable as any)?.default === 'function') {
+        (autoTable as any).default(doc, options);
+      } else {
+        console.warn('Could not find suitable autoTable function');
+      }
+    } catch (tableErr) {
+      console.error('runAutoTable error:', tableErr);
+    }
+  };
+
   const isRefund = t.type === 'refund';
   const isPendingPayment = t.status === 'pending_payment' || t.status === 'payment_failed';
   const invoiceId = t.invoice_id || (t.id ? t.id.split('-')[0].toUpperCase() : 'N/A');
@@ -27,11 +45,22 @@ export const generateInvoicePDF = async (t: Transaction) => {
 
   // Branding Logos
   try {
-    const loadImage = (url: string) => new Promise<HTMLImageElement>((resolve, reject) => {
+    const loadImage = (url: string, timeoutMs = 2500) => new Promise<HTMLImageElement>((resolve, reject) => {
+      if (typeof window === 'undefined') return reject(new Error('Window not available'));
       const img = new Image();
+      let timer: any = null;
       img.crossOrigin = 'anonymous'; 
-      img.onload = () => resolve(img);
-      img.onerror = (err) => reject(err);
+      img.onload = () => {
+        if (timer) clearTimeout(timer);
+        resolve(img);
+      };
+      img.onerror = (err) => {
+        if (timer) clearTimeout(timer);
+        reject(err);
+      };
+      timer = setTimeout(() => {
+        reject(new Error(`Image load timeout for ${url}`));
+      }, timeoutMs);
       img.src = url;
     });
 
@@ -39,8 +68,8 @@ export const generateInvoicePDF = async (t: Transaction) => {
     const secondaryLogo = await loadImage('/assets/Picsart_26-03-22_23-32-24-684.png');
     
     // Calculate aspect ratios to prevent squashing
-    const logoRatio = logo.width / logo.height;
-    const secRatio = secondaryLogo.width / secondaryLogo.height;
+    const logoRatio = (logo.naturalWidth || logo.width || 1) / (logo.naturalHeight || logo.height || 1);
+    const secRatio = (secondaryLogo.naturalWidth || secondaryLogo.width || 1) / (secondaryLogo.naturalHeight || secondaryLogo.height || 1);
     
     const targetH = 10; // Reset height
     const logoW = targetH * logoRatio;
@@ -53,6 +82,8 @@ export const generateInvoicePDF = async (t: Transaction) => {
     console.error('Failed to load logos for PDF', e);
   }
 
+  const isHostView = t.audience === 'host';
+
   if (isRefund) {
     doc.setTextColor(225, 29, 72);
   } else if (isPendingPayment) {
@@ -62,58 +93,72 @@ export const generateInvoicePDF = async (t: Transaction) => {
   }
   doc.setFontSize(26);
   doc.setFont('helvetica', 'bold');
-  const title = isRefund ? 'REFUND INVOICE' : isPendingPayment ? 'PROFORMA INVOICE' : 'TAX INVOICE';
+  const title = isRefund 
+    ? (isHostView ? 'HOST CANCELLATION' : 'REFUND INVOICE') 
+    : isPendingPayment 
+      ? 'PROFORMA INVOICE' 
+      : (isHostView ? 'HOST PAYOUT STATEMENT' : 'TAX INVOICE');
   doc.text(title, 194, 28, { align: 'right' });
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(148, 163, 184); // slate-400
   const subTitle = isRefund 
-    ? 'CREDIT NOTE & CANCELLATION SETTLEMENT' 
+    ? (isHostView ? 'HOST CANCELLATION COMPENSATION' : 'CREDIT NOTE & CANCELLATION SETTLEMENT') 
     : isPendingPayment 
       ? 'AWAITING PAYMENT - NOT A TAX RECEIPT' 
-      : 'OFFICIAL ACCOMMODATION RECEIPT';
+      : (isHostView ? 'OFFICIAL HOST EARNINGS & REMITTANCE' : 'OFFICIAL ACCOMMODATION RECEIPT');
   doc.text(subTitle, 194, 34, { align: 'right' });
 
   // 2. Info Section (Modern Light Card Design)
-  const breakdown = t.breakdown || {
-    accommodation: Math.round((t.amount || 0) / 1.1),
-    service_fee: Math.round((t.amount || 0) * 0.1 / 1.1),
-    taxes: 0,
-    discount: 0,
-    upgrades: 0,
-    cancellation_fee: 0
+  const safeNum = (v: any, fallback = 0) => {
+    const n = Number(v);
+    return isNaN(n) ? fallback : n;
   };
 
-  const nights = t.nights || 1;
-  const originalTotal = t.amount || 0;
-  const netRefundablePool = t.netRefundablePool !== undefined ? t.netRefundablePool : (breakdown.accommodation || Math.round(originalTotal / 1.1));
-  const refundPercent = t.refundPercentage !== undefined ? t.refundPercentage : (netRefundablePool > 0 && t.refundAmount !== undefined ? Math.round((t.refundAmount / netRefundablePool) * 100) : 50);
+  const rawBreakdown = t.breakdown || {};
+  const originalTotal = safeNum(t.amount, 0);
+  const nights = Math.max(1, safeNum(t.nights, 1));
+
+  const breakdown = {
+    accommodation: safeNum(rawBreakdown.accommodation, Math.round(originalTotal / 1.1)),
+    service_fee: safeNum(rawBreakdown.service_fee, Math.round(originalTotal * 0.1 / 1.1)),
+    taxes: safeNum(rawBreakdown.taxes, 0),
+    discount: safeNum(rawBreakdown.discount, 0),
+    upgrades: safeNum(rawBreakdown.upgrades, 0),
+    cancellation_fee: safeNum(rawBreakdown.cancellation_fee, 0)
+  };
+
+  // Host earnings & commission values (100% separate from guest service fee)
+  const hostGrossEarnings = Math.max(0, breakdown.accommodation + breakdown.upgrades - breakdown.discount);
+  const hostCommission = Math.round(hostGrossEarnings * 0.10);
+  const hostPayout = t.hostPayoutAmount !== undefined 
+    ? safeNum(t.hostPayoutAmount) 
+    : Math.max(0, hostGrossEarnings - hostCommission);
+
+  const netRefundablePool = t.netRefundablePool !== undefined ? safeNum(t.netRefundablePool) : (breakdown.accommodation || Math.round(originalTotal / 1.1));
+  const refundPercent = t.refundPercentage !== undefined ? safeNum(t.refundPercentage) : (netRefundablePool > 0 && t.refundAmount !== undefined ? Math.round((safeNum(t.refundAmount) / netRefundablePool) * 100) : 50);
   const eligibleRefund = Math.round((netRefundablePool * refundPercent) / 100);
-  const retainedPenalty = t.retainedPenalty !== undefined ? t.retainedPenalty : Math.max(0, netRefundablePool - eligibleRefund);
-  const retainedServiceFee = t.retainedServiceFee !== undefined ? t.retainedServiceFee : (breakdown.service_fee || Math.round(originalTotal * 0.1 / 1.1));
+  const retainedPenalty = t.retainedPenalty !== undefined ? safeNum(t.retainedPenalty) : Math.max(0, netRefundablePool - eligibleRefund);
+  const retainedServiceFee = t.retainedServiceFee !== undefined ? safeNum(t.retainedServiceFee) : (breakdown.service_fee || Math.round(originalTotal * 0.1 / 1.1));
   const protectionFee = breakdown.cancellation_fee || 0;
   const totalRetained = retainedPenalty + retainedServiceFee + protectionFee;
-  const finalRefundAmount = t.refundAmount !== undefined ? t.refundAmount : Math.max(0, originalTotal - totalRetained);
+  const finalRefundAmount = t.refundAmount !== undefined ? safeNum(t.refundAmount) : Math.max(0, originalTotal - totalRetained);
 
   // Exact 3-Way Distribution values
   const guestRefund = t.guestRefundAmount !== undefined 
-    ? t.guestRefundAmount 
-    : (t.refundAmount !== undefined ? t.refundAmount : finalRefundAmount);
+    ? safeNum(t.guestRefundAmount) 
+    : (t.refundAmount !== undefined ? safeNum(t.refundAmount) : finalRefundAmount);
 
   const hostShare = t.hostShare !== undefined 
-    ? t.hostShare 
+    ? safeNum(t.hostShare) 
     : Math.round(retainedPenalty / 2);
 
   const adminShare = t.adminShare !== undefined 
-    ? t.adminShare 
+    ? safeNum(t.adminShare) 
     : Math.max(0, originalTotal - guestRefund - hostShare);
 
-  const hostPayout = t.hostPayoutAmount !== undefined 
-    ? t.hostPayoutAmount 
-    : Math.max(0, Math.round((originalTotal - (breakdown.service_fee || Math.round(originalTotal * 0.1 / 1.1))) * 0.90));
-
   const adminRevenue = t.adminCommissionAmount !== undefined 
-    ? t.adminCommissionAmount 
+    ? safeNum(t.adminCommissionAmount) 
     : Math.max(0, originalTotal - hostPayout);
 
   const guestName = t.guestName || 'Valued Guest';
@@ -320,7 +365,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
       return [item, '1', '-', '-'];
     });
 
-    autoTable(doc, {
+    runAutoTable({
       startY: tableStartY + 5,
       margin: { left: 16, right: 16 },
       head: [['Room Type', 'Units', 'Unit Rate', 'Total']],
@@ -360,40 +405,73 @@ export const generateInvoicePDF = async (t: Transaction) => {
       }
     });
 
-    tableStartY = (doc as any).lastAutoTable.finalY + 8;
+    tableStartY = ((doc as any).lastAutoTable?.finalY ?? tableStartY) + 8;
   }
 
   // 4. Primary Booking Charges Table
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139);
   doc.setFont('helvetica', 'bold');
-  doc.text(isRefund ? 'ORIGINAL BOOKING CHARGES' : 'CHARGES & PAYMENT BREAKDOWN', 16, tableStartY);
+  doc.text(isRefund ? 'ORIGINAL BOOKING CHARGES' : (isHostView ? 'HOST EARNINGS & COMMISSION BREAKDOWN' : 'CHARGES & PAYMENT BREAKDOWN'), 16, tableStartY);
 
   doc.setDrawColor(14, 165, 233);
   doc.setLineWidth(0.5);
   doc.line(16, tableStartY + 2, 60, tableStartY + 2);
 
-  const tableBody = [
-    ['Accommodation Charges', `Rs.${Math.round(breakdown.accommodation / nights).toLocaleString('en-IN')}`, `${nights}`, `Rs.${breakdown.accommodation.toLocaleString('en-IN')}`],
-    ['Platform Service Fee (10%)', `Rs.${breakdown.service_fee.toLocaleString('en-IN')}`, '1', `Rs.${breakdown.service_fee.toLocaleString('en-IN')}`],
-  ];
+  const tableBody: any[] = [];
+  if (isHostView) {
+    tableBody.push([
+      'Accommodation Earnings',
+      `Rs.${Math.round(breakdown.accommodation / nights).toLocaleString('en-IN')}`,
+      `${nights}`,
+      `Rs.${breakdown.accommodation.toLocaleString('en-IN')}`
+    ]);
 
-  if (breakdown.discount && breakdown.discount > 0) {
-    tableBody.push(['Bulk Discount Savings', `-Rs.${breakdown.discount.toLocaleString('en-IN')}`, '-', `-Rs.${breakdown.discount.toLocaleString('en-IN')}`]);
+    if (breakdown.upgrades && breakdown.upgrades > 0) {
+      tableBody.push(['Exclusive Upgrades / Amenities', `Rs.${breakdown.upgrades.toLocaleString('en-IN')}`, '1', `Rs.${breakdown.upgrades.toLocaleString('en-IN')}`]);
+    }
+
+    if (breakdown.discount && breakdown.discount > 0) {
+      tableBody.push(['Bulk Booking Discount', `-Rs.${breakdown.discount.toLocaleString('en-IN')}`, '-', `-Rs.${breakdown.discount.toLocaleString('en-IN')}`]);
+    }
+
+    tableBody.push([
+      'StayCool Host Commission (10%)',
+      `-Rs.${hostCommission.toLocaleString('en-IN')}`,
+      '1',
+      `-Rs.${hostCommission.toLocaleString('en-IN')}`
+    ]);
+  } else {
+    tableBody.push([
+      'Accommodation Charges',
+      `Rs.${Math.round(breakdown.accommodation / nights).toLocaleString('en-IN')}`,
+      `${nights}`,
+      `Rs.${breakdown.accommodation.toLocaleString('en-IN')}`
+    ]);
+    tableBody.push([
+      'Platform Service Fee (10%)',
+      `Rs.${breakdown.service_fee.toLocaleString('en-IN')}`,
+      '1',
+      `Rs.${breakdown.service_fee.toLocaleString('en-IN')}`
+    ]);
+
+    if (breakdown.discount && breakdown.discount > 0) {
+      tableBody.push(['Bulk Discount Savings', `-Rs.${breakdown.discount.toLocaleString('en-IN')}`, '-', `-Rs.${breakdown.discount.toLocaleString('en-IN')}`]);
+    }
+
+    if (breakdown.upgrades && breakdown.upgrades > 0) {
+      tableBody.push(['Exclusive Upgrades', `Rs.${breakdown.upgrades.toLocaleString('en-IN')}`, '1', `Rs.${breakdown.upgrades.toLocaleString('en-IN')}`]);
+    }
+
+    if (breakdown.cancellation_fee && breakdown.cancellation_fee > 0) {
+      tableBody.push(['Cancellation Protection', `Rs.${breakdown.cancellation_fee.toLocaleString('en-IN')}`, '1', `Rs.${breakdown.cancellation_fee.toLocaleString('en-IN')}`]);
+    }
   }
 
-  if (breakdown.upgrades && breakdown.upgrades > 0) {
-    tableBody.push(['Exclusive Upgrades', `Rs.${breakdown.upgrades.toLocaleString('en-IN')}`, '1', `Rs.${breakdown.upgrades.toLocaleString('en-IN')}`]);
-  }
-
-  if (breakdown.cancellation_fee && breakdown.cancellation_fee > 0) {
-    tableBody.push(['Cancellation Protection', `Rs.${breakdown.cancellation_fee.toLocaleString('en-IN')}`, '1', `Rs.${breakdown.cancellation_fee.toLocaleString('en-IN')}`]);
-  }
-
-  autoTable(doc, {
+  runAutoTable({
     startY: tableStartY + 5,
     margin: { left: 16, right: 16 },
-    head: [['Item Description', 'Base Price', 'Nights', 'Line Total']],
+    head: [[isHostView ? 'Earnings Component' : 'Item Description', 'Base Price', 'Nights / Qty', 'Line Total']],
     body: tableBody,
     headStyles: { 
       fillColor: [241, 245, 249], 
@@ -431,7 +509,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
     }
   });
 
-  tableStartY = (doc as any).lastAutoTable.finalY + 8;
+  tableStartY = ((doc as any).lastAutoTable?.finalY ?? tableStartY) + 8;
 
   // 5. CANCELLATION & REFUND SETTLEMENT TABLE (When booking is cancelled / refunded)
   if (isRefund) {
@@ -457,7 +535,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
 
     settlementRows.push(['NET REFUND CREDITED TO GUEST', 'Credited directly to original payment method', `Rs. ${guestRefund.toLocaleString('en-IN')}`]);
 
-    autoTable(doc, {
+    runAutoTable({
       startY: tableStartY + 5,
       margin: { left: 16, right: 16 },
       head: [['Settlement Component', 'Policy Reference / Terms', 'Settlement Amount']],
@@ -505,7 +583,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
       }
     });
 
-    tableStartY = (doc as any).lastAutoTable.finalY + 8;
+    tableStartY = ((doc as any).lastAutoTable?.finalY ?? tableStartY) + 8;
 
     // 5B. 3-WAY CANCELLATION SETTLEMENT & DISTRIBUTION TABLE
     doc.setFontSize(8);
@@ -524,7 +602,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
       ['Total Reconciled Settlement', '100% of original booking funds accounted for', 'Balanced (100%)', `Rs. ${originalTotal.toLocaleString('en-IN')}`]
     ];
 
-    autoTable(doc, {
+    runAutoTable({
       startY: tableStartY + 5,
       margin: { left: 16, right: 16 },
       head: [['Participant / Beneficiary', 'Settlement Nature & Accounting Notes', 'Category / Share', 'Distributed Amount']],
@@ -576,81 +654,150 @@ export const generateInvoicePDF = async (t: Transaction) => {
       }
     });
 
-    tableStartY = (doc as any).lastAutoTable.finalY + 8;
+    tableStartY = ((doc as any).lastAutoTable?.finalY ?? tableStartY) + 8;
   } else if (!isPendingPayment) {
-    // 5. PAID BOOKINGS — ADMIN SETTLEMENT & 3-WAY REVENUE DISTRIBUTION TABLE
-    doc.setFontSize(8);
-    doc.setTextColor(14, 165, 233); // sky-600
-    doc.setFont('helvetica', 'bold');
-    doc.text('ADMIN FINANCIAL SETTLEMENT & 3-WAY DISTRIBUTION', 16, tableStartY);
+    if (isHostView) {
+      // 5. HOST PAYOUT & SETTLEMENT DISBURSEMENT TABLE (Host View)
+      doc.setFontSize(8);
+      doc.setTextColor(14, 165, 233); // sky-600
+      doc.setFont('helvetica', 'bold');
+      doc.text('HOST PAYOUT & SETTLEMENT DISBURSEMENT', 16, tableStartY);
 
-    doc.setDrawColor(14, 165, 233);
-    doc.setLineWidth(0.5);
-    doc.line(16, tableStartY + 2, 95, tableStartY + 2);
+      doc.setDrawColor(14, 165, 233);
+      doc.setLineWidth(0.5);
+      doc.line(16, tableStartY + 2, 85, tableStartY + 2);
 
-    const threeWayPaidRows: any[] = [
-      ['1. Guest Total Paid (Gross)', 'Total gross amount collected from guest via Razorpay', '100% Gross Billed', `Rs. ${originalTotal.toLocaleString('en-IN')}`],
-      ['2. Host Net Payout (To Host)', 'Accommodation & upgrades revenue after 10% platform commission', 'Net Host Payable', `Rs. ${hostPayout.toLocaleString('en-IN')}`],
-      ['3. Admin Platform Revenue (To Admin)', '10% Guest Service Fee + 10% Host Commission retained by StayCool', 'Platform Revenue', `Rs. ${adminRevenue.toLocaleString('en-IN')}`],
-      ['Total Funds Reconciled', 'Balanced settlement across Guest, Host, and Admin', 'Balanced (100%)', `Rs. ${originalTotal.toLocaleString('en-IN')}`]
-    ];
+      const hostPaidRows: any[] = [
+        ['1. Gross Host Earnings', 'Total accommodation & amenities value reserved by guest', 'Gross Earnings', `Rs. ${hostGrossEarnings.toLocaleString('en-IN')}`],
+        ['2. StayCool Platform Fee (10%)', 'Platform technology & reservation commission deducted', 'Commission', `-Rs. ${hostCommission.toLocaleString('en-IN')}`],
+        ['3. Net Host Payout (Direct to Host)', 'Remitted directly to registered host bank account upon check-in', 'Net Disbursed', `Rs. ${hostPayout.toLocaleString('en-IN')}`]
+      ];
 
-    autoTable(doc, {
-      startY: tableStartY + 5,
-      margin: { left: 16, right: 16 },
-      head: [['Participant / Account', 'Settlement Description & Accounting Notes', 'Distribution Type', 'Settlement Amount']],
-      body: threeWayPaidRows,
-      headStyles: { 
-        fillColor: [240, 249, 255], // sky-50
-        textColor: [14, 165, 233], // sky-600
-        fontStyle: 'bold',
-        fontSize: 8,
-        cellPadding: 3.5,
-        valign: 'middle'
-      },
-      bodyStyles: {
-        textColor: [51, 65, 85],
-        fontSize: 8,
-        cellPadding: 3.5,
-        valign: 'middle'
-      },
-      alternateRowStyles: {
-        fillColor: [250, 252, 255]
-      },
-      columnStyles: {
-        0: { halign: 'left', cellWidth: 55, fontStyle: 'bold' },
-        1: { halign: 'left' },
-        2: { halign: 'center', cellWidth: 38 },
-        3: { halign: 'right', cellWidth: 35, fontStyle: 'bold' }
-      },
-      theme: 'plain',
-      didDrawCell: (data) => {
-        if (data.section === 'body') {
-          doc.setDrawColor(224, 242, 254);
-          doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
-          
-          if (data.column.index === 0) {
-            const isGuest = data.row.index === 0;
-            const isHost = data.row.index === 1;
-            const isAdm = data.row.index === 2;
-            doc.setFillColor(isGuest ? 59 : isHost ? 16 : isAdm ? 14 : 71, isGuest ? 130 : isHost ? 185 : isAdm ? 165 : 85, isGuest ? 246 : isHost ? 129 : isAdm ? 233 : 105);
-            doc.rect(data.cell.x, data.cell.y + 1, 1, data.cell.height - 2, 'F');
-          }
+      runAutoTable({
+        startY: tableStartY + 5,
+        margin: { left: 16, right: 16 },
+        head: [['Settlement Component', 'Settlement Nature & Accounting Notes', 'Category / Share', 'Amount']],
+        body: hostPaidRows,
+        headStyles: { 
+          fillColor: [240, 249, 255], // sky-50
+          textColor: [14, 165, 233], // sky-600
+          fontStyle: 'bold',
+          fontSize: 8,
+          cellPadding: 3.5,
+          valign: 'middle'
+        },
+        bodyStyles: {
+          textColor: [51, 65, 85],
+          fontSize: 8,
+          cellPadding: 3.5,
+          valign: 'middle'
+        },
+        alternateRowStyles: {
+          fillColor: [250, 252, 255]
+        },
+        columnStyles: {
+          0: { halign: 'left', cellWidth: 55, fontStyle: 'bold' },
+          1: { halign: 'left' },
+          2: { halign: 'center', cellWidth: 38 },
+          3: { halign: 'right', cellWidth: 35, fontStyle: 'bold' }
+        },
+        theme: 'plain',
+        didDrawCell: (data) => {
+          if (data.section === 'body') {
+            doc.setDrawColor(224, 242, 254);
+            doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
+            
+            if (data.column.index === 0) {
+              const isGross = data.row.index === 0;
+              const isComm = data.row.index === 1;
+              const isPayout = data.row.index === 2;
+              doc.setFillColor(isGross ? 59 : isComm ? 225 : isPayout ? 16 : 71, isGross ? 130 : isComm ? 29 : isPayout ? 185 : 85, isGross ? 246 : isComm ? 72 : isPayout ? 129 : 105);
+              doc.rect(data.cell.x, data.cell.y + 1, 1, data.cell.height - 2, 'F');
+            }
 
-          if (data.column.index === 3) {
-            if (data.row.index === 0) doc.setTextColor(59, 130, 246); // blue-600 (guest paid)
-            if (data.row.index === 1) doc.setTextColor(16, 185, 129); // emerald-600 (host net payout)
-            if (data.row.index === 2) doc.setTextColor(14, 165, 233); // sky-600 (admin revenue)
-            if (data.row.index === 3) doc.setTextColor(15, 23, 42); // slate-900 (total)
+            if (data.column.index === 3) {
+              if (data.row.index === 0) doc.setTextColor(59, 130, 246); // blue-600
+              if (data.row.index === 1) doc.setTextColor(225, 29, 72); // rose-600
+              if (data.row.index === 2) doc.setTextColor(16, 185, 129); // emerald-600 (net host payout)
+            }
           }
         }
-      }
-    });
+      });
+    } else {
+      // 5. PAID BOOKINGS — ADMIN SETTLEMENT & 3-WAY REVENUE DISTRIBUTION TABLE
+      doc.setFontSize(8);
+      doc.setTextColor(14, 165, 233); // sky-600
+      doc.setFont('helvetica', 'bold');
+      doc.text('ADMIN FINANCIAL SETTLEMENT & 3-WAY DISTRIBUTION', 16, tableStartY);
 
-    tableStartY = (doc as any).lastAutoTable.finalY + 8;
+      doc.setDrawColor(14, 165, 233);
+      doc.setLineWidth(0.5);
+      doc.line(16, tableStartY + 2, 95, tableStartY + 2);
+
+      const threeWayPaidRows: any[] = [
+        ['1. Guest Total Paid (Gross)', 'Total gross amount collected from guest via Razorpay', '100% Gross Billed', `Rs. ${originalTotal.toLocaleString('en-IN')}`],
+        ['2. Host Net Payout (To Host)', 'Accommodation & upgrades revenue after 10% platform commission', 'Net Host Payable', `Rs. ${hostPayout.toLocaleString('en-IN')}`],
+        ['3. Admin Platform Revenue (To Admin)', '10% Guest Service Fee + 10% Host Commission retained by StayCool', 'Platform Revenue', `Rs. ${adminRevenue.toLocaleString('en-IN')}`],
+        ['Total Funds Reconciled', 'Balanced settlement across Guest, Host, and Admin', 'Balanced (100%)', `Rs. ${originalTotal.toLocaleString('en-IN')}`]
+      ];
+
+      runAutoTable({
+        startY: tableStartY + 5,
+        margin: { left: 16, right: 16 },
+        head: [['Participant / Account', 'Settlement Description & Accounting Notes', 'Distribution Type', 'Settlement Amount']],
+        body: threeWayPaidRows,
+        headStyles: { 
+          fillColor: [240, 249, 255], // sky-50
+          textColor: [14, 165, 233], // sky-600
+          fontStyle: 'bold',
+          fontSize: 8,
+          cellPadding: 3.5,
+          valign: 'middle'
+        },
+        bodyStyles: {
+          textColor: [51, 65, 85],
+          fontSize: 8,
+          cellPadding: 3.5,
+          valign: 'middle'
+        },
+        alternateRowStyles: {
+          fillColor: [250, 252, 255]
+        },
+        columnStyles: {
+          0: { halign: 'left', cellWidth: 55, fontStyle: 'bold' },
+          1: { halign: 'left' },
+          2: { halign: 'center', cellWidth: 38 },
+          3: { halign: 'right', cellWidth: 35, fontStyle: 'bold' }
+        },
+        theme: 'plain',
+        didDrawCell: (data) => {
+          if (data.section === 'body') {
+            doc.setDrawColor(224, 242, 254);
+            doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
+            
+            if (data.column.index === 0) {
+              const isGuest = data.row.index === 0;
+              const isHost = data.row.index === 1;
+              const isAdm = data.row.index === 2;
+              doc.setFillColor(isGuest ? 59 : isHost ? 16 : isAdm ? 14 : 71, isGuest ? 130 : isHost ? 185 : isAdm ? 165 : 85, isGuest ? 246 : isHost ? 129 : isAdm ? 233 : 105);
+              doc.rect(data.cell.x, data.cell.y + 1, 1, data.cell.height - 2, 'F');
+            }
+
+            if (data.column.index === 3) {
+              if (data.row.index === 0) doc.setTextColor(59, 130, 246); // blue-600 (guest paid)
+              if (data.row.index === 1) doc.setTextColor(16, 185, 129); // emerald-600 (host net payout)
+              if (data.row.index === 2) doc.setTextColor(14, 165, 233); // sky-600 (admin revenue)
+              if (data.row.index === 3) doc.setTextColor(15, 23, 42); // slate-900 (total)
+            }
+          }
+        }
+      });
+    }
+
+    tableStartY = ((doc as any).lastAutoTable?.finalY ?? tableStartY) + 8;
   }
 
-  const finalY = (doc as any).lastAutoTable.finalY + 8;
+  const finalY = ((doc as any).lastAutoTable?.finalY ?? tableStartY) + 8;
   const pageHeight = doc.internal.pageSize.height;
 
   let startFooterY: number;
@@ -682,49 +829,83 @@ export const generateInvoicePDF = async (t: Transaction) => {
 
   // Financial Summary on Right
   if (isRefund) {
-    doc.setFontSize(8);
-    doc.setTextColor(100, 116, 139);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Total Guest Paid:', 130, startFooterY);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 23, 42);
-    doc.text(`Rs. ${originalTotal.toLocaleString('en-IN')}`, 194, startFooterY, { align: 'right' });
+    if (isHostView) {
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Accommodation Pool Value:', 130, startFooterY);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text(`Rs. ${netRefundablePool.toLocaleString('en-IN')}`, 194, startFooterY, { align: 'right' });
 
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(14, 165, 233);
-    doc.text('Platform Fee (100% Admin):', 130, startFooterY + 4.5);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Rs. ${retainedServiceFee.toLocaleString('en-IN')}`, 194, startFooterY + 4.5, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(217, 119, 6);
+      doc.text('Host Penalty Compensation (50%):', 130, startFooterY + 5);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Rs. ${hostShare.toLocaleString('en-IN')}`, 194, startFooterY + 5, { align: 'right' });
 
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(217, 119, 6);
-    doc.text('Payable to Host (Penalty Only):', 130, startFooterY + 9);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Rs. ${hostShare.toLocaleString('en-IN')}`, 194, startFooterY + 9, { align: 'right' });
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.5);
+      doc.line(130, startFooterY + 9, 194, startFooterY + 9);
 
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(14, 165, 233);
-    doc.text('Retained by Admin (Fee+Penalty):', 130, startFooterY + 13.5);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Rs. ${adminShare.toLocaleString('en-IN')}`, 194, startFooterY + 13.5, { align: 'right' });
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Net Host Compensation:', 130, startFooterY + 16);
 
-    doc.setDrawColor(226, 232, 240);
-    doc.setLineWidth(0.5);
-    doc.line(130, startFooterY + 17.5, 194, startFooterY + 17.5);
+      doc.setFontSize(13);
+      doc.setTextColor(16, 185, 129); // Emerald
+      doc.text(`Rs. ${hostShare.toLocaleString('en-IN')}`, 194, startFooterY + 16, { align: 'right' });
 
-    doc.setFontSize(10);
-    doc.setTextColor(15, 23, 42);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Net Refund to Guest:', 130, startFooterY + 23.5);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text('Remitted to host bank account', 194, startFooterY + 21, { align: 'right' });
+    } else {
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Total Guest Paid:', 130, startFooterY);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text(`Rs. ${originalTotal.toLocaleString('en-IN')}`, 194, startFooterY, { align: 'right' });
 
-    doc.setFontSize(13);
-    doc.setTextColor(16, 185, 129); // Emerald
-    doc.text(`Rs. ${guestRefund.toLocaleString('en-IN')}`, 194, startFooterY + 23.5, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(14, 165, 233);
+      doc.text('Platform Fee (100% Admin):', 130, startFooterY + 4.5);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Rs. ${retainedServiceFee.toLocaleString('en-IN')}`, 194, startFooterY + 4.5, { align: 'right' });
 
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text('Credited to original payment method', 194, startFooterY + 28.5, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(217, 119, 6);
+      doc.text('Payable to Host (Penalty Only):', 130, startFooterY + 9);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Rs. ${hostShare.toLocaleString('en-IN')}`, 194, startFooterY + 9, { align: 'right' });
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(14, 165, 233);
+      doc.text('Retained by Admin (Fee+Penalty):', 130, startFooterY + 13.5);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Rs. ${adminShare.toLocaleString('en-IN')}`, 194, startFooterY + 13.5, { align: 'right' });
+
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.5);
+      doc.line(130, startFooterY + 17.5, 194, startFooterY + 17.5);
+
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Net Refund to Guest:', 130, startFooterY + 23.5);
+
+      doc.setFontSize(13);
+      doc.setTextColor(16, 185, 129); // Emerald
+      doc.text(`Rs. ${guestRefund.toLocaleString('en-IN')}`, 194, startFooterY + 23.5, { align: 'right' });
+
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text('Credited to original payment method', 194, startFooterY + 28.5, { align: 'right' });
+    }
   } else if (isPendingPayment) {
     doc.setFontSize(8.5);
     doc.setTextColor(100, 116, 139);
@@ -760,13 +941,47 @@ export const generateInvoicePDF = async (t: Transaction) => {
 
     doc.setFontSize(14);
     doc.setTextColor(217, 119, 6); // amber-600
-    doc.text(`Rs. ${t.amount.toLocaleString('en-IN')}`, 194, startFooterY + 21, { align: 'right' });
+    doc.text(`Rs. ${safeNum(t.amount).toLocaleString('en-IN')}`, 194, startFooterY + 21, { align: 'right' });
 
     doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(217, 119, 6);
     doc.text('Payment Pending - Not Paid', 194, startFooterY + 26, { align: 'right' });
+  } else if (isHostView) {
+    // 6. Host Financial Summary (Host View: 100% hides guest service fee)
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Gross Host Earnings:', 130, startFooterY);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(`Rs. ${hostGrossEarnings.toLocaleString('en-IN')}`, 194, startFooterY, { align: 'right' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(225, 29, 72);
+    doc.text('StayCool Commission (10%):', 130, startFooterY + 5);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`-Rs. ${hostCommission.toLocaleString('en-IN')}`, 194, startFooterY + 5, { align: 'right' });
+
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.5);
+    doc.line(130, startFooterY + 9, 194, startFooterY + 9);
+
+    doc.setFontSize(10.5);
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Net Host Payout:', 130, startFooterY + 16);
+
+    doc.setFontSize(14);
+    doc.setTextColor(16, 185, 129); // Emerald
+    doc.text(`Rs. ${hostPayout.toLocaleString('en-IN')}`, 194, startFooterY + 16, { align: 'right' });
+
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(16, 185, 129);
+    doc.text('Disbursed to Host Account', 194, startFooterY + 21, { align: 'right' });
   } else {
+    // Admin / Guest View
     doc.setFontSize(8);
     doc.setTextColor(100, 116, 139);
     doc.setFont('helvetica', 'normal');
@@ -815,15 +1030,27 @@ export const generateInvoicePDF = async (t: Transaction) => {
   doc.setTextColor(120);
   doc.setFontSize(6.5);
 
-  const term1 = "1. The guest is responsible for maintaining property conditions throughout the stay duration.";
-  const term2 = "2. Refunds are computed as per the Tiered Cancellation Schedule based on notice prior to check-in.";
-  const term3 = "3. StayCool platform service fees are 100% retained by Admin and non-refundable upon cancellation.";
-  const term4 = "4. StayCool No-Show Rule: If guest fails to arrive on scheduled check-in date & time, it is treated as a No-Show with no refund, unless applicable policy applies.";
-  const term5 = "5. StayCool provides facilitation and is not a direct party to the accommodation contract.";
+  const defaultTerms = [
+    "1. The guest is responsible for maintaining property conditions throughout the stay duration.",
+    "2. Refunds are computed as per the Tiered Cancellation Schedule based on notice prior to check-in.",
+    "3. StayCool platform service fees are 100% retained by Admin and non-refundable upon cancellation.",
+    "4. StayCool No-Show Rule: If guest fails to arrive on scheduled check-in date & time, it is treated as a No-Show with no refund, unless applicable policy applies.",
+    "5. StayCool provides facilitation and is not a direct party to the accommodation contract."
+  ];
+
+  const hostTerms = [
+    "1. Host payout is remitted directly to registered host bank account via Razorpay Route upon guest check-in.",
+    "2. StayCool 10% platform commission is automatically deducted from gross accommodation revenue.",
+    "3. Cancellations are settled per policy rules with 50% retained penalty distributed to the host.",
+    "4. Host is responsible for ensuring property availability and amenities match the booking listing.",
+    "5. For payout inquiries or account support, contact support@staycool.com."
+  ];
+
+  const termsToUse = isHostView ? hostTerms : defaultTerms;
 
   const maxW = 105;
   let termY = startFooterY + 28;
-  [term1, term2, term3, term4, term5].forEach((term) => {
+  termsToUse.forEach((term) => {
     const lines = doc.splitTextToSize(term, maxW);
     doc.text(lines, 16, termY);
     termY += lines.length * 3.2 + 0.8;
@@ -883,11 +1110,11 @@ export const generateInvoicePDF = async (t: Transaction) => {
       doc.setFontSize(22);
       doc.setFont('helvetica', 'bold');
       doc.rect(stampX, stampY, 45, 15);
-      doc.text('PAID', stampX + 22, stampY + 11, { align: 'center', angle: -8 } as any);
+      doc.text(isHostView ? 'DISBURSED' : 'PAID', stampX + 22, stampY + 11, { align: 'center', angle: -8 } as any);
     }
   }
 
-  doc.save(`STAYCOOL_INV_${invoiceId}.pdf`);
+  doc.save(isHostView ? `STAYCOOL_HOST_STATEMENT_${invoiceId}.pdf` : `STAYCOOL_INV_${invoiceId}.pdf`);
 };
 
 export const exportTransactionsToCSV = (transactions: Transaction[]) => {
@@ -924,12 +1151,28 @@ export const exportTransactionsToCSV = (transactions: Transaction[]) => {
 export const exportTransactionsToPDF = async (transactions: Transaction[]) => {
   if (transactions.length === 0) return;
 
-  // Use UMD import for better compatibility with Next.js dynamic chunks
-  const jspdfModule = await import('jspdf/dist/jspdf.umd.min.js') as any;
-  const jsPDF = jspdfModule.jsPDF || jspdfModule.default?.jsPDF || jspdfModule.default;
-  const autoTable = (await import('jspdf-autotable')).default;
+  const jspdfModule = await import('jspdf');
+  const jsPDF = jspdfModule.default?.jsPDF || jspdfModule.jsPDF || jspdfModule.default;
+  const autoTableModule = await import('jspdf-autotable');
+  const autoTable = autoTableModule.default?.default || autoTableModule.default || autoTableModule.autoTable || (autoTableModule as any);
 
   const doc = new jsPDF();
+
+  const runAutoTable = (options: any) => {
+    try {
+      if (typeof (doc as any).autoTable === 'function') {
+        (doc as any).autoTable(options);
+      } else if (typeof autoTable === 'function') {
+        autoTable(doc, options);
+      } else if (typeof (autoTable as any)?.default === 'function') {
+        (autoTable as any).default(doc, options);
+      } else {
+        console.warn('Could not find suitable autoTable function in exportTransactionsToPDF');
+      }
+    } catch (tableErr) {
+      console.error('runAutoTable error:', tableErr);
+    }
+  };
 
   // 1. Dark Header & Accent Bar
   doc.setFillColor(31, 33, 40);
@@ -965,7 +1208,7 @@ export const exportTransactionsToPDF = async (transactions: Transaction[]) => {
     t.status?.toUpperCase() || 'N/A'
   ]);
 
-  autoTable(doc, {
+  runAutoTable({
     startY: 65,
     head: [['SL.', 'Property', 'Date', 'Guest', 'Amount', 'Status']],
     body: tableData,

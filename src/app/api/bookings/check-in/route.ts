@@ -152,42 +152,62 @@ export async function POST(req: Request) {
                 });
             }
 
-            if (transfers.length > 0) {
+            let holdReleased = false;
+            if (transferDetails.razorpay_transfer_id) {
                 try {
-                    const transferResult = await razorpay.payments.transfer(booking.razorpay_payment_id, { transfers });
-                    console.log('[CheckIn] Razorpay transfer response:', transferResult);
-
-                    const returnedItems = transferResult.items || [];
-                    const hostTransferId = returnedItems.find((item: any) => item.notes?.type === 'host_payout')?.id || (transferResult as any).id;
-
+                    console.log(`[CheckIn] Releasing Razorpay hold on transfer ${transferDetails.razorpay_transfer_id}...`);
+                    await razorpay.transfers.edit(transferDetails.razorpay_transfer_id, { on_hold: 0 });
+                    holdReleased = true;
                     await supabaseAdmin
                         .from('payment_transfers')
                         .update({
-                            razorpay_transfer_id: hostTransferId,
                             transfer_status: 'settled',
                         })
                         .eq('booking_id', bookingId);
+                    console.log('[CheckIn] Razorpay hold released successfully.');
+                } catch (holdErr: any) {
+                    console.warn('[CheckIn] Failed to release hold directly, will attempt fallback transfer:', holdErr);
+                }
+            }
 
-                    console.log('[CheckIn] Razorpay payout transfers completed successfully.');
-                } catch (rpError: any) {
-                    console.error('[CheckIn] Razorpay transfer request failed:', rpError);
+            if (!holdReleased) {
+                if (transfers.length > 0) {
+                    try {
+                        const transferResult = await razorpay.payments.transfer(booking.razorpay_payment_id, { transfers });
+                        console.log('[CheckIn] Razorpay transfer response:', transferResult);
+
+                        const returnedItems = transferResult.items || [];
+                        const hostTransferId = returnedItems.find((item: any) => item.notes?.type === 'host_payout')?.id || (transferResult as any).id;
+
+                        await supabaseAdmin
+                            .from('payment_transfers')
+                            .update({
+                                razorpay_transfer_id: hostTransferId,
+                                transfer_status: 'settled',
+                            })
+                            .eq('booking_id', bookingId);
+
+                        console.log('[CheckIn] Razorpay payout transfers completed successfully.');
+                    } catch (rpError: any) {
+                        console.error('[CheckIn] Razorpay transfer request failed:', rpError);
+                        await supabaseAdmin
+                            .from('payment_transfers')
+                            .update({
+                                transfer_status: 'failed',
+                                failure_reason: rpError.message || 'Razorpay transfer failed',
+                            })
+                            .eq('booking_id', bookingId);
+                    }
+                } else {
+                    console.warn('[CheckIn] No active host/referrer linked accounts found. Split remains with Admin.');
                     await supabaseAdmin
                         .from('payment_transfers')
                         .update({
                             transfer_status: 'failed',
-                            failure_reason: rpError.message || 'Razorpay transfer failed',
+                            failure_reason: 'No activated host or referrer KYC accounts found to transfer funds.',
                         })
                         .eq('booking_id', bookingId);
                 }
-            } else {
-                console.warn('[CheckIn] No active host/referrer linked accounts found. Split remains with Admin.');
-                await supabaseAdmin
-                    .from('payment_transfers')
-                    .update({
-                        transfer_status: 'failed',
-                        failure_reason: 'No activated host or referrer KYC accounts found to transfer funds.',
-                    })
-                    .eq('booking_id', bookingId);
             }
         } 
         

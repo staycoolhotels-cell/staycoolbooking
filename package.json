@@ -88,7 +88,7 @@
     "codex": "^0.2.3",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.25.0",
-    "jspdf": "^4.2.1",
+    "jspdf": "^2.5.2",
     "jspdf-autotable": "^5.0.7",
     "leaflet": "^1.9.4",
     "leaflet-gesture-handling": "^1.2.2",

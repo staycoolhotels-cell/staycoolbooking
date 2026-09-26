@@ -87,12 +87,13 @@ export default async function HostDashboardPage() {
   const adminSupabase = createServiceClient();
 
   // Fetch all dashboard data concurrently in a single parallel batch
-  const [properties, rawBookings, supportAdmin, bookingActivitiesRes, reviewsRes] = await Promise.all([
+  const [properties, rawBookings, supportAdmin, bookingActivitiesRes, reviewsRes, paymentTransfersRes] = await Promise.all([
     getHostProperties(user.id),
     getHostBookings(user.id),
     getSupportAdmin(),
     adminSupabase.from('activities').select('*').eq('type', 'booking_amenities'),
-    supabase.from('reviews').select('*').eq('receiver_id', user.id)
+    supabase.from('reviews').select('*').eq('receiver_id', user.id),
+    adminSupabase.from('payment_transfers').select('*').eq('host_id', user.id)
   ]);
 
   // If the host has not created any property yet, redirect to onboarding step 1.
@@ -103,6 +104,12 @@ export default async function HostDashboardPage() {
 
   const bookingActivities = bookingActivitiesRes.data || [];
   const reviews = reviewsRes.data || [];
+  const paymentTransfers = paymentTransfersRes.data || [];
+
+  const transferMap: Record<string, any> = {};
+  paymentTransfers.forEach((pt: any) => {
+    if (pt.booking_id) transferMap[pt.booking_id] = pt;
+  });
 
   const bookings = (rawBookings || []).map((b: any) => {
     const activity = (bookingActivities || []).find((a: any) => {
@@ -155,6 +162,21 @@ export default async function HostDashboardPage() {
       const hostCommission = Math.round(hostRevenue * 0.10);
       const hostNetPayout = hostRevenue - hostCommission;
 
+      const transfer = transferMap[b.id];
+      let txStatus: 'completed' | 'pending' | 'failed' = 'pending';
+
+      if (transfer) {
+        if (transfer.transfer_status === 'settled') {
+          txStatus = 'completed';
+        } else if (transfer.transfer_status === 'failed') {
+          txStatus = 'failed';
+        } else {
+          txStatus = 'pending';
+        }
+      } else {
+        txStatus = 'pending';
+      }
+
       return {
         id: b.id,
         transactionId: `TXN-${b.id.slice(0, 8).toUpperCase()}`,
@@ -165,7 +187,9 @@ export default async function HostDashboardPage() {
         serviceFee: guestServiceFee,
         netRevenue: hostNetPayout,
         date: new Date(b.created_at).toLocaleDateString(),
-        status: (b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed') ? 'completed' : 'pending',
+        status: txStatus,
+        payoutStatus: transfer?.transfer_status,
+        payoutFailureReason: transfer?.failure_reason,
         paymentMethod: 'Razorpay',
         room_type: b.room_type,
         breakdown: {

@@ -14,6 +14,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
+import TransferToBankModal from "@/app/admin-panel/financials/components/TransferToBankModal";
 
 type AdminFinancialTreasuryProps = {
   transactions?: Transaction[];
@@ -201,13 +202,23 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
   const totalRevenue = paymentList.reduce((acc, t) => acc + (t.amount || 0), 0);
 
   const platformEarnings = paymentList.reduce(
-    (acc, t) => acc + (t.serviceFee || Math.round((t.amount || 0) * 0.1)),
+    (acc, t) => {
+      if (t.adminCommissionAmount !== undefined && t.adminCommissionAmount !== null) {
+        return acc + Number(t.adminCommissionAmount);
+      }
+      const amt = Number(t.amount || 0);
+      const guestFee = Number(t.serviceFee) || Math.round((amt * 0.1) / 1.1);
+      const hostRev = Math.max(0, amt - guestFee);
+      const hostComm = Math.round(hostRev * 0.10);
+      return acc + (guestFee + hostComm);
+    },
     0
   );
 
   const pendingRefunds = activeData.filter((t) => t.type === 'refund' || t.status === 'refunded' || t.status === 'pending');
 
   const [previewTransaction, setPreviewTransaction] = React.useState<Transaction | null>(null);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   const downloadInvoicesBatch = async () => {
     await exportTransactionsToPDF(activeData);
@@ -215,25 +226,36 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
 
   return (
     <div className="bg-[#0a0a0f]/80 border border-white/10 rounded-3xl md:rounded-[2rem] shadow-2xl p-4 md:p-8 backdrop-blur-xl">
-      <div className="flex items-start sm:items-center justify-between mb-6 md:mb-8 gap-3 sm:gap-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4 sm:gap-0">
         <div>
           <h2 className="text-xl md:text-2xl font-black text-white tracking-tight">Platform Treasury</h2>
           <p className="text-[9px] md:text-xs font-bold text-zinc-500 uppercase tracking-wider md:tracking-widest mt-0.5 md:mt-1">Cross-System Financial Intelligence</p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={downloadInvoicesBatch}
-          className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-sky-500/10 border border-sky-500/20 rounded-lg md:rounded-xl text-sky-400 text-[9px] md:text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-all shrink-0"
-        >
-          <div className="md:hidden">
-            <Icon name="ArrowDownTrayIcon" size={12} />
-          </div>
-          <div className="hidden md:block">
-            <Icon name="ArrowDownTrayIcon" size={16} />
-          </div>
-          <span className="max-w-[50px] md:max-w-none text-left leading-tight md:leading-normal">Export<br className="md:hidden" /> Ledger</span>
-        </motion.button>
+        <div className="flex items-center gap-2.5">
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setIsTransferModalOpen(true)}
+            className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-emerald-500 hover:bg-emerald-400 text-black text-[9px] md:text-xs font-black uppercase tracking-wider rounded-lg md:rounded-xl transition-all shadow-lg shadow-emerald-500/20 shrink-0 cursor-pointer"
+          >
+            <Icon name="ArrowDownTrayIcon" size={14} />
+            <span>Transfer to Bank</span>
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={downloadInvoicesBatch}
+            className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-sky-500/10 border border-sky-500/20 rounded-lg md:rounded-xl text-sky-400 text-[9px] md:text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-all shrink-0"
+          >
+            <div className="md:hidden">
+              <Icon name="ArrowDownTrayIcon" size={12} />
+            </div>
+            <div className="hidden md:block">
+              <Icon name="ArrowDownTrayIcon" size={16} />
+            </div>
+            <span className="max-w-[50px] md:max-w-none text-left leading-tight md:leading-normal">Export<br className="md:hidden" /> Ledger</span>
+          </motion.button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
@@ -249,11 +271,17 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
               </p>
               <p className="text-[9px] md:text-[10px] font-bold text-blue-400 uppercase tracking-widest mt-1">Booking Revenue (Gross)</p>
             </div>
-            <div className="text-center p-3 md:p-4 border border-emerald-500/20 rounded-xl bg-emerald-500/5">
+            <div 
+              onClick={() => setIsTransferModalOpen(true)}
+              className="text-center p-3 md:p-4 border border-emerald-500/20 rounded-xl bg-emerald-500/5 hover:border-emerald-500/40 cursor-pointer transition-all group/card relative"
+            >
               <p className="text-lg md:text-2xl font-black text-emerald-400 font-mono">
                 ₹{platformEarnings.toLocaleString('en-IN')}
               </p>
-              <p className="text-[9px] md:text-[10px] font-bold text-emerald-400 uppercase tracking-widest mt-1">Admin Revenue (Platform Fee)</p>
+              <p className="text-[9px] md:text-[10px] font-bold text-emerald-400 uppercase tracking-widest mt-1 flex items-center justify-center gap-1">
+                Admin Revenue (Platform Fee)
+                <span className="text-[8px] bg-emerald-500/20 text-emerald-300 px-1 py-0.2 rounded">Settle</span>
+              </p>
             </div>
           </div>
         </div>
@@ -376,6 +404,12 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
           </div>
         </DialogContent>
       </Dialog>
+
+      <TransferToBankModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        adminRevenue={platformEarnings}
+      />
     </div>
   );
 };

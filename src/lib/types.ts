@@ -67,6 +67,8 @@ export interface Transaction {
   serviceFee?: number;
   netRevenue?: number;
   status: 'pending' | 'completed' | 'failed' | 'refunded' | 'confirmed' | 'cancelled' | 'pending_payment' | 'payment_failed';
+  payoutStatus?: string;
+  payoutFailureReason?: string;
   paymentMethod: string;
   type?: 'payment' | 'refund';
   breakdown?: {
@@ -100,6 +102,7 @@ export interface Transaction {
   adminShare?: number;
   hostPayoutAmount?: number;
   adminCommissionAmount?: number;
+  audience?: 'guest' | 'host' | 'admin';
 }
 
 export interface User {

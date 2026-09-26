@@ -122,7 +122,7 @@ export async function POST(req: Request) {
 
         const transfers = [];
         
-        // Host Payout
+        // Host Payout (placed ON HOLD in Razorpay Route escrow until guest checks in)
         if (hostRazorpayAccountId && hostAmount > 0) {
             transfers.push({
                 account: hostRazorpayAccountId,
@@ -134,11 +134,11 @@ export async function POST(req: Request) {
                     host_id: hostId,
                 },
                 linked_account_notes: ['booking_id'],
-                on_hold: 0,
+                on_hold: 1, // Held securely in Razorpay escrow; never sweeps to Admin bank
             });
         }
 
-        // Referrer Commission Split
+        // Referrer Commission Split (also ON HOLD until check-in)
         if (referrerRazorpayAccountId && referrerCommission > 0) {
             transfers.push({
                 account: referrerRazorpayAccountId,
@@ -151,7 +151,7 @@ export async function POST(req: Request) {
                     referrer_id: referrerId
                 },
                 linked_account_notes: ['booking_id'],
-                on_hold: 0,
+                on_hold: 1,
             });
         }
 
@@ -169,13 +169,11 @@ export async function POST(req: Request) {
             },
         };
 
-        // Host and referrer transfers will be executed manually upon check-in.
-        // Thus, we do not attach transfers to the order options, so the money goes to the admin first.
-        /*
+        // Attach Route transfers with on_hold: 1 so host share remains held in Razorpay
+        // and does NOT sweep to the Admin bank account.
         if (transfers.length > 0) {
             orderOptions.transfers = transfers;
         }
-        */
 
         const order = await razorpay.orders.create(orderOptions);
 
@@ -189,6 +187,12 @@ export async function POST(req: Request) {
             .update({ razorpay_order_id: order.id })
             .eq('id', bookingId);
 
+        // Extract host transfer ID from order transfers if created
+        const rawTransfers: any[] = Array.isArray((order as any).transfers)
+            ? (order as any).transfers
+            : (order as any).transfers?.items || [];
+        const hostTransfer = rawTransfers.find((t: any) => t.notes?.type === 'host_payout') || rawTransfers[0];
+
         // ─────────────────────────────────────────────
         // 6. Create pending payment_transfers record (use serviceClient to bypass RLS)
         // ─────────────────────────────────────────────
@@ -199,6 +203,7 @@ export async function POST(req: Request) {
                     booking_id: bookingId,
                     host_id: hostId,
                     razorpay_order_id: order.id,
+                    razorpay_transfer_id: hostTransfer?.id || null,
                     total_amount: totalAmount,
                     platform_commission: adminCommission,
                     host_amount: hostAmount,

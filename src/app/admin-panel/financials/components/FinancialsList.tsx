@@ -16,6 +16,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts';
+import TransferToBankModal from './TransferToBankModal';
 
 // ─── Data Processing ────────────────────────────────────────────────────────
 const processData = (transactions: Transaction[]) => {
@@ -25,7 +26,16 @@ const processData = (transactions: Transaction[]) => {
 
   const adminRevenue = transactions
     .filter((t) => t.status === 'completed')
-    .reduce((acc, t) => acc + (t.serviceFee || Math.round((t.amount || 0) * 0.1)), 0);
+    .reduce((acc, t) => {
+      if (t.adminCommissionAmount !== undefined && t.adminCommissionAmount !== null) {
+        return acc + Number(t.adminCommissionAmount);
+      }
+      const amt = Number(t.amount || 0);
+      const guestFee = Number(t.serviceFee) || Math.round((amt * 0.1) / 1.1);
+      const hostRev = Math.max(0, amt - guestFee);
+      const hostComm = Math.round(hostRev * 0.10);
+      return acc + (guestFee + hostComm);
+    }, 0);
 
   const totalRefunds = transactions
     .filter((t) => t.status === 'refunded')
@@ -39,7 +49,10 @@ const processData = (transactions: Transaction[]) => {
       if (!acc[month]) acc[month] = { revenue: 0, adminRevenue: 0, refunds: 0 };
       if (t.status === 'completed') {
         acc[month].revenue += t.amount || 0;
-        acc[month].adminRevenue += t.serviceFee || Math.round((t.amount || 0) * 0.1);
+        const comm = t.adminCommissionAmount !== undefined && t.adminCommissionAmount !== null
+          ? Number(t.adminCommissionAmount)
+          : (Number(t.serviceFee) || 0) + Math.round((Number(t.amount || 0) - (Number(t.serviceFee) || 0)) * 0.1);
+        acc[month].adminRevenue += comm;
       }
       return acc;
     },
@@ -182,6 +195,7 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   const { totalRevenue, adminRevenue, totalRefunds, netRevenue, pendingCount, chartData } = processData(transactions);
 
@@ -262,9 +276,9 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
       border: 'rgba(16,185,129,0.25)',
       iconColor: 'text-emerald-400',
       blobColor: 'rgba(16,185,129,0.5)',
-      subtitle: 'Platform fee (10%)',
+      subtitle: '⚡ Click to transfer to bank',
       active: false,
-      onClick: () => setStatusFilter('all'),
+      onClick: () => setIsTransferModalOpen(true),
     },
     {
       title: 'Total Refunds',
@@ -306,6 +320,39 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
 
   return (
     <div className="space-y-8">
+      {/* ── Settlement Action Banner ── */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 md:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 backdrop-blur-xl shadow-xl shadow-emerald-500/5"
+      >
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+            <Icon name="BuildingLibraryIcon" size={22} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm md:text-base font-black text-white tracking-tight">Admin Revenue Settlement</h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Route Escrow
+              </span>
+            </div>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Available Platform Commission: <strong className="text-emerald-400 font-mono">₹{adminRevenue.toLocaleString('en-IN')}</strong>. Guest funds & Host splits remain held in Razorpay escrow.
+            </p>
+          </div>
+        </div>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setIsTransferModalOpen(true)}
+          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-emerald-500/20 shrink-0 cursor-pointer"
+        >
+          <Icon name="ArrowDownTrayIcon" size={16} />
+          Transfer to Bank
+        </motion.button>
+      </motion.div>
+
       {/* ── KPI Cards ── */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-5">
         {kpiCards.map((card, i) => (
@@ -602,6 +649,13 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
           </div>
         )}
       </motion.div>
+
+      {/* Transfer to Bank Modal */}
+      <TransferToBankModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        adminRevenue={adminRevenue}
+      />
     </div>
   );
 };

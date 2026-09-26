@@ -49,16 +49,23 @@ const PayoutsTable = ({ transactions }: PayoutsTableProps) => {
                             transactions.map((tx) => (
                                 <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors group">
                                     <td className="px-8 py-6 whitespace-nowrap">
-                                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border backdrop-blur-md ${tx.status === 'completed' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.1)]' :
+                                        <div 
+                                            title={tx.payoutFailureReason || undefined}
+                                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border backdrop-blur-md ${tx.status === 'completed' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.1)]' :
                                                 tx.status === 'pending' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
-                                                    'bg-red-500/10 border-red-500/20 text-red-400'
+                                                    'bg-rose-500/10 border-rose-500/20 text-rose-400'
                                             }`}>
                                             <div className={`w-1.5 h-1.5 rounded-full ${tx.status === 'completed' ? 'bg-emerald-400 animate-pulse' :
                                                     tx.status === 'pending' ? 'bg-amber-400' :
-                                                        'bg-red-400'
+                                                        'bg-rose-400'
                                                 }`} />
                                             <span className="text-[10px] font-black uppercase tracking-widest">{tx.status}</span>
                                         </div>
+                                        {tx.status === 'failed' && (
+                                            <p className="text-[9px] text-rose-400/80 mt-1 font-medium max-w-[130px] truncate" title={tx.payoutFailureReason || 'Settlement pending from admin'}>
+                                                Settlement Pending
+                                            </p>
+                                        )}
                                     </td>
                                     <td className="px-8 py-6 text-sm text-zinc-300 font-medium whitespace-nowrap">
                                         <div className="flex items-center gap-2">
@@ -134,15 +141,22 @@ const PayoutsTable = ({ transactions }: PayoutsTableProps) => {
                                             <p className="text-[10px] font-bold uppercase tracking-widest">{format(new Date(tx.date || new Date()), 'MMM d, yyyy')}</p>
                                         </div>
                                     </div>
-                                    <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border backdrop-blur-md ${tx.status === 'completed' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
-                                            tx.status === 'pending' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
-                                                'bg-red-500/10 border-red-500/20 text-red-400'
-                                        }`}>
-                                        <div className={`w-1.5 h-1.5 rounded-full ${tx.status === 'completed' ? 'bg-emerald-400' :
-                                                tx.status === 'pending' ? 'bg-amber-400' :
-                                                    'bg-red-400'
-                                            }`} />
-                                        <span className="text-[9px] font-black uppercase tracking-widest">{tx.status}</span>
+                                    <div className="flex flex-col items-end">
+                                        <div 
+                                            title={tx.payoutFailureReason || undefined}
+                                            className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border backdrop-blur-md ${tx.status === 'completed' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                                                tx.status === 'pending' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
+                                                    'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                                            }`}>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${tx.status === 'completed' ? 'bg-emerald-400' :
+                                                    tx.status === 'pending' ? 'bg-amber-400' :
+                                                        'bg-rose-400'
+                                                }`} />
+                                            <span className="text-[9px] font-black uppercase tracking-widest">{tx.status}</span>
+                                        </div>
+                                        {tx.status === 'failed' && (
+                                            <p className="text-[8px] text-rose-400/80 mt-0.5 font-medium">Settlement Pending</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>

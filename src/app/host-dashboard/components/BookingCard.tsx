@@ -298,27 +298,29 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
 
   const handleDownloadInvoice = async () => {
     try {
-      const nights = hostPricing.nights;
-      const isBulkBooking = hostPricing.isBulkBooking;
-      const displayRoomType = roomDetails.fullString;
+      const nights = Math.max(1, hostPricing?.nights || 1);
+      const isBulkBooking = !!hostPricing?.isBulkBooking;
+      const displayRoomType = roomDetails?.fullString || booking.room_type || 'Standard Room';
 
-      const baseAccommodation = hostPricing.hostBaseAmount > 0
+      const baseAccommodation = (hostPricing?.hostBaseAmount && hostPricing.hostBaseAmount > 0)
         ? hostPricing.hostBaseAmount
-        : Math.round(Math.max(0, booking.total_price - hostPricing.amenitiesTotal - hostPricing.freeCancellationFee) / (1.1 - hostPricing.discountPct));
+        : Math.round(Math.max(0, Number(booking.total_price || 0) - (hostPricing?.amenitiesTotal || 0) - (hostPricing?.freeCancellationFee || 0)) / (1.1 - (hostPricing?.discountPct || 0)));
       const serviceFee = Math.round(baseAccommodation * 0.1);
-      const discountSavings = Math.round(baseAccommodation * hostPricing.discountPct);
+      const discountSavings = Math.round(baseAccommodation * (hostPricing?.discountPct || 0));
 
       const computedBreakdown = {
-        accommodation: baseAccommodation,
-        service_fee: serviceFee,
+        accommodation: baseAccommodation || 0,
+        service_fee: serviceFee || 0,
         taxes: 0,
         discount: isBulkBooking ? discountSavings : 0,
-        upgrades: hostPricing.amenitiesTotal,
-        cancellation_fee: hostPricing.freeCancellationFee
+        upgrades: hostPricing?.amenitiesTotal || 0,
+        cancellation_fee: hostPricing?.freeCancellationFee || 0
       };
 
-      const formatDate = (dateString: string) => {
+      const formatDate = (dateString?: string | null) => {
+        if (!dateString) return 'N/A';
         const d = new Date(dateString);
+        if (isNaN(d.getTime())) return 'N/A';
         const day = String(d.getDate()).padStart(2, '0');
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const month = months[d.getMonth()];
@@ -342,17 +344,20 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
       );
       const refundAmount = (booking as any).refund_amount || computedRefund.guestRefundAmount || 0;
 
+      const hostPayout = hostPricing?.hostPayout !== undefined ? hostPricing.hostPayout : Math.max(0, Math.round(Number(booking.total_price || 0) * 0.9));
+      const adminCommission = Math.max(0, Number(booking.total_price || 0) - hostPayout);
+
       const transactionData = {
         id: booking.id,
         invoice_id: booking.id.slice(0, 8).toUpperCase(),
-        amount: booking.total_price,
+        amount: Number(booking.total_price || 0),
         date: formatDate(booking.created_at),
         status: booking.status,
         type: isCancelled ? 'refund' : 'payment',
         guestName: booking.guest?.name || 'Valued Guest',
         hostName: (booking.properties as any)?.host?.name || 'Host',
         guestAddress: (booking.guest as any)?.email || 'Address not provided',
-        propertyName: booking.properties?.title || booking.properties?.name || 'Property',
+        propertyName: booking.properties?.title || (booking.properties as any)?.name || 'Property',
         booking_id: booking.id,
         room_type: displayRoomType,
         paymentMethod: 'Razorpay',
@@ -368,13 +373,16 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
         refundAmount: refundAmount,
         retainedPenalty: Math.max(0, computedRefund.netRefundablePool - computedRefund.guestRefundAmount),
         retainedServiceFee: computedRefund.commissionAmount,
-        netRefundablePool: computedRefund.netRefundablePool
+        netRefundablePool: computedRefund.netRefundablePool,
+        hostPayoutAmount: hostPayout,
+        adminCommissionAmount: adminCommission,
+        audience: 'host'
       };
 
       await generateInvoicePDF(transactionData as any);
       toast.success('Invoice generated successfully.');
     } catch (err) {
-      console.error('Invoice generation failed:', err);
+      console.error('Invoice generation failed in BookingCard:', err);
       toast.error('Failed to generate invoice. Please try again.');
     }
   };

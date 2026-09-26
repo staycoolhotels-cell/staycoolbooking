@@ -625,7 +625,25 @@ export async function processCheckInAndPayout(bookingId: string, adminSupabase: 
         });
       }
 
-      if (transfers.length > 0) {
+      let holdReleased = false;
+      if (transferDetails.razorpay_transfer_id) {
+        try {
+          console.log(`[CheckIn] Releasing Razorpay hold on transfer ${transferDetails.razorpay_transfer_id}...`);
+          await razorpay.transfers.edit(transferDetails.razorpay_transfer_id, { on_hold: 0 });
+          holdReleased = true;
+          await adminSupabase
+            .from('payment_transfers')
+            .update({
+              transfer_status: 'settled',
+            })
+            .eq('booking_id', bookingId);
+          console.log('[CheckIn] Razorpay hold released successfully.');
+        } catch (holdErr: any) {
+          console.warn('[CheckIn] Failed to release hold directly in booking-actions, falling back to transfer:', holdErr);
+        }
+      }
+
+      if (!holdReleased && transfers.length > 0) {
         try {
           const transferResult = await razorpay.payments.transfer(booking.razorpay_payment_id, { transfers });
           const returnedItems = transferResult.items || [];
