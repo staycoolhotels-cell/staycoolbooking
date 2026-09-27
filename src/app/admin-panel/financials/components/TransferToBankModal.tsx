@@ -20,18 +20,21 @@ export default function TransferToBankModal({
   onClose,
   adminRevenue,
 }: TransferToBankModalProps) {
-  const [settleFullBalance, setSettleFullBalance] = useState(true);
+  // Modes: 'admin_revenue' | 'full_balance' | 'custom'
+  const [transferMode, setTransferMode] = useState<'admin_revenue' | 'full_balance' | 'custom'>('admin_revenue');
   const [customAmount, setCustomAmount] = useState(adminRevenue ? String(adminRevenue) : '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successResult, setSuccessResult] = useState<any | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [recentSettlements, setRecentSettlements] = useState<any[]>([]);
+  const [liveBalance, setLiveBalance] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setError(null);
       setSuccessResult(null);
+      setTransferMode('admin_revenue');
       setCustomAmount(adminRevenue ? String(adminRevenue) : '');
       fetchSettlementHistory();
     }
@@ -43,6 +46,9 @@ export default function TransferToBankModal({
       const res = await fetch('/api/admin/settlements');
       const data = await res.json();
       if (data.success) {
+        if (data.liveBalance !== undefined) {
+          setLiveBalance(Number(data.liveBalance));
+        }
         const combined = [
           ...(data.ondemand || []),
           ...(data.regular || [])
@@ -62,13 +68,18 @@ export default function TransferToBankModal({
       setError(null);
       setSuccessResult(null);
 
-      const payload: any = {
-        settleFullBalance,
+      let payload: any = {
         description: 'Admin platform revenue settlement to bank',
       };
 
-      if (!settleFullBalance && customAmount && Number(customAmount) > 0) {
+      if (transferMode === 'admin_revenue') {
+        payload.amount = Number(adminRevenue);
+        payload.settleFullBalance = false;
+      } else if (transferMode === 'full_balance') {
+        payload.settleFullBalance = true;
+      } else {
         payload.amount = Number(customAmount);
+        payload.settleFullBalance = false;
       }
 
       const res = await fetch('/api/admin/settlements', {
@@ -108,38 +119,48 @@ export default function TransferToBankModal({
               <h2 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
                 Transfer to Bank
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Razorpay Route On-Demand
+                  On-Demand Payout
                 </span>
               </h2>
               <p className="text-xs text-zinc-400 mt-0.5">
-                Settle platform commission earnings directly into registered Admin bank account
+                Settle platform revenue earnings directly into registered Admin bank account
               </p>
             </div>
           </div>
         </div>
 
-        <div className="py-5 space-y-6">
-          {/* Revenue & Destination Bank Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 relative overflow-hidden">
+        <div className="py-5 space-y-5">
+          {/* Revenue, Razorpay Live Balance & Destination Bank Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 relative overflow-hidden">
               <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
-                Admin Earned Revenue
+                Admin Revenue
               </span>
-              <p className="text-2xl font-black text-emerald-400 mt-1 font-mono">
+              <p className="text-xl font-black text-emerald-400 mt-1 font-mono">
                 ₹{Number(adminRevenue || 0).toLocaleString('en-IN')}
               </p>
-              <p className="text-[10px] text-zinc-500 mt-1">Platform commission pool</p>
+              <p className="text-[9px] text-zinc-500 mt-0.5">Platform earned pool</p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 relative overflow-hidden">
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 relative overflow-hidden">
+              <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
+                Razorpay Balance
+              </span>
+              <p className="text-xl font-black text-sky-400 mt-1 font-mono">
+                {liveBalance !== null ? `₹${liveBalance.toLocaleString('en-IN')}` : 'Loading...'}
+              </p>
+              <p className="text-[9px] text-zinc-500 mt-0.5">Ready for instant payout</p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 relative overflow-hidden">
               <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
                 Destination Bank
               </span>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-1.5 mt-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <p className="text-base font-bold text-white">Axis Bank Account</p>
+                <p className="text-sm font-bold text-white truncate">Axis Bank</p>
               </div>
-              <p className="text-[10px] text-zinc-500 mt-1">Linked to primary Razorpay account</p>
+              <p className="text-[9px] text-zinc-500 mt-0.5">Linked primary account</p>
             </div>
           </div>
 
@@ -150,9 +171,19 @@ export default function TransferToBankModal({
             </div>
             <div className="text-xs text-blue-200/90 leading-relaxed">
               <strong className="text-blue-300 font-semibold block mb-0.5">Escrow Protection Active</strong>
-              Guest booking funds and Host payouts are held in Razorpay Route escrow and will <strong>never</strong> be transferred to your bank. Only your verified platform commission is settled.
+              Host payouts are held in Razorpay Route escrow and will <strong>never</strong> transfer to your bank. Only your platform earnings are settled.
             </div>
           </div>
+
+          {/* Balance info note if zero */}
+          {liveBalance === 0 && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200/90 text-xs flex items-start gap-2">
+              <Icon name="InformationCircleIcon" size={16} className="text-amber-400 shrink-0 mt-0.5" />
+              <span>
+                Razorpay balance is currently <strong>₹0.00</strong> (all prior settlements have completed). As new guest bookings arrive, your commission accumulates in Razorpay and can be sent to your bank with this button.
+              </span>
+            </div>
+          )}
 
           {/* Success State */}
           {successResult && (
@@ -191,43 +222,64 @@ export default function TransferToBankModal({
           {/* Settlement Mode Selection */}
           <div className="space-y-3">
             <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider block">
-              Settlement Mode
+              Choose Transfer Amount
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               <button
                 type="button"
-                onClick={() => setSettleFullBalance(true)}
-                className={`p-3.5 rounded-xl border text-left transition-all ${
-                  settleFullBalance
+                onClick={() => setTransferMode('admin_revenue')}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  transferMode === 'admin_revenue'
                     ? 'bg-emerald-500/10 border-emerald-500/30 text-white shadow-lg shadow-emerald-500/5'
                     : 'bg-white/[0.02] border-white/5 text-zinc-400 hover:border-white/10'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold">Full Available Balance</span>
-                  {settleFullBalance && <span className="w-2 h-2 rounded-full bg-emerald-400" />}
+                  <span className="text-xs font-bold">Admin Revenue</span>
+                  {transferMode === 'admin_revenue' && <span className="w-2 h-2 rounded-full bg-emerald-400" />}
                 </div>
-                <p className="text-[10px] text-zinc-500">Auto-settle entire admin revenue</p>
+                <p className="text-xs font-mono font-bold text-emerald-400">₹{Number(adminRevenue || 0).toLocaleString('en-IN')}</p>
+                <p className="text-[9px] text-zinc-500 mt-0.5">Transfer platform earnings</p>
               </button>
 
               <button
                 type="button"
-                onClick={() => setSettleFullBalance(false)}
-                className={`p-3.5 rounded-xl border text-left transition-all ${
-                  !settleFullBalance
+                onClick={() => setTransferMode('full_balance')}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  transferMode === 'full_balance'
                     ? 'bg-emerald-500/10 border-emerald-500/30 text-white shadow-lg shadow-emerald-500/5'
                     : 'bg-white/[0.02] border-white/5 text-zinc-400 hover:border-white/10'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold">Specific Amount</span>
-                  {!settleFullBalance && <span className="w-2 h-2 rounded-full bg-emerald-400" />}
+                  <span className="text-xs font-bold">Full Balance</span>
+                  {transferMode === 'full_balance' && <span className="w-2 h-2 rounded-full bg-emerald-400" />}
                 </div>
-                <p className="text-[10px] text-zinc-500">Specify an exact Rupee amount</p>
+                <p className="text-xs font-mono font-bold text-sky-400">
+                  {liveBalance !== null ? `₹${liveBalance.toLocaleString('en-IN')}` : 'All eligible'}
+                </p>
+                <p className="text-[9px] text-zinc-500 mt-0.5">Settle all available funds</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTransferMode('custom')}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  transferMode === 'custom'
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-white shadow-lg shadow-emerald-500/5'
+                    : 'bg-white/[0.02] border-white/5 text-zinc-400 hover:border-white/10'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold">Custom Amount</span>
+                  {transferMode === 'custom' && <span className="w-2 h-2 rounded-full bg-emerald-400" />}
+                </div>
+                <p className="text-xs font-mono font-bold text-zinc-300">Custom ₹</p>
+                <p className="text-[9px] text-zinc-500 mt-0.5">Enter custom amount</p>
               </button>
             </div>
 
-            {!settleFullBalance && (
+            {transferMode === 'custom' && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -294,8 +346,12 @@ export default function TransferToBankModal({
           <button
             type="button"
             onClick={handleTransfer}
-            disabled={loading || (!settleFullBalance && (!customAmount || Number(customAmount) <= 0))}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20"
+            disabled={
+              loading ||
+              (transferMode === 'admin_revenue' && (!adminRevenue || Number(adminRevenue) <= 0)) ||
+              (transferMode === 'custom' && (!customAmount || Number(customAmount) <= 0))
+            }
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 cursor-pointer"
           >
             {loading ? (
               <>

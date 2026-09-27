@@ -44,8 +44,18 @@ export async function GET() {
             console.warn('[AdminSettlements] settlements.all error:', e?.message || e);
         }
 
+        // Fetch current live balance from Razorpay
+        let liveBalance = 0;
+        try {
+            const balRes: any = await (razorpay as any).api.get({ url: '/balance' });
+            liveBalance = Number(balRes?.balance || 0) / 100;
+        } catch (e: any) {
+            console.warn('[AdminSettlements] balance fetch error:', e?.message || e);
+        }
+
         return NextResponse.json({
             success: true,
+            liveBalance,
             ondemand: ondemandSettlements,
             regular: regularSettlements,
         });

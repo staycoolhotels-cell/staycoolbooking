@@ -62,6 +62,8 @@ export async function POST(req: Request) {
         const property = booking.property as any;
         const hostId = property?.host_id;
 
+        const serviceClient = createServiceClient();
+
         // ─────────────────────────────────────────────
         // 2. Referred hosts receive a 5% platform commission for their first
         // referral bookings (the remaining allowance is consumed per booking).
@@ -69,7 +71,7 @@ export async function POST(req: Request) {
         // of those bookings, and the rest stays with the platform.
         // ─────────────────────────────────────────────
         const { data: hostProfile } = hostId
-            ? await supabase.from('users').select('referred_by, referral_commissions_remaining').eq('id', hostId).single()
+            ? await serviceClient.from('users').select('referred_by, referral_commissions_remaining').eq('id', hostId).single()
             : { data: null };
         const referralActive = Boolean(hostProfile?.referred_by && (hostProfile?.referral_commissions_remaining || 0) > 0);
         const commissionValue = referralActive ? 5 : 10;
@@ -84,17 +86,21 @@ export async function POST(req: Request) {
         const commissionType = 'percentage';
 
         // ─────────────────────────────────────────────
-        // 3. Fetch host's and referrer's linked accounts
+        // 3. Fetch host's and referrer's linked accounts (bypassing RLS with serviceClient)
         // ─────────────────────────────────────────────
         let hostRazorpayAccountId: string | null = null;
         let referrerRazorpayAccountId: string | null = null;
 
         if (hostId) {
-            const { data: hostKyc } = await supabase
+            const { data: hostKyc, error: hostKycError } = await serviceClient
                 .from('host_kyc_details')
                 .select('razorpay_account_id, kyc_status')
                 .eq('user_id', hostId)
                 .single();
+
+            if (hostKycError) {
+                console.error('[CreateOrder] Error fetching host KYC:', hostKycError);
+            }
 
             if (hostKyc?.razorpay_account_id && hostKyc.kyc_status === 'activated') {
                 hostRazorpayAccountId = hostKyc.razorpay_account_id;
@@ -102,17 +108,30 @@ export async function POST(req: Request) {
         }
 
         if (referrerId && referrerCommission > 0) {
-            const { data: referrerKyc } = await supabase
+            const { data: referrerKyc, error: referrerKycError } = await serviceClient
                 .from('host_kyc_details')
                 .select('razorpay_account_id, kyc_status')
                 .eq('user_id', referrerId)
                 .single();
+
+            if (referrerKycError) {
+                console.error('[CreateOrder] Error fetching referrer KYC:', referrerKycError);
+            }
 
             if (referrerKyc?.razorpay_account_id && referrerKyc.kyc_status === 'activated') {
                 referrerRazorpayAccountId = referrerKyc.razorpay_account_id;
             } else {
                 console.warn(`Referrer ${referrerId} has no active Razorpay account. Split will stay with Admin.`);
             }
+        }
+
+        // Prevent taking payment without escrow hold if host has no active linked account
+        if (!hostRazorpayAccountId && hostAmount > 0) {
+            console.error(`[CreateOrder] Host ${hostId} does not have an active Razorpay Route linked account.`);
+            return NextResponse.json(
+                { error: 'Host payout account is not activated. Booking payment cannot be held safely.' },
+                { status: 400 }
+            );
         }
 
         // ─────────────────────────────────────────────
@@ -178,10 +197,8 @@ export async function POST(req: Request) {
         const order = await razorpay.orders.create(orderOptions);
 
         // ─────────────────────────────────────────────
-        // 5. Persist order ID on booking (use serviceClient to bypass RLS)
+        // 5. Persist order ID on booking (using serviceClient)
         // ─────────────────────────────────────────────
-        const serviceClient = createServiceClient();
-
         await serviceClient
             .from('bookings')
             .update({ razorpay_order_id: order.id })

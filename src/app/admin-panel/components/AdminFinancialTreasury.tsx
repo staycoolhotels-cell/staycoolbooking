@@ -197,11 +197,19 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
     return type !== 'refund' && st !== 'refunded' && st !== 'failed' && (t.amount || 0) >= 0;
   };
 
+  const isCancelled = (t: Transaction) => {
+    const st = (t.status || '').toLowerCase();
+    const type = (t.type || '').toLowerCase();
+    return type === 'refund' || st === 'refunded';
+  };
+
   const paymentList = activeData.filter(isPayment);
+  const cancelledList = activeData.filter(isCancelled);
 
   const totalRevenue = paymentList.reduce((acc, t) => acc + (t.amount || 0), 0);
 
-  const platformEarnings = paymentList.reduce(
+  // Platform earnings from confirmed/completed bookings (guest commission + host commission)
+  const earningsFromPayments = paymentList.reduce(
     (acc, t) => {
       if (t.adminCommissionAmount !== undefined && t.adminCommissionAmount !== null) {
         return acc + Number(t.adminCommissionAmount);
@@ -214,6 +222,20 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
     },
     0
   );
+
+  // Admin retained share from cancelled bookings (platform fee is always non-refundable)
+  // When cancelled, adminShare = retained platform fee (non-refundable) + penalty share (if any)
+  const earningsFromCancellations = cancelledList.reduce(
+    (acc, t) => {
+      if (t.adminShare !== undefined && t.adminShare !== null) {
+        return acc + Number(t.adminShare);
+      }
+      return acc;
+    },
+    0
+  );
+
+  const platformEarnings = earningsFromPayments + earningsFromCancellations;
 
   const pendingRefunds = activeData.filter((t) => t.type === 'refund' || t.status === 'refunded' || t.status === 'pending');
 
@@ -279,9 +301,19 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
                 ₹{platformEarnings.toLocaleString('en-IN')}
               </p>
               <p className="text-[9px] md:text-[10px] font-bold text-emerald-400 uppercase tracking-widest mt-1 flex items-center justify-center gap-1">
-                Admin Revenue (Platform Fee)
+                Admin Revenue (Net)
                 <span className="text-[8px] bg-emerald-500/20 text-emerald-300 px-1 py-0.2 rounded">Settle</span>
               </p>
+              {earningsFromCancellations > 0 && (
+                <div className="mt-2 space-y-0.5">
+                  <p className="text-[8px] text-emerald-300/60">
+                    Bookings: ₹{earningsFromPayments.toLocaleString('en-IN')}
+                  </p>
+                  <p className="text-[8px] text-amber-400/70">
+                    Cancellations (retained): ₹{earningsFromCancellations.toLocaleString('en-IN')}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
