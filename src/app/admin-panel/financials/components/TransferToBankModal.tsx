@@ -68,7 +68,7 @@ export default function TransferToBankModal({
       setError(null);
       setSuccessResult(null);
 
-      let payload: any = {
+      const payload: any = {
         description: 'Admin platform revenue settlement to bank',
       };
 
