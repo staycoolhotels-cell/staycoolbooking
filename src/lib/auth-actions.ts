@@ -1102,123 +1102,94 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
     
 
     // Deterministic password using SUPABASE_SERVICE_ROLE_KEY
-
-    const deterministicPassword = crypto.createHmac('sha256', process.env.SUPABASE_SERVICE_ROLE_KEY!)
-
+    // Must satisfy Supabase password policy:
+    // Requires lowercase, uppercase, digits, and special characters
+    const rawHash = crypto.createHmac('sha256', process.env.SUPABASE_SERVICE_ROLE_KEY!)
       .update(normalizedPhone)
-
       .digest('hex');
-
-
+    const deterministicPassword = `St@yC00l!#${rawHash}Aa1*`;
+    const oldDeterministicPassword = rawHash;
 
     // Check if user profile already exists
-
     const { data: existingProfiles } = await supabaseAdmin
-
       .from('users')
-
       .select('id, role, status')
-
       .eq('phone', phone);
 
-
-
     let userProfile = existingProfiles && existingProfiles.length > 0 ? existingProfiles[0] : null;
-
     let userId = userProfile?.id;
 
-
-
     if (!userId) {
-
       // Try to sign in first to check if they exist in auth
-
-      const { data: signInData } = await supabase.auth.signInWithPassword({
-
+      let { data: signInData } = await supabase.auth.signInWithPassword({
         email: mobileEmail,
-
         password: deterministicPassword,
-
       });
 
-
-
-      if (signInData?.user) {
-
-        userId = signInData.user.id;
-
-      } else {
-
-        // User does not exist in Auth, create them!
-
-        const { data: newAuthUser, error: authCreateError } = await supabaseAdmin.auth.admin.createUser({
-
+      if (!signInData?.user) {
+        // Also check if they exist with old password format
+        const { data: oldSignInData } = await supabase.auth.signInWithPassword({
           email: mobileEmail,
-
-          password: deterministicPassword,
-
-          email_confirm: true,
-
-          user_metadata: {
-
-            role: finalUserRole,
-
-            name: name || 'Mobile User',
-
-            phone: phone,
-
-            status: 'active',
-
-          }
-
+          password: oldDeterministicPassword,
         });
-
-
-
-        if (authCreateError) {
-
-          console.error('Failed to create auth user for mobile:', authCreateError.message);
-
-          return `Signup Error: ${authCreateError.message}`;
-
+        if (oldSignInData?.user) {
+          signInData = oldSignInData;
+          await supabaseAdmin.auth.admin.updateUserById(oldSignInData.user.id, {
+            password: deterministicPassword,
+          });
         }
-
-        userId = newAuthUser.user.id;
-
-
-
-        // Since we created them, now log them in to establish the session
-
-        await supabase.auth.signInWithPassword({
-
-          email: mobileEmail,
-
-          password: deterministicPassword,
-
-        });
-
       }
 
+      if (signInData?.user) {
+        userId = signInData.user.id;
+      } else {
+        // User does not exist in Auth, create them!
+        const { data: newAuthUser, error: authCreateError } = await supabaseAdmin.auth.admin.createUser({
+          email: mobileEmail,
+          password: deterministicPassword,
+          email_confirm: true,
+          user_metadata: {
+            role: finalUserRole,
+            name: name || 'Mobile User',
+            phone: phone,
+            status: 'active',
+          }
+        });
+
+        if (authCreateError) {
+          console.error('Failed to create auth user for mobile:', authCreateError.message);
+          return `Signup Error: ${authCreateError.message}`;
+        }
+        userId = newAuthUser.user.id;
+
+        // Since we created them, now log them in to establish the session
+        await supabase.auth.signInWithPassword({
+          email: mobileEmail,
+          password: deterministicPassword,
+        });
+      }
     } else {
-
-      // User exists in profile and auth, just log them in to establish session
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-
+      // User exists in profile and auth, ensure compliant password and sign in
+      let { error: signInError } = await supabase.auth.signInWithPassword({
         email: mobileEmail,
-
         password: deterministicPassword,
-
       });
 
       if (signInError) {
-
-        console.error('Mobile signin session establishment failed:', signInError.message);
-
-        return `Login failed after OTP verification: ${signInError.message}`;
-
+        await supabaseAdmin.auth.admin.updateUserById(userId, {
+          password: deterministicPassword,
+        });
+        const retry = await supabase.auth.signInWithPassword({
+          email: mobileEmail,
+          password: deterministicPassword,
+        });
+        signInError = retry.error;
       }
 
+      if (signInError) {
+        console.error('Mobile signin session establishment failed:', signInError.message);
+        return `Login failed after OTP verification: ${signInError.message}`;
+      }
     }
 
 
@@ -1434,23 +1405,25 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
 
 
     // Now log the user in to establish a session cookie!
-
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-
+    let { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email: mobileEmail,
-
       password: deterministicPassword,
-
     });
 
-
+    if (signInError && userId) {
+      await supabaseAdmin.auth.admin.updateUserById(userId, {
+        password: deterministicPassword,
+      });
+      const retry = await supabase.auth.signInWithPassword({
+        email: mobileEmail,
+        password: deterministicPassword,
+      });
+      signInError = retry.error;
+    }
 
     if (signInError) {
-
       console.error('Mobile signin session establishment failed:', signInError.message);
-
       return `Login failed after OTP verification: ${signInError.message}`;
-
     }
 
     }

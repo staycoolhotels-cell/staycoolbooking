@@ -152,62 +152,39 @@ export async function POST(req: Request) {
                 });
             }
 
-            let holdReleased = false;
+            // Release the on_hold flag on the existing transfer (created at order time).
+            // NEVER create a new transfer here — the ₹45 was already routed at order creation.
+            // Creating a new transfer would double-debit the admin account.
             if (transferDetails.razorpay_transfer_id) {
                 try {
                     console.log(`[CheckIn] Releasing Razorpay hold on transfer ${transferDetails.razorpay_transfer_id}...`);
                     await razorpay.transfers.edit(transferDetails.razorpay_transfer_id, { on_hold: 0 });
-                    holdReleased = true;
                     await supabaseAdmin
                         .from('payment_transfers')
-                        .update({
-                            transfer_status: 'settled',
-                        })
+                        .update({ transfer_status: 'settled' })
                         .eq('booking_id', bookingId);
-                    console.log('[CheckIn] Razorpay hold released successfully.');
+                    console.log('[CheckIn] Razorpay hold released successfully. Host payout unlocked.');
                 } catch (holdErr: any) {
-                    console.warn('[CheckIn] Failed to release hold directly, will attempt fallback transfer:', holdErr);
-                }
-            }
-
-            if (!holdReleased) {
-                if (transfers.length > 0) {
-                    try {
-                        const transferResult = await razorpay.payments.transfer(booking.razorpay_payment_id, { transfers });
-                        console.log('[CheckIn] Razorpay transfer response:', transferResult);
-
-                        const returnedItems = transferResult.items || [];
-                        const hostTransferId = returnedItems.find((item: any) => item.notes?.type === 'host_payout')?.id || (transferResult as any).id;
-
-                        await supabaseAdmin
-                            .from('payment_transfers')
-                            .update({
-                                razorpay_transfer_id: hostTransferId,
-                                transfer_status: 'settled',
-                            })
-                            .eq('booking_id', bookingId);
-
-                        console.log('[CheckIn] Razorpay payout transfers completed successfully.');
-                    } catch (rpError: any) {
-                        console.error('[CheckIn] Razorpay transfer request failed:', rpError);
-                        await supabaseAdmin
-                            .from('payment_transfers')
-                            .update({
-                                transfer_status: 'failed',
-                                failure_reason: rpError.message || 'Razorpay transfer failed',
-                            })
-                            .eq('booking_id', bookingId);
-                    }
-                } else {
-                    console.warn('[CheckIn] No active host/referrer linked accounts found. Split remains with Admin.');
+                    console.error('[CheckIn] Failed to release on_hold for transfer', transferDetails.razorpay_transfer_id, holdErr);
                     await supabaseAdmin
                         .from('payment_transfers')
                         .update({
                             transfer_status: 'failed',
-                            failure_reason: 'No activated host or referrer KYC accounts found to transfer funds.',
+                            failure_reason: `Hold release failed: ${holdErr.message || 'Unknown error'}`,
                         })
                         .eq('booking_id', bookingId);
                 }
+            } else {
+                // No transfer ID recorded — this booking had no Route transfer at order time.
+                // This should not happen in normal flow; log and mark failed for manual review.
+                console.warn('[CheckIn] No razorpay_transfer_id found in payment_transfers. Cannot release hold. Manual review needed.');
+                await supabaseAdmin
+                    .from('payment_transfers')
+                    .update({
+                        transfer_status: 'failed',
+                        failure_reason: 'No razorpay_transfer_id found to release hold. Manual review needed.',
+                    })
+                    .eq('booking_id', bookingId);
             }
         } 
         
