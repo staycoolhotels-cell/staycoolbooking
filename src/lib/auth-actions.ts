@@ -1107,7 +1107,10 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
     const rawHash = crypto.createHmac('sha256', process.env.SUPABASE_SERVICE_ROLE_KEY!)
       .update(normalizedPhone)
       .digest('hex');
-    const deterministicPassword = `St@yC00l!#${rawHash}Aa1*`;
+    // Supabase Auth/bcrypt requires: 
+    // 1) Length <= 72 characters (46 chars here)
+    // 2) Lowercase, uppercase, digits, and special characters
+    const deterministicPassword = `St@yC00l!#${rawHash.slice(0, 32)}Aa1*`;
     const oldDeterministicPassword = rawHash;
 
     // Check if user profile already exists
