@@ -1405,7 +1405,7 @@ export async function verifyMobileOtp(_prevState: string | undefined, formData: 
 
 
     // Now log the user in to establish a session cookie!
-    let { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+    let { error: signInError } = await supabase.auth.signInWithPassword({
       email: mobileEmail,
       password: deterministicPassword,
     });
