@@ -481,18 +481,7 @@ const BookingCard = ({
     }
   }, [selectedRoomIds.length, bookingType, maxGuests]);
 
-  // Reset free cancellation if check-in is NOT today (same-day only feature)
-  useEffect(() => {
-    if (!checkIn) return;
-    const today = new Date();
-    const isSameDay =
-      checkIn.getFullYear() === today.getFullYear() &&
-      checkIn.getMonth() === today.getMonth() &&
-      checkIn.getDate() === today.getDate();
-    if (!isSameDay) {
-      setHasFreeCancellation(false);
-    }
-  }, [checkIn]);
+
 
   // Reset booking type if bulk is not allowed
   useEffect(() => {
@@ -832,16 +821,8 @@ const BookingCard = ({
 
   const isDateSelected = !!checkIn && !!checkOut && nights > 0;
 
-  // Free Cancellation: only show for same-day check-in bookings
-  const isSameDayCheckIn = (() => {
-    if (!checkIn) return false;
-    const today = new Date();
-    return (
-      checkIn.getFullYear() === today.getFullYear() &&
-      checkIn.getMonth() === today.getMonth() &&
-      checkIn.getDate() === today.getDate()
-    );
-  })();
+  // Free Cancellation: show for all valid bookings when dates are selected
+  const isFreeCancellationVisible = isDateSelected;
   // Determine if bookable
   // For single: need at least 1 room available.
   // For bulk: need selectedRooms <= availableRooms.
@@ -1310,8 +1291,8 @@ const BookingCard = ({
               })}
             </div>
 
-            {/* Free Cancellation Option — only for same-day check-in */}
-            {isSameDayCheckIn && (
+            {/* Free Cancellation Option */}
+            {isFreeCancellationVisible && (
               <div className="mb-4 bg-sky-900/10 border border-sky-500/20 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="bg-gradient-to-r from-emerald-500/20 to-sky-500/20 px-4 py-2 border-b border-sky-500/10 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1371,7 +1352,7 @@ const BookingCard = ({
                       <div className="space-y-1 mt-1">
                         <div className="flex items-center gap-2 text-amber-500/70">
                           <Icon name="ExclamationTriangleIcon" size={12} />
-                          <span className="text-[11px] font-semibold">Only 50% refund will apply</span>
+                          <span className="text-[11px] font-semibold">70% refund will apply before check-in</span>
                         </div>
                       </div>
                     </div>
@@ -1829,8 +1810,8 @@ const BookingCard = ({
 
             </div>
 
-            {/* Free Cancellation Option — only for same-day check-in */}
-            {isSameDayCheckIn && (
+            {/* Free Cancellation Option */}
+            {isFreeCancellationVisible && (
               <div className="mb-5 bg-sky-900/10 border border-sky-500/20 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="bg-gradient-to-r from-emerald-500/20 to-sky-500/20 px-4 py-2 border-b border-sky-500/10 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1890,7 +1871,7 @@ const BookingCard = ({
                       <div className="space-y-1.5 mt-1.5">
                         <div className="flex items-center gap-2 text-amber-500/70">
                           <Icon name="ExclamationTriangleIcon" size={12} />
-                          <span className="text-[11px] font-semibold">Only 50% refund will apply</span>
+                          <span className="text-[11px] font-semibold">70% refund will apply before check-in</span>
                         </div>
                       </div>
                     </div>

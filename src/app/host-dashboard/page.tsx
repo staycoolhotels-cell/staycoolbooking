@@ -156,9 +156,8 @@ export default async function HostDashboardPage() {
     .filter(b => b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'completed')
     .map(b => {
       const grossTotal = Number(b.total_price) || 0;
-      // Platform service fee is strictly 100% retained by Admin. It must never be shared with host.
-      const guestServiceFee = Number(b.service_fee) || Math.round((grossTotal * 0.1) / 1.1);
-      const hostRevenue = Math.max(0, grossTotal - guestServiceFee);
+      // Zero commission from guest. Only host platform commission (10%) is deducted.
+      const hostRevenue = grossTotal;
       const hostCommission = Math.round(hostRevenue * 0.10);
       const hostNetPayout = hostRevenue - hostCommission;
 
@@ -206,8 +205,7 @@ export default async function HostDashboardPage() {
   confirmedBookingsForChart.forEach((b: any) => {
     const month = new Date(b.created_at).toLocaleString('default', { month: 'short' });
     const grossTotal = Number(b.total_price) || 0;
-    const guestServiceFee = Number(b.service_fee) || Math.round((grossTotal * 0.1) / 1.1);
-    const hostRevenue = Math.max(0, grossTotal - guestServiceFee);
+    const hostRevenue = grossTotal;
     const hostNetPayout = Math.round(hostRevenue * 0.90);
     monthlyEarningsMap[month] = (monthlyEarningsMap[month] || 0) + hostNetPayout;
   });

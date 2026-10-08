@@ -18,10 +18,8 @@ const Earnings = ({ earnings }: EarningsProps) => {
   const getHostNetAmount = (t: Transaction) => {
     if (t.netRevenue !== undefined) return Number(t.netRevenue);
     const gross = Number(t.amount) || 0;
-    // Platform service fee is strictly 100% retained by Admin. It must never be shared with host.
-    const fee = Number(t.breakdown?.service_fee || t.serviceFee) || Math.round((gross * 0.1) / 1.1);
-    const hostRev = Math.max(0, gross - fee);
-    return Math.round(hostRev * 0.90);
+    // Zero commission from guest. Only host platform commission (10%) is deducted.
+    return Math.round(gross * 0.90);
   };
 
   // Transform transactions to chart data

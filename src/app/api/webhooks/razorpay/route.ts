@@ -105,10 +105,9 @@ export async function POST(req: Request) {
 
                         if (booking) {
                             const amount = Number(booking.total_price);
-                            // Platform service fee is strictly 100% retained by Admin. It must never be shared with host.
-                            const guestServiceFee = Number(booking.service_fee) || Math.round((amount * 0.1) / 1.1);
-                            const hostRevenue = Math.max(0, amount - guestServiceFee);
-                            const hostPayout = Number((hostRevenue * 0.90).toFixed(2));
+                            // Zero commission from guest. Commission (10%) is deducted solely from Host payout.
+                            const guestServiceFee = 0;
+                            const hostPayout = Number((amount * 0.90).toFixed(2));
                             const platformFee = Number((amount - hostPayout).toFixed(2));
 
                             await supabase

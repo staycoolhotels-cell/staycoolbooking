@@ -120,26 +120,26 @@ export const generateInvoicePDF = async (t: Transaction) => {
   const nights = Math.max(1, safeNum(t.nights, 1));
 
   const breakdown = {
-    accommodation: safeNum(rawBreakdown.accommodation, Math.round(originalTotal / 1.1)),
-    service_fee: safeNum(rawBreakdown.service_fee, Math.round(originalTotal * 0.1 / 1.1)),
+    accommodation: safeNum(rawBreakdown.accommodation, originalTotal),
+    service_fee: safeNum(rawBreakdown.service_fee, 0),
     taxes: safeNum(rawBreakdown.taxes, 0),
     discount: safeNum(rawBreakdown.discount, 0),
     upgrades: safeNum(rawBreakdown.upgrades, 0),
     cancellation_fee: safeNum(rawBreakdown.cancellation_fee, 0)
   };
 
-  // Host earnings & commission values (100% separate from guest service fee)
+  // Host earnings & commission values (zero guest service fee; commission deducted from host only)
   const hostGrossEarnings = Math.max(0, breakdown.accommodation + breakdown.upgrades - breakdown.discount);
   const hostCommission = Math.round(hostGrossEarnings * 0.10);
   const hostPayout = t.hostPayoutAmount !== undefined 
     ? safeNum(t.hostPayoutAmount) 
     : Math.max(0, hostGrossEarnings - hostCommission);
 
-  const netRefundablePool = t.netRefundablePool !== undefined ? safeNum(t.netRefundablePool) : (breakdown.accommodation || Math.round(originalTotal / 1.1));
+  const netRefundablePool = t.netRefundablePool !== undefined ? safeNum(t.netRefundablePool) : (breakdown.accommodation || originalTotal);
   const refundPercent = t.refundPercentage !== undefined ? safeNum(t.refundPercentage) : (netRefundablePool > 0 && t.refundAmount !== undefined ? Math.round((safeNum(t.refundAmount) / netRefundablePool) * 100) : 50);
   const eligibleRefund = Math.round((netRefundablePool * refundPercent) / 100);
   const retainedPenalty = t.retainedPenalty !== undefined ? safeNum(t.retainedPenalty) : Math.max(0, netRefundablePool - eligibleRefund);
-  const retainedServiceFee = t.retainedServiceFee !== undefined ? safeNum(t.retainedServiceFee) : (breakdown.service_fee || Math.round(originalTotal * 0.1 / 1.1));
+  const retainedServiceFee = t.retainedServiceFee !== undefined ? safeNum(t.retainedServiceFee) : (breakdown.service_fee || 0);
   const protectionFee = breakdown.cancellation_fee || 0;
   const totalRetained = retainedPenalty + retainedServiceFee + protectionFee;
   const finalRefundAmount = t.refundAmount !== undefined ? safeNum(t.refundAmount) : Math.max(0, originalTotal - totalRetained);
@@ -1032,7 +1032,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
 
   const defaultTerms = [
     "1. The guest is responsible for maintaining property conditions throughout the stay duration.",
-    "2. Refunds are computed as per the Tiered Cancellation Schedule based on notice prior to check-in.",
+    "2. 100% full refund with Free Cancellation (₹70) or 70% refund standard if cancelled before check-in.",
     "3. StayCool platform service fees are 100% retained by Admin and non-refundable upon cancellation.",
     "4. StayCool No-Show Rule: If guest fails to arrive on scheduled check-in date & time, it is treated as a No-Show with no refund, unless applicable policy applies.",
     "5. StayCool provides facilitation and is not a direct party to the accommodation contract."

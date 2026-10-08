@@ -296,7 +296,8 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
     return weekendTotal / (bookingType === 'single' ? weekendNightsCount : (weekendNightsCount * effectiveRooms));
   }, [weekendNightsCount, weekendTotal, bookingType, effectiveRooms]);
 
-  const serviceFee = baseTotal * 0.1;
+  // Zero platform commission from guest (service fee = 0)
+  const serviceFee = 0;
 
   // Calculate Bulk Discount using property's custom discount (disabled for Entire Resort)
   let discount = 0;
@@ -545,19 +546,29 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
               </a>
             </div>
 
-            {/* 4-Tier Refund Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-              {[
-                { period: '10+ Days Before', refund: '100%', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-                { period: '5-10 Days Before', refund: '70%', color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
-                { period: '2-5 Days Before', refund: '50%', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-                { period: '< 2 Days Before', refund: '30%', color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
-              ].map((tier, i) => (
-                <div key={i} className={`p-2.5 rounded-xl ${tier.bg} border ${tier.border} text-center`}>
-                  <span className="block text-[9px] font-black uppercase tracking-wider text-zinc-400">{tier.period}</span>
-                  <span className={`text-sm font-black ${tier.color}`}>{tier.refund} Refund</span>
+            {/* Cancellation Policy Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
+              <div className={`p-3 rounded-xl border ${filters.hasFreeCancellation ? 'bg-sky-500/15 border-sky-500/40 ring-1 ring-sky-500/30' : 'bg-zinc-900/60 border-zinc-800'}`}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-sky-400">With Free Cancellation (₹70)</span>
+                  {filters.hasFreeCancellation && (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">Active</span>
+                  )}
                 </div>
-              ))}
+                <div className="text-base font-black text-emerald-400">100% Full Refund</div>
+                <p className="text-[10px] text-zinc-400 mt-0.5">Cancel anytime before check-in. Protection fee (₹70) is non-refundable.</p>
+              </div>
+
+              <div className={`p-3 rounded-xl border ${!filters.hasFreeCancellation ? 'bg-zinc-800/40 border-zinc-700 ring-1 ring-zinc-700/30' : 'bg-zinc-900/60 border-zinc-800'}`}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Standard (Without ₹70)</span>
+                  {!filters.hasFreeCancellation && (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-zinc-700/50 text-zinc-300 border border-zinc-600">Active</span>
+                  )}
+                </div>
+                <div className="text-base font-black text-sky-400">70% Refund</div>
+                <p className="text-[10px] text-zinc-400 mt-0.5">Cancel before check-in. Remaining 30% penalty is shared with host & platform.</p>
+              </div>
             </div>
 
             {/* StayCool No-Show Rule & Policy Notes */}
@@ -571,11 +582,11 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
               </div>
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 text-[10px] text-zinc-400 px-1 pt-1">
-                <span>• Platform service fee (10%) is non-refundable in all circumstances.</span>
+                <span>• Zero guest commission on cancellations.</span>
                 {filters.hasFreeCancellation ? (
-                  <span className="text-sky-400 font-bold">• Free Cancellation (₹70) Active (100% same-day refund)</span>
+                  <span className="text-sky-400 font-bold">• Free Cancellation (₹70) Active (100% refund before check-in)</span>
                 ) : (
-                  <span className="text-zinc-500">• Same-day cancellations non-refundable without Protection</span>
+                  <span className="text-zinc-400">• Standard policy applies (70% refund before check-in)</span>
                 )}
               </div>
             </div>
@@ -738,8 +749,8 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
             </div>
           )}
           <div className="flex justify-between text-sm">
-            <span className="text-text-primary text-sky-400">Platform Service Fee (10%)</span>
-            <span className="text-sky-400">₹{serviceFee.toLocaleString('en-IN')}</span>
+            <span className="text-text-primary text-sky-400">Platform Service Fee</span>
+            <span className="text-emerald-400 font-medium">Free (₹0)</span>
           </div>
           {amenitiesTotal > 0 && (
             <div className="flex justify-between text-sm">
@@ -779,7 +790,7 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
               </a>
             </div>
             <p className="text-[10px] text-text-secondary leading-relaxed">
-              Tiered refund schedule applies. No-Show bookings are non-refundable. Platform fee is 100% non-refundable.
+              100% refund with Free Cancellation (₹70) or 70% refund standard before check-in. No-Show bookings are non-refundable.
             </p>
           </div>
 

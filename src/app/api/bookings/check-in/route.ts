@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase-server';
 import { razorpay } from '@/lib/razorpay';
 import { stripe } from '@/lib/stripe';
+import { isEligibleForCheckInPayout } from '@/lib/booking-actions';
 
 /**
  * POST /api/bookings/check-in
@@ -72,7 +73,18 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Failed to update booking status' }, { status: 500 });
         }
 
-        // 3. Process splits
+        // 3. Option B Check: Only split host payout at or after 09:00 PM IST on check-in day
+        const isEligible = await isEligibleForCheckInPayout(booking.check_in);
+        if (!isEligible) {
+            console.log(`[CheckIn] Booking ${bookingId} marked as checked in. Host payout split is scheduled for 09:00 PM IST on ${booking.check_in}.`);
+            return NextResponse.json({
+                success: true,
+                message: 'Checked in successfully! Host payout split is scheduled for 09:00 PM today.',
+                scheduledTime: '09:00 PM IST',
+            });
+        }
+
+        // 4. Process splits
         const hostId = booking.property?.host_id;
 
         // Check if there is a Razorpay payment
@@ -152,9 +164,10 @@ export async function POST(req: Request) {
                 });
             }
 
-            // Release the on_hold flag on the existing transfer (created at order time).
-            // NEVER create a new transfer here — the ₹45 was already routed at order creation.
-            // Creating a new transfer would double-debit the admin account.
+            // Process split transfer on check-in day
+            let splitDone = false;
+
+            // 1. If an existing transfer was already recorded with on_hold flag (legacy order-time transfers):
             if (transferDetails.razorpay_transfer_id) {
                 try {
                     console.log(`[CheckIn] Releasing Razorpay hold on transfer ${transferDetails.razorpay_transfer_id}...`);
@@ -163,28 +176,42 @@ export async function POST(req: Request) {
                         .from('payment_transfers')
                         .update({ transfer_status: 'settled' })
                         .eq('booking_id', bookingId);
+                    splitDone = true;
                     console.log('[CheckIn] Razorpay hold released successfully. Host payout unlocked.');
                 } catch (holdErr: any) {
-                    console.error('[CheckIn] Failed to release on_hold for transfer', transferDetails.razorpay_transfer_id, holdErr);
+                    console.warn('[CheckIn] Hold edit failed, attempting direct payment transfer:', holdErr?.message || holdErr);
+                }
+            }
+
+            // 2. Standard flow: Split host and referrer shares from the payment on check-in day!
+            if (!splitDone && transfers.length > 0 && booking.razorpay_payment_id) {
+                try {
+                    console.log(`[CheckIn] Splitting host payout from payment ${booking.razorpay_payment_id}...`);
+                    const transferResult = await razorpay.payments.transfer(booking.razorpay_payment_id, { transfers });
+                    const returnedItems = transferResult.items || [];
+                    const hostTransferId = returnedItems.find((item: any) => item.notes?.type === 'host_payout')?.id || (transferResult as any).id;
+
+                    await supabaseAdmin
+                        .from('payment_transfers')
+                        .update({ 
+                            razorpay_transfer_id: hostTransferId,
+                            transfer_status: 'settled' 
+                        })
+                        .eq('booking_id', bookingId);
+                    splitDone = true;
+                    console.log('[CheckIn] Razorpay payment split successfully transferred to host account.');
+                } catch (trfErr: any) {
+                    console.error('[CheckIn] Failed to transfer split from payment:', trfErr);
                     await supabaseAdmin
                         .from('payment_transfers')
                         .update({
                             transfer_status: 'failed',
-                            failure_reason: `Hold release failed: ${holdErr.message || 'Unknown error'}`,
+                            failure_reason: `Payment transfer split failed: ${trfErr.message || 'Unknown error'}`,
                         })
                         .eq('booking_id', bookingId);
                 }
-            } else {
-                // No transfer ID recorded — this booking had no Route transfer at order time.
-                // This should not happen in normal flow; log and mark failed for manual review.
-                console.warn('[CheckIn] No razorpay_transfer_id found in payment_transfers. Cannot release hold. Manual review needed.');
-                await supabaseAdmin
-                    .from('payment_transfers')
-                    .update({
-                        transfer_status: 'failed',
-                        failure_reason: 'No razorpay_transfer_id found to release hold. Manual review needed.',
-                    })
-                    .eq('booking_id', bookingId);
+            } else if (!splitDone && !transferDetails.razorpay_transfer_id) {
+                console.warn('[CheckIn] No transfers to process or missing razorpay_payment_id for booking:', bookingId);
             }
         } 
         

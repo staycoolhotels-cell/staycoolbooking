@@ -75,12 +75,12 @@ export async function POST(req: Request) {
             : { data: null };
         const referralActive = Boolean(hostProfile?.referred_by && (hostProfile?.referral_commissions_remaining || 0) > 0);
         const commissionValue = referralActive ? 5 : 10;
-        // Platform service fee is strictly 100% retained by Admin. It must never be shared with host.
-        const guestServiceFee = Number(booking.service_fee) || Math.round((totalAmount * 0.1) / 1.1);
-        const hostRevenue = Math.max(0, totalAmount - guestServiceFee);
-        const hostCommission = Number((hostRevenue * (commissionValue / 100)).toFixed(2));
-        const hostAmount = Number((hostRevenue - hostCommission).toFixed(2));
-        const referrerCommission = referralActive ? Number((hostRevenue * 0.05).toFixed(2)) : 0;
+        // Zero commission from guest. Commission is deducted solely from Host payout.
+        const guestServiceFee = 0;
+        const hostGross = totalAmount; // Full amount paid by guest
+        const hostCommission = Number((hostGross * (commissionValue / 100)).toFixed(2));
+        const hostAmount = Number((hostGross - hostCommission).toFixed(2));
+        const referrerCommission = referralActive ? Number((hostGross * 0.05).toFixed(2)) : 0;
         const referrerId = referralActive ? (hostProfile?.referred_by || null) : null;
         const adminCommission = Number((totalAmount - hostAmount - referrerCommission).toFixed(2));
         const commissionType = 'percentage';
@@ -188,12 +188,11 @@ export async function POST(req: Request) {
             },
         };
 
-        // Attach Route transfers with on_hold: 1 so host share remains held in Razorpay
-        // and does NOT sweep to the Admin bank account.
-        if (transfers.length > 0) {
-            orderOptions.transfers = transfers;
-        }
-
+        // Note: We deliberately DO NOT attach transfers at order creation.
+        // This ensures the full payment (Admin commission + Host payout) lands directly
+        // into the main Razorpay account balance ("Available balance").
+        // On check-in day, the host share will be split and transferred via razorpay.payments.transfer.
+        // Admin share remains in the Razorpay balance until Admin clicks "Transfer to Bank".
         const order = await razorpay.orders.create(orderOptions);
 
         // ─────────────────────────────────────────────
@@ -203,12 +202,6 @@ export async function POST(req: Request) {
             .from('bookings')
             .update({ razorpay_order_id: order.id })
             .eq('id', bookingId);
-
-        // Extract host transfer ID from order transfers if created
-        const rawTransfers: any[] = Array.isArray((order as any).transfers)
-            ? (order as any).transfers
-            : (order as any).transfers?.items || [];
-        const hostTransfer = rawTransfers.find((t: any) => t.notes?.type === 'host_payout') || rawTransfers[0];
 
         // ─────────────────────────────────────────────
         // 6. Create pending payment_transfers record (use serviceClient to bypass RLS)
@@ -220,7 +213,7 @@ export async function POST(req: Request) {
                     booking_id: bookingId,
                     host_id: hostId,
                     razorpay_order_id: order.id,
-                    razorpay_transfer_id: hostTransfer?.id || null,
+                    razorpay_transfer_id: null,
                     total_amount: totalAmount,
                     platform_commission: adminCommission,
                     host_amount: hostAmount,
@@ -245,7 +238,7 @@ export async function POST(req: Request) {
                 hostAmount: hostAmount,
                 commissionType,
                 commissionValue,
-                splitEnabled: transfers.length > 0,
+                splitEnabled: !!hostRazorpayAccountId,
             },
         });
 

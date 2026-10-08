@@ -1,20 +1,21 @@
-import { differenceInDays, startOfDay, isSameDay } from 'date-fns';
+import { differenceInDays, startOfDay } from 'date-fns';
 
 /**
- * Calculates the refund percentage based on timing and free cancellation status.
+ * StayCool Cancellation & Refund Policy Rules:
  *
- * Rules:
- * 1. Same Day Exception (₹70 users only): If booking date == check-in date AND
- *    guest paid ₹70 Free Cancellation → 100% refund. ₹70 stays with Admin.
+ * 1. Free Cancellation Protection (₹70 paid):
+ *    - Before check-in: 100% Full Refund of the base booking amount to the guest.
+ *    - The ₹70 protection fee is 100% retained by Admin. It is NEVER split with the host.
+ *    - Host receives ₹0 on free cancellation.
  *
- * 2. All other cancellations → Tiered Policy (regardless of ₹70 status):
- *    - ≥ 10 days before check-in : 100% refund
- *    - 5 – 9 days before check-in: 70%  refund
- *    - 2 – 4 days before check-in: 50%  refund
- *    - < 2 days before check-in  : 30%  refund
+ * 2. Standard Cancellation (₹70 NOT paid):
+ *    - Before check-in: 70% Refund to the guest.
+ *    - Remaining 30% penalty is split EQUALLY (50/50) between Host (15%) and Admin (15%).
  *
- * 3. StayCool No-Show Rule:
- *    "If the guest fails to arrive at the property on the scheduled check-in date and check-in time, it will be considered a No-Show. No refund will be provided for No-Show bookings, unless StayCool's applicable refund policy applies."
+ * 3. StayCool No-Show / After Check-in Rule:
+ *    - If the guest fails to arrive at the property on the scheduled check-in date and check-in time,
+ *      it is considered a No-Show. No refund will be provided for No-Show bookings, unless StayCool's
+ *      applicable refund policy applies.
  */
 export const STAYCOOL_NO_SHOW_RULE = "If the guest fails to arrive at the property on the scheduled check-in date and check-in time, it will be considered a No-Show. No refund will be provided for No-Show bookings, unless StayCool's applicable refund policy applies.";
 
@@ -26,7 +27,6 @@ export function getRefundPercentage(
 ): { percent: number; policy: string; daysBefore: number } {
   const cancellation = new Date(cancellationDate);
   const checkIn = new Date(checkInDate);
-  const booking = bookingDate ? new Date(bookingDate) : null;
 
   const isFreeCancellationActive =
     hasFreeCancellation === true ||
@@ -36,29 +36,35 @@ export function getRefundPercentage(
 
   const daysBefore = differenceInDays(startOfDay(checkIn), startOfDay(cancellation));
 
-  // Rule 1 — Same Day Exception: same day booking + same day check-in + ₹70 paid
-  if (isFreeCancellationActive && booking && isSameDay(booking, checkIn)) {
-    return { percent: 100, policy: 'Same Day Booking & Check-in (Free Cancellation)', daysBefore };
+  // Past check-in date / No-Show: 0% refund
+  if (daysBefore < 0) {
+    return { percent: 0, policy: 'No-Show / After Check-in (No Refund)', daysBefore };
   }
 
-  // Rule 2 — Tiered Policy (all other cases, ₹70 paid or not)
-  if (daysBefore >= 10) return { percent: 100, policy: 'Standard (10+ Days Before)', daysBefore };
-  if (daysBefore >= 5)  return { percent: 70,  policy: 'Standard (5-10 Days Before)', daysBefore };
-  if (daysBefore >= 2)  return { percent: 50,  policy: 'Standard (2-5 Days Before)', daysBefore };
-  return                       { percent: 30,  policy: 'Standard (< 2 Days Before)', daysBefore };
+  // Before check-in:
+  // Case 1: Guest opted for ₹70 Free Cancellation Protection → 100% Refund
+  if (isFreeCancellationActive) {
+    return { percent: 100, policy: 'Free Cancellation (100% Refund)', daysBefore };
+  }
+
+  // Case 2: Standard Cancellation (Without ₹70 Protection) → 70% Refund
+  return { percent: 70, policy: 'Standard Cancellation (70% Refund)', daysBefore };
 }
 
 
 /**
- * Calculates the refund distribution of the total price upon cancellation.
+ * Calculates the refund distribution upon cancellation.
  *
- * Money Flow on Cancellation:
- * Total Price (e.g. ₹1,100) = Accommodation (₹1,000) + 10% Platform Service Fee (₹100) + Free Cancellation Fee (₹70 if paid)
- * 1. Free Cancellation Fee (₹70 if paid) → always Admin's. Non-refundable.
- * 2. Platform Service Fee (10% = ₹100) → always Admin's platform fee.
- * 3. Base Accommodation Pool (₹1,000) → Refundable pool subject to cancellation policy.
- * 4. Guest Refund = Pool × Refund % (100%: ₹1,000, 70%: ₹700, 50%: ₹500, 30%: ₹300).
- * 5. Remaining penalty (₹1,000 − Refund) is split EQUALLY (50/50) between Host and Admin.
+ * Case 1: Free Cancellation Active (₹70 paid)
+ * - Guest Refund = 100% of base booking amount
+ * - Host Share = ₹0
+ * - Admin Share = ₹70 Protection Fee (100% retained by Admin)
+ *
+ * Case 2: Standard Cancellation (Without ₹70)
+ * - Guest Refund = 70% of base booking amount
+ * - Remaining 30% penalty is split 50/50:
+ *   - Host Share = 15% (half of 30% penalty)
+ *   - Admin Share = 15% (half of 30% penalty)
  */
 export function calculateRefundDistribution(
   totalPrice: number,
@@ -69,47 +75,51 @@ export function calculateRefundDistribution(
   platformFee: number = 0,
   explicitServiceFee?: number
 ) {
-  const isFreeCancellationActive = hasFreeCancellation === true || hasFreeCancellation === 1 || hasFreeCancellation === 'true' || hasFreeCancellation === '1';
+  const isFreeCancellationActive =
+    hasFreeCancellation === true ||
+    hasFreeCancellation === 1 ||
+    hasFreeCancellation === 'true' ||
+    hasFreeCancellation === '1';
 
-  // 1. Free Cancellation protection fee (e.g. ₹70) — stays with Admin always (non-refundable)
-  const actualProtectionFee = isFreeCancellationActive ? platformFee : 0;
-  const priceExcludingProtection = Math.max(0, totalPrice - actualProtectionFee);
+  // 1. Free Cancellation protection fee (₹70) — strictly retained by Admin, NEVER split with host
+  const actualProtectionFee = isFreeCancellationActive
+    ? (platformFee > 0 ? platformFee : 70)
+    : 0;
 
-  // 2. Platform Service Fee (10%) — 100% Retained by Admin. NEVER shared with host (host gets ₹0).
-  const adminPlatformFee = (explicitServiceFee !== undefined && explicitServiceFee > 0)
-    ? explicitServiceFee
-    : Math.round((priceExcludingProtection * 0.1) / 1.1);
-
-  // 3. Base accommodation pool (strictly excluding platform service fee and protection fee)
-  const baseAccommodation = Math.max(0, priceExcludingProtection - adminPlatformFee);
-  const netRefundablePool = baseAccommodation;
+  // 2. Base booking amount (excluding the protection fee)
+  const baseBookingAmount = Math.max(0, totalPrice - actualProtectionFee);
 
   const { percent: guestRefundPercent, policy: appliedPolicy, daysBefore: daysBeforeCheckIn } =
     getRefundPercentage(checkInDate, cancellationDate, bookingDate, hasFreeCancellation);
 
-  // 4. Guest refund from accommodation pool
-  const guestRefundAmount = Math.round((netRefundablePool * guestRefundPercent) / 100);
+  // 3. Guest refund amount from base booking
+  const guestRefundAmount = Math.round((baseBookingAmount * guestRefundPercent) / 100);
 
-  // 5. Remaining penalty split equally between Admin and Host
-  const remainingPenalty = netRefundablePool - guestRefundAmount;
+  // 4. Remaining penalty from base booking
+  const remainingPenalty = Math.max(0, baseBookingAmount - guestRefundAmount);
+
+  // 5. Penalty split:
+  // - If 100% refund (Free Cancellation), remainingPenalty is 0 => Host gets 0, Admin gets ₹70 protection fee.
+  // - If 70% refund, remainingPenalty is 30% => Host gets 15% (half), Admin gets 15% (half).
   const hostShare = Math.round(remainingPenalty / 2);
   const adminShareFromPenalty = remainingPenalty - hostShare;
+  const adminShare = actualProtectionFee + adminShareFromPenalty;
 
   return {
     guestRefundAmount,
     hostShare,
-    adminShare: adminPlatformFee + adminShareFromPenalty + actualProtectionFee,
+    adminShare,
     totalRetained: totalPrice - guestRefundAmount,
     guestRefundPercent,
     appliedPolicy,
     daysBeforeCheckIn,
-    basePrice: baseAccommodation,
-    platformFee: adminPlatformFee + actualProtectionFee,
-    adminPlatformFee,
-    hostPlatformFeeShare: 0, // Explicit guarantee that host receives ₹0 from platform fee
-    commissionAmount: adminPlatformFee,
-    netRefundablePool,
-    hostSharePercent: baseAccommodation > 0 ? (hostShare / baseAccommodation) * 100 : 0,
+    basePrice: baseBookingAmount,
+    platformFee: actualProtectionFee,
+    adminPlatformFee: 0,
+    hostPlatformFeeShare: 0, // Host receives ₹0 from protection fee
+    commissionAmount: adminShareFromPenalty,
+    netRefundablePool: baseBookingAmount,
+    hostSharePercent: baseBookingAmount > 0 ? (hostShare / baseBookingAmount) * 100 : 0,
   };
 }
 

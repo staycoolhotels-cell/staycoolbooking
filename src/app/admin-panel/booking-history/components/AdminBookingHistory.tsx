@@ -141,10 +141,8 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
         return sum + Number(transfer.platform_commission);
       }
       const amt = Number(b.total_price || 0);
-      const guestFee = b.service_fee ? Number(b.service_fee) : Math.round((amt * 0.1) / 1.1);
-      const hostRev = Math.max(0, amt - guestFee);
-      const hostComm = Math.round(hostRev * 0.10);
-      return sum + (guestFee + hostComm);
+      const hostComm = Math.round(amt * 0.10);
+      return sum + hostComm;
     }, 0);
 
     const countForAvg = isCancelledFilter ? cancelledBookings.length : confirmedBookings.length;
@@ -195,10 +193,8 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
         ) {
           bAdminRev = Number(transfer.platform_commission);
         } else {
-          const guestFee = b.service_fee ? Number(b.service_fee) : Math.round((amt * 0.1) / 1.1);
-          const hostRev = Math.max(0, amt - guestFee);
-          const hostComm = Math.round(hostRev * 0.10);
-          bAdminRev = guestFee + hostComm;
+          const hostComm = Math.round(amt * 0.10);
+          bAdminRev = hostComm;
         }
       }
       return [
@@ -642,11 +638,8 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
                   ? selectedBooking.payment_transfers[0]
                   : selectedBooking.payment_transfers;
 
-                const guestFee = selectedBooking.service_fee
-                  ? Number(selectedBooking.service_fee)
-                  : Math.round((totalPrice * 0.1) / 1.1);
-
-                const hostBase = Math.max(0, totalPrice - guestFee);
+                const guestFee = 0;
+                const hostBase = totalPrice;
                 const hostCommission = Math.round(hostBase * 0.1);
 
                 const bookingAdminRevenue =
@@ -654,7 +647,7 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
                   transfer?.platform_commission !== null &&
                   Number(transfer.platform_commission) > 0
                     ? Number(transfer.platform_commission)
-                    : guestFee + hostCommission;
+                    : hostCommission;
 
                 const netHostPayout =
                   transfer?.host_amount !== undefined &&

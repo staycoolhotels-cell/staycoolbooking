@@ -13,32 +13,37 @@ const CancellationPolicyPage = () => {
             icon: 'ShieldCheckIcon'
         },
         {
-            title: '2. Tiered Refund Schedule',
+            title: '2. Cancellation & Refund Schedule',
             content: (
                 <div className="space-y-8">
                     <div className="space-y-4">
-                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Standard Cancellation Policy:</p>
-                        <div className="grid gap-3">
-                            {[
-                                { period: '10+ Days Before', refund: '100% Refund', color: 'text-emerald-400', bg: 'bg-emerald-400/5', border: 'border-emerald-400/10' },
-                                { period: '5-10 Days Before', refund: '70% Refund', color: 'text-sky-400', bg: 'bg-sky-400/5', border: 'border-sky-400/10' },
-                                { period: '2-5 Days Before', refund: '50% Refund', color: 'text-amber-400', bg: 'bg-amber-400/5', border: 'border-amber-400/10' },
-                                { period: '< 2 Days Before', refund: '30% Refund', color: 'text-rose-400', bg: 'bg-rose-400/5', border: 'border-rose-400/10' }
-                            ].map((item, i) => (
-                                <div key={i} className={`${item.bg} ${item.border} border px-6 py-5 rounded-2xl flex items-center justify-between gap-4 transition-all hover:bg-white/[0.04]`}>
-                                    <div>
-                                        <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1">{item.period} check-in</span>
-                                        <span className={`text-2xl font-bold ${item.color}`}>{item.refund}</span>
-                                    </div>
-                                    <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center border ${item.border} shadow-inner`}>
-                                        <Icon name="CheckIcon" size={20} className={item.color} />
-                                    </div>
+                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Cancellation Policy Overview:</p>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            <div className="bg-emerald-400/5 border border-emerald-400/20 px-6 py-5 rounded-2xl flex items-center justify-between gap-4 transition-all hover:bg-white/[0.04]">
+                                <div>
+                                    <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest block mb-1">With Free Cancellation (₹70)</span>
+                                    <span className="text-2xl font-bold text-emerald-400">100% Refund</span>
+                                    <p className="text-xs text-zinc-400 mt-1">Full refund of booking amount when cancelled before check-in.</p>
                                 </div>
-                            ))}
+                                <div className="w-10 h-10 rounded-xl bg-emerald-400/10 flex items-center justify-center border border-emerald-400/20 shadow-inner flex-shrink-0">
+                                    <Icon name="ShieldCheckIcon" size={20} className="text-emerald-400" />
+                                </div>
+                            </div>
+
+                            <div className="bg-sky-400/5 border border-sky-400/20 px-6 py-5 rounded-2xl flex items-center justify-between gap-4 transition-all hover:bg-white/[0.04]">
+                                <div>
+                                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Standard (Without ₹70)</span>
+                                    <span className="text-2xl font-bold text-sky-400">70% Refund</span>
+                                    <p className="text-xs text-zinc-400 mt-1">70% refund before check-in. 30% penalty is split 50/50 between host & admin.</p>
+                                </div>
+                                <div className="w-10 h-10 rounded-xl bg-sky-400/10 flex items-center justify-center border border-sky-400/20 shadow-inner flex-shrink-0">
+                                    <Icon name="CheckIcon" size={20} className="text-sky-400" />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Special Protection Section */}
+                    {/* Policy Details Section */}
                     <div className="p-6 bg-sky-500/5 border border-sky-500/10 rounded-3xl relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 blur-[50px] -mr-16 -mt-16 group-hover:bg-sky-500/20 transition-colors" />
                         <div className="relative z-10">
@@ -46,22 +51,21 @@ const CancellationPolicyPage = () => {
                                 <div className="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center border border-sky-500/20">
                                     <Icon name="ShieldCheckIcon" size={16} className="text-sky-400" />
                                 </div>
-                                <span className="text-[11px] font-black text-sky-400 uppercase tracking-[0.2em]">Special Protection</span>
+                                <span className="text-[11px] font-black text-sky-400 uppercase tracking-[0.2em]">Policy Breakdown</span>
                             </div>
                             <ul className="space-y-4">
-
                                 <li className="flex items-start gap-3">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-2 flex-shrink-0" />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 flex-shrink-0" />
                                     <p className="text-sm text-zinc-400 leading-relaxed">
-                                        <strong className="text-zinc-100 block mb-0.5">Free Cancellation Protection</strong>
-                                        Pay ₹70 to get a 100% refund for same-day booking cancellations.
+                                        <strong className="text-zinc-100 block mb-0.5">Free Cancellation Protection (₹70)</strong>
+                                        Guests who select the ₹70 Free Cancellation option receive a 100% full refund of the base booking price if cancelled before check-in. The ₹70 protection fee is retained 100% by the platform (admin) and is non-refundable.
                                     </p>
                                 </li>
                                 <li className="flex items-start gap-3">
                                     <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-2 flex-shrink-0" />
                                     <p className="text-sm text-zinc-400 leading-relaxed">
-                                        <strong className="text-zinc-100 block mb-0.5">Platform Fee</strong>
-                                        The platform fee is non-refundable in all circumstances.
+                                        <strong className="text-zinc-100 block mb-0.5">Standard Cancellation (30% Penalty Split)</strong>
+                                        If the ₹70 protection is not selected, guests receive a 70% refund of the booking price upon cancellation prior to check-in. The remaining 30% penalty is shared equally (50/50: 15% to host, 15% to platform).
                                     </p>
                                 </li>
                                 <li className="flex items-start gap-3">

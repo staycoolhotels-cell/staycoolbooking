@@ -507,6 +507,43 @@ export async function getGuestVerification(guestId: string) {
   }
 }
 
+/**
+ * Option B: Checks whether a booking is eligible for host payout split.
+ * Split process occurs on check-in day at or after 09:00 PM (21:00 IST).
+ * - If check_in date is strictly before today in IST, it is past due -> eligible.
+ * - If check_in date is today in IST, eligible only if current time is >= 21:00 (09:00 PM).
+ * - If check_in date is in the future in IST, not eligible yet.
+ */
+export async function isEligibleForCheckInPayout(checkInDateStr: string): Promise<boolean> {
+  const now = new Date();
+  
+  const istDateStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(now);
+
+  const istHour = parseInt(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      hour: 'numeric',
+      hour12: false
+    }).format(now),
+    10
+  );
+
+  if (checkInDateStr < istDateStr) {
+    return true;
+  }
+
+  if (checkInDateStr === istDateStr) {
+    return istHour >= 21;
+  }
+
+  return false;
+}
+
 export async function processCheckInAndPayout(bookingId: string, adminSupabase: any) {
   // 1. Fetch booking with property host info
   const { data: booking, error: bookingError } = await adminSupabase
@@ -522,52 +559,74 @@ export async function processCheckInAndPayout(bookingId: string, adminSupabase: 
 
   const hostId = (booking as any).properties?.host_id;
 
-  if (booking.status === 'checked_in') {
-    return { success: true, message: 'Already checked in.' };
-  }
-
-  if (booking.status !== 'confirmed') {
+  if (booking.status !== 'confirmed' && booking.status !== 'checked_in') {
     return { error: `Cannot check in. Booking status is: ${booking.status}` };
   }
 
-  // 2. Perform status update to 'checked_in'
-  const { error: updateError } = await adminSupabase
-    .from('bookings')
-    .update({ status: 'checked_in' })
-    .eq('id', bookingId);
+  // If already checked in, check if the payout transfer has already been settled
+  if (booking.status === 'checked_in') {
+    const { data: existingTransfer } = await adminSupabase
+      .from('payment_transfers')
+      .select('transfer_status')
+      .eq('booking_id', bookingId)
+      .maybeSingle();
 
-  if (updateError) {
-    console.error('[CheckIn] Failed to update booking status:', updateError);
-    return { error: 'Failed to update booking status' };
+    if (existingTransfer?.transfer_status === 'settled') {
+      return { success: true, message: 'Already checked in and payout already settled.' };
+    }
   }
 
-  // Automated notifications for Guest and Host upon Check-in
-  try {
-    const bookingRef = `#${bookingId.slice(0, 8).toUpperCase()}`;
-    if (booking.guest_id) {
-      await sendTargetedNotification({
-        type: 'booking',
-        title: '🏨 Welcome & Checked In!',
-        message: `You are now checked in for reservation ${bookingRef}. Have a wonderful stay!`,
-        status: 'success',
-        userId: booking.guest_id,
-        targetRole: 'guest',
-        url: '/user-profile',
-      });
+  // 2. Perform status update to 'checked_in' if not already
+  if (booking.status === 'confirmed') {
+    const { error: updateError } = await adminSupabase
+      .from('bookings')
+      .update({ status: 'checked_in' })
+      .eq('id', bookingId);
+
+    if (updateError) {
+      console.error('[CheckIn] Failed to update booking status:', updateError);
+      return { error: 'Failed to update booking status' };
     }
-    if (hostId) {
-      await sendTargetedNotification({
-        type: 'booking',
-        title: '✅ Guest Checked In',
-        message: `Guest has checked in for booking ${bookingRef}. Host payout is processing.`,
-        status: 'info',
-        userId: hostId,
-        targetRole: 'host',
-        url: '/host-dashboard',
-      });
+
+    // Automated notifications for Guest and Host upon Check-in
+    try {
+      const bookingRef = `#${bookingId.slice(0, 8).toUpperCase()}`;
+      if (booking.guest_id) {
+        await sendTargetedNotification({
+          type: 'booking',
+          title: '🏨 Welcome & Checked In!',
+          message: `You are now checked in for reservation ${bookingRef}. Have a wonderful stay!`,
+          status: 'success',
+          userId: booking.guest_id,
+          targetRole: 'guest',
+          url: '/user-profile',
+        });
+      }
+      if (hostId) {
+        await sendTargetedNotification({
+          type: 'booking',
+          title: '✅ Guest Checked In',
+          message: `Guest has checked in for booking ${bookingRef}. Host payout will process at 09:00 PM.`,
+          status: 'info',
+          userId: hostId,
+          targetRole: 'host',
+          url: '/host-dashboard',
+        });
+      }
+    } catch (notifErr) {
+      console.error('CheckIn notification error:', notifErr);
     }
-  } catch (notifErr) {
-    console.error('CheckIn notification error:', notifErr);
+  }
+
+  // 3. Option B Check: Only split host payout at or after 09:00 PM on check-in day!
+  const isEligible = await isEligibleForCheckInPayout(booking.check_in);
+  if (!isEligible) {
+    console.log(`[CheckIn] Booking ${bookingId} checked in. Payout split is scheduled for 09:00 PM IST on ${booking.check_in}.`);
+    return {
+      success: true,
+      message: 'Checked in successfully. Host payout split will process at 09:00 PM today.',
+      scheduledTime: '09:00 PM IST',
+    };
   }
 
   // 3. Process splits
@@ -751,14 +810,22 @@ export async function checkInBooking(bookingId: string) {
 export async function autoProcessCheckedInBookings() {
   try {
     const adminSupabase = createServiceClient();
-    const todayStr = new Date().toISOString().split('T')[0];
+    
+    // Format current date in IST (Asia/Kolkata)
+    const now = new Date();
+    const istDateStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(now);
 
-    // Find all confirmed bookings where check_in date is today or in the past
+    // Find all confirmed or checked_in bookings where check_in date is today or in the past
     const { data: bookingsToCheckIn, error } = await adminSupabase
       .from('bookings')
-      .select('id')
-      .eq('status', 'confirmed')
-      .lte('check_in', todayStr);
+      .select('id, check_in, status')
+      .in('status', ['confirmed', 'checked_in'])
+      .lte('check_in', istDateStr);
 
     if (error) {
       console.error('[AutoCheckIn] Error fetching bookings:', error);
@@ -769,15 +836,31 @@ export async function autoProcessCheckedInBookings() {
       return { success: true, count: 0 };
     }
 
-    console.log(`[AutoCheckIn] Found ${bookingsToCheckIn.length} bookings to automatically check in.`);
+    // Filter by Option B: Eligible at or after 09:00 PM IST on check-in day, or past days
+    const eligibleBookings: any[] = [];
+    for (const b of bookingsToCheckIn) {
+      if (await isEligibleForCheckInPayout(b.check_in)) {
+        eligibleBookings.push(b);
+      }
+    }
+
+    if (eligibleBookings.length === 0) {
+      return { 
+        success: true, 
+        count: 0, 
+        message: 'No bookings eligible for 09:00 PM payout split at this time.' 
+      };
+    }
+
+    console.log(`[AutoCheckIn] Found ${eligibleBookings.length} booking(s) eligible for 09:00 PM payout split.`);
 
     let processedCount = 0;
-    for (const b of bookingsToCheckIn) {
+    for (const b of eligibleBookings) {
       try {
         await processCheckInAndPayout(b.id, adminSupabase);
         processedCount++;
       } catch (err) {
-        console.error(`[AutoCheckIn] Failed to auto check-in booking ${b.id}:`, err);
+        console.error(`[AutoCheckIn] Failed to auto process booking ${b.id}:`, err);
       }
     }
     

@@ -604,13 +604,9 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                 <div className="bg-zinc-950 p-4 rounded-xl border border-white/5 mb-6 text-xs text-zinc-400 space-y-2">
                                     <p><strong className="text-zinc-300">Policy Reminder:</strong></p>
                                     <ul className="list-disc pl-4 space-y-1">
-                                        <li>Within 6 hrs of booking: 100% Refund (Excl. Platform Fee)</li>
-                                        <li>10+ Days Before Check-in: 100% Refund (Excl. Platform Fee)</li>
-                                        <li>5-10 Days Before: 70% Refund (Excl. Platform Fee)</li>
-                                        <li>2-5 Days Before: 50% Refund (Excl. Platform Fee)</li>
-                                        <li>Less than 2 Days: 30% Refund (Excl. Platform Fee)</li>
-                                        <li><span className="text-sky-400 font-semibold">Free Cancellation (₹70):</span> 100% Refund always.</li>
-                                        <li><span className="text-rose-400 font-semibold">No-Show Rule:</span> If guest fails to arrive on the scheduled check-in date and check-in time, it is treated as a No-Show with no refund, unless StayCool&apos;s applicable refund policy applies.</li>
+                                        <li><span className="text-emerald-400 font-semibold">With Free Cancellation (₹70):</span> 100% Full Refund of booking amount before check-in.</li>
+                                        <li><span className="text-sky-400 font-semibold">Standard Cancellation (Without ₹70):</span> 70% Refund to guest before check-in (remaining 30% split between Host & Admin).</li>
+                                        <li><span className="text-rose-400 font-semibold">No-Show Rule:</span> If guest fails to arrive on the scheduled check-in date and check-in time, or after check-in, 0% refund applies.</li>
                                     </ul>
                                 </div>
 

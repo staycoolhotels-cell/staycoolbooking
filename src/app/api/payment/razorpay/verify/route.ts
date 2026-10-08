@@ -92,14 +92,13 @@ export async function POST(req: Request) {
             if (booking) {
                 const hostId = booking.property?.host_id;
                 const amount = Number(booking.total_price);
-                // Platform service fee is strictly 100% retained by Admin. It must never be shared with host.
-                const guestServiceFee = Number(booking.service_fee) || Math.round((amount * 0.1) / 1.1);
-                const hostRevenue = Math.max(0, amount - guestServiceFee);
+                // Zero commission from guest. Commission is deducted solely from Host payout.
+                const guestServiceFee = 0;
                 const { data: hostProfile } = hostId
                     ? await supabase.from('users').select('referred_by, referral_commissions_remaining').eq('id', hostId).single()
                     : { data: null };
                 const commissionRate = hostProfile?.referred_by && (hostProfile.referral_commissions_remaining || 0) > 0 ? 5 : 10;
-                const hostPayout = Number((hostRevenue * (1 - commissionRate / 100)).toFixed(2));
+                const hostPayout = Number((amount * (1 - commissionRate / 100)).toFixed(2));
                 const platformFee = Number((amount - hostPayout).toFixed(2));
 
                 // If transfer was not present, upsert it now with full host/platform breakdown

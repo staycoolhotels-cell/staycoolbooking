@@ -53,28 +53,33 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty, c
                             {cancellationPolicy.description === 'Tiered' ? (
                                 <div className="space-y-6">
                                     <div className="space-y-3">
-                                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Standard Cancellation Policy:</p>
+                                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Cancellation Policy Overview:</p>
                                         <div className="grid gap-2.5">
-                                            {[
-                                                { period: '10+ Days Before', refund: '100% Refund', color: 'text-emerald-400', bg: 'bg-emerald-400/5', border: 'border-emerald-400/10' },
-                                                { period: '5-10 Days Before', refund: '70% Refund', color: 'text-sky-400', bg: 'bg-sky-400/5', border: 'border-sky-400/10' },
-                                                { period: '2-5 Days Before', refund: '50% Refund', color: 'text-amber-400', bg: 'bg-amber-400/5', border: 'border-amber-400/10' },
-                                                { period: '< 2 Days Before', refund: '30% Refund', color: 'text-rose-400', bg: 'bg-rose-400/5', border: 'border-rose-400/10' }
-                                            ].map((item, i) => (
-                                                <div key={i} className={`${item.bg} ${item.border} border px-4 py-3.5 rounded-2xl flex items-center justify-between gap-3 transition-all hover:bg-white/[0.04]`}>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">{item.period} check-in</span>
-                                                        <span className={`text-base font-bold ${item.color}`}>{item.refund}</span>
-                                                    </div>
-                                                    <div className={`w-9 h-9 rounded-xl ${item.bg} flex items-center justify-center border ${item.border} shadow-inner`}>
-                                                        <Icon name="CheckIcon" size={16} className={item.color} />
-                                                    </div>
+                                            <div className="bg-emerald-400/5 border border-emerald-400/10 px-4 py-3.5 rounded-2xl flex items-center justify-between gap-3 transition-all hover:bg-white/[0.04]">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest mb-0.5">With Free Cancellation (₹70)</span>
+                                                    <span className="text-base font-bold text-emerald-400">100% Full Refund</span>
+                                                    <span className="text-[11px] text-zinc-400 mt-0.5">Cancel anytime before check-in. Protection fee (₹70) is non-refundable.</span>
                                                 </div>
-                                            ))}
+                                                <div className="w-9 h-9 rounded-xl bg-emerald-400/10 flex items-center justify-center border border-emerald-400/10 shadow-inner flex-shrink-0">
+                                                    <Icon name="ShieldCheckIcon" size={16} className="text-emerald-400" />
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-sky-400/5 border border-sky-400/10 px-4 py-3.5 rounded-2xl flex items-center justify-between gap-3 transition-all hover:bg-white/[0.04]">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">Standard (Without ₹70)</span>
+                                                    <span className="text-base font-bold text-sky-400">70% Refund</span>
+                                                    <span className="text-[11px] text-zinc-400 mt-0.5">Cancel before check-in. Remaining 30% penalty is shared 50/50 with host & admin.</span>
+                                                </div>
+                                                <div className="w-9 h-9 rounded-xl bg-sky-400/10 flex items-center justify-center border border-sky-400/10 shadow-inner flex-shrink-0">
+                                                    <Icon name="CheckIcon" size={16} className="text-sky-400" />
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* Special Protection Section */}
+                                    {/* Policy Details Section */}
                                     <div className="p-5 bg-sky-500/5 border border-sky-500/10 rounded-2xl relative overflow-hidden group">
                                         <div className="absolute top-0 right-0 w-24 h-24 bg-sky-500/10 blur-[40px] -mr-12 -mt-12 group-hover:bg-sky-500/20 transition-colors" />
                                         <div className="relative z-10">
@@ -82,19 +87,19 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty, c
                                                 <div className="w-7 h-7 rounded-lg bg-sky-500/20 flex items-center justify-center border border-sky-500/20">
                                                     <Icon name="ShieldCheckIcon" size={14} className="text-sky-400" />
                                                 </div>
-                                                <span className="text-[10px] font-black text-sky-400 uppercase tracking-[0.2em]">Special Protection</span>
+                                                <span className="text-[10px] font-black text-sky-400 uppercase tracking-[0.2em]">Policy Breakdown</span>
                                             </div>
                                             <ul className="space-y-3">
                                                 <li className="flex items-start gap-3">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 flex-shrink-0" />
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
                                                     <p className="text-[12px] text-zinc-400 leading-relaxed">
-                                                        <strong className="text-zinc-100">Free Cancellation Protection:</strong> Pay ₹70 to get a 100% refund for same-day booking cancellations.
+                                                        <strong className="text-zinc-100">Free Cancellation (₹70):</strong> Get a 100% refund of the base booking amount when cancelling before check-in. The ₹70 protection fee is retained 100% by Admin.
                                                     </p>
                                                 </li>
                                                 <li className="flex items-start gap-3">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 flex-shrink-0" />
                                                     <p className="text-[12px] text-zinc-400 leading-relaxed">
-                                                        <strong className="text-zinc-100">Platform Fee:</strong> The platform fee is non-refundable in all circumstances.
+                                                        <strong className="text-zinc-100">Standard Cancellation:</strong> If protection is not selected, get a 70% refund before check-in. The 30% penalty is split equally (15% to host, 15% to admin).
                                                     </p>
                                                 </li>
                                                 <li className="flex items-start gap-3">

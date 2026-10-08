@@ -78,9 +78,8 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
         if (!bookingsError && bookingsData) {
             const mappedTransfers: PaymentTransfer[] = bookingsData.map(b => {
                 const total = Number(b.total_price);
-                // Platform service fee is strictly 100% retained by Admin. It must never be shared with host.
-                const guestServiceFee = Number(b.service_fee) || Math.round((total * 0.1) / 1.1);
-                const hostRevenue = Math.max(0, total - guestServiceFee);
+                // Zero commission from guest. Only host platform commission (10%) is deducted.
+                const hostRevenue = total;
                 const commissionRate = 10; // Host platform commission is 10%
                 const hostCommission = Math.round(hostRevenue * (commissionRate / 100));
                 const hostShare = hostRevenue - hostCommission;
@@ -99,7 +98,7 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
                     created_at: b.created_at,
                     bookings: {
                         total_price: b.total_price,
-                        service_fee: guestServiceFee,
+                        service_fee: Number(b.service_fee || 0),
                         status: b.status,
                         properties: b.properties
                     }
@@ -241,10 +240,9 @@ export default function PayoutHistory({ hostId }: PayoutHistoryProps) {
                                     const StatusIcon = config.icon;
                                     const date = new Date(transfer.created_at);
 
-                                    // Guest total paid vs Host gross earnings (excluding guest 10% service fee)
+                                    // Guest total paid = Host gross earnings (zero guest service fee)
                                     const guestTotalPaid = Number(transfer.bookings?.total_price || transfer.total_amount || 0);
-                                    const guestServiceFee = Number(transfer.bookings?.service_fee) || Math.round((guestTotalPaid * 0.1) / 1.1);
-                                    const hostGrossEarnings = Math.max(0, guestTotalPaid - guestServiceFee);
+                                    const hostGrossEarnings = guestTotalPaid;
                                     const hostCommission = Math.round(hostGrossEarnings * 0.10);
                                     const hostShare = Number(transfer.host_amount);
 

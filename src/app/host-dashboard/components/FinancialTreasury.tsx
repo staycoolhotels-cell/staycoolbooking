@@ -17,19 +17,19 @@ type FinancialTreasuryProps = {
 const FinancialTreasury: React.FC<FinancialTreasuryProps> = ({ transactions = [] }) => {
   const payouts = useMemo(() => {
     return transactions.map((t) => {
-      // Determine gross total and ensure platform service fee is 100% Admin
+      // Zero commission from guest. Only host platform commission is deducted.
       const rawAmount = Number(t.amount) || 0;
-      const guestServiceFee = Number(t.breakdown?.service_fee || t.serviceFee) || Math.round((rawAmount * 0.1) / 1.1);
+      const guestServiceFee = 0;
       
       // If t.amount is already net payout (from mappedTransactions where amount = hostNetPayout)
       const isAlreadyNet = t.netRevenue !== undefined && t.netRevenue === t.amount;
       const hostRevenue = isAlreadyNet 
         ? Math.round(t.amount / 0.90) 
-        : Math.max(0, rawAmount - guestServiceFee);
+        : rawAmount;
       const hostCommission = Math.round(hostRevenue * 0.10);
       const netProfit = isAlreadyNet ? t.amount : (hostRevenue - hostCommission);
-      const grossTotal = hostRevenue + guestServiceFee;
-      const platformFee = grossTotal - netProfit; // 100% Admin retained (Guest service fee + host platform commission)
+      const grossTotal = hostRevenue;
+      const platformFee = hostCommission; // Host platform commission only
 
       const statusMap: Record<string, string> = {
         'completed': 'Completed',

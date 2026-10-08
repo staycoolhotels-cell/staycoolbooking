@@ -14,8 +14,8 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
   const date = transaction.date || new Date().toLocaleDateString();
 
   const breakdown = transaction.breakdown || {
-    accommodation: Math.round((transaction.amount || 0) / 1.1),
-    service_fee: Math.round((transaction.amount || 0) * 0.1 / 1.1),
+    accommodation: transaction.amount || 0,
+    service_fee: 0,
     taxes: 0,
     discount: 0,
     upgrades: 0,
@@ -57,7 +57,7 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
 
   const hostPayout = transaction.hostPayoutAmount !== undefined 
     ? transaction.hostPayoutAmount 
-    : Math.max(0, Math.round((originalTotal - (breakdown.service_fee || Math.round(originalTotal * 0.1 / 1.1))) * 0.90));
+    : Math.max(0, Math.round(originalTotal * 0.90));
 
   const adminRevenue = transaction.adminCommissionAmount !== undefined 
     ? transaction.adminCommissionAmount 
@@ -296,7 +296,7 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
               {(() => {
                 const rows = [
                   { name: 'Accommodation Charges', price: breakdown.accommodation, isDiscount: false },
-                  { name: 'Platform Service Fee (10%)', price: breakdown.service_fee, isDiscount: false }
+                  { name: 'Platform Service Fee', price: 0, isDiscount: false }
                 ];
                 if (breakdown.discount && breakdown.discount > 0) {
                   rows.push({ name: 'Bulk Discount Savings', price: breakdown.discount, isDiscount: true });
@@ -425,7 +425,7 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em]">Terms & Conditions</p>
             <div className="space-y-1.5 text-[9px] leading-relaxed text-zinc-500">
               <p>• The guest is fully responsible for maintaining the property in good condition throughout the duration of their stay.</p>
-              <p>• Refunds are processed according to the Tiered Refund Schedule based on cancellation timing relative to check-in.</p>
+              <p>• 100% full refund with Free Cancellation (₹70) or 70% refund standard if cancelled before check-in.</p>
               <p>• StayCool platform service fees are 100% retained by Admin and non-refundable upon cancellation.</p>
               <p>• <strong>StayCool No-Show Rule:</strong> If the guest fails to arrive at the property on the scheduled check-in date and check-in time, it will be considered a No-Show. No refund will be provided for No-Show bookings, unless StayCool&apos;s applicable refund policy applies.</p>
               <p>• Availability of luxury services and amenities is subject to change without prior notice.</p>
