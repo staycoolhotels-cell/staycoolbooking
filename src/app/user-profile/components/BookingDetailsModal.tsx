@@ -272,7 +272,12 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                                 <Icon name="HomeIcon" size={14} />
                                             </div>
                                             <div>
-                                                <p className="text-xs font-semibold whitespace-nowrap">{booking.total_rooms_booked || 1} {(booking.total_rooms_booked || 1) === 1 ? (booking.properties.type?.toLowerCase().includes('tent') ? 'Tent' : 'Room') : (booking.properties.type?.toLowerCase().includes('tent') ? 'Tents' : 'Rooms')}</p>
+                                                <p className="text-xs font-semibold whitespace-nowrap">
+                                                    {(booking.room_type || '').toLowerCase().includes('entire resort') || (booking.properties.type || '').toLowerCase().includes('entire resort')
+                                                        ? 'Entire Resort'
+                                                        : `${booking.total_rooms_booked || 1} ${(booking.total_rooms_booked || 1) === 1 ? (booking.properties.type?.toLowerCase().includes('tent') ? 'Tent' : 'Room') : (booking.properties.type?.toLowerCase().includes('tent') ? 'Tents' : 'Rooms')}`
+                                                    }
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
@@ -440,10 +445,12 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                                 <span className="text-zinc-400">Accommodation Charges</span>
                                                 <span className="text-white font-medium text-xs">₹{baseAccommodation.toLocaleString('en-IN')}</span>
                                             </div>
-                                            <div className="flex justify-between items-center text-sm">
-                                                <span className="text-zinc-400">Platform Service Fee (10%)</span>
-                                                <span className="text-white font-medium text-xs">₹{serviceFee.toLocaleString('en-IN')}</span>
-                                            </div>
+                                            {serviceFee > 0 && (
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-zinc-400">Platform Service Fee</span>
+                                                    <span className="text-white font-medium text-xs">₹{serviceFee.toLocaleString('en-IN')}</span>
+                                                </div>
+                                            )}
                                             {booking.booking_type === 'bulk' && discountSavings > 0 && (
                                                 <div className="flex justify-between items-center text-sm">
                                                     <span className="text-emerald-400 font-medium">Bulk Discount Savings</span>
@@ -605,7 +612,7 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                     <p><strong className="text-zinc-300">Policy Reminder:</strong></p>
                                     <ul className="list-disc pl-4 space-y-1">
                                         <li><span className="text-emerald-400 font-semibold">With Free Cancellation (₹70):</span> 100% Full Refund of booking amount before check-in.</li>
-                                        <li><span className="text-sky-400 font-semibold">Standard Cancellation (Without ₹70):</span> 70% Refund to guest before check-in (remaining 30% split between Host & Admin).</li>
+                                        <li><span className="text-sky-400 font-semibold">Standard Cancellation (Without ₹70):</span> 70% Refund to guest before check-in (standard 30% cancellation fee applies).</li>
                                         <li><span className="text-rose-400 font-semibold">No-Show Rule:</span> If guest fails to arrive on the scheduled check-in date and check-in time, or after check-in, 0% refund applies.</li>
                                     </ul>
                                 </div>

@@ -632,11 +632,62 @@ export async function processCheckInAndPayout(bookingId: string, adminSupabase: 
   // 3. Process splits
   if (booking.razorpay_payment_id) {
     // Fetch payment transfer details
-    const { data: transferDetails } = await adminSupabase
+    const { data: fetchedTransferDetails } = await adminSupabase
       .from('payment_transfers')
       .select('*')
       .eq('booking_id', bookingId)
-      .single();
+      .maybeSingle();
+
+    let transferDetails = fetchedTransferDetails;
+
+    // Robust fallback: if payment_transfers record was missing, reconstruct it immediately!
+    if (!transferDetails) {
+      console.warn('[CheckIn] Transfer details missing, reconstructing from booking...');
+      const totalAmount = Number(booking.total_price);
+      const commissionRate = 10;
+      const adminCommission = Math.round(totalAmount * (commissionRate / 100));
+      const hostAmount = totalAmount - adminCommission;
+
+      const { data: newRecord } = await adminSupabase
+        .from('payment_transfers')
+        .upsert({
+          booking_id: bookingId,
+          host_id: hostId,
+          razorpay_order_id: booking.razorpay_order_id,
+          razorpay_payment_id: booking.razorpay_payment_id,
+          total_amount: totalAmount,
+          platform_commission: adminCommission,
+          host_amount: hostAmount,
+          commission_type: 'percentage',
+          commission_value: commissionRate,
+          transfer_status: 'pending'
+        }, { onConflict: 'booking_id' })
+        .select()
+        .single();
+
+      transferDetails = newRecord || {
+        host_amount: hostAmount,
+        platform_commission: adminCommission,
+        transfer_status: 'pending'
+      };
+    }
+
+    // If razorpay_transfer_id wasn't saved, try to fetch it directly from the Razorpay payment
+    if (!transferDetails.razorpay_transfer_id && booking.razorpay_payment_id) {
+      try {
+        const transfersList = await razorpay.payments.fetchTransfer(booking.razorpay_payment_id);
+        if (transfersList && transfersList.items && transfersList.items.length > 0) {
+          const hostTransfer = transfersList.items.find((item: any) => item.notes?.type === 'host_payout') || transfersList.items[0];
+          transferDetails.razorpay_transfer_id = hostTransfer.id;
+          await adminSupabase
+            .from('payment_transfers')
+            .update({ razorpay_transfer_id: hostTransfer.id })
+            .eq('booking_id', bookingId);
+        }
+      } catch (fetchErr) {
+        console.warn('[CheckIn] Could not fetch transfers from Razorpay payment:', fetchErr);
+      }
+    }
 
     if (transferDetails && transferDetails.transfer_status !== 'settled') {
       const { data: hostKyc } = await adminSupabase

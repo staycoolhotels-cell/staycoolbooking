@@ -471,15 +471,36 @@ const BookingCard = ({
     }
   }, [availableRoomsList, bookingType, selectedRoomCountsByType, isHotelOrResort]);
 
-  // Auto-update guests when selected units change
-  useEffect(() => {
-    const requiredCount = bookingType === 'bulk' ? selectedRoomIds.length : 1;
-    // Update guests to the maximum allowed for the selected units
-    // or just multiply maxGuests by number of selected units.
-    if (requiredCount > 0) {
-      setGuests(maxGuests * requiredCount);
+  const currentRoomSpecs = useMemo(() => {
+    if (selectedHotelRoomType) {
+      return getRoomTypeSpecs(selectedHotelRoomType);
     }
-  }, [selectedRoomIds.length, bookingType, maxGuests]);
+    return null;
+  }, [selectedHotelRoomType, roomTypeSpecs]);
+
+  const currentMaxAllowedGuests = useMemo(() => {
+    if (bookingType === 'bulk') {
+      if (isHotelOrResort) {
+        let sum = 0;
+        Object.entries(selectedRoomCountsByType).forEach(([type, count]) => {
+          const sp = getRoomTypeSpecs(type);
+          sum += (sp.guestsCount || 2) * (count || 0);
+        });
+        return Math.max(1, sum || maxGuests * Math.max(selectedRooms, 1));
+      }
+      return Math.max(1, maxGuests * Math.max(selectedRooms, selectedRoomIds.length, 1));
+    }
+    return Math.max(1, currentRoomSpecs?.guestsCount || maxGuests || 2);
+  }, [bookingType, isHotelOrResort, selectedRoomCountsByType, selectedRooms, selectedRoomIds.length, currentRoomSpecs, maxGuests]);
+
+  // Clamp guests within the allowed capacity of the selected room(s) without forcing max
+  useEffect(() => {
+    if (guests > currentMaxAllowedGuests) {
+      setGuests(currentMaxAllowedGuests);
+    } else if (guests < 1) {
+      setGuests(1);
+    }
+  }, [currentMaxAllowedGuests]);
 
 
 
@@ -728,7 +749,8 @@ const BookingCard = ({
     return isNaN(calculated) || !isFinite(calculated) ? displayPrice : calculated;
   }, [nights, baseTotal, bookingType, roomsToBook, displayPrice]);
 
-  const serviceFee = baseTotal * 0.1;
+  // Zero platform service fee for guests
+  const serviceFee = 0;
 
   // Discounts
   let discount = 0;
@@ -752,8 +774,9 @@ const BookingCard = ({
     return amenity ? sum + amenity.price * qty : sum;
   }, 0);
 
+  const baseBookingAmount = discountedTotal + upgradesTotal;
   const freeCancellationFee = hasFreeCancellation ? 70 : 0;
-  const total = discountedTotal + serviceFee + upgradesTotal + freeCancellationFee;
+  const total = baseBookingAmount + freeCancellationFee;
 
 
   const handleBookClick = () => {
@@ -1163,6 +1186,40 @@ const BookingCard = ({
               </div>
             </div>
 
+            {/* Guest Selection for Hotel/Resort */}
+            <div className="p-3 bg-[#0c121e]/90 border border-slate-800 rounded-2xl flex justify-between items-center mb-4 group hover:border-sky-500/50 transition-colors">
+              <div>
+                <label className="block text-[9px] font-extrabold text-sky-400 uppercase tracking-wider mb-0.5">
+                  GUESTS
+                </label>
+                <div className="text-sm font-bold text-white flex items-center gap-1.5">
+                  <span>{guests} {guests === 1 ? 'Guest' : 'Guests'}</span>
+                  <span className="text-[11px] font-normal text-slate-400">
+                    (up to {currentMaxAllowedGuests})
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setGuests(Math.max(1, guests - 1))}
+                  disabled={guests <= 1}
+                  className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-slate-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 disabled:hover:border-slate-700 disabled:hover:text-slate-300 transition-colors"
+                >
+                  <Icon name="MinusIcon" size={12} />
+                </button>
+                <span className="text-sm font-bold text-white min-w-[20px] text-center">{guests}</span>
+                <button
+                  type="button"
+                  onClick={() => setGuests(Math.min(currentMaxAllowedGuests, guests + 1))}
+                  disabled={guests >= currentMaxAllowedGuests}
+                  className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-slate-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 disabled:hover:border-slate-700 disabled:hover:text-slate-300 transition-colors"
+                >
+                  <Icon name="PlusIcon" size={12} />
+                </button>
+              </div>
+            </div>
+
             {/* SELECT ROOM Title */}
             <div className="text-[11px] font-extrabold tracking-wider uppercase text-sky-400 mb-3">
               SELECT ROOM
@@ -1184,7 +1241,7 @@ const BookingCard = ({
                     onClick={() => {
                       if (bookingType === 'single') {
                         setSelectedHotelRoomType(type);
-                        setGuests(specs.guestsCount);
+                        setGuests(prev => Math.min(prev, specs.guestsCount));
                       }
                     }}
                     className={`relative rounded-2xl p-4 transition-all cursor-pointer border ${
@@ -1326,7 +1383,7 @@ const BookingCard = ({
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-emerald-400/90">
                           <Icon name="CheckCircleIcon" size={14} />
-                          <span className="text-[11px] font-medium">Get full refund of {currency}{total.toLocaleString()}</span>
+                          <span className="text-[11px] font-medium">Get full refund of {currency}{baseBookingAmount.toLocaleString()}</span>
                         </div>
                         <div className="flex items-center gap-2 text-gray-400">
                           <Icon name="NoSymbolIcon" size={14} />
@@ -1438,10 +1495,12 @@ const BookingCard = ({
                       <span>-{currency}{discount.toLocaleString()}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-gray-300">
-                    <span>Platform Service Fee (10%)</span>
-                    <span>{currency}{serviceFee.toLocaleString()}</span>
-                  </div>
+                  {serviceFee > 0 && (
+                    <div className="flex justify-between text-gray-300">
+                      <span>Platform Service Fee</span>
+                      <span>{currency}{serviceFee.toLocaleString()}</span>
+                    </div>
+                  )}
                   {upgradesTotal > 0 && (
                     <div className="flex justify-between text-amber-400">
                       <span className="flex items-center gap-1">
@@ -1660,8 +1719,8 @@ const BookingCard = ({
                     <Icon name="MinusIcon" size={12} />
                   </button>
                   <button
-                    onClick={() => setGuests(Math.min(maxGuests * (bookingType === 'bulk' ? Math.max(selectedRooms, selectedRoomIds.length) : 1), guests + 1))}
-                    disabled={guests >= maxGuests * (bookingType === 'bulk' ? Math.max(selectedRooms, selectedRoomIds.length) : 1)}
+                    onClick={() => setGuests(Math.min(currentMaxAllowedGuests, guests + 1))}
+                    disabled={guests >= currentMaxAllowedGuests}
                     className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center text-gray-300 hover:border-sky-400 hover:text-sky-400 disabled:opacity-30 transition-colors"
                   >
                     <Icon name="PlusIcon" size={12} />
@@ -1845,7 +1904,7 @@ const BookingCard = ({
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2 text-emerald-400/90">
                           <Icon name="CheckCircleIcon" size={14} />
-                          <span className="text-[11px] font-medium">Get full refund of {currency}{total.toLocaleString()}</span>
+                          <span className="text-[11px] font-medium">Get full refund of {currency}{baseBookingAmount.toLocaleString()}</span>
                         </div>
                         <div className="flex items-center gap-2 text-gray-400">
                           <Icon name="NoSymbolIcon" size={14} />
@@ -1965,10 +2024,12 @@ const BookingCard = ({
                       <span>-{currency}{discount.toLocaleString()}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-gray-300">
-                    <span className="underline decoration-gray-700">Platform Service Fee (10%)</span>
-                    <span>{currency}{serviceFee.toLocaleString()}</span>
-                  </div>
+                  {serviceFee > 0 && (
+                    <div className="flex justify-between text-gray-300">
+                      <span className="underline decoration-gray-700">Platform Service Fee</span>
+                      <span>{currency}{serviceFee.toLocaleString()}</span>
+                    </div>
+                  )}
                   {upgradesTotal > 0 && (
                     <div className="flex justify-between text-amber-400">
                       <span className="flex items-center gap-1">

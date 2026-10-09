@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase-server';
 import crypto from 'crypto';
+import { razorpay } from '@/lib/razorpay';
 import { sendTargetedNotification } from '@/lib/activity-actions';
 
 /**
@@ -55,7 +56,22 @@ export async function POST(req: Request) {
         }
 
         // ─────────────────────────────────────────────
-        // 3. Update or Insert payment_transfers
+        // 3. Fetch transfer ID created by Razorpay Route
+        // ─────────────────────────────────────────────
+        let razorpayTransferId: string | null = null;
+        try {
+            const transfersList = await razorpay.payments.fetchTransfer(razorpayPaymentId);
+            if (transfersList && transfersList.items && transfersList.items.length > 0) {
+                const hostTransfer = transfersList.items.find((item: any) => item.notes?.type === 'host_payout') || transfersList.items[0];
+                razorpayTransferId = hostTransfer.id;
+                console.log(`[Verify] Linked Razorpay transfer ${razorpayTransferId} found for payment ${razorpayPaymentId}`);
+            }
+        } catch (fetchTrfErr) {
+            console.warn('[Verify] Could not fetch payment transfer from Razorpay:', fetchTrfErr);
+        }
+
+        // ─────────────────────────────────────────────
+        // 4. Update or Insert payment_transfers
         // ─────────────────────────────────────────────
         const { data: existingTransfer } = await supabase
             .from('payment_transfers')
@@ -64,13 +80,18 @@ export async function POST(req: Request) {
             .maybeSingle();
 
         if (existingTransfer) {
+            const updatePayload: any = {
+                razorpay_order_id: razorpayOrderId,
+                razorpay_payment_id: razorpayPaymentId,
+                transfer_status: 'pending',
+            };
+            if (razorpayTransferId) {
+                updatePayload.razorpay_transfer_id = razorpayTransferId;
+            }
+
             const { error: transferUpdateError } = await supabase
                 .from('payment_transfers')
-                .update({
-                    razorpay_order_id: razorpayOrderId,
-                    razorpay_payment_id: razorpayPaymentId,
-                    transfer_status: 'pending',
-                })
+                .update(updatePayload)
                 .eq('id', existingTransfer.id);
 
             if (transferUpdateError) {
@@ -79,7 +100,7 @@ export async function POST(req: Request) {
         }
 
         // ─────────────────────────────────────────────
-        // 4. Financial Record & Referral Logic
+        // 5. Financial Record & Referral Logic
         // ─────────────────────────────────────────────
         try {
             // Fetch booking details to get financial and host info
@@ -111,6 +132,7 @@ export async function POST(req: Request) {
                                 host_id: hostId,
                                 razorpay_order_id: razorpayOrderId,
                                 razorpay_payment_id: razorpayPaymentId,
+                                razorpay_transfer_id: razorpayTransferId,
                                 total_amount: amount,
                                 platform_commission: platformFee,
                                 host_amount: hostPayout,

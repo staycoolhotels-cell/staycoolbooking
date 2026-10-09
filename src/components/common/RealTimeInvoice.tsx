@@ -295,9 +295,11 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
             <tbody className="text-sm">
               {(() => {
                 const rows = [
-                  { name: 'Accommodation Charges', price: breakdown.accommodation, isDiscount: false },
-                  { name: 'Platform Service Fee', price: 0, isDiscount: false }
+                  { name: 'Accommodation Charges', price: breakdown.accommodation, isDiscount: false }
                 ];
+                if (breakdown.service_fee && breakdown.service_fee > 0) {
+                  rows.push({ name: 'Platform Service Fee', price: breakdown.service_fee, isDiscount: false });
+                }
                 if (breakdown.discount && breakdown.discount > 0) {
                   rows.push({ name: 'Bulk Discount Savings', price: breakdown.discount, isDiscount: true });
                 }

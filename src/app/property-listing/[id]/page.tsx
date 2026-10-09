@@ -268,6 +268,10 @@ export default async function PropertyListingPage({ params }: { params: Promise<
 
     const isEntireResort = (property.tier === 'Resort' && Array.isArray(property.room_types) && property.room_types.includes('Entire Resort')) || (Array.isArray(property.room_types) && property.room_types.length === 1 && property.room_types[0] === 'Entire Resort');
 
+    const allRoomSpecs = (property as any).room_type_specs || (property.room_type_amenities as any)?._specs || {};
+    const specsMaxGuests = Object.values(allRoomSpecs).reduce((max: number, s: any) => Math.max(max, Number(s?.guestsCount) || 0), 0);
+    const resolvedMaxGuests = Math.max(specsMaxGuests, Number(property.max_guests || 0), Number(property.capacity || 0), 2);
+
     const propertyData = {
         id: property.id,
         name: property.title,
@@ -285,7 +289,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         images: processImages(property.images, property.image_url, property.title),
         description: property.description,
         propertyType: property.tier || property.type || 'Apartment',
-        maxGuests: property.max_guests || property.capacity || 2,
+        maxGuests: resolvedMaxGuests,
         bedrooms: property.bedrooms || 1,
         beds: property.beds || 1,
         bathrooms: property.bathrooms || 1,

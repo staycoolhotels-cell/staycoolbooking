@@ -70,7 +70,7 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty, c
                                                 <div className="flex flex-col">
                                                     <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">Standard (Without ₹70)</span>
                                                     <span className="text-base font-bold text-sky-400">70% Refund</span>
-                                                    <span className="text-[11px] text-zinc-400 mt-0.5">Cancel before check-in. Remaining 30% penalty is shared 50/50 with host & admin.</span>
+                                                    <span className="text-[11px] text-zinc-400 mt-0.5">Cancel before check-in. Standard 30% cancellation fee applies.</span>
                                                 </div>
                                                 <div className="w-9 h-9 rounded-xl bg-sky-400/10 flex items-center justify-center border border-sky-400/10 shadow-inner flex-shrink-0">
                                                     <Icon name="CheckIcon" size={16} className="text-sky-400" />
@@ -93,13 +93,13 @@ const ThingsToKnowSection = ({ cancellationPolicy, houseRules, safetyProperty, c
                                                 <li className="flex items-start gap-3">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
                                                     <p className="text-[12px] text-zinc-400 leading-relaxed">
-                                                        <strong className="text-zinc-100">Free Cancellation (₹70):</strong> Get a 100% refund of the base booking amount when cancelling before check-in. The ₹70 protection fee is retained 100% by Admin.
+                                                        <strong className="text-zinc-100">Free Cancellation (₹70):</strong> Get a 100% refund of the base booking amount when cancelling before check-in. The ₹70 protection fee is non-refundable.
                                                     </p>
                                                 </li>
                                                 <li className="flex items-start gap-3">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 flex-shrink-0" />
                                                     <p className="text-[12px] text-zinc-400 leading-relaxed">
-                                                        <strong className="text-zinc-100">Standard Cancellation:</strong> If protection is not selected, get a 70% refund before check-in. The 30% penalty is split equally (15% to host, 15% to admin).
+                                                        <strong className="text-zinc-100">Standard Cancellation:</strong> If protection is not selected, get a 70% refund of the booking price before check-in (standard 30% cancellation fee applies).
                                                     </p>
                                                 </li>
                                                 <li className="flex items-start gap-3">

@@ -63,6 +63,7 @@ const GuestBookingInteractive = () => {
     guests: Number(searchParams.get('guests')) || 1,
     bookingType: searchParams.get('bookingType') || 'single',
     roomCount: Number(searchParams.get('roomCount')) || 1,
+    selectedRoomType: searchParams.get('selectedRoomType') || '',
     amenities: searchParams.get('amenities') || '{}',
     selectedRoomIds: searchParams.get('selectedRoomIds') || '[]',
     hasFreeCancellation: searchParams.get('hasFreeCancellation') === 'true',

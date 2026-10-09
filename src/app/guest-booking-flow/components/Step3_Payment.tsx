@@ -181,6 +181,24 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
   const isEntireResort = (property?.room_types && property.room_types.includes('Entire Resort')) || (property?.tier === 'Resort' && parsedRoomIds.length <= 1);
   const effectiveRooms = (bookingType === 'bulk' && !isEntireResort) ? roomCount : 1;
 
+  const unitSummaryText = useMemo(() => {
+    const isEntire = isEntireResort || 
+      ((filters as any).selectedRoomType || '').toLowerCase().includes('entire resort') ||
+      (selectedRooms.length > 0 && selectedRooms.every(r => (r.room_type || '').toLowerCase().includes('entire resort')));
+
+    if (isEntire) {
+      const unitsCount = property?.room_type_counts?.['Entire Resort'] || property?.total_rooms || selectedRooms.length;
+      return unitsCount > 1 ? `Entire Resort (${unitsCount} Units)` : 'Entire Resort';
+    }
+
+    const selRoomType = (filters as any).selectedRoomType || (selectedRooms.length > 0 ? selectedRooms[0].room_type : '');
+    if (selRoomType && !selRoomType.toLowerCase().includes('standard') && !selRoomType.toLowerCase().includes('room')) {
+      return `${effectiveRooms} ${effectiveRooms === 1 ? selRoomType : `${selRoomType}s`}`;
+    }
+
+    return `${effectiveRooms} ${effectiveRooms === 1 ? unitName : unitsName}`;
+  }, [isEntireResort, filters, selectedRooms, property, effectiveRooms, unitName, unitsName]);
+
   const getRoomPrice = (roomType: string | null) => {
     const roomTypePrices = property?.room_type_prices || {};
     if (!roomType || !roomTypePrices || Object.keys(roomTypePrices).length === 0) return pricePerNight;
@@ -567,7 +585,7 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
                   )}
                 </div>
                 <div className="text-base font-black text-sky-400">70% Refund</div>
-                <p className="text-[10px] text-zinc-400 mt-0.5">Cancel before check-in. Remaining 30% penalty is shared with host & platform.</p>
+                <p className="text-[10px] text-zinc-400 mt-0.5">Cancel before check-in. Standard 30% cancellation fee applies.</p>
               </div>
             </div>
 
@@ -700,7 +718,7 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
               </div>
               <div className="flex justify-between text-xs text-text-secondary">
                 <span>
-                  {filters.guests} {filters.guests === 1 ? 'Guest' : 'Guests'} • {effectiveRooms} {effectiveRooms === 1 ? unitName : unitsName}
+                  {filters.guests} {filters.guests === 1 ? 'Guest' : 'Guests'} • {unitSummaryText}
                 </span>
               </div>
             </div>

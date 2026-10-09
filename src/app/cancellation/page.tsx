@@ -34,7 +34,7 @@ const CancellationPolicyPage = () => {
                                 <div>
                                     <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Standard (Without ₹70)</span>
                                     <span className="text-2xl font-bold text-sky-400">70% Refund</span>
-                                    <p className="text-xs text-zinc-400 mt-1">70% refund before check-in. 30% penalty is split 50/50 between host & admin.</p>
+                                    <p className="text-xs text-zinc-400 mt-1">70% refund of booking amount when cancelled before check-in.</p>
                                 </div>
                                 <div className="w-10 h-10 rounded-xl bg-sky-400/10 flex items-center justify-center border border-sky-400/20 shadow-inner flex-shrink-0">
                                     <Icon name="CheckIcon" size={20} className="text-sky-400" />
@@ -58,14 +58,14 @@ const CancellationPolicyPage = () => {
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 flex-shrink-0" />
                                     <p className="text-sm text-zinc-400 leading-relaxed">
                                         <strong className="text-zinc-100 block mb-0.5">Free Cancellation Protection (₹70)</strong>
-                                        Guests who select the ₹70 Free Cancellation option receive a 100% full refund of the base booking price if cancelled before check-in. The ₹70 protection fee is retained 100% by the platform (admin) and is non-refundable.
+                                        Guests who select the ₹70 Free Cancellation option receive a 100% full refund of the base booking price if cancelled before check-in. The ₹70 protection fee is non-refundable.
                                     </p>
                                 </li>
                                 <li className="flex items-start gap-3">
                                     <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-2 flex-shrink-0" />
                                     <p className="text-sm text-zinc-400 leading-relaxed">
-                                        <strong className="text-zinc-100 block mb-0.5">Standard Cancellation (30% Penalty Split)</strong>
-                                        If the ₹70 protection is not selected, guests receive a 70% refund of the booking price upon cancellation prior to check-in. The remaining 30% penalty is shared equally (50/50: 15% to host, 15% to platform).
+                                        <strong className="text-zinc-100 block mb-0.5">Standard Cancellation (70% Refund)</strong>
+                                        If the ₹70 protection is not selected, guests receive a 70% refund of the booking price upon cancellation prior to check-in (standard 30% cancellation fee applies).
                                     </p>
                                 </li>
                                 <li className="flex items-start gap-3">

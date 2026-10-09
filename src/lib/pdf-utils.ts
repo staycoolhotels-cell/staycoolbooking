@@ -448,12 +448,14 @@ export const generateInvoicePDF = async (t: Transaction) => {
       `${nights}`,
       `Rs.${breakdown.accommodation.toLocaleString('en-IN')}`
     ]);
-    tableBody.push([
-      'Platform Service Fee (10%)',
-      `Rs.${breakdown.service_fee.toLocaleString('en-IN')}`,
-      '1',
-      `Rs.${breakdown.service_fee.toLocaleString('en-IN')}`
-    ]);
+    if (breakdown.service_fee && breakdown.service_fee > 0) {
+      tableBody.push([
+        'Platform Service Fee',
+        `Rs.${breakdown.service_fee.toLocaleString('en-IN')}`,
+        '1',
+        `Rs.${breakdown.service_fee.toLocaleString('en-IN')}`
+      ]);
+    }
 
     if (breakdown.discount && breakdown.discount > 0) {
       tableBody.push(['Bulk Discount Savings', `-Rs.${breakdown.discount.toLocaleString('en-IN')}`, '-', `-Rs.${breakdown.discount.toLocaleString('en-IN')}`]);
@@ -915,12 +917,14 @@ export const generateInvoicePDF = async (t: Transaction) => {
     doc.setTextColor(15, 23, 42);
     doc.text(`Rs. ${breakdown.accommodation.toLocaleString('en-IN')}`, 194, startFooterY, { align: 'right' });
 
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text('Platform Service Fee (10%):', 130, startFooterY + 6);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 23, 42);
-    doc.text(`Rs. ${breakdown.service_fee.toLocaleString('en-IN')}`, 194, startFooterY + 6, { align: 'right' });
+    if (breakdown.service_fee && breakdown.service_fee > 0) {
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text('Platform Service Fee:', 130, startFooterY + 6);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text(`Rs. ${breakdown.service_fee.toLocaleString('en-IN')}`, 194, startFooterY + 6, { align: 'right' });
+    }
 
     if (breakdown.discount && breakdown.discount > 0) {
       doc.setFont('helvetica', 'normal');

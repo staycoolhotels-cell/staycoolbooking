@@ -188,11 +188,13 @@ export async function POST(req: Request) {
             },
         };
 
-        // Note: We deliberately DO NOT attach transfers at order creation.
-        // This ensures the full payment (Admin commission + Host payout) lands directly
-        // into the main Razorpay account balance ("Available balance").
-        // On check-in day, the host share will be split and transferred via razorpay.payments.transfer.
-        // Admin share remains in the Razorpay balance until Admin clicks "Transfer to Bank".
+        // Attach transfers with on_hold: 1 so Razorpay Route places the host payout
+        // in escrow on hold. This guarantees Razorpay will NEVER auto-settle the host's
+        // money into the Admin's bank account before check-in.
+        if (transfers.length > 0) {
+            orderOptions.transfers = transfers;
+        }
+
         const order = await razorpay.orders.create(orderOptions);
 
         // ─────────────────────────────────────────────
