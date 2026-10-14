@@ -404,10 +404,34 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
             {bookingCode}
           </span>
 
-          <span className={`px-3 py-1 text-[10px] md:text-xs font-black uppercase tracking-[0.15em] rounded-full border backdrop-blur-xl shrink-0 ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} ${statusStyles.shadow}`}>
-            {booking.status.replace('_', ' ')}
-          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Booking Status */}
+            <span className={`px-3 py-1 text-[10px] md:text-xs font-black uppercase tracking-[0.15em] rounded-full border backdrop-blur-xl ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} ${statusStyles.shadow}`}>
+              {booking.status.replace(/_/g, ' ')}
+            </span>
+
+            {/* Payout Transfer Status (shown only for confirmed/checked_in/completed) */}
+            {(booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'completed') && (() => {
+              const ps = (booking as any).payoutTransferStatus as 'completed' | 'pending' | 'failed' | undefined;
+              const failReason = (booking as any).payoutFailureReason as string | undefined;
+              const cfg = ps === 'completed'
+                ? { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400', dot: 'bg-emerald-400 animate-pulse', label: 'Payout: Settled' }
+                : ps === 'failed'
+                ? { bg: 'bg-rose-500/10', border: 'border-rose-500/20', text: 'text-rose-400', dot: 'bg-rose-400', label: 'Payout: Failed' }
+                : { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400', dot: 'bg-amber-400 animate-pulse', label: 'Payout: Pending' };
+              return (
+                <span
+                  title={ps === 'failed' && failReason ? failReason : undefined}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-lg border backdrop-blur-md ${cfg.bg} ${cfg.border} ${cfg.text}`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
+                  {cfg.label}
+                </span>
+              );
+            })()}
+          </div>
         </div>
+
 
         {/* 2. Header Row: Avatar + Name & Property + Booking Type */}
         <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-4">

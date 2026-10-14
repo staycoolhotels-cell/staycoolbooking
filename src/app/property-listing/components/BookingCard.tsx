@@ -127,6 +127,7 @@ const BookingCard = ({
   const [isCheckOutOpen, setIsCheckOutOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [selectedRoomCountsByType, setSelectedRoomCountsByType] = useState<Record<string, number>>({});
+  const [blockedDateRanges, setBlockedDateRanges] = useState<{ start: string; end: string }[]>([]);
   const [hasFreeCancellation, setHasFreeCancellation] = useState(() => {
     if (typeof window !== 'undefined') {
       const val = sessionStorage.getItem(`booking_${propertyId}_hasFreeCancellation`);
@@ -134,6 +135,107 @@ const BookingCard = ({
     }
     return false;
   });
+
+  // Fetch confirmed bookings and blocked dates for this property
+  useEffect(() => {
+    if (!propertyId) return;
+
+    const fetchPropertyBookedDates = async () => {
+      try {
+        const { data: bookingsData } = await supabase
+          .from('bookings')
+          .select('check_in, check_out, total_rooms_booked')
+          .eq('property_id', propertyId)
+          .in('status', ['confirmed', 'checked_in']);
+
+        const { data: blockedData } = await supabase
+          .from('blocked_dates')
+          .select('start_date, end_date')
+          .eq('property_id', propertyId);
+
+        const ranges: { start: string; end: string }[] = [];
+
+        if (blockedData) {
+          blockedData.forEach((b: any) => {
+            if (b.start_date && b.end_date) {
+              ranges.push({
+                start: b.start_date.split('T')[0],
+                end: b.end_date.split('T')[0]
+              });
+            }
+          });
+        }
+
+        const effectiveTotalRooms = totalRooms > 0 ? totalRooms : 1;
+
+        if (bookingsData && bookingsData.length > 0) {
+          if (effectiveTotalRooms <= 1) {
+            bookingsData.forEach((b: any) => {
+              if (b.check_in && b.check_out) {
+                ranges.push({
+                  start: b.check_in.split('T')[0],
+                  end: b.check_out.split('T')[0]
+                });
+              }
+            });
+          } else {
+            const dateCounts: Record<string, number> = {};
+            bookingsData.forEach((b: any) => {
+              if (b.check_in && b.check_out) {
+                const startD = new Date(b.check_in.split('T')[0]);
+                const endD = new Date(b.check_out.split('T')[0]);
+                const roomsCount = b.total_rooms_booked || 1;
+                for (let d = new Date(startD); d < endD; d.setDate(d.getDate() + 1)) {
+                  const dStr = format(d, 'yyyy-MM-dd');
+                  dateCounts[dStr] = (dateCounts[dStr] || 0) + roomsCount;
+                }
+              }
+            });
+
+            Object.entries(dateCounts).forEach(([dStr, count]) => {
+              if (count >= effectiveTotalRooms) {
+                const nextDay = new Date(dStr);
+                nextDay.setDate(nextDay.getDate() + 1);
+                ranges.push({
+                  start: dStr,
+                  end: format(nextDay, 'yyyy-MM-dd')
+                });
+              }
+            });
+          }
+        }
+
+        setBlockedDateRanges(ranges);
+      } catch (err) {
+        console.error('Failed to fetch property booked dates:', err);
+      }
+    };
+
+    fetchPropertyBookedDates();
+  }, [propertyId, totalRooms]);
+
+  const isDateBlocked = (date: Date) => {
+    if (!date || !blockedDateRanges.length) return false;
+    const dStr = format(date, 'yyyy-MM-dd');
+    return blockedDateRanges.some(r => {
+      if (r.start === r.end) return dStr === r.start;
+      return dStr >= r.start && dStr < r.end;
+    });
+  };
+
+  const isCheckOutDateBlocked = (date: Date) => {
+    if (!date) return false;
+    if (checkIn) {
+      if (date <= checkIn) return true;
+      const cur = new Date(checkIn);
+      while (cur < date) {
+        if (isDateBlocked(cur)) return true;
+        cur.setDate(cur.getDate() + 1);
+      }
+      return false;
+    }
+    return isDateBlocked(date);
+  };
 
   const groupedRooms = useMemo(() => {
     const groups: Record<string, any[]> = {};
@@ -855,15 +957,17 @@ const BookingCard = ({
   const hasSubUnits = availableRoomsList.length > 0;
 
   const isBookable = isDateSelected
-    ? (!hasSubUnits || (bookingType === 'single' ? selectedRoomIds.length === 1 : selectedRoomIds.length > 0 && selectedRoomIds.length <= availableRooms))
+    ? (availableRooms > 0 && (!hasSubUnits || (bookingType === 'single' ? selectedRoomIds.length === 1 : selectedRoomIds.length > 0 && selectedRoomIds.length <= availableRooms)))
     : initialIsAvailable;
 
   const unavailableMessage = checkingAvailability
     ? 'Checking availability...'
     : (isDateSelected
-      ? (!hasSubUnits
-        ? (availableRooms > 0 || initialIsAvailable ? 'Select Dates' : 'Unavailable')
-        : (selectedRoomIds.length === 0 ? 'Select a unit' : `Only ${availableRooms} available`))
+      ? (availableRooms === 0
+        ? 'Already Booked for Selected Dates'
+        : (!hasSubUnits
+          ? 'Selected dates unavailable'
+          : (selectedRoomIds.length === 0 ? 'Select a unit' : `Only ${availableRooms} available`)))
       : 'Unavailable');
 
   const popperSx = {
@@ -894,7 +998,9 @@ const BookingCard = ({
       border: '1px solid #38bdf8 !important',
     },
     '& .MuiPickersDay-root.Mui-disabled': {
-      color: 'rgba(248, 250, 252, 0.15) !important',
+      color: 'rgba(239, 68, 68, 0.4) !important',
+      textDecoration: 'line-through',
+      backgroundColor: 'rgba(239, 68, 68, 0.05) !important',
       pointerEvents: 'none',
     },
     '& .MuiPickersCalendarHeader-root': {
@@ -1096,6 +1202,7 @@ const BookingCard = ({
                 <div className="opacity-0 absolute inset-0 pointer-events-none">
                   <DatePicker
                     value={checkIn}
+                    shouldDisableDate={isDateBlocked}
                     onChange={(newValue) => {
                       setCheckIn(newValue);
                       if (newValue) {
@@ -1156,6 +1263,7 @@ const BookingCard = ({
                 <div className="opacity-0 absolute inset-0 pointer-events-none">
                   <DatePicker
                     value={checkOut}
+                    shouldDisableDate={isCheckOutDateBlocked}
                     onChange={(newValue) => {
                       setCheckOut(newValue);
                       if (newValue) {
@@ -1616,6 +1724,7 @@ const BookingCard = ({
                     <p className="text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">Check-in</p>
                     <DatePicker
                       value={checkIn}
+                      shouldDisableDate={isDateBlocked}
                       onChange={(newValue) => {
                         setCheckIn(newValue);
                         if (newValue) {
@@ -1669,6 +1778,7 @@ const BookingCard = ({
                     <p className="text-[9px] font-bold text-sky-300/80 uppercase tracking-wider mb-0.5 group-hover:text-sky-400 transition-colors">Check-out</p>
                     <DatePicker
                       value={checkOut}
+                      shouldDisableDate={isCheckOutDateBlocked}
                       onChange={(newValue) => {
                         setCheckOut(newValue);
                         if (newValue) {

@@ -17,7 +17,6 @@ import DisputeDetailsModal from './DisputeDetailsModal';
 import RealTimeChat from '@/components/chat/RealTimeChat';
 import PropertyApproval from './PropertyApproval';
 import AdminFinancialTreasury from './AdminFinancialTreasury';
-import TransferToBankModal from '@/app/admin-panel/financials/components/TransferToBankModal';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -208,7 +207,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   const fetchNotifications = async () => {
     const { data, error } = await supabase
@@ -402,7 +400,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         icon: 'CurrencyRupeeIcon',
         trend: { value: '+8%', isPositive: true },
         bgColor: 'bg-emerald-500',
-        onClick: () => setIsTransferModalOpen(true),
+        onClick: () => setActiveTab('transactions'),
       },
       {
         title: 'Total Bookings',
@@ -1182,17 +1180,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
                     </AnimatePresence>
                   </div>
 
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setIsTransferModalOpen(true)}
-                    className="px-4 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-xl transition-all duration-300 flex items-center gap-2 shadow-lg shadow-emerald-500/20 cursor-pointer shrink-0"
-                    title="Transfer verified Admin Platform Revenue to Bank"
-                  >
-                    <Icon name="BuildingLibraryIcon" size={18} />
-                    <span className="text-sm font-bold tracking-tight">Transfer to Bank</span>
-                  </motion.button>
-
                   <button
                     onClick={handleExportReport}
                     className="px-4 py-3 bg-white/5 backdrop-blur-sm text-zinc-300 border border-white/10 rounded-xl hover:text-white hover:border-white/25 hover:bg-white/10 transition-all duration-300 flex items-center gap-2"
@@ -1608,11 +1595,6 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         dispute={selectedDispute}
         onClose={handleCloseModal}
         onUpdateStatus={handleUpdateDisputeStatus}
-      />
-      <TransferToBankModal
-        isOpen={isTransferModalOpen}
-        onClose={() => setIsTransferModalOpen(false)}
-        adminRevenue={calculatedAdminRevenue}
       />
     </div>
   );

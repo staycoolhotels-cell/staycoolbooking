@@ -44,6 +44,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
   doc.rect(0, 50, 210, 4, 'F');
 
   // Branding Logos
+  let logoEndX = 75;
   try {
     const loadImage = (url: string, timeoutMs = 2500) => new Promise<HTMLImageElement>((resolve, reject) => {
       if (typeof window === 'undefined') return reject(new Error('Window not available'));
@@ -78,11 +79,13 @@ export const generateInvoicePDF = async (t: Transaction) => {
     // Place them side-by-side horizontally
     doc.addImage(logo, 'PNG', 16, 20, logoW, targetH);
     doc.addImage(secondaryLogo, 'PNG', 16 + logoW + 4, 20, secW, targetH);
+    logoEndX = 16 + logoW + 4 + secW;
   } catch (e) {
     console.error('Failed to load logos for PDF', e);
   }
 
   const isHostView = t.audience === 'host';
+  const isAdminView = t.audience === 'admin';
 
   if (isRefund) {
     doc.setTextColor(225, 29, 72);
@@ -91,22 +94,38 @@ export const generateInvoicePDF = async (t: Transaction) => {
   } else {
     doc.setTextColor(14, 165, 233);
   }
-  doc.setFontSize(26);
-  doc.setFont('helvetica', 'bold');
+
   const title = isRefund 
     ? (isHostView ? 'HOST CANCELLATION' : 'REFUND INVOICE') 
     : isPendingPayment 
       ? 'PROFORMA INVOICE' 
       : (isHostView ? 'HOST PAYOUT STATEMENT' : 'TAX INVOICE');
-  doc.text(title, 194, 28, { align: 'right' });
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(148, 163, 184); // slate-400
+
   const subTitle = isRefund 
     ? (isHostView ? 'HOST CANCELLATION COMPENSATION' : 'CREDIT NOTE & CANCELLATION SETTLEMENT') 
     : isPendingPayment 
       ? 'AWAITING PAYMENT - NOT A TAX RECEIPT' 
       : (isHostView ? 'OFFICIAL HOST EARNINGS & REMITTANCE' : 'OFFICIAL ACCOMMODATION RECEIPT');
+
+  // Prevent title from overlapping with the logo on the left (ensuring a clean >= 10mm gap)
+  const maxTitleWidth = Math.max(70, 194 - logoEndX - 10);
+  let titleFontSize = isHostView || title.length > 15 ? 18 : 24;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(titleFontSize);
+  while (doc.getTextWidth(title) > maxTitleWidth && titleFontSize > 11) {
+    titleFontSize -= 0.5;
+    doc.setFontSize(titleFontSize);
+  }
+  doc.text(title, 194, 28, { align: 'right' });
+
+  let subTitleFontSize = 8;
+  doc.setFontSize(subTitleFontSize);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(148, 163, 184); // slate-400
+  while (doc.getTextWidth(subTitle) > maxTitleWidth && subTitleFontSize > 6) {
+    subTitleFontSize -= 0.5;
+    doc.setFontSize(subTitleFontSize);
+  }
   doc.text(subTitle, 194, 34, { align: 'right' });
 
   // 2. Info Section (Modern Light Card Design)
@@ -230,7 +249,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
   doc.setTextColor(14, 165, 233);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.text('GUEST DETAILS (BILLED TO)', 22, curLeft);
+  doc.text(isHostView ? 'GUEST DETAILS (RESERVED BY)' : 'GUEST DETAILS (BILLED TO)', 22, curLeft);
   curLeft += 5.5;
 
   doc.setTextColor(15, 23, 42); // slate-900
@@ -265,7 +284,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
   doc.setTextColor(14, 165, 233);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.text('HOST & PROPERTY DETAILS', 22, curLeft);
+  doc.text(isHostView ? 'HOST & RECIPIENT DETAILS' : 'HOST & PROPERTY DETAILS', 22, curLeft);
   curLeft += 5;
 
   doc.setTextColor(15, 23, 42);
@@ -585,78 +604,78 @@ export const generateInvoicePDF = async (t: Transaction) => {
       }
     });
 
-    tableStartY = ((doc as any).lastAutoTable?.finalY ?? tableStartY) + 8;
+    // 5B. 3-WAY CANCELLATION SETTLEMENT & DISTRIBUTION TABLE (Admin View Only)
+    if (isAdminView) {
+      doc.setFontSize(8);
+      doc.setTextColor(225, 29, 72);
+      doc.setFont('helvetica', 'bold');
+      doc.text('3-WAY CANCELLATION SETTLEMENT & DISTRIBUTION', 16, tableStartY);
 
-    // 5B. 3-WAY CANCELLATION SETTLEMENT & DISTRIBUTION TABLE
-    doc.setFontSize(8);
-    doc.setTextColor(225, 29, 72);
-    doc.setFont('helvetica', 'bold');
-    doc.text('3-WAY CANCELLATION SETTLEMENT & DISTRIBUTION', 16, tableStartY);
+      doc.setDrawColor(225, 29, 72);
+      doc.setLineWidth(0.5);
+      doc.line(16, tableStartY + 2, 95, tableStartY + 2);
 
-    doc.setDrawColor(225, 29, 72);
-    doc.setLineWidth(0.5);
-    doc.line(16, tableStartY + 2, 95, tableStartY + 2);
+      const threeWayRefundRows: any[] = [
+        ['1. Guest Refund Amount (To Guest)', `Refunded directly to guest (${refundPercent}% of Rs. ${netRefundablePool.toLocaleString('en-IN')} accommodation)`, `${refundPercent}% Refund Tier`, `Rs. ${guestRefund.toLocaleString('en-IN')}`],
+        ['2. Host Compensation (To Host)', 'Host compensation for reserved dates cancellation (Rs. 0 from Platform Fee)', '50% Retained Penalty', `Rs. ${hostShare.toLocaleString('en-IN')}`],
+        ['3. Admin Platform Retention (To Admin)', `100% Platform Fee (Rs. ${retainedServiceFee.toLocaleString('en-IN')}) + 50% penalty share (Rs. ${hostShare.toLocaleString('en-IN')})`, '100% Fee + Penalty', `Rs. ${adminShare.toLocaleString('en-IN')}`],
+        ['Total Reconciled Settlement', '100% of original booking funds accounted for', 'Balanced (100%)', `Rs. ${originalTotal.toLocaleString('en-IN')}`]
+      ];
 
-    const threeWayRefundRows: any[] = [
-      ['1. Guest Refund Amount (To Guest)', `Refunded directly to guest (${refundPercent}% of Rs. ${netRefundablePool.toLocaleString('en-IN')} accommodation)`, `${refundPercent}% Refund Tier`, `Rs. ${guestRefund.toLocaleString('en-IN')}`],
-      ['2. Host Compensation (To Host)', 'Host compensation for reserved dates cancellation (Rs. 0 from Platform Fee)', '50% Retained Penalty', `Rs. ${hostShare.toLocaleString('en-IN')}`],
-      ['3. Admin Platform Retention (To Admin)', `100% Platform Fee (Rs. ${retainedServiceFee.toLocaleString('en-IN')}) + 50% penalty share (Rs. ${hostShare.toLocaleString('en-IN')})`, '100% Fee + Penalty', `Rs. ${adminShare.toLocaleString('en-IN')}`],
-      ['Total Reconciled Settlement', '100% of original booking funds accounted for', 'Balanced (100%)', `Rs. ${originalTotal.toLocaleString('en-IN')}`]
-    ];
+      runAutoTable({
+        startY: tableStartY + 5,
+        margin: { left: 16, right: 16 },
+        head: [['Participant / Beneficiary', 'Settlement Nature & Accounting Notes', 'Category / Share', 'Distributed Amount']],
+        body: threeWayRefundRows,
+        headStyles: { 
+          fillColor: [255, 241, 242],
+          textColor: [225, 29, 72],
+          fontStyle: 'bold',
+          fontSize: 8,
+          cellPadding: 3.5,
+          valign: 'middle'
+        },
+        bodyStyles: {
+          textColor: [51, 65, 85],
+          fontSize: 8,
+          cellPadding: 3.5,
+          valign: 'middle'
+        },
+        alternateRowStyles: {
+          fillColor: [254, 250, 250]
+        },
+        columnStyles: {
+          0: { halign: 'left', cellWidth: 55, fontStyle: 'bold' },
+          1: { halign: 'left' },
+          2: { halign: 'center', cellWidth: 38 },
+          3: { halign: 'right', cellWidth: 35, fontStyle: 'bold' }
+        },
+        theme: 'plain',
+        didDrawCell: (data) => {
+          if (data.section === 'body') {
+            doc.setDrawColor(254, 226, 226);
+            doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
+            
+            if (data.column.index === 0) {
+              const isGuest = data.row.index === 0;
+              const isHost = data.row.index === 1;
+              const isAdm = data.row.index === 2;
+              doc.setFillColor(isGuest ? 16 : isHost ? 217 : isAdm ? 14 : 71, isGuest ? 185 : isHost ? 119 : isAdm ? 165 : 85, isGuest ? 129 : isHost ? 6 : isAdm ? 233 : 105);
+              doc.rect(data.cell.x, data.cell.y + 1, 1, data.cell.height - 2, 'F');
+            }
 
-    runAutoTable({
-      startY: tableStartY + 5,
-      margin: { left: 16, right: 16 },
-      head: [['Participant / Beneficiary', 'Settlement Nature & Accounting Notes', 'Category / Share', 'Distributed Amount']],
-      body: threeWayRefundRows,
-      headStyles: { 
-        fillColor: [255, 241, 242],
-        textColor: [225, 29, 72],
-        fontStyle: 'bold',
-        fontSize: 8,
-        cellPadding: 3.5,
-        valign: 'middle'
-      },
-      bodyStyles: {
-        textColor: [51, 65, 85],
-        fontSize: 8,
-        cellPadding: 3.5,
-        valign: 'middle'
-      },
-      alternateRowStyles: {
-        fillColor: [254, 250, 250]
-      },
-      columnStyles: {
-        0: { halign: 'left', cellWidth: 55, fontStyle: 'bold' },
-        1: { halign: 'left' },
-        2: { halign: 'center', cellWidth: 38 },
-        3: { halign: 'right', cellWidth: 35, fontStyle: 'bold' }
-      },
-      theme: 'plain',
-      didDrawCell: (data) => {
-        if (data.section === 'body') {
-          doc.setDrawColor(254, 226, 226);
-          doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
-          
-          if (data.column.index === 0) {
-            const isGuest = data.row.index === 0;
-            const isHost = data.row.index === 1;
-            const isAdm = data.row.index === 2;
-            doc.setFillColor(isGuest ? 16 : isHost ? 217 : isAdm ? 14 : 71, isGuest ? 185 : isHost ? 119 : isAdm ? 165 : 85, isGuest ? 129 : isHost ? 6 : isAdm ? 233 : 105);
-            doc.rect(data.cell.x, data.cell.y + 1, 1, data.cell.height - 2, 'F');
-          }
-
-          if (data.column.index === 3) {
-            if (data.row.index === 0) doc.setTextColor(16, 185, 129); // emerald-600
-            if (data.row.index === 1) doc.setTextColor(217, 119, 6); // amber-600
-            if (data.row.index === 2) doc.setTextColor(14, 165, 233); // sky-600
-            if (data.row.index === 3) doc.setTextColor(15, 23, 42); // slate-900
+            if (data.column.index === 3) {
+              if (data.row.index === 0) doc.setTextColor(16, 185, 129); // emerald-600
+              if (data.row.index === 1) doc.setTextColor(217, 119, 6); // amber-600
+              if (data.row.index === 2) doc.setTextColor(14, 165, 233); // sky-600
+              if (data.row.index === 3) doc.setTextColor(15, 23, 42); // slate-900
+            }
           }
         }
-      }
-    });
+      });
 
-    tableStartY = ((doc as any).lastAutoTable?.finalY ?? tableStartY) + 8;
+      tableStartY = ((doc as any).lastAutoTable?.finalY ?? tableStartY) + 8;
+    }
   } else if (!isPendingPayment) {
     if (isHostView) {
       // 5. HOST PAYOUT & SETTLEMENT DISBURSEMENT TABLE (Host View)
@@ -725,7 +744,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
           }
         }
       });
-    } else {
+    } else if (isAdminView) {
       // 5. PAID BOOKINGS — ADMIN SETTLEMENT & 3-WAY REVENUE DISTRIBUTION TABLE
       doc.setFontSize(8);
       doc.setTextColor(14, 165, 233); // sky-600

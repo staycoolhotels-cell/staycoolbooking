@@ -145,10 +145,21 @@ export default async function HostDashboardPage() {
         }).join(', ') 
       : null;
 
+    // Attach payout transfer status so Reserve section can show it (same as Financial Ledger)
+    const transfer = transferMap[b.id];
+    let payoutTransferStatus: 'completed' | 'pending' | 'failed' = 'pending';
+    if (transfer) {
+      if (transfer.transfer_status === 'settled') payoutTransferStatus = 'completed';
+      else if (transfer.transfer_status === 'failed') payoutTransferStatus = 'failed';
+      else payoutTransferStatus = 'pending';
+    }
+
     return {
       ...b,
       amenities: selectedAmenities,
       room_type: roomType,
+      payoutTransferStatus,
+      payoutFailureReason: transfer?.failure_reason || null,
     };
   });
 

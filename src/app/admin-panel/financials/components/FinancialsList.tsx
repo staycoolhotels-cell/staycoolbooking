@@ -16,7 +16,6 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts';
-import TransferToBankModal from './TransferToBankModal';
 
 // ─── Data Processing ────────────────────────────────────────────────────────
 const processData = (transactions: Transaction[]) => {
@@ -195,7 +194,6 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   const { totalRevenue, adminRevenue, totalRefunds, netRevenue, pendingCount, chartData } = processData(transactions);
 
@@ -276,9 +274,8 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
       border: 'rgba(16,185,129,0.25)',
       iconColor: 'text-emerald-400',
       blobColor: 'rgba(16,185,129,0.5)',
-      subtitle: '⚡ Click to transfer to bank',
+      subtitle: 'Platform commission',
       active: false,
-      onClick: () => setIsTransferModalOpen(true),
     },
     {
       title: 'Total Refunds',
@@ -320,38 +317,6 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
 
   return (
     <div className="space-y-8">
-      {/* ── Settlement Action Banner ── */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 md:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 backdrop-blur-xl shadow-xl shadow-emerald-500/5"
-      >
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
-            <Icon name="BuildingLibraryIcon" size={22} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm md:text-base font-black text-white tracking-tight">Admin Revenue Settlement</h3>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                Route Escrow
-              </span>
-            </div>
-            <p className="text-xs text-zinc-400 mt-0.5">
-              Available Platform Commission: <strong className="text-emerald-400 font-mono">₹{adminRevenue.toLocaleString('en-IN')}</strong>. Guest funds & Host splits remain held in Razorpay escrow.
-            </p>
-          </div>
-        </div>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setIsTransferModalOpen(true)}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-emerald-500/20 shrink-0 cursor-pointer"
-        >
-          <Icon name="ArrowDownTrayIcon" size={16} />
-          Transfer to Bank
-        </motion.button>
-      </motion.div>
 
       {/* ── KPI Cards ── */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-5">
@@ -649,13 +614,6 @@ const FinancialsList = ({ initialTransactions }: FinancialsListProps) => {
           </div>
         )}
       </motion.div>
-
-      {/* Transfer to Bank Modal */}
-      <TransferToBankModal
-        isOpen={isTransferModalOpen}
-        onClose={() => setIsTransferModalOpen(false)}
-        adminRevenue={adminRevenue}
-      />
     </div>
   );
 };

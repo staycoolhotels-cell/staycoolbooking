@@ -14,7 +14,6 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
-import TransferToBankModal from "@/app/admin-panel/financials/components/TransferToBankModal";
 
 type AdminFinancialTreasuryProps = {
   transactions?: Transaction[];
@@ -240,7 +239,6 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
   const pendingRefunds = activeData.filter((t) => t.type === 'refund' || t.status === 'refunded' || t.status === 'pending');
 
   const [previewTransaction, setPreviewTransaction] = React.useState<Transaction | null>(null);
-  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   const downloadInvoicesBatch = async () => {
     await exportTransactionsToPDF(activeData);
@@ -254,15 +252,6 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
           <p className="text-[9px] md:text-xs font-bold text-zinc-500 uppercase tracking-wider md:tracking-widest mt-0.5 md:mt-1">Cross-System Financial Intelligence</p>
         </div>
         <div className="flex items-center gap-2.5">
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => setIsTransferModalOpen(true)}
-            className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-emerald-500 hover:bg-emerald-400 text-black text-[9px] md:text-xs font-black uppercase tracking-wider rounded-lg md:rounded-xl transition-all shadow-lg shadow-emerald-500/20 shrink-0 cursor-pointer"
-          >
-            <Icon name="ArrowDownTrayIcon" size={14} />
-            <span>Transfer to Bank</span>
-          </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -294,15 +283,13 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
               <p className="text-[9px] md:text-[10px] font-bold text-blue-400 uppercase tracking-widest mt-1">Booking Revenue (Gross)</p>
             </div>
             <div 
-              onClick={() => setIsTransferModalOpen(true)}
-              className="text-center p-3 md:p-4 border border-emerald-500/20 rounded-xl bg-emerald-500/5 hover:border-emerald-500/40 cursor-pointer transition-all group/card relative"
+              className="text-center p-3 md:p-4 border border-emerald-500/20 rounded-xl bg-emerald-500/5 relative"
             >
               <p className="text-lg md:text-2xl font-black text-emerald-400 font-mono">
                 ₹{platformEarnings.toLocaleString('en-IN')}
               </p>
               <p className="text-[9px] md:text-[10px] font-bold text-emerald-400 uppercase tracking-widest mt-1 flex items-center justify-center gap-1">
                 Admin Revenue (Net)
-                <span className="text-[8px] bg-emerald-500/20 text-emerald-300 px-1 py-0.2 rounded">Settle</span>
               </p>
               {earningsFromCancellations > 0 && (
                 <div className="mt-2 space-y-0.5">
@@ -358,7 +345,7 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
                           <Icon name="EyeIcon" size={15} />
                         </button>
                         <button 
-                          onClick={async () => await generateInvoicePDF(refund)}
+                          onClick={async () => await generateInvoicePDF({ ...refund, audience: 'admin' })}
                           className="p-1.5 text-zinc-400 hover:text-rose-400 transition-colors bg-white/5 rounded-lg border border-white/5"
                           title="Download Refund Invoice PDF"
                         >
@@ -408,7 +395,7 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
                               <Icon name="EyeIcon" size={16} />
                            </button>
                            <button 
-                             onClick={async () => await generateInvoicePDF(t)}
+                             onClick={async () => await generateInvoicePDF({ ...t, audience: 'admin' })}
                              className="p-2 text-zinc-500 hover:text-sky-400 transition-colors bg-white/5 rounded-lg border border-white/5"
                              title="Download PDF"
                            >
@@ -436,12 +423,6 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
           </div>
         </DialogContent>
       </Dialog>
-
-      <TransferToBankModal
-        isOpen={isTransferModalOpen}
-        onClose={() => setIsTransferModalOpen(false)}
-        adminRevenue={platformEarnings}
-      />
     </div>
   );
 };
