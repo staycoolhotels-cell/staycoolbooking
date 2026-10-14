@@ -1003,8 +1003,8 @@ export const generateInvoicePDF = async (t: Transaction) => {
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(16, 185, 129);
     doc.text('Disbursed to Host Account', 194, startFooterY + 21, { align: 'right' });
-  } else {
-    // Admin / Guest View
+  } else if (isAdminView) {
+    // Admin View: Full 3-way breakdown
     doc.setFontSize(8);
     doc.setTextColor(100, 116, 139);
     doc.setFont('helvetica', 'normal');
@@ -1042,6 +1042,25 @@ export const generateInvoicePDF = async (t: Transaction) => {
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(16, 185, 129);
     doc.text('Payment Completed & Reconciled', 194, startFooterY + 25, { align: 'right' });
+  } else {
+    // Guest View: Clean summary — no internal admin/host breakdown shown
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.5);
+    doc.line(130, startFooterY + 4, 194, startFooterY + 4);
+
+    doc.setFontSize(10.5);
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Grand Total Paid:', 130, startFooterY + 12);
+
+    doc.setFontSize(14);
+    doc.setTextColor(14, 165, 233); // Sky Blue
+    doc.text(`Rs. ${originalTotal.toLocaleString('en-IN')}`, 194, startFooterY + 12, { align: 'right' });
+
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(16, 185, 129);
+    doc.text('Payment Completed & Reconciled', 194, startFooterY + 18, { align: 'right' });
   }
 
   // Terms & Conditions
