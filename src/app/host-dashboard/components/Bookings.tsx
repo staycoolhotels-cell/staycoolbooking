@@ -212,7 +212,7 @@ const Bookings = ({ bookings, searchTerm, setSearchTerm, onAction }: BookingsPro
 
 
       {/* 3. Deep Glassmorphic List Container */}
-      <div className="bg-[#05060a]/90 backdrop-blur-xl rounded-[2rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl relative p-4 sm:p-6 md:p-8 overflow-hidden min-h-[400px]">
+      <div className="bg-[#05060a]/90 backdrop-blur-xl rounded-[1.8rem] sm:rounded-[2rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl relative p-2.5 sm:p-6 md:p-8 overflow-hidden min-h-[400px]">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
 

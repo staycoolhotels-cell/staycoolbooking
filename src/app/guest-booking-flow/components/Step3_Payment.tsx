@@ -12,11 +12,12 @@ import { supabase } from '@/lib/supabaseClient';
 interface Step3Props {
   bookingCart: Property[];
   filters: any;
+  verificationData?: { fullName: string; phone: string; documentFile?: File | null };
   onNext: () => void;
   onBack: () => void;
 }
 
-const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => {
+const Step3_Payment = ({ bookingCart, filters, verificationData, onNext, onBack }: Step3Props) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [loadingRooms, setLoadingRooms] = useState(false);
@@ -369,6 +370,8 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
         hasFreeCancellation: filters.hasFreeCancellation,
         freeCancellationFee: freeCancellationFee,
         serviceFee: serviceFee,
+        fullName: verificationData?.fullName,
+        phone: verificationData?.phone,
       };
 
 
@@ -434,7 +437,10 @@ const Step3_Payment = ({ bookingCart, filters, onNext, onBack }: Step3Props) => 
               reject(err);
             }
           },
-          prefill: {},
+          prefill: {
+            name: verificationData?.fullName || '',
+            contact: verificationData?.phone || '',
+          },
           theme: { color: '#0ea5e9' },
           modal: {
             ondismiss: () => {

@@ -256,12 +256,23 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
 
                             {/* Guests & Units */}
                             <div className="bg-zinc-900/50 p-3 rounded-xl border border-white/5">
-                                <h4 className="text-[10px] font-medium text-zinc-400 mb-2 uppercase tracking-wider">Booking Size</h4>
+                                <h4 className="text-[10px] font-medium text-zinc-400 mb-2 uppercase tracking-wider">Booking Size & Guest</h4>
                                 <div className="flex flex-col gap-2.5 text-white">
+                                    <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+                                        <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 shrink-0">
+                                            <Icon name="UserIcon" size={14} />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-[9px] font-semibold text-zinc-400 uppercase tracking-wider">Primary Guest</p>
+                                            <p className="text-xs font-bold text-white truncate">
+                                                {booking.guest?.name || (booking as any)?.guestName || transactions[0]?.guestName || 'Valued Guest'}
+                                            </p>
+                                        </div>
+                                    </div>
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                                         <div className="flex items-center gap-2">
                                             <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400 shrink-0">
-                                                <Icon name="UserIcon" size={14} />
+                                                <Icon name="UsersIcon" size={14} />
                                             </div>
                                             <div>
                                                 <p className="text-xs font-semibold whitespace-nowrap">{booking.guests || 1} {(booking.guests || 1) === 1 ? 'Guest' : 'Guests'}</p>
@@ -365,6 +376,10 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                             };
                                             
                                             // Construct rich transaction data matching exactly what is in modal
+                                            const resolvedGuestName = booking.guest?.name || (booking as any)?.guestName || transactions[0]?.guestName || 'Valued Guest';
+                                            const resolvedGuestEmail = (booking.guest as any)?.email || (booking as any)?.guestEmail || transactions[0]?.guestEmail || '';
+                                            const resolvedGuestPhone = (booking.guest as any)?.phone || (booking as any)?.guestPhone || transactions[0]?.guestPhone || '';
+
                                             const transactionData = {
                                                 id: booking.id,
                                                 transactionId: booking.id,
@@ -373,9 +388,11 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                                 date: format(new Date(booking.created_at), 'dd/MM/yyyy'),
                                                 status: booking.status,
                                                 type: isCancelled ? 'refund' : 'payment',
-                                                guestName: booking.guest?.name || 'Valued Guest',
+                                                guestName: resolvedGuestName,
+                                                guestEmail: resolvedGuestEmail,
+                                                guestPhone: resolvedGuestPhone,
                                                 hostName: (booking.properties as any)?.host?.name || 'Host',
-                                                guestAddress: (booking.guest as any)?.email || 'Address not provided',
+                                                guestAddress: [resolvedGuestEmail, resolvedGuestPhone].filter(Boolean).join('\n') || 'Address not provided',
                                                 propertyName: booking.properties.title || (booking.properties as any)?.name || 'Property',
                                                 booking_id: booking.id,
                                                 room_type: displayRoomType,
