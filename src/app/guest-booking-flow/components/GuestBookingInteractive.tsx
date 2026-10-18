@@ -23,9 +23,30 @@ const GuestBookingInteractive = () => {
   // Guests may start a reservation before logging in. Login is intentionally
   // the first booking step, so the selected property and dates are retained.
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       setCurrentStep(user ? 1 : 0);
       setCheckingSession(false);
+      if (user) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('name, phone')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profile) {
+          setVerificationData(prev => ({
+            ...prev,
+            fullName: prev.fullName || profile.name || user.user_metadata?.name || '',
+            phone: prev.phone || profile.phone || user.user_metadata?.phone || ''
+          }));
+        } else if (user.user_metadata?.name || user.user_metadata?.phone) {
+          setVerificationData(prev => ({
+            ...prev,
+            fullName: prev.fullName || user.user_metadata?.name || '',
+            phone: prev.phone || user.user_metadata?.phone || ''
+          }));
+        }
+      }
     });
   }, []);
 
@@ -70,8 +91,13 @@ const GuestBookingInteractive = () => {
     freeCancellationFee: Number(searchParams.get('freeCancellationFee')) || 0,
   });
 
-  const [verificationData, setVerificationData] = useState<{fullName: string, documentFile: File | null}>({
+  const [verificationData, setVerificationData] = useState<{
+    fullName: string;
+    phone: string;
+    documentFile?: File | null;
+  }>({
     fullName: '',
+    phone: '',
     documentFile: null
   });
 
@@ -189,6 +215,7 @@ const GuestBookingInteractive = () => {
                     <Step3_Payment
                       bookingCart={bookingCart}
                       filters={filters}
+                      verificationData={verificationData}
                       onNext={() => setCurrentStep(3)}
                       onBack={() => setCurrentStep(1)}
                     />

@@ -293,8 +293,11 @@ export interface Booking {
   free_cancellation_fee?: number;
   guest?: {
     name: string;
-    avatar_url: string;
+    avatar_url?: string;
+    email?: string;
+    phone?: string;
   };
+  guestName?: string;
   properties?: Property;
   referral_discount_applied?: boolean;
   room_type?: string | null;

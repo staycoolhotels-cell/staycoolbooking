@@ -117,75 +117,94 @@ export async function verifyUser(_prevState: unknown, formData: FormData) {
       return { error: 'User not authenticated', redirect: '/auth' };
     }
 
-    const file = formData.get('document') as File;
-    const fullName = formData.get('fullName') as string;
+    const file = formData.get('document') as File | null;
+    const fullName = (formData.get('fullName') as string || '').trim();
+    const phone = (formData.get('phone') as string || '').trim();
     const ocrDataStr = formData.get('ocrData') as string;
     const ocrMetadata = ocrDataStr ? JSON.parse(ocrDataStr) : null;
 
-    if (!file || !fullName) {
-      return { error: 'Full name and document are required.' };
+    if (!fullName) {
+      return { error: 'Full name is required.' };
+    }
+
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length < 10) {
+      return { error: 'Please enter a valid 10-digit mobile number.' };
     }
 
     const adminSupabase = createServiceClient();
 
-    // Convert file to ArrayBuffer for more reliable upload
-    const arrayBuffer = await file.arrayBuffer();
-    const fileBuffer = Buffer.from(arrayBuffer);
+    // 1. Update user profile with full name and phone number
+    const updateData: { name: string; phone: string } = {
+      name: fullName,
+      phone: cleanPhone.length === 10 ? cleanPhone : phone
+    };
 
-    const { data: fileData, error: fileError } = await adminSupabase.storage
-      .from('documents')
-      .upload(`${user.id}/${file.name}`, fileBuffer, { 
-        upsert: true,
-        contentType: file.type 
-      });
+    const { error: userUpdateError } = await adminSupabase
+      .from('users')
+      .update(updateData)
+      .eq('id', user.id);
 
-    if (fileError) {
-      console.error('Storage Upload Error:', fileError);
-      return { error: `Storage Error: ${fileError.message}` };
+    if (userUpdateError) {
+      console.warn('Could not update users table profile:', userUpdateError.message);
     }
 
-    // Check if verification record exists
-    const { data: existingVerifications, error: fetchError } = await adminSupabase
+    // 2. If a document file was uploaded, handle upload optionally
+    let fileUrl: string | null = null;
+    if (file && typeof file === 'object' && (file as any).size > 0 && (file as any).name) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const fileBuffer = Buffer.from(arrayBuffer);
+
+        const { data: fileData, error: fileError } = await adminSupabase.storage
+          .from('documents')
+          .upload(`${user.id}/${file.name}`, fileBuffer, { 
+            upsert: true,
+            contentType: file.type 
+          });
+
+        if (!fileError && fileData?.path) {
+          fileUrl = fileData.path;
+        }
+      } catch (fErr) {
+        console.warn('Optional file upload skipped:', fErr);
+      }
+    }
+
+    // 3. Check if verification record exists and mark as approved
+    const { data: existingVerifications } = await adminSupabase
       .from('verifications')
       .select('id')
       .eq('user_id', user.id)
       .limit(1);
 
-    if (fetchError) {
-      console.error('Fetch Verification Error:', fetchError);
-      return { error: `Database Error: ${fetchError.message}` };
-    }
-
     const existingVerification = existingVerifications?.[0];
-
-    let error;
-
     if (existingVerification) {
-      // Update existing record
-      const { error: updateError } = await adminSupabase
+      await adminSupabase
         .from('verifications')
-        .update({ doc_type: 'id', file_url: fileData.path, status: 'pending' })
+        .update({ 
+          doc_type: fileUrl ? 'id' : 'phone', 
+          ...(fileUrl ? { file_url: fileUrl } : {}),
+          status: 'approved' 
+        })
         .eq('user_id', user.id);
-      error = updateError;
     } else {
-      // Insert new record
-      const { error: insertError } = await adminSupabase
+      await adminSupabase
         .from('verifications')
-        .insert([{ user_id: user.id, doc_type: 'id', file_url: fileData.path, status: 'pending' }]);
-      error = insertError;
+        .insert([{ 
+          user_id: user.id, 
+          doc_type: fileUrl ? 'id' : 'phone', 
+          file_url: fileUrl, 
+          status: 'approved' 
+        }]);
     }
 
-    if (error) {
-      console.error('Database Operation Error:', error);
-      return { error: `Database Operation Error: ${error.message}` };
-    }
+    await logActivity(
+      'user_verification',
+      `Guest ${user.id} verified contact info (Name: ${fullName}, Phone: ${cleanPhone}).${ocrMetadata?.idNumber ? ` OCR Aadhaar: ${ocrMetadata.idNumber}` : ''}`
+    );
 
-    // Return success with simplified data
-    const data = { success: true };
-
-    await logActivity('user_verification', `User ${user.id} submitted a document for verification.${ocrMetadata?.idNumber ? ` OCR detected Aadhaar: ${ocrMetadata.idNumber}` : ''}`);
-
-    return { success: true, data };
+    return { success: true, data: { success: true } };
   } catch (err: unknown) {
     console.error('VerifyUser Action Error:', err);
     return { error: `Action Error: ${err instanceof Error ? err.message : 'Unknown error'}` };
@@ -206,6 +225,8 @@ export async function createBooking(bookingDetails: {
   hasFreeCancellation?: boolean;
   freeCancellationFee?: number;
   serviceFee?: number;
+  fullName?: string;
+  phone?: string;
 }, _prevState: unknown) {
   try {
     const supabase = await createSupabaseServerClient();
@@ -240,8 +261,28 @@ export async function createBooking(bookingDetails: {
       selectedRoomIds = [],
       hasFreeCancellation = false,
       freeCancellationFee = 0,
-      serviceFee = 0
+      serviceFee = 0,
+      fullName,
+      phone
     } = bookingDetails;
+
+    // If guest provided full name or phone during verification step, update profile immediately
+    if (fullName?.trim()) {
+      try {
+        const adminSupabase = createServiceClient();
+        const cleanPhone = phone ? phone.replace(/\D/g, '') : undefined;
+        await adminSupabase.from('users').update({
+          name: fullName.trim(),
+          ...(cleanPhone && cleanPhone.length >= 10 ? { phone: cleanPhone } : {})
+        }).eq('id', user.id);
+
+        await adminSupabase.auth.admin.updateUserById(user.id, {
+          user_metadata: { name: fullName.trim(), full_name: fullName.trim() }
+        }).catch(() => {});
+      } catch (profErr) {
+        console.warn('Profile sync in createBooking skipped:', profErr);
+      }
+    }
 
     // Use RPC to create booking and assign rooms atomically
     const rpcName = (selectedRoomIds && selectedRoomIds.length > 0) 

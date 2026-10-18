@@ -244,7 +244,14 @@ const BookingHistory = ({ bookings, guestId, transactions = [], onStatusChange }
                                         {booking.properties.title}
                                     </h3>
                                     <p className="text-[10px] text-zinc-500 truncate">{booking.properties.location}</p>
-                                    <div className="flex flex-wrap items-center gap-1.5 xs:gap-2 mt-0.5 min-w-0">
+                                    <div className="flex items-center gap-1.5 mt-0.5 text-[11px] font-semibold text-zinc-300 min-w-0">
+                                        <Icon name="UserIcon" size={12} className="text-sky-400 shrink-0" />
+                                        <span className="text-zinc-400 font-normal shrink-0">Guest:</span>
+                                        <span className="text-zinc-100 font-medium truncate">
+                                            {booking.guest?.name || (booking as any)?.guestName || 'Guest'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-1.5 xs:gap-2 mt-1 min-w-0">
                                         <p className="text-[10px] text-sky-400 font-medium truncate shrink-0">
                                             {booking.guests || 1} {(booking.guests || 1) === 1 ? 'Guest' : 'Guests'} • {(booking.room_type || '').toLowerCase().includes('entire resort') || (booking.properties?.type || '').toLowerCase().includes('entire resort')
                                                 ? 'Entire Resort'

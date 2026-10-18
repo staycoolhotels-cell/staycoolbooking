@@ -2,9 +2,9 @@ import { Transaction } from './types';
 
 export const generateInvoicePDF = async (t: Transaction) => {
   // Use standard dynamic import for Next.js client bundles
-  const jspdfModule = await import('jspdf');
+  const jspdfModule: any = await import('jspdf');
   const jsPDF = jspdfModule.default?.jsPDF || jspdfModule.jsPDF || jspdfModule.default;
-  const autoTableModule = await import('jspdf-autotable');
+  const autoTableModule: any = await import('jspdf-autotable');
   const autoTable = autoTableModule.default?.default || autoTableModule.default || autoTableModule.autoTable || (autoTableModule as any);
 
   const doc = new jsPDF();
@@ -134,7 +134,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
     return isNaN(n) ? fallback : n;
   };
 
-  const rawBreakdown = t.breakdown || {};
+  const rawBreakdown: any = t.breakdown || {};
   const originalTotal = safeNum(t.amount, 0);
   const nights = Math.max(1, safeNum(t.nights, 1));
 
@@ -180,10 +180,11 @@ export const generateInvoicePDF = async (t: Transaction) => {
     ? safeNum(t.adminCommissionAmount) 
     : Math.max(0, originalTotal - hostPayout);
 
-  const guestName = t.guestName || 'Valued Guest';
+  const rawGuestName = t.guestName || (t as any)?.guest?.name || (t as any)?.guest_name || (t as any)?.fullName || (t as any)?.name;
+  const guestName = (rawGuestName && rawGuestName.trim()) ? rawGuestName.trim() : 'Valued Guest';
   const addressLines = (t.guestAddress || '').split('\n').map(s => s.trim()).filter(Boolean);
-  const guestEmail = t.guestEmail || addressLines.find(l => l.includes('@')) || '';
-  const guestPhone = t.guestPhone || addressLines.find(l => /^[+\d\s()-]{8,}$/.test(l)) || '';
+  const guestEmail = t.guestEmail || (t as any)?.guest?.email || addressLines.find(l => l.includes('@')) || '';
+  const guestPhone = t.guestPhone || (t as any)?.guest?.phone || addressLines.find(l => /^[+\d\s()-]{8,}$/.test(l)) || '';
   const guestLocation = t.guestLocation || addressLines.find(l => !l.includes('@') && !/^[+\d\s()-]{8,}$/.test(l)) || '';
 
   const hostName = t.hostName || 'StayCool Host';
@@ -604,8 +605,16 @@ export const generateInvoicePDF = async (t: Transaction) => {
       }
     });
 
+    tableStartY = ((doc as any).lastAutoTable?.finalY ?? tableStartY) + 8;
+
     // 5B. 3-WAY CANCELLATION SETTLEMENT & DISTRIBUTION TABLE (Admin View Only)
     if (isAdminView) {
+      const pageHeight = doc.internal.pageSize.height;
+      if (tableStartY + 45 > pageHeight - 25) {
+        doc.addPage();
+        tableStartY = 20;
+      }
+
       doc.setFontSize(8);
       doc.setTextColor(225, 29, 72);
       doc.setFont('helvetica', 'bold');

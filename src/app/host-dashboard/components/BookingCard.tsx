@@ -347,6 +347,10 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
       const hostPayout = hostPricing?.hostPayout !== undefined ? hostPricing.hostPayout : Math.max(0, Math.round(Number(booking.total_price || 0) * 0.9));
       const adminCommission = Math.max(0, Number(booking.total_price || 0) - hostPayout);
 
+      const resolvedGuestName = booking.guest?.name || (booking as any)?.guestName || 'Valued Guest';
+      const resolvedGuestEmail = (booking.guest as any)?.email || (booking as any)?.guestEmail || '';
+      const resolvedGuestPhone = (booking.guest as any)?.phone || (booking as any)?.guestPhone || '';
+
       const transactionData = {
         id: booking.id,
         invoice_id: booking.id.slice(0, 8).toUpperCase(),
@@ -354,9 +358,11 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
         date: formatDate(booking.created_at),
         status: booking.status,
         type: isCancelled ? 'refund' : 'payment',
-        guestName: booking.guest?.name || 'Valued Guest',
+        guestName: resolvedGuestName,
+        guestEmail: resolvedGuestEmail,
+        guestPhone: resolvedGuestPhone,
         hostName: (booking.properties as any)?.host?.name || 'Host',
-        guestAddress: (booking.guest as any)?.email || 'Address not provided',
+        guestAddress: [resolvedGuestEmail, resolvedGuestPhone].filter(Boolean).join('\n') || 'Address not provided',
         propertyName: booking.properties?.title || (booking.properties as any)?.name || 'Property',
         booking_id: booking.id,
         room_type: displayRoomType,
@@ -392,21 +398,21 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
     : `#BK${booking.id.slice(0, 5).toUpperCase()}`;
 
   return (
-    <div className={`relative group overflow-hidden bg-[#0d101c] backdrop-blur-2xl border ${statusStyles.border} rounded-[1.8rem] md:rounded-[2.2rem] p-4.5 sm:p-6 shadow-[0_14px_40px_rgba(0,0,0,0.85)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.95)] transition-all duration-300`}>
+    <div className={`relative group overflow-hidden bg-[#0d101c] backdrop-blur-2xl border ${statusStyles.border} rounded-[1.8rem] md:rounded-[2.2rem] p-3.5 sm:p-6 shadow-[0_14px_40px_rgba(0,0,0,0.85)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.95)] transition-all duration-300`}>
 
       {/* Top Status Glow Bar */}
       <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${statusStyles.glow} opacity-80 group-hover:opacity-100 transition-opacity duration-500`} />
 
       <div className="relative z-10 space-y-4">
-        {/* 1. Top Bar: Booking ID & Status Badge */}
-        <div className="flex items-center justify-between gap-3 pb-3 border-b border-white/5">
-          <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold rounded-lg text-xs md:text-sm tracking-wider">
+        {/* 1. Top Bar: Booking ID & Status Badges */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/5">
+          <span className="px-2.5 sm:px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold rounded-lg text-xs md:text-sm tracking-wider shrink-0">
             {bookingCode}
           </span>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 justify-end">
             {/* Booking Status */}
-            <span className={`px-3 py-1 text-[10px] md:text-xs font-black uppercase tracking-[0.15em] rounded-full border backdrop-blur-xl ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} ${statusStyles.shadow}`}>
+            <span className={`px-2.5 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-[10px] md:text-xs font-black uppercase tracking-wider rounded-full border backdrop-blur-xl whitespace-nowrap ${statusStyles.bg} ${statusStyles.border} ${statusStyles.text} ${statusStyles.shadow}`}>
               {booking.status.replace(/_/g, ' ')}
             </span>
 
@@ -415,17 +421,18 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
               const ps = (booking as any).payoutTransferStatus as 'completed' | 'pending' | 'failed' | undefined;
               const failReason = (booking as any).payoutFailureReason as string | undefined;
               const cfg = ps === 'completed'
-                ? { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400', dot: 'bg-emerald-400 animate-pulse', label: 'Payout: Settled' }
+                ? { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400', dot: 'bg-emerald-400 animate-pulse', statusText: 'Settled' }
                 : ps === 'failed'
-                ? { bg: 'bg-rose-500/10', border: 'border-rose-500/20', text: 'text-rose-400', dot: 'bg-rose-400', label: 'Payout: Failed' }
-                : { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400', dot: 'bg-amber-400 animate-pulse', label: 'Payout: Pending' };
+                ? { bg: 'bg-rose-500/10', border: 'border-rose-500/20', text: 'text-rose-400', dot: 'bg-rose-400', statusText: 'Failed' }
+                : { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400', dot: 'bg-amber-400 animate-pulse', statusText: 'Pending' };
               return (
                 <span
                   title={ps === 'failed' && failReason ? failReason : undefined}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-lg border backdrop-blur-md ${cfg.bg} ${cfg.border} ${cfg.text}`}
+                  className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-black uppercase tracking-wider rounded-lg border backdrop-blur-md whitespace-nowrap ${cfg.bg} ${cfg.border} ${cfg.text}`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
-                  {cfg.label}
+                  <span className="hidden sm:inline">Payout: </span>
+                  <span>{cfg.statusText}</span>
                 </span>
               );
             })()}
@@ -435,7 +442,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
 
         {/* 2. Header Row: Avatar + Name & Property + Booking Type */}
         <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-4">
-          <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-[200px]">
+          <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
             {/* Circle Avatar */}
             <div className="w-11 h-11 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-emerald-950/80 border border-emerald-500/30 flex items-center justify-center text-emerald-300 font-bold text-base sm:text-lg md:text-xl shrink-0 overflow-hidden shadow-lg">
               {booking.guest?.avatar_url ? (
@@ -541,8 +548,8 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                   {roomDetails.name}
                 </p>
                 {roomDetails.price && (
-                  <div className="flex items-center justify-between gap-2 pt-0.5">
-                    <span className="text-sm md:text-base font-black text-white">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 pt-0.5">
+                    <span className="text-sm md:text-base font-black text-white shrink-0">
                       {roomDetails.price}
                     </span>
                     <span className={`text-[9px] md:text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${

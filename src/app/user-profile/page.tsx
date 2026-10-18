@@ -77,7 +77,7 @@ export default async function ProfilePage() {
     supabase.from('reviews').select('*, reviewer:users!reviewer_id(name)').eq('receiver_id', user.id),
     supabase
       .from('bookings')
-      .select('*, properties!inner(*, host:users!host_id(name, avatar:avatar_url)), booking_rooms(rooms(room_type))')
+      .select('*, properties!inner(*, host:users!host_id(name, avatar:avatar_url)), guest:users!guest_id(name, email, phone, avatar_url), booking_rooms(rooms(room_type))')
       .eq('guest_id', user.id)
       .not('status', 'in', '("pending","pending_payment","payment_failed")') // Hide uncompleted checkout bookings from guest panel
       .order('created_at', { ascending: false }),
@@ -141,8 +141,18 @@ export default async function ProfilePage() {
         }).join(', ') 
       : null;
 
+    const guestUser = b.guest || {
+      name: userData.name || profile.name || user.user_metadata?.name || 'Guest',
+      email: user.email,
+      phone: profile.phone || user.user_metadata?.phone || '',
+      avatar_url: userData.avatar_url || profile.avatar_url,
+    };
+    const resolvedGuestName = guestUser.name || userData.name || profile.name || 'Guest';
+
     return {
       ...b,
+      guest: guestUser,
+      guestName: resolvedGuestName,
       amenities: selectedAmenities,
       room_type: roomType,
     };
@@ -163,13 +173,18 @@ export default async function ProfilePage() {
       ? Number(b.service_fee)
       : Math.round((bTotalPrice * 0.1) / 1.1);
     const bAccommodation = Math.max(0, bTotalPrice - bServiceFee);
+    const resolvedGuestName = b.guest?.name || b.guestName || userData.name || user.user_metadata?.name || 'Valued Guest';
+    const resolvedGuestEmail = b.guest?.email || user.email || '';
+    const resolvedGuestPhone = b.guest?.phone || profile.phone || '';
 
     return {
       id: b.id,
       transactionId: b.id.slice(0, 8).toUpperCase(),
       booking_id: b.id.slice(0, 8).toUpperCase(),
-      guestName: userData.name || user.user_metadata?.name || 'Valued Guest',
-      guestAddress: [user.email, personalInfo?.location].filter(Boolean).join('\n') || 'Address not provided',
+      guestName: resolvedGuestName,
+      guestEmail: resolvedGuestEmail,
+      guestPhone: resolvedGuestPhone,
+      guestAddress: [resolvedGuestEmail, resolvedGuestPhone, personalInfo?.location].filter(Boolean).join('\n') || 'Address not provided',
       propertyName: b.properties?.title || 'Property',
       hostName: 'StayCool Host',
       amount: isCancelledOrRefunded
