@@ -4,7 +4,6 @@
   "type": "commonjs",
   "private": true,
   "description": "",
-  "main": "apply_bulk_booking_fix.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
