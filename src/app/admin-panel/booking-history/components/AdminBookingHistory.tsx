@@ -604,12 +604,13 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#0c0f1a] border border-white/15 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative space-y-6"
+              className="bg-[#0c0f1a] border border-white/15 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative space-y-6 max-h-[88vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 onClick={() => setSelectedBooking(null)}
-                className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-zinc-300"
+                className="sticky top-0 float-right -mt-2 -mr-2 z-10 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-zinc-300 backdrop-blur-md transition-colors"
+                title="Close"
               >
                 <Icon name="XMarkIcon" size={18} />
               </button>
@@ -796,6 +797,16 @@ export default function AdminBookingHistory({ initialBookings }: AdminBookingHis
                             <span className="font-medium">Booking Cancelled (Unpaid / Inactive)</span>
                           </div>
                         )}
+                      </div>
+
+                      {/* Footer Close Button */}
+                      <div className="pt-3 pb-1 flex justify-end">
+                        <button
+                          onClick={() => setSelectedBooking(null)}
+                          className="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors"
+                        >
+                          Close Details
+                        </button>
                       </div>
                     </div>
                   </>
