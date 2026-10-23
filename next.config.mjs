@@ -2,7 +2,6 @@
 const nextConfig = {
   reactStrictMode: false,
   productionBrowserSourceMaps: false,
-  distDir: process.env.DIST_DIR || '.next',
   turbopack: {},
   typescript: {
     ignoreBuildErrors: true,
