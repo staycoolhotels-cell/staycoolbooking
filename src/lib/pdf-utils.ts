@@ -413,7 +413,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
         3: { halign: 'right', cellWidth: 35, fontStyle: 'bold' }
       },
       theme: 'plain',
-      didDrawCell: (data) => {
+      didDrawCell: (data: any) => {
         if (data.section === 'body') {
           doc.setDrawColor(241, 245, 249);
           doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
@@ -519,7 +519,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
       3: { halign: 'right', cellWidth: 40, fontStyle: 'bold', textColor: [15, 23, 42] }
     },
     theme: 'plain',
-    didDrawCell: (data) => {
+    didDrawCell: (data: any) => {
       if (data.section === 'body') {
         doc.setDrawColor(241, 245, 249);
         doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
@@ -585,7 +585,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
         2: { halign: 'right', cellWidth: 35, fontStyle: 'bold' }
       },
       theme: 'plain',
-      didDrawCell: (data) => {
+      didDrawCell: (data: any) => {
         if (data.section === 'body') {
           doc.setDrawColor(254, 226, 226);
           doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
@@ -660,7 +660,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
           3: { halign: 'right', cellWidth: 35, fontStyle: 'bold' }
         },
         theme: 'plain',
-        didDrawCell: (data) => {
+        didDrawCell: (data: any) => {
           if (data.section === 'body') {
             doc.setDrawColor(254, 226, 226);
             doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
@@ -732,7 +732,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
           3: { halign: 'right', cellWidth: 35, fontStyle: 'bold' }
         },
         theme: 'plain',
-        didDrawCell: (data) => {
+        didDrawCell: (data: any) => {
           if (data.section === 'body') {
             doc.setDrawColor(224, 242, 254);
             doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
@@ -800,7 +800,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
           3: { halign: 'right', cellWidth: 35, fontStyle: 'bold' }
         },
         theme: 'plain',
-        didDrawCell: (data) => {
+        didDrawCell: (data: any) => {
           if (data.section === 'body') {
             doc.setDrawColor(224, 242, 254);
             doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
@@ -1202,9 +1202,9 @@ export const exportTransactionsToCSV = (transactions: Transaction[]) => {
 export const exportTransactionsToPDF = async (transactions: Transaction[]) => {
   if (transactions.length === 0) return;
 
-  const jspdfModule = await import('jspdf');
+  const jspdfModule: any = await import('jspdf');
   const jsPDF = jspdfModule.default?.jsPDF || jspdfModule.jsPDF || jspdfModule.default;
-  const autoTableModule = await import('jspdf-autotable');
+  const autoTableModule: any = await import('jspdf-autotable');
   const autoTable = autoTableModule.default?.default || autoTableModule.default || autoTableModule.autoTable || (autoTableModule as any);
 
   const doc = new jsPDF();
@@ -1279,7 +1279,7 @@ export const exportTransactionsToPDF = async (transactions: Transaction[]) => {
       5: { halign: 'left' }
     },
     theme: 'plain',
-    didDrawCell: (data) => {
+    didDrawCell: (data: any) => {
       if (data.section === 'body') {
         doc.setDrawColor(240);
         doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
