@@ -68,7 +68,8 @@ const HostDashboardInteractive = ({
   const { 
     properties: cachedProperties, 
     setProperties: setStoreProperties, 
-    setBookings: setStoreBookings 
+    setBookings: setStoreBookings,
+    setCurrentUser: setStoreCurrentUser
   } = useAppStore();
 
   const supabase = createBrowserClient(
@@ -87,7 +88,8 @@ const HostDashboardInteractive = ({
   useEffect(() => {
     if (hostData.properties) setStoreProperties(hostData.properties);
     if (hostData.bookings) setStoreBookings(hostData.bookings);
-  }, [hostData.properties, hostData.bookings, setStoreProperties, setStoreBookings]);
+    if (hostData) setStoreCurrentUser(hostData as any);
+  }, [hostData, setStoreProperties, setStoreBookings, setStoreCurrentUser]);
 
   type TabType =
     | 'overview'

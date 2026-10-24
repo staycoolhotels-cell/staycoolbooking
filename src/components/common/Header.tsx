@@ -9,6 +9,7 @@ import AppImage from '@/components/ui/AppImage';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { signOutUser } from '@/lib/auth-actions';
+import { useAppStore } from '@/lib/store';
 
 /**
  * Obsidian Sky Ultra-Luxury Header
@@ -29,56 +30,79 @@ const Header = () => {
   const headerHeight = useTransform(scrollY, [0, 100], ['100px', '70px']);
   const headerBg = useTransform(scrollY, [0, 100], ['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 1)']);
 
+  const storeUser = useAppStore((state) => state.currentUser);
+  const [userProfile, setUserProfile] = useState<any>(null);
+
   useEffect(() => {
-    // Initial fetch to sync state from local session cache
+    let isMounted = true;
+
+    const fetchProfile = async (userId: string) => {
+      try {
+        const { data: dbUser } = await supabase
+          .from('users')
+          .select('id, name, email, role, avatar_url, referral_code')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (isMounted && dbUser) {
+          setUserProfile(dbUser);
+          if (dbUser.referral_code) setReferralCode(dbUser.referral_code);
+        }
+      } catch (err) {
+        console.error('Failed to fetch user profile:', err);
+      }
+    };
+
+    // Initial fetch to sync state from local session cache or getUser fallback
     const syncUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        let currentUser = session?.user ?? null;
+        if (!currentUser) {
+          const { data: userData } = await supabase.auth.getUser();
+          currentUser = userData?.user ?? null;
+        }
+
+        if (isMounted) {
+          setUser(currentUser);
+        }
+
+        const targetId = currentUser?.id || storeUser?.id;
+        if (targetId) {
+          await fetchProfile(targetId);
+        }
+      } catch (err) {
+        console.error('Header syncUser error:', err);
+      }
     };
     syncUser();
 
     // Auth state synchronization (fires automatically on sign in, sign out, token refresh)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const currentUser = session?.user ?? null;
+      if (isMounted) {
+        setUser(currentUser);
+      }
+      if (currentUser?.id) {
+        await fetchProfile(currentUser.id);
+      } else if (!storeUser?.id) {
+        if (isMounted) setUserProfile(null);
+      }
+
       if (event === 'PASSWORD_RECOVERY') {
         if (typeof window !== 'undefined' && window.location.pathname !== '/reset-password') {
           router.push('/reset-password');
         }
       }
     });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Fetch host's actual unique referral code from users table
-  useEffect(() => {
-    let isMounted = true;
-    const fetchUserReferral = async (userId: string) => {
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('referral_code')
-          .eq('id', userId)
-          .maybeSingle();
-        if (isMounted && data?.referral_code) {
-          setReferralCode(data.referral_code);
-        }
-      } catch (err) {
-        console.error('Failed to fetch referral code:', err);
-      }
-    };
-
-    if (user?.id) {
-      fetchUserReferral(user.id);
-    } else {
-      setReferralCode(null);
-    }
 
     return () => {
       isMounted = false;
+      subscription.unsubscribe();
     };
-  }, [user?.id]);
+  }, [storeUser?.id]);
 
   // Click outside to close dropdown
   useEffect(() => {
@@ -102,18 +126,23 @@ const Header = () => {
       // 1. Clear local session via client-side Supabase
       await supabase.auth.signOut();
 
-      // 2. Clear server components via server action - this must be in transition if it throws redirect
+      // 2. Clear store user
+      useAppStore.getState().clearCache();
+
+      // 3. Clear server components via server action - this must be in transition if it throws redirect
       React.startTransition(() => {
         signOutUser();
       });
 
       setUser(null);
+      setUserProfile(null);
       setIsMobileMenuOpen(false);
       setIsDropdownOpen(false);
       router.refresh();
     } catch (error) {
       console.error('Logout failed', error);
       setUser(null);
+      setUserProfile(null);
       // Fallback redirect if server action fails
       router.push('/');
       router.refresh();
@@ -128,7 +157,32 @@ const Header = () => {
     { name: 'Contact', path: '/contact', icon: 'PhoneIcon' },
   ];
 
-  const role = user?.user_metadata?.role?.toLowerCase();
+  const isHostDashboard = pathname.startsWith('/host-dashboard');
+  const isAdminPanel = pathname.startsWith('/admin-panel');
+  const isUserProfile = pathname.startsWith('/user-profile');
+
+  const effectiveRole = (
+    userProfile?.role ||
+    storeUser?.role ||
+    user?.user_metadata?.role ||
+    (isHostDashboard ? 'host' : isAdminPanel ? 'admin' : '')
+  )?.toLowerCase();
+
+  const isAuthenticated = !!user?.id || !!storeUser?.id || isHostDashboard || isUserProfile;
+  const role = effectiveRole;
+
+  const displayName =
+    userProfile?.name ||
+    storeUser?.name ||
+    user?.user_metadata?.fullName ||
+    user?.user_metadata?.name ||
+    user?.email?.split('@')[0] ||
+    (isHostDashboard ? 'Host' : 'User');
+
+  const displayAvatar =
+    userProfile?.avatar_url ||
+    storeUser?.avatar_url ||
+    user?.user_metadata?.avatar_url;
 
   const roleSpecificLinks = [];
   if (role === 'guest') {
@@ -212,14 +266,18 @@ const Header = () => {
 
           {/* 3. ACTIONS: Desktop (Airbnb Style) */}
           <div className="hidden xl:flex items-center gap-6 relative" ref={dropdownRef}>
-            {!user?.id ? (
+            {!isAuthenticated ? (
               <div className="flex items-center gap-2">
                 <Link href="/auth?role=host" className="text-[10px] font-black uppercase tracking-[0.15em] text-white/70 hover:text-[#0ea5e9] transition-all py-2.5 px-3 rounded-full hover:bg-white/5 cursor-pointer">Host Signup / Login</Link>
               </div>
             ) : (
               <Link
                 href={role === 'host' ? "/host-dashboard" : role === 'admin' ? "/admin-panel" : "/user-profile"}
-                className="text-xs font-black uppercase tracking-[0.2em] text-white/70 hover:text-[#0ea5e9] transition-all py-2.5 px-4 rounded-full hover:bg-white/5 cursor-pointer"
+                className={`text-xs font-black uppercase tracking-[0.2em] transition-all py-2.5 px-4 rounded-full hover:bg-white/5 cursor-pointer ${
+                  (role === 'host' && isHostDashboard) || (role === 'admin' && isAdminPanel)
+                    ? 'text-[#0ea5e9] bg-sky-500/10 border border-sky-500/30'
+                    : 'text-white/70 hover:text-[#0ea5e9]'
+                }`}
               >
                 {role === 'host' ? 'Host Dashboard' : role === 'admin' ? 'Admin Dashboard' : 'My Account'}
               </Link>
@@ -245,9 +303,9 @@ const Header = () => {
               
               {/* User Avatar */}
               <div className="relative w-8 h-8 rounded-full overflow-hidden bg-white/10 flex items-center justify-center border border-white/10 group-hover:border-[#0ea5e9]/50 transition-colors">
-                {user?.user_metadata?.avatar_url ? (
+                {displayAvatar ? (
                   <img 
-                    src={user.user_metadata.avatar_url} 
+                    src={displayAvatar} 
                     alt="Profile" 
                     className="w-full h-full object-cover"
                   />
@@ -267,7 +325,7 @@ const Header = () => {
                   transition={{ duration: 0.15 }}
                   className="absolute right-0 top-full mt-3 w-80 bg-black/90 border border-white/10 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.8)] py-3.5 z-[200] overflow-hidden backdrop-blur-2xl"
                 >
-                  {!user?.id ? (
+                  {!isAuthenticated ? (
                     <>
                       {/* Logged Out Menu */}
                       <Link 
@@ -327,7 +385,7 @@ const Header = () => {
                     <>
                       {/* Logged In Menu */}
                       <div className="px-5 py-2 text-[10px] font-black text-zinc-500 uppercase tracking-widest">
-                        Welcome, {user.user_metadata?.fullName || user.email?.split('@')[0]}
+                        Welcome, {displayName}
                       </div>
 
                       <div className="h-[1px] bg-white/10 my-2" />
@@ -518,7 +576,7 @@ const Header = () => {
                 transition={{ delay: 0.4, type: "spring", stiffness: 100 }}
                 className="mt-6 sm:mt-8 w-full max-w-[240px] sm:max-w-[280px]"
               >
-                {!user?.id ? (
+                {!isAuthenticated ? (
                   <div className="space-y-3">
                     <Link 
                       href="/auth?role=guest" 
