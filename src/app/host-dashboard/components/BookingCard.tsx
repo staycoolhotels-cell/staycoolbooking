@@ -97,9 +97,7 @@ const getStatusStyles = (status: Booking['status']) => {
 
 const BookingCard = ({ booking, onAction }: BookingCardProps) => {
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
-  const [isIdModalOpen, setIsIdModalOpen] = useState(false);
   const [isGuestDetailsModalOpen, setIsGuestDetailsModalOpen] = useState(false);
-  const [guestIdDoc, setGuestIdDoc] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
@@ -114,25 +112,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
 
   useEffect(() => {
     setMounted(true);
-    
-    // Fetch guest ID document info
-    const fetchGuestId = async () => {
-      try {
-        const { getGuestVerification } = await import('@/lib/booking-actions');
-        const result = await getGuestVerification(booking.guest_id);
-        
-        if (result.success && result.fileUrl) {
-          setGuestIdDoc(result.fileUrl);
-        }
-      } catch (err) {
-        console.error('Failed to fetch guest ID:', err);
-      }
-    };
-
-    if (booking.guest_id) {
-      fetchGuestId();
-    }
-  }, [booking.guest_id]);
+  }, []);
 
   const statusStyles = getStatusStyles(booking.status);
 
@@ -616,8 +596,8 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
           </div>
         )}
 
-        {/* Bottom 4 Action Buttons Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-white/5">
+        {/* Bottom Action Buttons Row */}
+        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/5">
           <button
             onClick={() => onAction('unified-inbox', {
               guest_id: booking.guest_id,
@@ -626,33 +606,21 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
               property_id: booking.property_id,
               property_name: booking.properties?.title || booking.properties?.name || 'Property'
             })}
-            className="px-3 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-300 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all"
+            className="px-2 sm:px-3 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-300 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all"
           >
             <Icon name="ChatBubbleLeftRightIcon" size={14} /> <span>MESSAGE</span>
           </button>
 
           <button
             onClick={() => setIsDisputeModalOpen(true)}
-            className="px-3 py-2.5 bg-zinc-800/60 hover:bg-zinc-800 border border-white/5 text-zinc-400 hover:text-red-400 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all"
+            className="px-2 sm:px-3 py-2.5 bg-zinc-800/60 hover:bg-zinc-800 border border-white/5 text-zinc-400 hover:text-red-400 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all"
           >
             <Icon name="ScaleIcon" size={14} /> <span>DISPUTE</span>
           </button>
 
           <button
-            onClick={() => {
-              if (guestIdDoc) setIsIdModalOpen(true);
-              else toast.error('ID not uploaded.');
-            }}
-            className={`px-3 py-2.5 rounded-xl border font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all ${
-              guestIdDoc ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' : 'bg-zinc-900/50 border-white/5 text-zinc-600 cursor-not-allowed'
-            }`}
-          >
-            <Icon name="FingerPrintIcon" size={14} /> <span>ID</span>
-          </button>
-
-          <button
             onClick={handleDownloadInvoice}
-            className="px-3 py-2.5 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 text-sky-400 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-sky-900/10"
+            className="px-2 sm:px-3 py-2.5 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 text-sky-400 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-sky-900/10"
           >
             <Icon name="DocumentTextIcon" size={14} /> <span>INVOICE</span>
           </button>
@@ -782,98 +750,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
         document.body
       )}
 
-      {/* ID Modal */}
-      {mounted && createPortal(
-        <AnimatePresence>
-          {isIdModalOpen && (
-            <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 sm:p-6" onClick={() => setIsIdModalOpen(false)}>
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="relative max-w-4xl w-full aspect-[3/4] sm:aspect-[4/3] md:aspect-auto md:h-[85vh] bg-[#0a0a0f] border border-white/10 rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-[0_0_100px_rgba(16,185,129,0.1)] flex flex-col"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="p-3.5 md:p-6 border-b border-white/5 flex items-center justify-between bg-black/40">
-                  <div className="flex items-center gap-2.5 md:gap-3">
-                    <div className="p-1.5 md:p-2 bg-emerald-500/10 rounded-lg">
-                      <Icon name="FingerPrintIcon" size={18} className="text-emerald-400 md:w-5 md:h-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-white font-bold text-sm md:text-lg leading-tight">Identity: {booking.guest?.name || 'Verified Guest'}</h3>
-                      <p className="text-[7px] md:text-[10px] text-zinc-500 uppercase tracking-widest font-black mt-0.5">
-                        Secure Access Control • Encrypted
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setIsIdModalOpen(false)}
-                    className="p-2 hover:bg-white/10 rounded-full transition-colors text-zinc-400 hover:text-white"
-                  >
-                    <Icon name="XMarkIcon" size={24} />
-                  </button>
-                </div>
 
-                <div className="flex-1 overflow-auto p-4 md:p-10 flex items-center justify-center bg-[#050507]">
-                  {(() => {
-                    const url = guestIdDoc;
-                    if (!url) return <p className="text-zinc-500 italic">No document available</p>;
-
-                    const isPdf = url.includes('.pdf') || url.includes('pdf');
-
-                    return (
-                      <div className="relative w-full h-full flex items-center justify-center group">
-                        <div className="absolute inset-0 bg-emerald-500/5 blur-[100px] pointer-events-none" />
-                        {isPdf ? (
-                          <iframe
-                            src={url}
-                            className="w-full h-full rounded-xl border border-white/10 relative z-10 bg-white"
-                            title="ID Document PDF"
-                          />
-                        ) : (
-                          <img
-                            src={url}
-                            alt="Guest ID Proof"
-                            className="max-w-full max-h-full object-contain rounded-xl shadow-2xl border border-white/10 relative z-10"
-                          />
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                <div className="p-3.5 md:p-6 bg-black/60 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3 md:gap-4">
-                  <div className="hidden sm:flex items-center gap-2 text-emerald-400/60 font-medium text-[11px] uppercase tracking-widest">
-                    <Icon name="ShieldCheckIcon" size={14} />
-                    <span>Secure Host Access Protocol</span>
-                  </div>
-                  <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto">
-                    {guestIdDoc && (
-                      <a
-                        href={guestIdDoc}
-                        download
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 sm:flex-none px-4 md:px-6 py-2.5 md:py-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 rounded-xl font-bold text-[10px] md:text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 md:gap-2"
-                      >
-                        <Icon name="ArrowDownTrayIcon" size={14} className="md:w-4 md:h-4" />
-                        Download
-                      </a>
-                    )}
-                    <button
-                      onClick={() => setIsIdModalOpen(false)}
-                      className="flex-1 sm:flex-none px-4 md:px-8 py-2.5 md:py-3 bg-white hover:bg-zinc-200 text-black rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all active:scale-95 shadow-xl"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
 
       {/* Confirmation Modal */}
       <ActionConfirmModal

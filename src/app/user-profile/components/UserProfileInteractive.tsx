@@ -8,7 +8,6 @@ import {
   Review,
   PersonalInfo,
   Achievement,
-  UserVerificationStatus,
   Booking,
   Transaction,
   WishlistItem,
@@ -25,7 +24,6 @@ import SmartItineraryBuilder from './SmartItineraryBuilder';
 import FinancialTreasury from './FinancialTreasury';
 import LoyaltyAndEliteStatus from './LoyaltyAndEliteStatus';
 import SmartWishlist from './SmartWishlist';
-import VerificationAndTrust from './VerificationAndTrust';
 import ProfileHeader from './NewProfileHeader';
 import ReviewHistory from './NewReviewHistory';
 import BookingHistory from './BookingHistory';
@@ -71,15 +69,6 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
 
   // Data States
   const [user, setUser] = useState<User | null>(userData);
-  const [verifications, setVerifications] = useState<UserVerificationStatus>(
-    userData.verifications || {
-      user_id: userData.id || '',
-      isEmailVerified: false,
-      isPhoneVerified: false,
-      isIdVerified: false,
-      isPaymentMethodVerified: false,
-    }
-  );
   const [reviews, setReviews] = useState<Review[]>(userData.reviews);
   const [bookings, setBookings] = useState<(Booking & { properties: Partial<Property> })[]>(
     userData.bookings
@@ -91,13 +80,6 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
 
   useEffect(() => {
     setUser(userData);
-    setVerifications(userData.verifications || {
-      user_id: userData.id || '',
-      isEmailVerified: false,
-      isPhoneVerified: false,
-      isIdVerified: false,
-      isPaymentMethodVerified: false,
-    });
     setReviews(userData.reviews);
     setBookings(userData.bookings);
     setPersonalInfo(userData);
@@ -386,17 +368,6 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
             </motion.div>
             <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.48 }}>
               <SmartWishlist wishlist={wishlist} userId={user?.id || ''} />
-            </motion.div>
-            <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.56 }}>
-              <VerificationAndTrust 
-                verifications={verifications} 
-                bookings={bookings} 
-                onUpdate={(newVerifications) => setVerifications(newVerifications)}
-                onContactHost={(hostId) => {
-                  setActiveThreadId(`${hostId}:${Date.now()}`);
-                  document.getElementById('guest-inbox-section')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              />
             </motion.div>
           </aside>
         </div>
