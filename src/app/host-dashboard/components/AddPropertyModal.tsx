@@ -302,27 +302,23 @@ const AddPropertyModal = ({
   }, []);
 
   const uploadFileToSupabase = async (file: File, bucketName: string, folderPath: string): Promise<string> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      throw new Error("User not authenticated. Please log in to upload files.");
+    // Use server-side API route to bypass Supabase RLS restrictions on storage uploads
+    const uploadFormData = new FormData();
+    uploadFormData.append('file', file);
+    uploadFormData.append('bucket', bucketName);
+    uploadFormData.append('folderPath', folderPath);
+
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: uploadFormData,
+    });
+
+    const json = await res.json();
+    if (!res.ok || json.error) {
+      throw new Error(`Failed to upload file to ${bucketName}: ${json.error || 'Unknown error'}`);
     }
 
-    const fileExt = file.name.split('.').pop();
-    const randomStr = Math.random().toString(36).substring(2, 8);
-    const fileName = `${folderPath}/${Date.now()}_${randomStr}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage
-      .from(bucketName)
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (uploadError) {
-      throw new Error(`Failed to upload file to ${bucketName}: ${uploadError.message}`);
-    }
-
-    const { data: publicUrlData } = supabase.storage.from(bucketName).getPublicUrl(fileName);
-    return publicUrlData.publicUrl;
+    return json.url as string;
   };
 
   useEffect(() => {
@@ -758,7 +754,8 @@ const AddPropertyModal = ({
       await onSaveProperty(updatedFormData);
       onClose(); // Close modal after successful submission
     } catch (error: any) {
-      setErrorMessage('An unexpected error occurred. Please try again later.');
+      const msg = error?.message || 'An unexpected error occurred. Please try again later.';
+      setErrorMessage(msg);
       console.error("Error saving property:", error);
       setIsSubmitting(false);
     }
