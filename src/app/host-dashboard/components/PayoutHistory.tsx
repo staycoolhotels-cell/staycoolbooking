@@ -14,7 +14,7 @@ interface PaymentTransfer {
     host_amount: number;
     commission_type: string;
     commission_value: number;
-    transfer_status: 'pending' | 'processing' | 'settled' | 'failed' | 'reversed';
+    transfer_status: 'pending' | 'processing' | 'settled' | 'failed' | 'reversed' | 'pending_host_activation';
     created_at: string;
     bookings?: {
         total_price?: number;
@@ -32,6 +32,7 @@ const statusConfig = {
     settled: { label: 'Settled', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border border-emerald-500/20', icon: CheckCircle2 },
     failed: { label: 'Failed', color: 'text-red-400', bg: 'bg-red-500/10 border border-red-500/20', icon: XCircle },
     reversed: { label: 'Reversed', color: 'text-zinc-400', bg: 'bg-zinc-500/10 border border-zinc-500/20', icon: XCircle },
+    pending_host_activation: { label: 'Awaiting Account Activation', color: 'text-orange-400', bg: 'bg-orange-500/10 border border-orange-500/20', icon: Clock },
 };
 
 interface PayoutHistoryProps {

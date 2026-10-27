@@ -210,6 +210,16 @@ export async function POST(req: Request) {
             // Process split transfer on check-in day
             let splitDone = false;
 
+            // 0. If host account is still not activated, leave payout deferred.
+            //    It will be automatically processed when the host activates via webhook.
+            if (!hostRazorpayAccountId && transferDetails?.transfer_status === 'pending_host_activation') {
+                console.warn(`[CheckIn] Host ${hostId} account not yet activated. Deferred payout remains pending for booking ${bookingId}.`);
+                return NextResponse.json({
+                    success: true,
+                    message: 'Checked in successfully. Host payout will be sent automatically once the host activates their account.',
+                });
+            }
+
             // 1. If an existing transfer was already recorded with on_hold flag (legacy order-time transfers):
             if (transferDetails.razorpay_transfer_id) {
                 try {

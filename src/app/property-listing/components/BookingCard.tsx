@@ -115,6 +115,10 @@ const BookingCard = ({
   });
   const [availableRooms, setAvailableRooms] = useState<number>(totalRooms);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
+  // True once get_available_rooms has returned at least one row for this property.
+  // Stays false for whole-property listings (homestay / villa / apartment) that have
+  // no individual room rows in the rooms table.
+  const [hasRoomsInDB, setHasRoomsInDB] = useState<boolean | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -504,11 +508,15 @@ const BookingCard = ({
             toast.error('Sub-units fetch failed. Ensure SQL migrations are applied.');
           }
         } else {
-          setAvailableRoomsList(data || []);
+          const roomsList = data || [];
+          setAvailableRoomsList(roomsList);
+          // Track whether this property has any sub-unit rows in the DB.
+          // Only update once we have a definitive answer (non-null data from the RPC).
+          setHasRoomsInDB(roomsList.length > 0);
 
           // Auto-select first available room for single booking
-          if (bookingType === 'single' && (data || []).length > 0) {
-            const firstAvailable = data.find((r: any) => r.is_available) || data[0];
+          if (bookingType === 'single' && roomsList.length > 0) {
+            const firstAvailable = roomsList.find((r: any) => r.is_available) || roomsList[0];
             setSelectedRoomIds([firstAvailable.id]);
           }
         }
@@ -955,19 +963,26 @@ const BookingCard = ({
   // But initialIsAvailable is boolean.
 
   const hasSubUnits = availableRoomsList.length > 0;
+  // Whole-property listing: no sub-unit rows in DB (confirmed after first fetch).
+  // For these, availableRooms = 1 means available, 0 means booked (after SQL fix).
+  const isWholePropertyListing = hasRoomsInDB === false;
 
-  const isBookable = isDateSelected
-    ? (availableRooms > 0 && (!hasSubUnits || (bookingType === 'single' ? selectedRoomIds.length === 1 : selectedRoomIds.length > 0 && selectedRoomIds.length <= availableRooms)))
-    : initialIsAvailable;
+  const isBookable = checkingAvailability
+    ? false
+    : isDateSelected
+      ? (availableRooms > 0 && (!hasSubUnits || (bookingType === 'single' ? selectedRoomIds.length === 1 : selectedRoomIds.length > 0 && selectedRoomIds.length <= availableRooms)))
+      : initialIsAvailable;
 
   const unavailableMessage = checkingAvailability
     ? 'Checking availability...'
     : (isDateSelected
       ? (availableRooms === 0
-        ? 'Already Booked for Selected Dates'
-        : (!hasSubUnits
+        // Only show 'Already Booked' if we've confirmed whether this is a
+        // whole-property listing or room-based. avoids flashing before fetch.
+        ? (hasRoomsInDB === null ? 'Checking availability...' : 'Already Booked for Selected Dates')
+        : (!hasSubUnits && !isWholePropertyListing
           ? 'Selected dates unavailable'
-          : (selectedRoomIds.length === 0 ? 'Select a unit' : `Only ${availableRooms} available`)))
+          : (hasSubUnits && selectedRoomIds.length === 0 ? 'Select a unit' : `Only ${availableRooms} available`)))
       : 'Unavailable');
 
   const popperSx = {

@@ -277,13 +277,13 @@ export async function POST(req: Request) {
                 const account = payload?.account?.entity;
                 if (!account) break;
 
-                // Update host_kyc_details status
+                // 1. Update host_kyc_details status
                 await supabase
                     .from('host_kyc_details')
                     .update({ kyc_status: 'activated' })
                     .eq('razorpay_account_id', account.id);
 
-                // Also sync users.kyc_status to 'verified'
+                // 2. Also sync users.kyc_status to 'verified'
                 const { data: kycRecord } = await supabase
                     .from('host_kyc_details')
                     .select('user_id')
@@ -296,6 +296,121 @@ export async function POST(req: Request) {
                         .update({ kyc_status: 'verified' })
                         .eq('id', kycRecord.user_id);
                     console.log(`[Webhook] account.activated: Synced users.kyc_status=verified for user ${kycRecord.user_id}`);
+
+                    // 3. Process all deferred payouts for this host
+                    //    Find all confirmed bookings where host had no active account at booking time.
+                    const { data: deferredTransfers } = await supabase
+                        .from('payment_transfers')
+                        .select(`
+                            *,
+                            bookings!booking_id (
+                                id,
+                                razorpay_payment_id,
+                                status
+                            )
+                        `)
+                        .eq('host_id', kycRecord.user_id)
+                        .eq('transfer_status', 'pending_host_activation');
+
+                    if (deferredTransfers && deferredTransfers.length > 0) {
+                        console.log(`[Webhook] account.activated: Processing ${deferredTransfers.length} deferred payout(s) for host ${kycRecord.user_id}`);
+
+                        for (const transfer of deferredTransfers) {
+                            const booking = (transfer as any).bookings;
+                            const razorpayPaymentId = booking?.razorpay_payment_id;
+
+                            // Only process confirmed/checked_in bookings with a captured payment
+                            if (!razorpayPaymentId || !['confirmed', 'checked_in'].includes(booking?.status)) {
+                                console.warn(`[Webhook] Skipping deferred transfer for booking ${transfer.booking_id} — no payment ID or invalid status.`);
+                                continue;
+                            }
+
+                            const transfersPayload = [];
+
+                            // Host payout
+                            if (Number(transfer.host_amount) > 0) {
+                                transfersPayload.push({
+                                    account: account.id, // The now-activated Razorpay linked account
+                                    amount: Math.round(Number(transfer.host_amount) * 100), // paise
+                                    currency: 'INR',
+                                    notes: {
+                                        booking_id: transfer.booking_id,
+                                        type: 'host_payout',
+                                        host_id: kycRecord.user_id,
+                                        deferred: 'true',
+                                    },
+                                });
+                            }
+
+                            // Referrer split (if applicable and referrer has active account)
+                            if (transfer.referrer_id && Number(transfer.referrer_amount) > 0) {
+                                const { data: referrerKyc } = await supabase
+                                    .from('host_kyc_details')
+                                    .select('razorpay_account_id, kyc_status')
+                                    .eq('user_id', transfer.referrer_id)
+                                    .single();
+                                if (referrerKyc?.kyc_status === 'activated' && referrerKyc.razorpay_account_id) {
+                                    transfersPayload.push({
+                                        account: referrerKyc.razorpay_account_id,
+                                        amount: Math.round(Number(transfer.referrer_amount) * 100),
+                                        currency: 'INR',
+                                        notes: {
+                                            booking_id: transfer.booking_id,
+                                            type: 'referral_commission',
+                                            referred_host_id: kycRecord.user_id,
+                                            referrer_id: transfer.referrer_id,
+                                            deferred: 'true',
+                                        },
+                                    });
+                                }
+                            }
+
+                            if (transfersPayload.length === 0) continue;
+
+                            try {
+                                const { razorpay } = await import('@/lib/razorpay');
+                                const result = await razorpay.payments.transfer(razorpayPaymentId, {
+                                    transfers: transfersPayload,
+                                });
+                                const returnedItems = (result as any).items || [];
+                                const hostTransferId =
+                                    returnedItems.find((i: any) => i.notes?.type === 'host_payout')?.id ||
+                                    (result as any).id;
+
+                                await supabase
+                                    .from('payment_transfers')
+                                    .update({
+                                        razorpay_transfer_id: hostTransferId,
+                                        transfer_status: 'settled',
+                                    })
+                                    .eq('booking_id', transfer.booking_id);
+
+                                // Notify the host
+                                await createNotification(
+                                    'payout',
+                                    '💰 Deferred Payout Sent!',
+                                    `Your account is now active. Deferred payout of ₹${transfer.host_amount} for booking #${transfer.booking_id?.slice(0, 8)} has been transferred.`,
+                                    'success',
+                                    kycRecord.user_id,
+                                    'host',
+                                    '/host-dashboard'
+                                );
+
+                                console.log(`[Webhook] Deferred payout settled for booking ${transfer.booking_id}, transfer ${hostTransferId}`);
+                            } catch (trfErr: any) {
+                                console.error(`[Webhook] Deferred payout failed for booking ${transfer.booking_id}:`, trfErr?.message || trfErr);
+                                await supabase
+                                    .from('payment_transfers')
+                                    .update({
+                                        transfer_status: 'failed',
+                                        failure_reason: `Deferred payout failed after host activation: ${trfErr?.message || 'Unknown error'}`,
+                                    })
+                                    .eq('booking_id', transfer.booking_id);
+                            }
+                        }
+                    } else {
+                        console.log(`[Webhook] account.activated: No deferred payouts found for host ${kycRecord.user_id}.`);
+                    }
                 }
 
                 console.log(`[Webhook] account.activated: Account ${account.id} is now activated.`);

@@ -125,12 +125,12 @@ export async function POST(req: Request) {
             }
         }
 
-        // Prevent taking payment without escrow hold if host has no active linked account
+        // If host has no active linked account, allow the booking but hold the full
+        // amount with the platform. Admin will manually transfer once host activates.
         if (!hostRazorpayAccountId && hostAmount > 0) {
-            console.error(`[CreateOrder] Host ${hostId} does not have an active Razorpay Route linked account.`);
-            return NextResponse.json(
-                { error: 'Host payout account is not activated. Booking payment cannot be held safely.' },
-                { status: 400 }
+            console.warn(
+                `[CreateOrder] Host ${hostId} has no active Razorpay Route account. ` +
+                `Full payment (₹${totalAmount}) will be held by platform. Manual payout needed after host activates.`
             );
         }
 
@@ -221,7 +221,9 @@ export async function POST(req: Request) {
                     host_amount: hostAmount,
                     commission_type: commissionType,
                     commission_value: commissionValue,
-                    transfer_status: 'pending',
+                    // If host has no active account, mark as deferred — will be processed
+                    // automatically once host activates their Razorpay linked account.
+                    transfer_status: hostRazorpayAccountId ? 'pending' : 'pending_host_activation',
                     referrer_id: referrerId,
                     referrer_amount: referrerCommission,
                 },
