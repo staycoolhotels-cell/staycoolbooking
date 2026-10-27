@@ -288,7 +288,7 @@ const Header = () => {
               suppressHydrationWarning
               className="p-2.5 text-white/70 hover:text-[#0ea5e9] hover:bg-white/5 rounded-full transition-all cursor-pointer"
               aria-label="Language and region"
-              onClick={() => alert("StayCool Booking is currently optimized for English and Telugu.")}
+              onClick={() => alert("StayCool Booking is currently available in English only.")}
             >
               <Icon name="Globe" size={18} />
             </button>
