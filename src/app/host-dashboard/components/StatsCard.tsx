@@ -16,6 +16,8 @@ interface StatsCardProps {
  * Featuring internal glow effects and spring-based animations.
  */
 const StatsCard = ({ title, value, icon, onClick }: StatsCardProps) => {
+  const isLongValue = typeof value === 'string' && value.length > 7;
+
   return (
     <motion.div
       whileHover={{
@@ -38,7 +40,12 @@ const StatsCard = ({ title, value, icon, onClick }: StatsCardProps) => {
           <motion.h3
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            className="text-lg sm:text-xl lg:text-2xl font-heading font-bold text-white tracking-tight break-words"
+            className={`${
+              isLongValue
+                ? 'text-base sm:text-lg lg:text-base xl:text-lg'
+                : 'text-lg sm:text-xl lg:text-2xl'
+            } font-heading font-bold text-white tracking-tight whitespace-nowrap`}
+            title={typeof value === 'string' ? value : undefined}
           >
             {value}
           </motion.h3>
