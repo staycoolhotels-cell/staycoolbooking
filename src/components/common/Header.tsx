@@ -429,8 +429,16 @@ const Header = () => {
                           </Link>
                           
                           <Link 
-                            href="/wishlist"
-                            onClick={() => setIsDropdownOpen(false)}
+                            href="/user-profile#smart-wishlist"
+                            onClick={() => {
+                              setIsDropdownOpen(false);
+                              if (typeof window !== 'undefined' && window.location.pathname === '/user-profile') {
+                                const el = document.getElementById('smart-wishlist');
+                                if (el) {
+                                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }
+                              }
+                            }}
                             className="block px-5 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-all text-left"
                           >
                             Wishlists

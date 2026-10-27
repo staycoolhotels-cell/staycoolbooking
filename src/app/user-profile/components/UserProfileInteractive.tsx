@@ -95,6 +95,23 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
     else setGreeting('Good Evening');
   }, []);
 
+  useEffect(() => {
+    const handleHashScroll = () => {
+      if (typeof window !== 'undefined' && window.location.hash === '#smart-wishlist') {
+        setTimeout(() => {
+          const el = document.getElementById('smart-wishlist');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 300);
+      }
+    };
+
+    handleHashScroll();
+    window.addEventListener('hashchange', handleHashScroll);
+    return () => window.removeEventListener('hashchange', handleHashScroll);
+  }, []);
+
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       if (!event.target.files || event.target.files.length === 0 || !user) return;
@@ -366,7 +383,13 @@ const UserProfileInteractive = ({ userData }: { userData: any }) => {
                 rewardPoints={user?.reward_points || 0}
               />
             </motion.div>
-            <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.48 }}>
+            <motion.div 
+              id="smart-wishlist"
+              className="scroll-mt-24"
+              initial={{ x: 20, opacity: 0 }} 
+              animate={{ x: 0, opacity: 1 }} 
+              transition={{ delay: 0.48 }}
+            >
               <SmartWishlist wishlist={wishlist} userId={user?.id || ''} />
             </motion.div>
           </aside>
