@@ -71,7 +71,7 @@ export default function AvailabilityCalendar({ properties }: AvailabilityCalenda
             .from('bookings')
             .select('id, check_in, check_out, status, guest:users(name)')
             .eq('property_id', selectedPropertyId)
-            .neq('status', 'cancelled')
+            .in('status', ['confirmed', 'checked_in', 'completed'])
             .or(`check_in.lte.${end},check_out.gte.${start}`);
 
         if (bookedError) {

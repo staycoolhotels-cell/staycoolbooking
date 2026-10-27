@@ -152,7 +152,8 @@ export async function getGuestProfileForHost(guestId: string) {
     const { count: bookingCount } = await supabaseAdmin
       .from('bookings')
       .select('*', { count: 'exact', head: true })
-      .eq('guest_id', guestId);
+      .eq('guest_id', guestId)
+      .in('status', ['confirmed', 'checked_in', 'completed']);
 
     return {
       success: true,

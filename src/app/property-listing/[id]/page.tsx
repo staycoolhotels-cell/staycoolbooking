@@ -131,7 +131,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         adminSupabase.from('user_personal_info').select('bio, gender').eq('user_id', property.host_id).single(),
         adminSupabase.from('reviews').select('*, guest:reviewer_id(name, avatar_url)').eq('property_id', id).order('created_at', { ascending: false }),
         adminSupabase.from('amenities').select('id, name, description, price, currency, type').eq('host_id', property.host_id).eq('is_active', true).or(`property_id.eq.${id},property_id.is.null`),
-        adminSupabase.from('bookings').select('*', { count: 'exact', head: true }).eq('property_id', id).neq('status', 'cancelled'),
+        adminSupabase.from('bookings').select('*', { count: 'exact', head: true }).eq('property_id', id).in('status', ['confirmed', 'checked_in', 'completed']),
         adminSupabase.from('rooms').select('room_type').eq('property_id', id),
         getNearbyPlaces(fullAddress, property.latitude, property.longitude)
     ]);

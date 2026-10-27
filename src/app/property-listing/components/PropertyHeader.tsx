@@ -103,7 +103,9 @@ const PropertyHeader = ({
       <div className="flex flex-wrap items-center gap-3 p-1.5 bg-white/[0.02] border border-white/5 rounded-[2rem] w-fit">
         <div className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/5 rounded-full">
           <Icon name="CalendarDaysIcon" size={16} className="text-sky-400" />
-          <span className="text-xs font-bold text-zinc-300">{totalBookings.toLocaleString('en-IN')} Bookings</span>
+          <span className="text-xs font-bold text-zinc-300">
+            {totalBookings === 1 ? '1 Booking' : `${totalBookings.toLocaleString('en-IN')} Bookings`}
+          </span>
         </div>
         {numBeds !== undefined && (
           <div className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/5 rounded-full">

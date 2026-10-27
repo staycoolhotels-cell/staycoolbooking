@@ -27,6 +27,7 @@ export async function generatePricingAI(propertyIds: string[]): Promise<PriceSug
       .from('bookings')
       .select('property_id, total_price, check_in, status')
       .in('property_id', propertyIds)
+      .in('status', ['confirmed', 'checked_in', 'completed'])
       .order('check_in', { ascending: false })
       .limit(50);
 
