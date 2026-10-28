@@ -27,9 +27,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing file, bucket, or folderPath' }, { status: 400 });
     }
 
-    const fileExt = file.name.split('.').pop();
+    const rawExt = file.name.split('.').pop() || 'jpg';
+    const cleanExt = rawExt.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'jpg';
     const randomStr = Math.random().toString(36).substring(2, 8);
-    const fileName = `${folderPath}/${Date.now()}_${randomStr}.${fileExt}`;
+
+    // Sanitize folderPath segments to ensure safe Supabase Storage key characters (letters, numbers, hyphens, underscores)
+    const cleanFolderPath = folderPath
+      .split('/')
+      .map((part) =>
+        part
+          .trim()
+          .replace(/[^a-zA-Z0-9_-]/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '')
+      )
+      .filter(Boolean)
+      .join('/');
+
+    const fileName = `${cleanFolderPath || 'uploads'}/${Date.now()}_${randomStr}.${cleanExt}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const fileBuffer = Buffer.from(arrayBuffer);

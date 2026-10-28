@@ -717,7 +717,11 @@ const AddPropertyModal = ({
         updatedFormData.totalRooms = 1;
       }
       
-      const propertyNameSlug = formData.name.replace(/\s+/g, '-');
+      const propertyNameSlug = (formData.name || 'property')
+        .trim()
+        .replace(/[^a-zA-Z0-9_-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '') || 'property';
 
       // Upload photos
       const photoUrls: string[] = [...formData.photo_urls];

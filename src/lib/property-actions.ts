@@ -69,10 +69,16 @@ export async function addProperty(prevState: unknown, formData: FormData) {
   const imageFiles = formData.getAll('images') as File[];
   const imageUrls: Array<{ url: string; alt: string }> = [];
   const imageUploadErrors: string[] = [];
+  const safePropertyName = (name || 'property')
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || 'property';
 
   for (const imageFile of imageFiles) {
     if (imageFile.size > 0) {
-      const filePath = `${host_id}/${name}/images/${Date.now()}-${imageFile.name}`;
+      const cleanImgName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '-');
+      const filePath = `${host_id}/${safePropertyName}/images/${Date.now()}-${cleanImgName}`;
       // Use supabaseAdmin for storage upload to bypass RLS
       const arrayBuffer = await imageFile.arrayBuffer();
       const fileBuffer = Buffer.from(arrayBuffer);
@@ -112,7 +118,8 @@ export async function addProperty(prevState: unknown, formData: FormData) {
 
   const uploadDocument = async (file: File, folder: string): Promise<string> => {
     if (file && file.size > 0) {
-      const filePath = `${host_id}/${name}/documents/${folder}/${Date.now()}-${file.name}`;
+      const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-');
+      const filePath = `${host_id}/${safePropertyName}/documents/${folder}/${Date.now()}-${cleanFileName}`;
       // Use supabaseAdmin for storage upload to bypass RLS
       const arrayBuffer = await file.arrayBuffer();
       const fileBuffer = Buffer.from(arrayBuffer);
