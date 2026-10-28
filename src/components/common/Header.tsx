@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Icon from '@/components/ui/AppIcon';
@@ -24,11 +24,18 @@ const Header = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const { scrollY } = useScroll();
+  const [isScrolled, setIsScrolled] = useState(false);
 
-  // Dynamic transformations for cinematic scroll scaling
-  const headerHeight = useTransform(scrollY, [0, 100], ['100px', '70px']);
-  const headerBg = useTransform(scrollY, [0, 100], ['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 1)']);
+  // Sync scroll position to toggle transparent vs black navbar
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const storeUser = useAppStore((state) => state.currentUser);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -201,9 +208,12 @@ const Header = () => {
 
   return (
     <>
-      <motion.header
-        style={{ height: headerHeight, backgroundColor: headerBg }}
-        className="fixed top-0 left-0 w-full z-[100] flex items-center px-6 sm:px-12"
+      <header
+        className={`fixed top-0 left-0 w-full z-[100] flex items-center px-6 sm:px-12 transition-all duration-300 ease-in-out ${
+          isScrolled
+            ? 'bg-black/95 backdrop-blur-md shadow-[0_4px_30px_rgba(0,0,0,0.8)] border-b border-white/10 h-[70px]'
+            : 'bg-transparent border-b border-transparent h-[90px] sm:h-[100px]'
+        }`}
       >
         <div className="w-full flex items-center justify-between">
           {/* 1. BRANDING: Magnetic Reveal with Sky Blue Glow */}
@@ -231,7 +241,10 @@ const Header = () => {
           {/* 2. NAVIGATION: Desktop */}
           <nav className="hidden xl:flex items-center gap-4 xl:gap-8">
             {navLinks.map((link, i) => {
-              const active = pathname === link.path;
+              const active =
+                link.path === '/homepage'
+                  ? pathname === '/' || pathname === '/homepage'
+                  : pathname === link.path;
               return (
                 <Link key={link.path} href={link.path} className="relative group py-2">
                   <motion.span
@@ -517,7 +530,7 @@ const Header = () => {
             </button>
           </div>
         </div>
-      </motion.header>
+      </header>
 
       {/* MOBILE MENU OVERLAY */}
       <AnimatePresence>
