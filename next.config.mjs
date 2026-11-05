@@ -23,6 +23,7 @@ const nextConfig = {
     middlewareClientMaxBodySize: '100mb',
   },
   images: {
+    unoptimized: true,
     dangerouslyAllowSVG: true,
     remotePatterns: [
       {
