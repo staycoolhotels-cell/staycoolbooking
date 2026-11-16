@@ -1091,7 +1091,7 @@ const AddPropertyModal = ({
                           </span>
                         )}
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 items-start">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 items-start">
                         {roomTypes.map((roomType) => {
                           const isSelected = formData.roomTypes.includes(roomType);
                           const count = isSelected ? (formData.roomTypeCounts[roomType] || 1) : 0;
@@ -1104,14 +1104,14 @@ const AddPropertyModal = ({
                           return (
                             <div
                               key={roomType}
-                              className={`flex flex-col rounded-xl border transition-all duration-300 overflow-hidden ${
+                              className={`relative flex flex-col rounded-xl border transition-all duration-300 ${
                                 isSelected
                                   ? 'bg-sky-500/10 border-sky-400 text-white shadow-[0_0_15px_rgba(14,165,233,0.15)]'
                                   : 'bg-zinc-800/40 border-zinc-700/60 text-zinc-400 hover:border-sky-500/50 hover:bg-zinc-800/80 hover:text-white'
                               }`}
                             >
                               {/* Main Card Header */}
-                              <div className="flex items-center justify-between p-3">
+                              <div className="flex items-center justify-between p-3 gap-2">
                                 {/* Click name to toggle selection or expand specs */}
                                 <button
                                   type="button"
@@ -1176,18 +1176,18 @@ const AddPropertyModal = ({
                                       setIsBulkDiscountEnabled(false);
                                     }
                                   }}
-                                  className={`flex-1 flex items-center gap-1.5 text-left font-bold text-xs md:text-sm outline-none group ${
+                                  className={`min-w-0 flex-1 flex items-center gap-1.5 text-left font-bold text-xs md:text-sm outline-none group ${
                                     ['Home Stay', 'Villa'].includes(formData.type) ? 'cursor-default' : 'cursor-pointer'
                                   }`}
                                 >
-                                  <span>{roomType}</span>
+                                  <span className="truncate">{roomType}</span>
                                   {isHotelOrResort && isSelected && (
-                                    <ChevronDown className={`w-3.5 h-3.5 text-sky-400 transition-transform duration-200 ${isSpecsExpanded ? 'rotate-180' : ''}`} />
+                                    <ChevronDown className={`w-3.5 h-3.5 text-sky-400 shrink-0 transition-transform duration-200 ${isSpecsExpanded ? 'rotate-180' : ''}`} />
                                   )}
                                 </button>
 
                                 {/* Controls */}
-                                <div className="flex items-center gap-2 ml-2">
+                                <div className="flex items-center gap-1.5 shrink-0 ml-1">
                                   {isSelected ? (
                                     ['Home Stay', 'Villa'].includes(formData.type) ? (
                                       <div className="flex items-center justify-center bg-zinc-950/60 border border-zinc-800 rounded-lg px-3 py-1">
@@ -1694,7 +1694,7 @@ const AddPropertyModal = ({
                 </div>
 
                 {/* NEW FIELDS: Bedrooms, Bathrooms, Area, Max Guests, Total Rooms */}
-                {!(formData.roomTypes.includes('Entire Resort') || formData.roomTypes.includes('Entire Apartment')) && (
+                {!formData.roomTypes.includes('Entire Resort') && (
                   <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
 
                     {/* Total Rooms / Units Input */}
