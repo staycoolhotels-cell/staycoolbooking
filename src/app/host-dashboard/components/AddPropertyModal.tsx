@@ -1175,10 +1175,6 @@ const AddPropertyModal = ({
                                     if (roomType === 'Entire Resort' || roomType === 'Entire Apartment') {
                                       setIsBulkDiscountEnabled(false);
                                     }
-
-                                    if (isHotelOrResort) {
-                                      setExpandedRoomSpecs(prev => ({ ...prev, [roomType]: true }));
-                                    }
                                   }}
                                   className={`flex-1 flex items-center gap-1.5 text-left font-bold text-xs md:text-sm outline-none group ${
                                     ['Home Stay', 'Villa'].includes(formData.type) ? 'cursor-default' : 'cursor-pointer'
@@ -1190,8 +1186,8 @@ const AddPropertyModal = ({
                                   )}
                                 </button>
 
-                                {/* Plus/Minus Controls */}
-                                <div className="flex items-center gap-2.5 ml-2">
+                                {/* Controls */}
+                                <div className="flex items-center gap-2 ml-2">
                                   {isSelected ? (
                                     ['Home Stay', 'Villa'].includes(formData.type) ? (
                                       <div className="flex items-center justify-center bg-zinc-950/60 border border-zinc-800 rounded-lg px-3 py-1">
@@ -1199,26 +1195,81 @@ const AddPropertyModal = ({
                                       </div>
                                     ) : isHotelOrResort ? (
                                       <div className="flex items-center gap-1.5">
+                                        {/* Direct Unit / Room Count Increment/Decrement on Header */}
+                                        {isEntireBuyout ? (
+                                          <div className="text-[11px] font-bold text-sky-400 bg-sky-500/15 border border-sky-400/30 px-2 py-0.5 rounded-md select-none whitespace-nowrap">
+                                            {isEntireResort ? 'Entire Resort' : 'Entire Apartment'}
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-1 bg-zinc-950/80 border border-zinc-700/60 rounded-lg px-1.5 py-0.5">
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setFormData(prev => {
+                                                  const currentCount = prev.roomTypeCounts[roomType] || 1;
+                                                  const newCount = currentCount - 1;
+                                                  if (newCount <= 0) {
+                                                    const newRoomTypes = prev.roomTypes.filter(t => t !== roomType);
+                                                    const newCounts = { ...prev.roomTypeCounts };
+                                                    const newSpecs = { ...prev.roomTypeSpecs };
+                                                    delete newCounts[roomType];
+                                                    delete newSpecs[roomType];
+                                                    return { ...prev, roomTypes: newRoomTypes, roomTypeCounts: newCounts, roomTypeSpecs: newSpecs };
+                                                  }
+                                                  return {
+                                                    ...prev,
+                                                    roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: newCount }
+                                                  };
+                                                });
+                                              }}
+                                              className="w-5 h-5 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-xs select-none transition-all"
+                                              title="Decrease"
+                                            >
+                                              -
+                                            </button>
+                                            <span className="text-xs font-bold text-white min-w-7 text-center select-none px-0.5">
+                                              {count} {isApartment ? (count === 1 ? 'Unit' : 'Units') : (count === 1 ? 'Room' : 'Rooms')}
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setFormData(prev => ({
+                                                  ...prev,
+                                                  roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: (prev.roomTypeCounts[roomType] || 1) + 1 }
+                                                }));
+                                              }}
+                                              className="w-5 h-5 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-xs select-none transition-all"
+                                              title="Increase"
+                                            >
+                                              +
+                                            </button>
+                                          </div>
+                                        )}
+
+                                        {/* Specs Toggle Button */}
                                         <button
                                           type="button"
-                                          onClick={() => {
+                                          onClick={(e) => {
+                                            e.stopPropagation();
                                             setExpandedRoomSpecs(prev => ({
                                               ...prev,
                                               [roomType]: !prev[roomType]
                                             }));
                                           }}
-                                          className="text-[11px] font-bold text-sky-400 bg-sky-500/15 border border-sky-400/30 px-2 py-0.5 rounded-md select-none whitespace-nowrap hover:bg-sky-500/25 transition-colors cursor-pointer"
-                                          title="Click to view specs and adjust count"
+                                          className={`px-1.5 py-0.5 rounded-md border text-[10px] font-bold transition-all flex items-center gap-1 ${
+                                            isSpecsExpanded 
+                                              ? 'bg-sky-500/20 text-sky-400 border-sky-500/40' 
+                                              : 'bg-zinc-800/80 text-zinc-400 border-zinc-700/60 hover:text-white hover:border-zinc-500'
+                                          }`}
+                                          title={isSpecsExpanded ? "Close Specs" : "Configure Specs"}
                                         >
-                                          {isEntireResort 
-                                            ? (count === 1 ? 'Entire Resort' : `${count} Entire Resorts`)
-                                            : isEntireApartment
-                                            ? (count === 1 ? 'Entire Apartment' : `${count} Entire Apartments`)
-                                            : isApartment
-                                            ? `${count} ${count === 1 ? 'Unit' : 'Units'}`
-                                            : `${count} ${count === 1 ? 'Room' : 'Rooms'}`
-                                          }
+                                          <span>Specs</span>
+                                          <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isSpecsExpanded ? 'rotate-180' : ''}`} />
                                         </button>
+
+                                        {/* Remove Button */}
                                         <button
                                           type="button"
                                           onClick={(e) => {
@@ -1346,10 +1397,6 @@ const AddPropertyModal = ({
                                         if (roomType === 'Entire Resort' || roomType === 'Entire Apartment') {
                                           setIsBulkDiscountEnabled(false);
                                         }
-
-                                        if (isHotelOrResort) {
-                                          setExpandedRoomSpecs(prev => ({ ...prev, [roomType]: true }));
-                                        }
                                       }}
                                       className="px-2.5 py-1 text-[11px] font-black uppercase tracking-wider bg-zinc-800 hover:bg-sky-500 hover:text-white rounded border border-zinc-700/60 transition-all text-zinc-350"
                                     >
@@ -1359,300 +1406,227 @@ const AddPropertyModal = ({
                                 </div>
                               </div>
 
-                              {/* Dropdown Configuration Panel for Hotel, Resort & Apartment */}
+                              {/* Compact Dropdown Configuration Panel for Hotel, Resort & Apartment */}
                               {isHotelOrResort && isSelected && isSpecsExpanded && (
-                                <div className="px-3 pb-3 pt-2.5 border-t border-sky-400/20 bg-zinc-950/90 space-y-3 animate-fade-in text-left">
-                                  <div className="flex items-center justify-between pb-1 border-b border-zinc-800/80">
-                                    <span className="text-[10px] font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1">
-                                      {isEntireResort ? 'Entire Resort Specs & Buyout' : isEntireApartment ? 'Entire Apartment Specs & Buyout' : (isApartment ? 'Floor Specs & Inventory' : 'Room Specs & Inventory')}
+                                <div className="px-3 pb-3 pt-2 border-t border-sky-400/20 bg-zinc-950/90 animate-fade-in text-left">
+                                  <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-zinc-800/80">
+                                    <span className="text-[10px] font-bold text-sky-400 uppercase tracking-wider">
+                                      {isEntireResort ? 'Resort Specs' : isEntireApartment ? 'Apartment Specs' : (isApartment ? 'Floor Specs' : 'Room Specs')}
                                     </span>
-                                    <span className="text-[9px] text-zinc-500 font-medium">{isApartment ? 'Apartment Floors' : 'Hotel & Resort'}</span>
+                                    <span className="text-[9px] text-zinc-500">{isApartment ? 'Per Floor Unit' : 'Per Unit'}</span>
                                   </div>
 
-                                  {/* 1. Total Rooms with - or + button */}
-                                  <div>
-                                    <label className="block text-[10px] font-semibold text-zinc-300 mb-1 flex items-center justify-between">
-                                      <span className="flex items-center gap-1.5">
-                                        <Building2 className="w-3.5 h-3.5 text-sky-400" />
-                                        <span>{isEntireResort ? 'Entire Resort Units' : isEntireApartment ? 'Entire Apartment Units' : (isApartment ? 'Total Units on Floor' : 'Total Rooms')}</span>
-                                      </span>
-                                      <span className="text-[9px] text-zinc-500">{isEntireBuyout ? 'Full property buyout' : (isApartment ? 'Flats on this floor' : 'Inventory count')}</span>
-                                    </label>
-                                    <div className="flex items-center justify-between bg-zinc-900 border border-zinc-700/60 rounded-lg p-1.5">
-                                      <span className="text-xs font-bold text-zinc-200 pl-2">
-                                        {isEntireResort 
-                                          ? (count === 1 ? '1 Entire Resort' : `${count} Entire Resorts`)
-                                          : isEntireApartment
-                                          ? (count === 1 ? '1 Entire Apartment' : `${count} Entire Apartments`)
-                                          : isApartment
-                                          ? `${count} ${count === 1 ? 'Unit' : 'Units'}`
-                                          : `${count} ${count === 1 ? 'Room' : 'Rooms'}`
-                                        }
-                                      </span>
-                                      <div className="flex items-center gap-1.5">
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setFormData(prev => {
-                                              const currentCount = prev.roomTypeCounts[roomType] || 1;
-                                              const newCount = currentCount - 1;
-                                              if (newCount <= 0) {
-                                                const newRoomTypes = prev.roomTypes.filter(t => t !== roomType);
-                                                const newCounts = { ...prev.roomTypeCounts };
-                                                const newSpecs = { ...prev.roomTypeSpecs };
-                                                delete newCounts[roomType];
-                                                delete newSpecs[roomType];
-                                                return { ...prev, roomTypes: newRoomTypes, roomTypeCounts: newCounts, roomTypeSpecs: newSpecs };
-                                              } else {
-                                                return {
-                                                  ...prev,
-                                                  roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: newCount }
-                                                };
-                                              }
-                                            });
-                                          }}
-                                          className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-sm select-none transition-all"
-                                          title="Decrease"
-                                        >
-                                          -
-                                        </button>
-                                        <span className="text-xs font-black w-4 text-center select-none text-white">{count}</span>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setFormData(prev => {
-                                              const currentCount = prev.roomTypeCounts[roomType] || 1;
-                                              return {
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {/* 1. Guests */}
+                                    <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-lg p-2 flex flex-col justify-between">
+                                      <label className="text-[10px] font-semibold text-zinc-400 mb-1 flex items-center gap-1">
+                                        <User className="w-3 h-3 text-purple-400" />
+                                        <span>Guests</span>
+                                      </label>
+                                      <div className="flex items-center justify-between bg-zinc-950/80 border border-zinc-800 rounded px-1.5 py-1">
+                                        <span className="text-xs font-bold text-white">{currentSpecs.guestsCount} Max</span>
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const step = isEntireBuyout && (currentSpecs.guestsCount || 20) > 10 ? 2 : 1;
+                                              const newCount = Math.max(1, (currentSpecs.guestsCount || (isEntireBuyout ? 20 : 2)) - step);
+                                              setFormData(prev => ({
                                                 ...prev,
-                                                roomTypeCounts: { ...prev.roomTypeCounts, [roomType]: currentCount + 1 }
-                                              };
-                                            });
-                                          }}
-                                          className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-sky-400 font-black text-sm select-none transition-all"
-                                          title="Increase"
-                                        >
-                                          +
-                                        </button>
+                                                roomTypeSpecs: {
+                                                  ...prev.roomTypeSpecs,
+                                                  [roomType]: { ...currentSpecs, guestsCount: newCount }
+                                                }
+                                              }));
+                                            }}
+                                            disabled={currentSpecs.guestsCount <= 1}
+                                            className="w-5 h-5 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-purple-400 font-black text-xs disabled:opacity-40"
+                                          >
+                                            -
+                                          </button>
+                                          <span className="text-xs font-black min-w-4 text-center text-white">{currentSpecs.guestsCount}</span>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const maxLimit = isEntireBuyout ? 100 : 10;
+                                              const step = isEntireBuyout && (currentSpecs.guestsCount || 20) >= 10 ? 2 : 1;
+                                              const newCount = Math.min(maxLimit, (currentSpecs.guestsCount || (isEntireBuyout ? 20 : 2)) + step);
+                                              setFormData(prev => ({
+                                                ...prev,
+                                                roomTypeSpecs: {
+                                                  ...prev.roomTypeSpecs,
+                                                  [roomType]: { ...currentSpecs, guestsCount: newCount }
+                                                }
+                                              }));
+                                            }}
+                                            disabled={currentSpecs.guestsCount >= (isEntireBuyout ? 100 : 10)}
+                                            className="w-5 h-5 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-purple-400 font-black text-xs disabled:opacity-40"
+                                          >
+                                            +
+                                          </button>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
 
-                                  {/* 2. Guests with - or + button */}
-                                  <div>
-                                    <label className="block text-[10px] font-semibold text-zinc-300 mb-1 flex items-center gap-1.5">
-                                      <User className="w-3.5 h-3.5 text-purple-400" />
-                                      <span>{isEntireResort ? 'Total Guests Capacity (Full Resort)' : isEntireApartment ? 'Total Guests Capacity (Full Apartment)' : (isApartment ? 'Guests (Per Floor Unit)' : 'Guests')}</span>
-                                    </label>
-                                    <div className="flex items-center justify-between bg-zinc-900 border border-zinc-700/60 rounded-lg p-1.5">
-                                      <span className="text-xs font-bold text-zinc-200 pl-2">
-                                        {currentSpecs.guestsCount} Guest{currentSpecs.guestsCount > 1 ? 's' : ''}
-                                      </span>
-                                      <div className="flex items-center gap-1.5">
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const step = isEntireBuyout && (currentSpecs.guestsCount || 20) > 10 ? 2 : 1;
-                                            const newCount = Math.max(1, (currentSpecs.guestsCount || (isEntireBuyout ? 20 : 2)) - step);
-                                            setFormData(prev => ({
-                                              ...prev,
-                                              roomTypeSpecs: {
-                                                ...prev.roomTypeSpecs,
-                                                [roomType]: { ...currentSpecs, guestsCount: newCount }
-                                              }
-                                            }));
-                                          }}
-                                          disabled={currentSpecs.guestsCount <= 1}
-                                          className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-purple-400 font-black text-sm select-none transition-all disabled:opacity-40"
-                                        >
-                                          -
-                                        </button>
-                                        <span className="text-xs font-black min-w-5 text-center select-none text-white">
-                                          {currentSpecs.guestsCount}
-                                        </span>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const maxLimit = isEntireBuyout ? 100 : 10;
-                                            const step = isEntireBuyout && (currentSpecs.guestsCount || 20) >= 10 ? 2 : 1;
-                                            const newCount = Math.min(maxLimit, (currentSpecs.guestsCount || (isEntireBuyout ? 20 : 2)) + step);
-                                            setFormData(prev => ({
-                                              ...prev,
-                                              roomTypeSpecs: {
-                                                ...prev.roomTypeSpecs,
-                                                [roomType]: { ...currentSpecs, guestsCount: newCount }
-                                              }
-                                            }));
-                                          }}
-                                          disabled={currentSpecs.guestsCount >= (isEntireBuyout ? 100 : 10)}
-                                          className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-purple-400 font-black text-sm select-none transition-all disabled:opacity-40"
-                                        >
-                                          +
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* 3. Bed Type Select */}
-                                  <div>
-                                    <label className="block text-[10px] font-semibold text-zinc-300 mb-1 flex items-center gap-1.5">
-                                      <Bed className="w-3.5 h-3.5 text-indigo-400" />
-                                      <span>{isEntireResort ? 'Beds Setup (Across Resort)' : isEntireApartment ? 'Beds Setup (Across Apartment)' : (isApartment ? 'Beds Setup (Per Unit)' : 'Bed Type')}</span>
-                                    </label>
-                                    <select
-                                      value={currentSpecs.bed}
-                                      onChange={(e) => {
-                                        const newBed = e.target.value;
-                                        setFormData(prev => ({
-                                          ...prev,
-                                          roomTypeSpecs: {
-                                            ...prev.roomTypeSpecs,
-                                            [roomType]: { ...currentSpecs, bed: newBed }
-                                          }
-                                        }));
-                                      }}
-                                      className="w-full bg-zinc-900 border border-zinc-700/60 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white focus:outline-none focus:border-sky-400 cursor-pointer"
-                                    >
-                                      {isEntireResort ? (
-                                        <>
-                                          <option value="Multiple King & Queen Beds (Full Resort)" className="bg-zinc-900 text-white">Multiple King & Queen Beds (Full Resort)</option>
-                                          <option value="All Cottages & Rooms Included" className="bg-zinc-900 text-white">All Cottages & Rooms Included</option>
-                                          <option value="5+ Bedrooms (Multiple Beds)" className="bg-zinc-900 text-white">5+ Bedrooms (Multiple Beds)</option>
-                                          <option value="10+ Beds (Full Resort)" className="bg-zinc-900 text-white">10+ Beds (Full Resort)</option>
-                                          <option value="15+ Beds (Full Resort)" className="bg-zinc-900 text-white">15+ Beds (Full Resort)</option>
-                                          <option value="20+ Beds (Full Resort)" className="bg-zinc-900 text-white">20+ Beds (Full Resort)</option>
-                                          <option value="Multiple King Beds" className="bg-zinc-900 text-white">Multiple King Beds</option>
-                                          <option value="Multiple Double & Single Beds" className="bg-zinc-900 text-white">Multiple Double & Single Beds</option>
-                                          <option value="Dormitory & Private Beds Combination" className="bg-zinc-900 text-white">Dormitory & Private Beds Combination</option>
-                                        </>
-                                      ) : isEntireApartment ? (
-                                        <>
-                                          <option value="Multiple King & Queen Beds (Full Apartment)" className="bg-zinc-900 text-white">Multiple King & Queen Beds (Full Apartment)</option>
-                                          <option value="3 Bedrooms (King & Queen Beds)" className="bg-zinc-900 text-white">3 Bedrooms (King & Queen Beds)</option>
-                                          <option value="4 Bedrooms (Multiple Beds)" className="bg-zinc-900 text-white">4 Bedrooms (Multiple Beds)</option>
-                                          <option value="2 Bedrooms (King & Queen Beds)" className="bg-zinc-900 text-white">2 Bedrooms (King & Queen Beds)</option>
-                                          <option value="All Floors & Units Included" className="bg-zinc-900 text-white">All Floors & Units Included</option>
-                                        </>
-                                      ) : isApartment ? (
-                                        <>
-                                          <option value="2 Queen Beds" className="bg-zinc-900 text-white">2 Queen Beds</option>
-                                          <option value="1 King Bed" className="bg-zinc-900 text-white">1 King Bed</option>
-                                          <option value="1 Queen Bed" className="bg-zinc-900 text-white">1 Queen Bed</option>
-                                          <option value="2 King Beds" className="bg-zinc-900 text-white">2 King Beds</option>
-                                          <option value="1 King + 1 Queen Bed" className="bg-zinc-900 text-white">1 King + 1 Queen Bed</option>
-                                          <option value="1 Double Bed" className="bg-zinc-900 text-white">1 Double Bed</option>
-                                          <option value="2 Double Beds" className="bg-zinc-900 text-white">2 Double Beds</option>
-                                          <option value="3 Single Beds" className="bg-zinc-900 text-white">3 Single Beds</option>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <option value="1 King Bed" className="bg-zinc-900 text-white">1 King Bed</option>
-                                          <option value="1 Queen Bed" className="bg-zinc-900 text-white">1 Queen Bed</option>
-                                          <option value="1 Double Bed" className="bg-zinc-900 text-white">1 Double Bed</option>
-                                          <option value="2 Double Beds" className="bg-zinc-900 text-white">2 Double Beds</option>
-                                          <option value="2 Single Beds" className="bg-zinc-900 text-white">2 Single Beds</option>
-                                          <option value="1 Single Bed" className="bg-zinc-900 text-white">1 Single Bed</option>
-                                          <option value="3 Single Beds" className="bg-zinc-900 text-white">3 Single Beds</option>
-                                          <option value="4 Bunk Beds" className="bg-zinc-900 text-white">4 Bunk Beds</option>
-                                        </>
-                                      )}
-                                    </select>
-                                  </div>
-
-                                  {/* 4. Room / Resort / Apartment sq.ft Input */}
-                                  <div>
-                                    <label className="block text-[10px] font-semibold text-zinc-300 mb-1 flex items-center gap-1.5">
-                                      <Maximize2 className="w-3.5 h-3.5 text-sky-400" />
-                                      <span>{isEntireResort ? 'Total Resort Area' : isEntireApartment ? 'Total Apartment Area' : (isApartment ? 'Floor / Unit Area' : 'Room sq.ft')}</span>
-                                    </label>
-                                    <div className="relative flex items-center">
-                                      <input
-                                        type="text"
-                                        value={currentSpecs.sqft}
+                                    {/* 2. Bed Setup */}
+                                    <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-lg p-2 flex flex-col justify-between">
+                                      <label className="text-[10px] font-semibold text-zinc-400 mb-1 flex items-center gap-1">
+                                        <Bed className="w-3 h-3 text-indigo-400" />
+                                        <span>Bed Setup</span>
+                                      </label>
+                                      <select
+                                        value={currentSpecs.bed}
                                         onChange={(e) => {
-                                          const newSqft = e.target.value;
+                                          const newBed = e.target.value;
                                           setFormData(prev => ({
                                             ...prev,
                                             roomTypeSpecs: {
                                               ...prev.roomTypeSpecs,
-                                              [roomType]: { ...currentSpecs, sqft: newSqft }
+                                              [roomType]: { ...currentSpecs, bed: newBed }
                                             }
                                           }));
                                         }}
-                                        placeholder={isEntireBuyout ? 'e.g. 5,000 sq.ft' : 'e.g. 1,200'}
-                                        className="w-full bg-zinc-900 border border-zinc-700/60 rounded-lg pl-2.5 pr-12 py-1.5 text-xs font-bold text-white placeholder-zinc-500 focus:outline-none focus:border-sky-400"
-                                      />
-                                      <span className="absolute right-2.5 text-[10px] font-semibold text-zinc-400 pointer-events-none">
-                                        {isEntireBuyout ? 'Area' : 'sq.ft'}
-                                      </span>
+                                        className="w-full bg-zinc-950/80 border border-zinc-800 rounded px-1.5 py-1 text-[11px] font-bold text-white focus:outline-none focus:border-sky-400 cursor-pointer"
+                                      >
+                                        {isEntireResort ? (
+                                          <>
+                                            <option value="Multiple King & Queen Beds (Full Resort)" className="bg-zinc-900 text-white">Multiple King & Queen Beds</option>
+                                            <option value="All Cottages & Rooms Included" className="bg-zinc-900 text-white">All Cottages & Rooms</option>
+                                            <option value="5+ Bedrooms (Multiple Beds)" className="bg-zinc-900 text-white">5+ Bedrooms</option>
+                                            <option value="10+ Beds (Full Resort)" className="bg-zinc-900 text-white">10+ Beds</option>
+                                            <option value="15+ Beds (Full Resort)" className="bg-zinc-900 text-white">15+ Beds</option>
+                                            <option value="20+ Beds (Full Resort)" className="bg-zinc-900 text-white">20+ Beds</option>
+                                            <option value="Multiple King Beds" className="bg-zinc-900 text-white">Multiple King Beds</option>
+                                            <option value="Multiple Double & Single Beds" className="bg-zinc-900 text-white">Double & Single Beds</option>
+                                          </>
+                                        ) : isEntireApartment ? (
+                                          <>
+                                            <option value="Multiple King & Queen Beds (Full Apartment)" className="bg-zinc-900 text-white">Multiple King & Queen Beds</option>
+                                            <option value="3 Bedrooms (King & Queen Beds)" className="bg-zinc-900 text-white">3 Bedrooms</option>
+                                            <option value="4 Bedrooms (Multiple Beds)" className="bg-zinc-900 text-white">4 Bedrooms</option>
+                                            <option value="2 Bedrooms (King & Queen Beds)" className="bg-zinc-900 text-white">2 Bedrooms</option>
+                                            <option value="All Floors & Units Included" className="bg-zinc-900 text-white">All Floors Included</option>
+                                          </>
+                                        ) : isApartment ? (
+                                          <>
+                                            <option value="2 Queen Beds" className="bg-zinc-900 text-white">2 Queen Beds</option>
+                                            <option value="1 King Bed" className="bg-zinc-900 text-white">1 King Bed</option>
+                                            <option value="1 Queen Bed" className="bg-zinc-900 text-white">1 Queen Bed</option>
+                                            <option value="2 King Beds" className="bg-zinc-900 text-white">2 King Beds</option>
+                                            <option value="1 King + 1 Queen Bed" className="bg-zinc-900 text-white">1 King + 1 Queen</option>
+                                            <option value="1 Double Bed" className="bg-zinc-900 text-white">1 Double Bed</option>
+                                            <option value="2 Double Beds" className="bg-zinc-900 text-white">2 Double Beds</option>
+                                            <option value="3 Single Beds" className="bg-zinc-900 text-white">3 Single Beds</option>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <option value="1 King Bed" className="bg-zinc-900 text-white">1 King Bed</option>
+                                            <option value="1 Queen Bed" className="bg-zinc-900 text-white">1 Queen Bed</option>
+                                            <option value="1 Double Bed" className="bg-zinc-900 text-white">1 Double Bed</option>
+                                            <option value="2 Double Beds" className="bg-zinc-900 text-white">2 Double Beds</option>
+                                            <option value="2 Single Beds" className="bg-zinc-900 text-white">2 Single Beds</option>
+                                            <option value="1 Single Bed" className="bg-zinc-900 text-white">1 Single Bed</option>
+                                            <option value="3 Single Beds" className="bg-zinc-900 text-white">3 Single Beds</option>
+                                            <option value="4 Bunk Beds" className="bg-zinc-900 text-white">4 Bunk Beds</option>
+                                          </>
+                                        )}
+                                      </select>
                                     </div>
-                                  </div>
 
-                                  {/* 5. Room View / Landscape / Apartment View Select */}
-                                  <div>
-                                    <label className="block text-[10px] font-semibold text-zinc-300 mb-1 flex items-center gap-1.5">
-                                      <Eye className="w-3.5 h-3.5 text-cyan-400" />
-                                      <span>{isEntireResort ? 'Resort Landscape View' : isEntireApartment ? 'Apartment View' : (isApartment ? 'Floor View' : 'Room View')}</span>
-                                    </label>
-                                    <select
-                                      value={currentSpecs.view}
-                                      onChange={(e) => {
-                                        const newView = e.target.value;
-                                        setFormData(prev => ({
-                                          ...prev,
-                                          roomTypeSpecs: {
-                                            ...prev.roomTypeSpecs,
-                                            [roomType]: { ...currentSpecs, view: newView }
-                                          }
-                                        }));
-                                      }}
-                                      className="w-full bg-zinc-900 border border-zinc-700/60 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white focus:outline-none focus:border-sky-400 cursor-pointer"
-                                    >
-                                      {isEntireResort ? (
-                                        <>
-                                          <option value="Full Resort Landscape" className="bg-zinc-900 text-white">Full Resort Landscape</option>
-                                          <option value="Panoramic Mountain View" className="bg-zinc-900 text-white">Panoramic Mountain View</option>
-                                          <option value="Nature & Forest View" className="bg-zinc-900 text-white">Nature & Forest View</option>
-                                          <option value="Beachfront / Sea View" className="bg-zinc-900 text-white">Beachfront / Sea View</option>
-                                          <option value="Private Pool & Garden View" className="bg-zinc-900 text-white">Private Pool & Garden View</option>
-                                          <option value="Lake View" className="bg-zinc-900 text-white">Lake View</option>
-                                          <option value="Scenic Valley View" className="bg-zinc-900 text-white">Scenic Valley View</option>
-                                        </>
-                                      ) : isEntireApartment ? (
-                                        <>
-                                          <option value="City View" className="bg-zinc-900 text-white">City View</option>
-                                          <option value="Skyline View" className="bg-zinc-900 text-white">Skyline View</option>
-                                          <option value="Balcony View" className="bg-zinc-900 text-white">Balcony View</option>
-                                          <option value="Garden View" className="bg-zinc-900 text-white">Garden View</option>
-                                          <option value="Pool View" className="bg-zinc-900 text-white">Pool View</option>
-                                        </>
-                                      ) : isApartment ? (
-                                        <>
-                                          <option value="City View" className="bg-zinc-900 text-white">City View</option>
-                                          <option value="Balcony View" className="bg-zinc-900 text-white">Balcony View</option>
-                                          <option value="Street View" className="bg-zinc-900 text-white">Street View</option>
-                                          <option value="Garden View" className="bg-zinc-900 text-white">Garden View</option>
-                                          <option value="Pool View" className="bg-zinc-900 text-white">Pool View</option>
-                                          <option value="Skyline View" className="bg-zinc-900 text-white">Skyline View</option>
-                                          <option value="No View" className="bg-zinc-900 text-white">No View</option>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <option value="City View" className="bg-zinc-900 text-white">City View</option>
-                                          <option value="Garden View" className="bg-zinc-900 text-white">Garden View</option>
-                                          <option value="Pool View" className="bg-zinc-900 text-white">Pool View</option>
-                                          <option value="Sea View" className="bg-zinc-900 text-white">Sea View</option>
-                                          <option value="Mountain View" className="bg-zinc-900 text-white">Mountain View</option>
-                                          <option value="Nature View" className="bg-zinc-900 text-white">Nature View</option>
-                                          <option value="Lake View" className="bg-zinc-900 text-white">Lake View</option>
-                                          <option value="Courtyard View" className="bg-zinc-900 text-white">Courtyard View</option>
-                                          <option value="No View" className="bg-zinc-900 text-white">No View</option>
-                                        </>
-                                      )}
-                                    </select>
+                                    {/* 3. Area */}
+                                    <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-lg p-2 flex flex-col justify-between">
+                                      <label className="text-[10px] font-semibold text-zinc-400 mb-1 flex items-center gap-1">
+                                        <Maximize2 className="w-3 h-3 text-sky-400" />
+                                        <span>Area</span>
+                                      </label>
+                                      <div className="relative flex items-center">
+                                        <input
+                                          type="text"
+                                          value={currentSpecs.sqft}
+                                          onChange={(e) => {
+                                            const newSqft = e.target.value;
+                                            setFormData(prev => ({
+                                              ...prev,
+                                              roomTypeSpecs: {
+                                                ...prev.roomTypeSpecs,
+                                                [roomType]: { ...currentSpecs, sqft: newSqft }
+                                              }
+                                            }));
+                                          }}
+                                          placeholder={isEntireBuyout ? '5000' : '1200'}
+                                          className="w-full bg-zinc-950/80 border border-zinc-800 rounded pl-2 pr-9 py-1 text-[11px] font-bold text-white placeholder-zinc-600 focus:outline-none focus:border-sky-400"
+                                        />
+                                        <span className="absolute right-1.5 text-[9px] font-semibold text-zinc-500 pointer-events-none">
+                                          sq.ft
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* 4. View */}
+                                    <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-lg p-2 flex flex-col justify-between">
+                                      <label className="text-[10px] font-semibold text-zinc-400 mb-1 flex items-center gap-1">
+                                        <Eye className="w-3 h-3 text-cyan-400" />
+                                        <span>View</span>
+                                      </label>
+                                      <select
+                                        value={currentSpecs.view}
+                                        onChange={(e) => {
+                                          const newView = e.target.value;
+                                          setFormData(prev => ({
+                                            ...prev,
+                                            roomTypeSpecs: {
+                                              ...prev.roomTypeSpecs,
+                                              [roomType]: { ...currentSpecs, view: newView }
+                                            }
+                                          }));
+                                        }}
+                                        className="w-full bg-zinc-950/80 border border-zinc-800 rounded px-1.5 py-1 text-[11px] font-bold text-white focus:outline-none focus:border-sky-400 cursor-pointer"
+                                      >
+                                        {isEntireResort ? (
+                                          <>
+                                            <option value="Full Resort Landscape" className="bg-zinc-900 text-white">Full Landscape</option>
+                                            <option value="Panoramic Mountain View" className="bg-zinc-900 text-white">Mountain View</option>
+                                            <option value="Nature & Forest View" className="bg-zinc-900 text-white">Forest View</option>
+                                            <option value="Beachfront / Sea View" className="bg-zinc-900 text-white">Sea View</option>
+                                            <option value="Private Pool & Garden View" className="bg-zinc-900 text-white">Pool & Garden</option>
+                                            <option value="Lake View" className="bg-zinc-900 text-white">Lake View</option>
+                                            <option value="Scenic Valley View" className="bg-zinc-900 text-white">Valley View</option>
+                                          </>
+                                        ) : isEntireApartment ? (
+                                          <>
+                                            <option value="City View" className="bg-zinc-900 text-white">City View</option>
+                                            <option value="Skyline View" className="bg-zinc-900 text-white">Skyline View</option>
+                                            <option value="Balcony View" className="bg-zinc-900 text-white">Balcony View</option>
+                                            <option value="Garden View" className="bg-zinc-900 text-white">Garden View</option>
+                                            <option value="Pool View" className="bg-zinc-900 text-white">Pool View</option>
+                                          </>
+                                        ) : isApartment ? (
+                                          <>
+                                            <option value="City View" className="bg-zinc-900 text-white">City View</option>
+                                            <option value="Balcony View" className="bg-zinc-900 text-white">Balcony View</option>
+                                            <option value="Street View" className="bg-zinc-900 text-white">Street View</option>
+                                            <option value="Garden View" className="bg-zinc-900 text-white">Garden View</option>
+                                            <option value="Pool View" className="bg-zinc-900 text-white">Pool View</option>
+                                            <option value="Skyline View" className="bg-zinc-900 text-white">Skyline View</option>
+                                            <option value="No View" className="bg-zinc-900 text-white">No View</option>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <option value="City View" className="bg-zinc-900 text-white">City View</option>
+                                            <option value="Garden View" className="bg-zinc-900 text-white">Garden View</option>
+                                            <option value="Pool View" className="bg-zinc-900 text-white">Pool View</option>
+                                            <option value="Sea View" className="bg-zinc-900 text-white">Sea View</option>
+                                            <option value="Mountain View" className="bg-zinc-900 text-white">Mountain View</option>
+                                            <option value="Nature View" className="bg-zinc-900 text-white">Nature View</option>
+                                            <option value="Lake View" className="bg-zinc-900 text-white">Lake View</option>
+                                            <option value="Courtyard View" className="bg-zinc-900 text-white">Courtyard View</option>
+                                            <option value="No View" className="bg-zinc-900 text-white">No View</option>
+                                          </>
+                                        )}
+                                      </select>
+                                    </div>
                                   </div>
                                 </div>
                               )}
