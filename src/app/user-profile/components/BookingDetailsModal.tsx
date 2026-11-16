@@ -290,7 +290,9 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                                 <p className="text-xs font-semibold whitespace-nowrap">
                                                     {(booking.room_type || '').toLowerCase().includes('entire resort') || (booking.properties.type || '').toLowerCase().includes('entire resort')
                                                         ? 'Entire Resort'
-                                                        : `${booking.total_rooms_booked || 1} ${(booking.total_rooms_booked || 1) === 1 ? (booking.properties.type?.toLowerCase().includes('tent') ? 'Tent' : 'Room') : (booking.properties.type?.toLowerCase().includes('tent') ? 'Tents' : 'Rooms')}`
+                                                        : (booking.room_type || '').toLowerCase().includes('entire apartment') || (booking.properties.type || '').toLowerCase().includes('entire apartment')
+                                                        ? 'Entire Apartment'
+                                                        : `${booking.total_rooms_booked || 1} ${(booking.total_rooms_booked || 1) === 1 ? (booking.properties.type?.toLowerCase().includes('tent') ? 'Tent' : booking.properties.type?.toLowerCase().includes('apartment') ? 'Floor' : 'Room') : (booking.properties.type?.toLowerCase().includes('tent') ? 'Tents' : booking.properties.type?.toLowerCase().includes('apartment') ? 'Floors' : 'Rooms')}`
                                                     }
                                                 </p>
                                             </div>

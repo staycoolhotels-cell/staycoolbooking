@@ -52,13 +52,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: propError?.message || 'Failed to create property' }, { status: 500 });
     }
 
-    // Automatically create sub-units (rooms) based on total_rooms
+    // Automatically create sub-units (rooms/floors) based on total_rooms
     // Skip for single-unit property types where sub-unit management is not applicable
-    const singleUnitTypes = ['Home Stay', 'Apartment', 'Villa', 'Dormitory'];
-    const isSingleUnit = singleUnitTypes.includes(property.tier || '');
+    const singleUnitTypes = ['Home Stay', 'Villa', 'Dormitory'];
+    const isEntireBuyout = (property.tier === 'Resort' && property.room_types?.includes('Entire Resort')) ||
+                           (property.tier === 'Apartment' && property.room_types?.includes('Entire Apartment'));
+    const isSingleUnit = singleUnitTypes.includes(property.tier || '') || isEntireBuyout;
     const isTent = property.tier === 'Tent';
+    const isApartment = property.tier === 'Apartment';
     const totalRooms = property.total_rooms || 1;
-    const unitLabel = isTent ? 'Tent' : 'Room';
+    const unitLabel = isTent ? 'Tent' : isApartment ? 'Floor' : 'Room';
 
     if (!isSingleUnit && totalRooms > 0) {
       const roomTypeCounts: Record<string, number> = property.room_type_counts || {};
@@ -77,7 +80,7 @@ export async function POST(request: NextRequest) {
           for (let i = 0; i < count; i++) {
             roomsToInsert.push({
               property_id: property.id,
-              name: `${roomType} ${i + 1}`,
+              name: count > 1 ? `${roomType} - Unit ${i + 1}` : roomType,
               status: 'available',
               room_type: roomType,
               room_amenities: amenities,

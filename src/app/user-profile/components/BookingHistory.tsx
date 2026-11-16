@@ -255,7 +255,9 @@ const BookingHistory = ({ bookings, guestId, transactions = [], onStatusChange }
                                         <p className="text-[10px] text-sky-400 font-medium truncate shrink-0">
                                             {booking.guests || 1} {(booking.guests || 1) === 1 ? 'Guest' : 'Guests'} • {(booking.room_type || '').toLowerCase().includes('entire resort') || (booking.properties?.type || '').toLowerCase().includes('entire resort')
                                                 ? 'Entire Resort'
-                                                : `${booking.total_rooms_booked || 1} ${(booking.total_rooms_booked || 1) === 1 ? (getNormalizedType(booking.properties).includes('tent') ? 'Tent' : 'Room') : (getNormalizedType(booking.properties).includes('tent') ? 'Tents' : 'Rooms')}`
+                                                : (booking.room_type || '').toLowerCase().includes('entire apartment') || (booking.properties?.type || '').toLowerCase().includes('entire apartment')
+                                                ? 'Entire Apartment'
+                                                : `${booking.total_rooms_booked || 1} ${(booking.total_rooms_booked || 1) === 1 ? (getNormalizedType(booking.properties).includes('tent') ? 'Tent' : getNormalizedType(booking.properties).includes('apartment') ? 'Floor' : 'Room') : (getNormalizedType(booking.properties).includes('tent') ? 'Tents' : getNormalizedType(booking.properties).includes('apartment') ? 'Floors' : 'Rooms')}`
                                             }
                                         </p>
                                         <span className={`px-1.5 py-0 rounded-[4px] text-[7px] font-black uppercase tracking-wider border shrink-0 ${booking.booking_type === 'bulk' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-zinc-800/60 text-zinc-500 border-zinc-700/50'}`}>

@@ -163,8 +163,9 @@ const Step3_Payment = ({ bookingCart, filters, verificationData, onNext, onBack 
   const propertyType = property?.type || property?.tier || 'Room';
   const safePropertyType = propertyType || 'Room';
   const isTent = safePropertyType.toLowerCase().trim() === 'tent' || safePropertyType.toLowerCase().trim() === 'tents';
-  const unitName = isTent ? 'Tent' : 'Room';
-  const unitsName = isTent ? 'Tents' : 'Rooms';
+  const isApartment = safePropertyType.toLowerCase().trim() === 'apartment' || safePropertyType.toLowerCase().trim() === 'flat';
+  const unitName = isTent ? 'Tent' : isApartment ? 'Floor' : 'Room';
+  const unitsName = isTent ? 'Tents' : isApartment ? 'Floors' : 'Rooms';
 
   const nights = () => {
     if (!filters.checkIn || !filters.checkOut) return 0;
@@ -178,18 +179,22 @@ const Step3_Payment = ({ bookingCart, filters, verificationData, onNext, onBack 
   const nightCount = nights();
   // Base calculation without service fee
   const pricePerNight = property?.price_per_night || property?.price || 0;
-  // If bulk, multiply by roomCount (unless Entire Resort)
-  const isEntireResort = (property?.room_types && property.room_types.includes('Entire Resort')) || (property?.tier === 'Resort' && parsedRoomIds.length <= 1);
-  const effectiveRooms = (bookingType === 'bulk' && !isEntireResort) ? roomCount : 1;
+  // If bulk, multiply by roomCount (unless Entire Resort or Entire Apartment)
+  const isEntireBuyout = (property?.room_types && (property.room_types.includes('Entire Resort') || property.room_types.includes('Entire Apartment'))) ||
+    ((property?.tier === 'Resort' || property?.tier === 'Apartment') && parsedRoomIds.length <= 1 && !property?.room_types?.some((rt: string) => rt.toLowerCase().includes('floor')));
+  const effectiveRooms = (bookingType === 'bulk' && !isEntireBuyout) ? roomCount : 1;
 
   const unitSummaryText = useMemo(() => {
-    const isEntire = isEntireResort || 
+    const isEntire = isEntireBuyout || 
       ((filters as any).selectedRoomType || '').toLowerCase().includes('entire resort') ||
-      (selectedRooms.length > 0 && selectedRooms.every(r => (r.room_type || '').toLowerCase().includes('entire resort')));
+      ((filters as any).selectedRoomType || '').toLowerCase().includes('entire apartment') ||
+      (selectedRooms.length > 0 && selectedRooms.every(r => (r.room_type || '').toLowerCase().includes('entire resort') || (r.room_type || '').toLowerCase().includes('entire apartment')));
 
     if (isEntire) {
-      const unitsCount = property?.room_type_counts?.['Entire Resort'] || property?.total_rooms || selectedRooms.length;
-      return unitsCount > 1 ? `Entire Resort (${unitsCount} Units)` : 'Entire Resort';
+      const isApt = isApartment || ((filters as any).selectedRoomType || '').toLowerCase().includes('apartment');
+      const unitLabel = isApt ? 'Entire Apartment' : 'Entire Resort';
+      const unitsCount = property?.room_type_counts?.[unitLabel] || property?.total_rooms || selectedRooms.length;
+      return unitsCount > 1 ? `${unitLabel} (${unitsCount} Units)` : unitLabel;
     }
 
     const selRoomType = (filters as any).selectedRoomType || (selectedRooms.length > 0 ? selectedRooms[0].room_type : '');
@@ -198,7 +203,7 @@ const Step3_Payment = ({ bookingCart, filters, verificationData, onNext, onBack 
     }
 
     return `${effectiveRooms} ${effectiveRooms === 1 ? unitName : unitsName}`;
-  }, [isEntireResort, filters, selectedRooms, property, effectiveRooms, unitName, unitsName]);
+  }, [isEntireBuyout, isApartment, filters, selectedRooms, property, effectiveRooms, unitName, unitsName]);
 
   const getRoomPrice = (roomType: string | null) => {
     const roomTypePrices = property?.room_type_prices || {};
@@ -318,11 +323,11 @@ const Step3_Payment = ({ bookingCart, filters, verificationData, onNext, onBack 
   // Zero platform commission from guest (service fee = 0)
   const serviceFee = 0;
 
-  // Calculate Bulk Discount using property's custom discount (disabled for Entire Resort)
+  // Calculate Bulk Discount using property's custom discount (disabled for Entire Resort and Entire Apartment)
   let discount = 0;
-  const bulkDiscountPercentage = isEntireResort ? 0 : (property?.bulk_booking_discount !== undefined && property?.bulk_booking_discount !== null ? property.bulk_booking_discount : 10);
+  const bulkDiscountPercentage = isEntireBuyout ? 0 : (property?.bulk_booking_discount !== undefined && property?.bulk_booking_discount !== null ? property.bulk_booking_discount : 10);
 
-  if (bookingType === 'bulk' && !isEntireResort) {
+  if (bookingType === 'bulk' && !isEntireBuyout) {
     // If it's a bulk booking, apply the custom discount percentage
     discount = baseTotal * (bulkDiscountPercentage / 100);
   }

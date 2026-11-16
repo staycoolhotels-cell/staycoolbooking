@@ -26,6 +26,15 @@ export const getDefaultSpecsForRoomType = (type: string): RoomTypeSpec => {
   if (t === 'entire resort') {
     return { guestsCount: 20, bed: 'Multiple King & Queen Beds (Full Resort)', sqft: '5000', view: 'Full Resort Landscape' };
   }
+  if (t === 'entire apartment') {
+    return { guestsCount: 6, bed: 'Multiple King & Queen Beds (Full Apartment)', sqft: '1800', view: 'City View' };
+  }
+  if (t.includes('penthouse')) {
+    return { guestsCount: 6, bed: '2 King Beds', sqft: '2500', view: 'Panoramic City View' };
+  }
+  if (t.includes('floor')) {
+    return { guestsCount: 4, bed: '2 Queen Beds', sqft: '1200', view: 'City View' };
+  }
   if (t.includes('entire') || t.includes('resort')) {
     return { guestsCount: 4, bed: '1 King Bed', sqft: '500', view: 'Nature View' };
   }
@@ -95,7 +104,7 @@ export interface FormData {
 const PROPERTY_ROOM_TYPES: Record<string, string[]> = {
   'hotel': ['Standard Room', 'AC Room', 'Single Room', 'Double Room', 'Twin Room', 'Deluxe Room', 'Suite'],
   'home stay': ['Entire Home'],
-  'apartment': ['Entire Apartment'],
+  'apartment': ['Entire Apartment', 'Ground Floor', '1st Floor', '2nd Floor', '3rd Floor', '4th Floor', '5th Floor', 'Penthouse'],
   'villa': ['Entire Villa'],
   'resort': ['Entire Resort', 'Standard Room', 'AC Room', 'Deluxe Room', 'Cottage', 'Suite'],
   'dormitory': ['Dorm Bed', 'Single Bed', 'Double Bed', 'AC Bed'],
@@ -210,7 +219,7 @@ const AddPropertyModal = ({
 
   // Auto-sync Total Rooms/Beds when roomTypeCounts or roomTypes change
   useEffect(() => {
-    const isSingleRoomsType = ['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(formData.type);
+    const isSingleRoomsType = ['Home Stay', 'Villa', 'Dormitory'].includes(formData.type);
     
     // Ensure all selected room types have a count of at least 1 in roomTypeCounts
     let hasChanges = false;
@@ -249,8 +258,10 @@ const AddPropertyModal = ({
       return;
     }
 
-    // If Resort has "Entire Resort" selected, set totalRooms to 1
-    if (formData.type === 'Resort' && formData.roomTypes.includes('Entire Resort')) {
+    // If Resort has "Entire Resort" or Apartment has "Entire Apartment" selected, set totalRooms to 1
+    const isEntireBuyout = (formData.type === 'Resort' && formData.roomTypes.includes('Entire Resort')) ||
+                           (formData.type === 'Apartment' && formData.roomTypes.includes('Entire Apartment'));
+    if (isEntireBuyout) {
       if (formData.totalRooms !== 1 || hasChanges) {
         setFormData(prev => ({ ...prev, totalRooms: 1, roomTypeCounts: updatedCounts }));
       }
@@ -338,7 +349,8 @@ const AddPropertyModal = ({
               : []
           );
       const isEntireResortEdit = rawRoomTypes.includes('Entire Resort');
-      const initialRoomTypes = isEntireResortEdit ? ['Entire Resort'] : rawRoomTypes;
+      const isEntireApartmentEdit = rawRoomTypes.includes('Entire Apartment');
+      const initialRoomTypes = isEntireResortEdit ? ['Entire Resort'] : isEntireApartmentEdit ? ['Entire Apartment'] : rawRoomTypes;
 
       const rawAmenities = (propertyToEdit as any).room_type_amenities || {};
       const rawCounts = (propertyToEdit as any).room_type_counts || {};
@@ -399,7 +411,7 @@ const AddPropertyModal = ({
         state: propertyToEdit.state || '',
         postalCode: propertyToEdit.postal_code || '',
         country: propertyToEdit.country || 'India - IN',
-        totalRooms: ['Home Stay', 'Apartment', 'Villa'].includes(propertyToEdit.tier || '') ? 1 : (propertyToEdit.total_rooms || 1),
+        totalRooms: (['Home Stay', 'Villa'].includes(propertyToEdit.tier || '') || initialRoomTypes.includes('Entire Resort') || initialRoomTypes.includes('Entire Apartment')) ? 1 : (propertyToEdit.total_rooms || 1),
         checkInTime: propertyToEdit.check_in_time || '12:00 PM',
         checkOutTime: propertyToEdit.check_out_time || '11:00 AM',
         customAmenities: propertyToEdit.amenities
@@ -412,7 +424,7 @@ const AddPropertyModal = ({
         roomTypeSpecs: initialSpecs,
         latitude: propertyToEdit.latitude,
         longitude: propertyToEdit.longitude,
-        bulkBookingDiscount: (['Home Stay', 'Apartment', 'Villa'].includes(propertyToEdit.tier || '') || initialRoomTypes.includes('Entire Resort')) ? 0 : (propertyToEdit.bulk_booking_discount !== undefined && propertyToEdit.bulk_booking_discount !== null ? propertyToEdit.bulk_booking_discount : 10),
+        bulkBookingDiscount: (['Home Stay', 'Villa'].includes(propertyToEdit.tier || '') || initialRoomTypes.includes('Entire Resort') || initialRoomTypes.includes('Entire Apartment')) ? 0 : (propertyToEdit.bulk_booking_discount !== undefined && propertyToEdit.bulk_booking_discount !== null ? propertyToEdit.bulk_booking_discount : 10),
       });
       setDisabledFields({
         name: false,
@@ -424,7 +436,7 @@ const AddPropertyModal = ({
         postalCode: false,
         country: false,
       });
-      const isSingleUnitType = ['Home Stay', 'Apartment', 'Villa'].includes(propertyToEdit.tier || '') || initialRoomTypes.includes('Entire Resort');
+      const isSingleUnitType = ['Home Stay', 'Villa'].includes(propertyToEdit.tier || '') || initialRoomTypes.includes('Entire Resort') || initialRoomTypes.includes('Entire Apartment');
       const discountVal = isSingleUnitType ? 0 : (propertyToEdit.bulk_booking_discount !== undefined && propertyToEdit.bulk_booking_discount !== null ? propertyToEdit.bulk_booking_discount : 10);
       setIsBulkDiscountEnabled(discountVal > 0);
       lastNonZeroDiscount.current = discountVal > 0 ? discountVal : 10;
@@ -508,7 +520,7 @@ const AddPropertyModal = ({
   ) => {
     const { name, value } = e.target;
     if (name === 'type') {
-      const isSingleUnitType = ['Home Stay', 'Apartment', 'Villa'].includes(value);
+      const isSingleUnitType = ['Home Stay', 'Villa'].includes(value);
       const normalizedNewType = value?.trim().toLowerCase();
       const validRoomTypes = PROPERTY_ROOM_TYPES[normalizedNewType] || [];
       
@@ -534,7 +546,7 @@ const AddPropertyModal = ({
           ...prev,
           [name]: value,
           bedrooms: ['Tent', 'Dormitory', 'Hotel', 'Resort'].includes(value) ? 0 : (prev.bedrooms === 0 ? 1 : prev.bedrooms),
-          totalRooms: ['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(value) ? 1 : prev.totalRooms,
+          totalRooms: ['Home Stay', 'Villa', 'Dormitory'].includes(value) ? 1 : prev.totalRooms,
           bulkBookingDiscount: isSingleUnitType ? 0 : prev.bulkBookingDiscount,
           roomTypes: isSingleUnitType && validRoomTypes.length === 1 
             ? validRoomTypes 
@@ -1056,22 +1068,25 @@ const AddPropertyModal = ({
                   />
                 </div>
 
-                {/* Room Type Selection based on Property Type */}
+                {/* Room Type / Floor Selection based on Property Type */}
                 {(() => {
                   const normalizedType = formData.type?.trim().toLowerCase();
                   const roomTypes = normalizedType ? PROPERTY_ROOM_TYPES[normalizedType] : null;
                   
                   if (!roomTypes) return null;
 
-                  const isHotelOrResort = formData.type === 'Hotel' || formData.type === 'Resort';
+                  const isApartment = formData.type === 'Apartment';
+                  const isHotelOrResort = formData.type === 'Hotel' || formData.type === 'Resort' || isApartment;
 
                   return (
                     <div className="space-y-1.5 md:space-y-2 animate-fade-in py-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs md:text-sm font-medium text-zinc-400">Room Type Selection</label>
+                        <label className="text-xs md:text-sm font-medium text-zinc-400">
+                          {isApartment ? 'Floors Section' : 'Room Type Selection'}
+                        </label>
                         {isHotelOrResort && (
                           <span className="text-[10px] text-sky-400 font-semibold bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
-                            Click room to configure rooms, guests, bed & view
+                            {isApartment ? 'Click floor to configure units, guests, bed & view' : 'Click room to configure rooms, guests, bed & view'}
                           </span>
                         )}
                       </div>
@@ -1082,6 +1097,8 @@ const AddPropertyModal = ({
                           const isSpecsExpanded = isHotelOrResort && isSelected && !!expandedRoomSpecs[roomType];
                           const currentSpecs = formData.roomTypeSpecs[roomType] || getDefaultSpecsForRoomType(roomType);
                           const isEntireResort = roomType === 'Entire Resort';
+                          const isEntireApartment = roomType === 'Entire Apartment';
+                          const isEntireBuyout = isEntireResort || isEntireApartment;
                           
                           return (
                             <div
@@ -1098,10 +1115,10 @@ const AddPropertyModal = ({
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    if (['Home Stay', 'Apartment', 'Villa'].includes(formData.type)) return;
+                                    if (['Home Stay', 'Villa'].includes(formData.type)) return;
                                     
                                     if (isHotelOrResort && isSelected) {
-                                      // If already selected in Hotel/Resort, toggle the configuration dropdown
+                                      // If already selected, toggle the configuration dropdown
                                       setExpandedRoomSpecs(prev => ({
                                         ...prev,
                                         [roomType]: !prev[roomType]
@@ -1112,14 +1129,17 @@ const AddPropertyModal = ({
                                     setFormData(prev => {
                                       const isSel = prev.roomTypes.includes(roomType);
                                       const isSelectingEntireResort = roomType === 'Entire Resort';
+                                      const isSelectingEntireApartment = roomType === 'Entire Apartment';
 
                                       let newRoomTypes: string[];
                                       if (isSelectingEntireResort) {
                                         newRoomTypes = isSel ? [] : ['Entire Resort'];
+                                      } else if (isSelectingEntireApartment) {
+                                        newRoomTypes = isSel ? [] : ['Entire Apartment'];
                                       } else {
                                         newRoomTypes = isSel
                                           ? prev.roomTypes.filter(t => t !== roomType)
-                                          : [...prev.roomTypes.filter(t => t !== 'Entire Resort'), roomType];
+                                          : [...prev.roomTypes.filter(t => t !== 'Entire Resort' && t !== 'Entire Apartment'), roomType];
                                       }
 
                                       const newCounts: Record<string, number> = {};
@@ -1136,6 +1156,8 @@ const AddPropertyModal = ({
                                         if (prev.roomTypeAmenities?.[t] !== undefined) newAmenities[t] = prev.roomTypeAmenities[t];
                                       });
 
+                                      const isBuyout = newRoomTypes.includes('Entire Resort') || newRoomTypes.includes('Entire Apartment');
+
                                       return {
                                         ...prev,
                                         roomTypes: newRoomTypes,
@@ -1144,12 +1166,12 @@ const AddPropertyModal = ({
                                         roomTypePrices: newPrices,
                                         roomTypeWeekendPrices: newWeekendPrices,
                                         roomTypeAmenities: newAmenities,
-                                        totalRooms: newRoomTypes.includes('Entire Resort') ? 1 : prev.totalRooms,
-                                        bulkBookingDiscount: newRoomTypes.includes('Entire Resort') ? 0 : prev.bulkBookingDiscount,
+                                        totalRooms: isBuyout ? 1 : prev.totalRooms,
+                                        bulkBookingDiscount: isBuyout ? 0 : prev.bulkBookingDiscount,
                                       };
                                     });
 
-                                    if (roomType === 'Entire Resort') {
+                                    if (roomType === 'Entire Resort' || roomType === 'Entire Apartment') {
                                       setIsBulkDiscountEnabled(false);
                                     }
 
@@ -1158,7 +1180,7 @@ const AddPropertyModal = ({
                                     }
                                   }}
                                   className={`flex-1 flex items-center gap-1.5 text-left font-bold text-xs md:text-sm outline-none group ${
-                                    ['Home Stay', 'Apartment', 'Villa'].includes(formData.type) ? 'cursor-default' : 'cursor-pointer'
+                                    ['Home Stay', 'Villa'].includes(formData.type) ? 'cursor-default' : 'cursor-pointer'
                                   }`}
                                 >
                                   <span>{roomType}</span>
@@ -1170,7 +1192,7 @@ const AddPropertyModal = ({
                                 {/* Plus/Minus Controls */}
                                 <div className="flex items-center gap-2.5 ml-2">
                                   {isSelected ? (
-                                    ['Home Stay', 'Apartment', 'Villa'].includes(formData.type) ? (
+                                    ['Home Stay', 'Villa'].includes(formData.type) ? (
                                       <div className="flex items-center justify-center bg-zinc-950/60 border border-zinc-800 rounded-lg px-3 py-1">
                                         <span className="text-xs md:text-sm font-black select-none text-white">1</span>
                                       </div>
@@ -1189,6 +1211,10 @@ const AddPropertyModal = ({
                                         >
                                           {isEntireResort 
                                             ? (count === 1 ? 'Entire Resort' : `${count} Entire Resorts`)
+                                            : isEntireApartment
+                                            ? (count === 1 ? 'Entire Apartment' : `${count} Entire Apartments`)
+                                            : isApartment
+                                            ? `${count} ${count === 1 ? 'Unit' : 'Units'}`
                                             : `${count} ${count === 1 ? 'Room' : 'Rooms'}`
                                           }
                                         </button>
@@ -1220,7 +1246,7 @@ const AddPropertyModal = ({
                                             });
                                           }}
                                           className="w-6 h-6 flex items-center justify-center rounded-md bg-zinc-800/80 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 transition-colors"
-                                          title="Remove room type"
+                                          title="Remove"
                                         >
                                           <X className="w-3.5 h-3.5" />
                                         </button>
@@ -1276,11 +1302,15 @@ const AddPropertyModal = ({
                                       onClick={() => {
                                         setFormData(prev => {
                                           const isSelectingEntireResort = roomType === 'Entire Resort';
+                                          const isSelectingEntireApartment = roomType === 'Entire Apartment';
+
                                           let newRoomTypes: string[];
                                           if (isSelectingEntireResort) {
                                             newRoomTypes = ['Entire Resort'];
+                                          } else if (isSelectingEntireApartment) {
+                                            newRoomTypes = ['Entire Apartment'];
                                           } else {
-                                            newRoomTypes = [...prev.roomTypes.filter(t => t !== 'Entire Resort'), roomType];
+                                            newRoomTypes = [...prev.roomTypes.filter(t => t !== 'Entire Resort' && t !== 'Entire Apartment'), roomType];
                                           }
 
                                           const newCounts: Record<string, number> = {};
@@ -1297,6 +1327,8 @@ const AddPropertyModal = ({
                                             if (prev.roomTypeAmenities?.[t] !== undefined) newAmenities[t] = prev.roomTypeAmenities[t];
                                           });
 
+                                          const isBuyout = newRoomTypes.includes('Entire Resort') || newRoomTypes.includes('Entire Apartment');
+
                                           return {
                                             ...prev,
                                             roomTypes: newRoomTypes,
@@ -1305,12 +1337,12 @@ const AddPropertyModal = ({
                                             roomTypePrices: newPrices,
                                             roomTypeWeekendPrices: newWeekendPrices,
                                             roomTypeAmenities: newAmenities,
-                                            totalRooms: newRoomTypes.includes('Entire Resort') ? 1 : prev.totalRooms,
-                                            bulkBookingDiscount: newRoomTypes.includes('Entire Resort') ? 0 : prev.bulkBookingDiscount,
+                                            totalRooms: isBuyout ? 1 : prev.totalRooms,
+                                            bulkBookingDiscount: isBuyout ? 0 : prev.bulkBookingDiscount,
                                           };
                                         });
 
-                                        if (roomType === 'Entire Resort') {
+                                        if (roomType === 'Entire Resort' || roomType === 'Entire Apartment') {
                                           setIsBulkDiscountEnabled(false);
                                         }
 
@@ -1326,14 +1358,14 @@ const AddPropertyModal = ({
                                 </div>
                               </div>
 
-                              {/* Dropdown Configuration Panel for Hotel & Resort */}
+                              {/* Dropdown Configuration Panel for Hotel, Resort & Apartment */}
                               {isHotelOrResort && isSelected && isSpecsExpanded && (
                                 <div className="px-3 pb-3 pt-2.5 border-t border-sky-400/20 bg-zinc-950/90 space-y-3 animate-fade-in text-left">
                                   <div className="flex items-center justify-between pb-1 border-b border-zinc-800/80">
                                     <span className="text-[10px] font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1">
-                                      {isEntireResort ? 'Entire Resort Specs & Buyout' : 'Room Specs & Inventory'}
+                                      {isEntireResort ? 'Entire Resort Specs & Buyout' : isEntireApartment ? 'Entire Apartment Specs & Buyout' : (isApartment ? 'Floor Specs & Inventory' : 'Room Specs & Inventory')}
                                     </span>
-                                    <span className="text-[9px] text-zinc-500 font-medium">Hotel & Resort</span>
+                                    <span className="text-[9px] text-zinc-500 font-medium">{isApartment ? 'Apartment Floors' : 'Hotel & Resort'}</span>
                                   </div>
 
                                   {/* 1. Total Rooms with - or + button */}
@@ -1341,14 +1373,18 @@ const AddPropertyModal = ({
                                     <label className="block text-[10px] font-semibold text-zinc-300 mb-1 flex items-center justify-between">
                                       <span className="flex items-center gap-1.5">
                                         <Building2 className="w-3.5 h-3.5 text-sky-400" />
-                                        <span>{isEntireResort ? 'Entire Resort Units' : 'Total Rooms'}</span>
+                                        <span>{isEntireResort ? 'Entire Resort Units' : isEntireApartment ? 'Entire Apartment Units' : (isApartment ? 'Total Units on Floor' : 'Total Rooms')}</span>
                                       </span>
-                                      <span className="text-[9px] text-zinc-500">{isEntireResort ? 'Full property buyout' : 'Inventory count'}</span>
+                                      <span className="text-[9px] text-zinc-500">{isEntireBuyout ? 'Full property buyout' : (isApartment ? 'Flats on this floor' : 'Inventory count')}</span>
                                     </label>
                                     <div className="flex items-center justify-between bg-zinc-900 border border-zinc-700/60 rounded-lg p-1.5">
                                       <span className="text-xs font-bold text-zinc-200 pl-2">
                                         {isEntireResort 
                                           ? (count === 1 ? '1 Entire Resort' : `${count} Entire Resorts`)
+                                          : isEntireApartment
+                                          ? (count === 1 ? '1 Entire Apartment' : `${count} Entire Apartments`)
+                                          : isApartment
+                                          ? `${count} ${count === 1 ? 'Unit' : 'Units'}`
                                           : `${count} ${count === 1 ? 'Room' : 'Rooms'}`
                                         }
                                       </span>
@@ -1406,7 +1442,7 @@ const AddPropertyModal = ({
                                   <div>
                                     <label className="block text-[10px] font-semibold text-zinc-300 mb-1 flex items-center gap-1.5">
                                       <User className="w-3.5 h-3.5 text-purple-400" />
-                                      <span>{isEntireResort ? 'Total Guests Capacity (Full Resort)' : 'Guests'}</span>
+                                      <span>{isEntireResort ? 'Total Guests Capacity (Full Resort)' : isEntireApartment ? 'Total Guests Capacity (Full Apartment)' : (isApartment ? 'Guests (Per Floor Unit)' : 'Guests')}</span>
                                     </label>
                                     <div className="flex items-center justify-between bg-zinc-900 border border-zinc-700/60 rounded-lg p-1.5">
                                       <span className="text-xs font-bold text-zinc-200 pl-2">
@@ -1417,8 +1453,8 @@ const AddPropertyModal = ({
                                           type="button"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            const step = isEntireResort && (currentSpecs.guestsCount || 20) > 10 ? 2 : 1;
-                                            const newCount = Math.max(1, (currentSpecs.guestsCount || (isEntireResort ? 20 : 2)) - step);
+                                            const step = isEntireBuyout && (currentSpecs.guestsCount || 20) > 10 ? 2 : 1;
+                                            const newCount = Math.max(1, (currentSpecs.guestsCount || (isEntireBuyout ? 20 : 2)) - step);
                                             setFormData(prev => ({
                                               ...prev,
                                               roomTypeSpecs: {
@@ -1439,9 +1475,9 @@ const AddPropertyModal = ({
                                           type="button"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            const maxLimit = isEntireResort ? 100 : 10;
-                                            const step = isEntireResort && (currentSpecs.guestsCount || 20) >= 10 ? 2 : 1;
-                                            const newCount = Math.min(maxLimit, (currentSpecs.guestsCount || (isEntireResort ? 20 : 2)) + step);
+                                            const maxLimit = isEntireBuyout ? 100 : 10;
+                                            const step = isEntireBuyout && (currentSpecs.guestsCount || 20) >= 10 ? 2 : 1;
+                                            const newCount = Math.min(maxLimit, (currentSpecs.guestsCount || (isEntireBuyout ? 20 : 2)) + step);
                                             setFormData(prev => ({
                                               ...prev,
                                               roomTypeSpecs: {
@@ -1450,7 +1486,7 @@ const AddPropertyModal = ({
                                               }
                                             }));
                                           }}
-                                          disabled={currentSpecs.guestsCount >= (isEntireResort ? 100 : 10)}
+                                          disabled={currentSpecs.guestsCount >= (isEntireBuyout ? 100 : 10)}
                                           className="w-6 h-6 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-purple-400 font-black text-sm select-none transition-all disabled:opacity-40"
                                         >
                                           +
@@ -1463,7 +1499,7 @@ const AddPropertyModal = ({
                                   <div>
                                     <label className="block text-[10px] font-semibold text-zinc-300 mb-1 flex items-center gap-1.5">
                                       <Bed className="w-3.5 h-3.5 text-indigo-400" />
-                                      <span>{isEntireResort ? 'Beds Setup (Across Resort)' : 'Bed Type'}</span>
+                                      <span>{isEntireResort ? 'Beds Setup (Across Resort)' : isEntireApartment ? 'Beds Setup (Across Apartment)' : (isApartment ? 'Beds Setup (Per Unit)' : 'Bed Type')}</span>
                                     </label>
                                     <select
                                       value={currentSpecs.bed}
@@ -1491,6 +1527,25 @@ const AddPropertyModal = ({
                                           <option value="Multiple Double & Single Beds" className="bg-zinc-900 text-white">Multiple Double & Single Beds</option>
                                           <option value="Dormitory & Private Beds Combination" className="bg-zinc-900 text-white">Dormitory & Private Beds Combination</option>
                                         </>
+                                      ) : isEntireApartment ? (
+                                        <>
+                                          <option value="Multiple King & Queen Beds (Full Apartment)" className="bg-zinc-900 text-white">Multiple King & Queen Beds (Full Apartment)</option>
+                                          <option value="3 Bedrooms (King & Queen Beds)" className="bg-zinc-900 text-white">3 Bedrooms (King & Queen Beds)</option>
+                                          <option value="4 Bedrooms (Multiple Beds)" className="bg-zinc-900 text-white">4 Bedrooms (Multiple Beds)</option>
+                                          <option value="2 Bedrooms (King & Queen Beds)" className="bg-zinc-900 text-white">2 Bedrooms (King & Queen Beds)</option>
+                                          <option value="All Floors & Units Included" className="bg-zinc-900 text-white">All Floors & Units Included</option>
+                                        </>
+                                      ) : isApartment ? (
+                                        <>
+                                          <option value="2 Queen Beds" className="bg-zinc-900 text-white">2 Queen Beds</option>
+                                          <option value="1 King Bed" className="bg-zinc-900 text-white">1 King Bed</option>
+                                          <option value="1 Queen Bed" className="bg-zinc-900 text-white">1 Queen Bed</option>
+                                          <option value="2 King Beds" className="bg-zinc-900 text-white">2 King Beds</option>
+                                          <option value="1 King + 1 Queen Bed" className="bg-zinc-900 text-white">1 King + 1 Queen Bed</option>
+                                          <option value="1 Double Bed" className="bg-zinc-900 text-white">1 Double Bed</option>
+                                          <option value="2 Double Beds" className="bg-zinc-900 text-white">2 Double Beds</option>
+                                          <option value="3 Single Beds" className="bg-zinc-900 text-white">3 Single Beds</option>
+                                        </>
                                       ) : (
                                         <>
                                           <option value="1 King Bed" className="bg-zinc-900 text-white">1 King Bed</option>
@@ -1506,11 +1561,11 @@ const AddPropertyModal = ({
                                     </select>
                                   </div>
 
-                                  {/* 4. Room / Resort sq.ft Input */}
+                                  {/* 4. Room / Resort / Apartment sq.ft Input */}
                                   <div>
                                     <label className="block text-[10px] font-semibold text-zinc-300 mb-1 flex items-center gap-1.5">
                                       <Maximize2 className="w-3.5 h-3.5 text-sky-400" />
-                                      <span>{isEntireResort ? 'Total Resort Area' : 'Room sq.ft'}</span>
+                                      <span>{isEntireResort ? 'Total Resort Area' : isEntireApartment ? 'Total Apartment Area' : (isApartment ? 'Floor / Unit Area' : 'Room sq.ft')}</span>
                                     </label>
                                     <div className="relative flex items-center">
                                       <input
@@ -1526,20 +1581,20 @@ const AddPropertyModal = ({
                                             }
                                           }));
                                         }}
-                                        placeholder={isEntireResort ? 'e.g. 5,000 sq.ft or 2 Acres' : 'e.g. 180'}
+                                        placeholder={isEntireBuyout ? 'e.g. 5,000 sq.ft' : 'e.g. 1,200'}
                                         className="w-full bg-zinc-900 border border-zinc-700/60 rounded-lg pl-2.5 pr-12 py-1.5 text-xs font-bold text-white placeholder-zinc-500 focus:outline-none focus:border-sky-400"
                                       />
                                       <span className="absolute right-2.5 text-[10px] font-semibold text-zinc-400 pointer-events-none">
-                                        {isEntireResort ? 'Area' : 'sq.ft'}
+                                        {isEntireBuyout ? 'Area' : 'sq.ft'}
                                       </span>
                                     </div>
                                   </div>
 
-                                  {/* 5. Room View / Resort Landscape Select */}
+                                  {/* 5. Room View / Landscape / Apartment View Select */}
                                   <div>
                                     <label className="block text-[10px] font-semibold text-zinc-300 mb-1 flex items-center gap-1.5">
                                       <Eye className="w-3.5 h-3.5 text-cyan-400" />
-                                      <span>{isEntireResort ? 'Resort Landscape View' : 'Room View'}</span>
+                                      <span>{isEntireResort ? 'Resort Landscape View' : isEntireApartment ? 'Apartment View' : (isApartment ? 'Floor View' : 'Room View')}</span>
                                     </label>
                                     <select
                                       value={currentSpecs.view}
@@ -1564,6 +1619,24 @@ const AddPropertyModal = ({
                                           <option value="Private Pool & Garden View" className="bg-zinc-900 text-white">Private Pool & Garden View</option>
                                           <option value="Lake View" className="bg-zinc-900 text-white">Lake View</option>
                                           <option value="Scenic Valley View" className="bg-zinc-900 text-white">Scenic Valley View</option>
+                                        </>
+                                      ) : isEntireApartment ? (
+                                        <>
+                                          <option value="City View" className="bg-zinc-900 text-white">City View</option>
+                                          <option value="Skyline View" className="bg-zinc-900 text-white">Skyline View</option>
+                                          <option value="Balcony View" className="bg-zinc-900 text-white">Balcony View</option>
+                                          <option value="Garden View" className="bg-zinc-900 text-white">Garden View</option>
+                                          <option value="Pool View" className="bg-zinc-900 text-white">Pool View</option>
+                                        </>
+                                      ) : isApartment ? (
+                                        <>
+                                          <option value="City View" className="bg-zinc-900 text-white">City View</option>
+                                          <option value="Balcony View" className="bg-zinc-900 text-white">Balcony View</option>
+                                          <option value="Street View" className="bg-zinc-900 text-white">Street View</option>
+                                          <option value="Garden View" className="bg-zinc-900 text-white">Garden View</option>
+                                          <option value="Pool View" className="bg-zinc-900 text-white">Pool View</option>
+                                          <option value="Skyline View" className="bg-zinc-900 text-white">Skyline View</option>
+                                          <option value="No View" className="bg-zinc-900 text-white">No View</option>
                                         </>
                                       ) : (
                                         <>
@@ -1646,28 +1719,28 @@ const AddPropertyModal = ({
                 </div>
 
                 {/* NEW FIELDS: Bedrooms, Bathrooms, Area, Max Guests, Total Rooms */}
-                {!formData.roomTypes.includes('Entire Resort') && (
+                {!(formData.roomTypes.includes('Entire Resort') || formData.roomTypes.includes('Entire Apartment')) && (
                   <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
 
                     {/* Total Rooms / Units Input */}
-                    <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(formData.type) ? 'opacity-40 pointer-events-none' : ''}`}>
+                    <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${['Home Stay', 'Villa', 'Dormitory'].includes(formData.type) ? 'opacity-40 pointer-events-none' : ''}`}>
                       <div className="flex items-center gap-1.5 mb-1.5 md:mb-2">
                         <Building2 className="w-4 h-4 md:w-5 md:h-5 text-sky-400" />
                         <label htmlFor="totalRooms" className="block text-xs md:text-sm font-medium text-zinc-300">
-                          {formData.type === 'Tent' ? 'Total Tents/Units' : 'Total Rooms/Units'}
+                          {formData.type === 'Tent' ? 'Total Tents/Units' : formData.type === 'Apartment' ? 'Total Floors/Units' : 'Total Rooms/Units'}
                         </label>
-                        {['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(formData.type) && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
+                        {['Home Stay', 'Villa', 'Dormitory'].includes(formData.type) && <span className="text-[10px] md:text-xs text-amber-400">(N/A)</span>}
                       </div>
                       <div className="flex justify-center">
                         <NumberInput
                           value={formData.totalRooms}
                           onChange={(val) => setFormData(prev => ({ ...prev, totalRooms: val }))}
                           min={1}
-                          disabled={['Home Stay', 'Apartment', 'Villa', 'Dormitory'].includes(formData.type)}
+                          disabled={['Home Stay', 'Villa', 'Dormitory'].includes(formData.type)}
                         />
                       </div>
                       <p className="text-[10px] md:text-xs text-zinc-500 mt-1 text-center">
-                        {formData.type === 'Tent' ? 'For tent bookings.' : 'For bulk bookings.'}
+                        {formData.type === 'Tent' ? 'For tent bookings.' : formData.type === 'Apartment' ? 'For apartment bulk bookings.' : 'For bulk bookings.'}
                       </p>
                     </div>
                     <div className={`bg-zinc-800 p-2.5 md:p-4 rounded-xl border border-zinc-700/50 ${['Tent', 'Dormitory', 'Hotel', 'Resort'].includes(formData.type) ? 'opacity-40 pointer-events-none' : ''}`}>
@@ -2137,7 +2210,7 @@ const AddPropertyModal = ({
                                           label: 'Apartment',
                                           amenities: [103, 104, 106, 2001, 2002, 2003, 2004, 2007, 2008, 2009, 209, 501, 301, 701, 2020, 801, 802, 803, 807, 812, 1001],
                                           color: 'bg-purple-500/10 text-purple-400 border-purple-500/20 hover:bg-purple-600',
-                                          forRoomTypes: ['Entire Apartment'],
+                                          forRoomTypes: ['Entire Apartment', 'Ground Floor', '1st Floor', '2nd Floor', '3rd Floor', '4th Floor', '5th Floor', 'Penthouse'],
                                         },
                                         {
                                           label: 'Standard Tent',
@@ -2493,7 +2566,9 @@ const AddPropertyModal = ({
                       <div className="p-1.5 bg-sky-500/10 rounded-lg border border-sky-500/20">
                         <Building2 className="w-4 h-4 text-sky-400" />
                       </div>
-                      <h4 className="text-xs md:text-sm font-black text-white uppercase tracking-[0.2em] italic">Per-Room-Type Custom Rates</h4>
+                      <h4 className="text-xs md:text-sm font-black text-white uppercase tracking-[0.2em] italic">
+                        {formData.type === 'Apartment' ? 'Per-Floor Custom Rates' : 'Per-Room-Type Custom Rates'}
+                      </h4>
                     </div>
 
                     <div className="grid grid-cols-1 gap-5">
@@ -2529,7 +2604,9 @@ const AddPropertyModal = ({
                                       <span className="text-[8px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 tracking-widest uppercase">Customized</span>
                                     ) : null}
                                   </div>
-                                  <p className="text-[10px] text-zinc-500 mt-0.5">Customize weekday and weekend pricing for this room type</p>
+                                  <p className="text-[10px] text-zinc-500 mt-0.5">
+                                    {formData.type === 'Apartment' ? 'Customize weekday and weekend pricing for this floor' : 'Customize weekday and weekend pricing for this room type'}
+                                  </p>
                                 </div>
                               </div>
                             </div>
@@ -2600,7 +2677,7 @@ const AddPropertyModal = ({
                 ) : null}
                 
                 {/* Bulk Booking Discount with toggle and +/- buttons */}
-                {['Home Stay', 'Apartment', 'Villa'].includes(formData.type) || formData.roomTypes.includes('Entire Resort') ? (
+                {['Home Stay', 'Villa'].includes(formData.type) || formData.roomTypes.includes('Entire Resort') || formData.roomTypes.includes('Entire Apartment') ? (
                   <div className="bg-zinc-800/40 p-4 md:p-6 rounded-2xl md:rounded-3xl border border-zinc-700/30 flex items-start gap-3 md:gap-4 relative overflow-hidden group">
                     <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/3 to-amber-500/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                     <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-400 shrink-0 border border-amber-500/20">
@@ -2611,9 +2688,9 @@ const AddPropertyModal = ({
                         Bulk Booking Discount
                       </h4>
                       <p className="text-[10px] md:text-xs text-zinc-500 font-medium leading-relaxed">
-                        {formData.roomTypes.includes('Entire Resort')
-                          ? 'Entire Resort is booked as a single exclusive unit. Bulk discounts are not applicable.'
-                          : `Bulk discounts are only applicable to multi-unit listings (Hotels and multi-room Resorts). Since this listing is categorized as a ${formData.type || 'single unit'}, bulk discounts are disabled.`}
+                        {formData.roomTypes.includes('Entire Resort') || formData.roomTypes.includes('Entire Apartment')
+                          ? `${formData.roomTypes.includes('Entire Resort') ? 'Entire Resort' : 'Entire Apartment'} is booked as a single exclusive unit. Bulk discounts are not applicable.`
+                          : `Bulk discounts are only applicable to multi-unit listings (Hotels, Resorts, and Apartments with floors). Since this listing is categorized as a ${formData.type || 'single unit'}, bulk discounts are disabled.`}
                       </p>
                     </div>
                   </div>

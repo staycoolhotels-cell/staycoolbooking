@@ -232,12 +232,12 @@ const PropertyCard = ({ property, bookings = [], onEdit, onDelete, onToggleStatu
         <div className="pt-1.5 md:pt-2 mt-2 md:mt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-y-2 gap-x-1.5 md:gap-2">
 
           <div className="flex-1 flex items-center gap-1.5 md:gap-2">
-            {!['Home Stay', 'Apartment', 'Villa'].includes(property.type || property.tier || '') && (
+            {!(['Home Stay', 'Villa'].includes(property.type || property.tier || '') || (property.room_types && (property.room_types.includes('Entire Resort') || property.room_types.includes('Entire Apartment')))) && (
               <button
                 onClick={(e) => { e.stopPropagation(); onManageRooms(property); }}
                 className="flex-1 px-2 py-1.5 md:py-2 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg md:rounded-xl border border-indigo-500/20 transition-all text-indigo-400 hover:text-indigo-300 text-[8px] md:text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1 md:gap-2 group/btn"
               >
-                <Icon name="Squares2X2Icon" size={11} className="group-hover/btn:scale-110 transition-transform" /> Sub-Units
+                <Icon name="Squares2X2Icon" size={11} className="group-hover/btn:scale-110 transition-transform" /> {(property.tier === 'Apartment' || property.type === 'Apartment') ? 'Floors' : 'Sub-Units'}
               </button>
             )}
 

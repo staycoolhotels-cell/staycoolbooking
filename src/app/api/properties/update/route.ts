@@ -56,13 +56,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Property not found or access denied' }, { status: 403 });
     }
 
-    // Sync sub-units (rooms) when total_rooms changes during edit
+    // Sync sub-units (rooms/floors) when total_rooms changes during edit
     // Skip for single-unit property types where sub-unit management is not applicable
-    const singleUnitTypes = ['Home Stay', 'Apartment', 'Villa', 'Dormitory'];
+    const singleUnitTypes = ['Home Stay', 'Villa', 'Dormitory'];
     const propertyTier = updatePayload.tier || data?.tier || '';
-    const isSingleUnit = singleUnitTypes.includes(propertyTier);
+    const roomTypesList = updatePayload.room_types || data?.room_types || [];
+    const isEntireBuyout = (propertyTier === 'Resort' && roomTypesList.includes('Entire Resort')) ||
+                           (propertyTier === 'Apartment' && roomTypesList.includes('Entire Apartment'));
+    const isSingleUnit = singleUnitTypes.includes(propertyTier) || isEntireBuyout;
     const isTent = propertyTier === 'Tent';
-    const unitLabel = isTent ? 'Tent' : 'Room';
+    const isApartment = propertyTier === 'Apartment';
+    const unitLabel = isTent ? 'Tent' : isApartment ? 'Floor' : 'Room';
 
     if (!isSingleUnit && updatePayload.total_rooms && updatePayload.total_rooms > 0) {
       const newTotalRooms = updatePayload.total_rooms;
@@ -83,7 +87,7 @@ export async function POST(request: NextRequest) {
           for (let i = 0; i < count; i++) {
             roomsToInsert.push({
               property_id: propertyId,
-              name: `${roomType} ${i + 1}`,
+              name: count > 1 ? `${roomType} - Unit ${i + 1}` : roomType,
               status: 'available',
               room_type: roomType,
               room_amenities: amenities,

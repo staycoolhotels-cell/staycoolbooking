@@ -229,7 +229,15 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
     } else if (propTier === 'home stay' || propTier === 'homestay') {
       name = `Entire Home (${totalRooms})`;
     } else if (propTier === 'apartment') {
-      name = `Entire Apartment (${totalRooms})`;
+      const standardPrice = Number((booking.properties as any)?.standard_price || 0);
+      const isEntireApartmentRate = unitPricePerNight >= Math.min(10000, standardPrice > 0 ? standardPrice * 0.5 : 10000);
+      const hasEntireApartment = propertyRoomTypes.includes('Entire Apartment');
+      if (hasEntireApartment && isEntireApartmentRate) {
+        name = `Entire Apartment (${totalRooms})`;
+      } else {
+        const nonEntireTypes = propertyRoomTypes.filter(t => t !== 'Entire Apartment');
+        name = nonEntireTypes.length > 0 ? `${nonEntireTypes[0]} (${totalRooms})` : `Entire Apartment (${totalRooms})`;
+      }
     } else if (propTier === 'villa') {
       name = `Entire Villa (${totalRooms})`;
     } else if (propTier === 'tent' || propTier === 'camp' || propTier === 'tents') {

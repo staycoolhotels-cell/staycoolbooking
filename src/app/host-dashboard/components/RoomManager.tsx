@@ -24,7 +24,7 @@ interface Room {
 const PROPERTY_ROOM_TYPES: Record<string, string[]> = {
     'hotel': ['Standard Room', 'AC Room', 'Single Room', 'Double Room', 'Twin Room', 'Deluxe Room', 'Suite'],
     'home stay': ['Entire Home'],
-    'apartment': ['Entire Apartment'],
+    'apartment': ['Entire Apartment', 'Ground Floor', '1st Floor', '2nd Floor', '3rd Floor', '4th Floor', '5th Floor', 'Penthouse'],
     'villa': ['Entire Villa'],
     'resort': ['Entire Resort', 'Standard Room', 'AC Room', 'Deluxe Room', 'Cottage', 'Suite'],
     'dormitory': ['Dorm Bed', 'Single Bed', 'Double Bed', 'AC Bed'],
@@ -38,8 +38,9 @@ interface RoomManagerProps {
 }
 
 export default function RoomManager({ property, onUpdate }: RoomManagerProps) {
-    const isSingleUnit = ['Home Stay', 'Apartment', 'Villa'].includes(property.tier || property.type || '') || (property.room_types && property.room_types.includes('Entire Resort'));
+    const isSingleUnit = ['Home Stay', 'Villa'].includes(property.tier || property.type || '') || (property.room_types && (property.room_types.includes('Entire Resort') || property.room_types.includes('Entire Apartment')));
     const isTent = (property.tier || property.type || '') === 'Tent';
+    const isApartment = (property.tier || property.type || '') === 'Apartment';
 
     const [rooms, setRooms] = useState<Room[]>([]);
     const [loading, setLoading] = useState(true);

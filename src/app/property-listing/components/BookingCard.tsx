@@ -268,33 +268,40 @@ const BookingCard = ({
   }, [checkIn, checkOut, guests, bookingType, selectedRooms, hasFreeCancellation, propertyId]);
 
   const safePropertyType = propertyType || 'Room';
-  const isTent = safePropertyType.toLowerCase().trim() === 'tent' || safePropertyType.toLowerCase().trim() === 'tents';
-  const isDormitory = safePropertyType.toLowerCase().trim() === 'dormitory';
-  const unitName = isTent ? 'Tent' : isDormitory ? 'Bed' : 'Room';
-  const unitsName = isTent ? 'Tents' : isDormitory ? 'Beds' : 'Rooms';
-  const isHotelOrResort = safePropertyType.toLowerCase().trim() === 'hotel' || safePropertyType.toLowerCase().trim() === 'resort';
+  const typeLower = safePropertyType.toLowerCase().trim();
+  const isTent = typeLower === 'tent' || typeLower === 'tents';
+  const isDormitory = typeLower === 'dormitory';
+  const isApartment = typeLower === 'apartment' || typeLower === 'flat';
+  const unitName = isTent ? 'Tent' : isDormitory ? 'Bed' : isApartment ? 'Floor' : 'Room';
+  const unitsName = isTent ? 'Tents' : isDormitory ? 'Beds' : isApartment ? 'Floors' : 'Rooms';
+  const isHotelOrResort = typeLower === 'hotel' || typeLower === 'resort' || isApartment;
 
   const hotelRoomTypes = useMemo(() => {
     const countKeys = Object.keys(roomTypeCounts || {}).filter(k => (roomTypeCounts?.[k] || 0) > 0);
     if (countKeys.length > 0) {
       if (countKeys.includes('Entire Resort')) return ['Entire Resort'];
+      if (countKeys.includes('Entire Apartment')) return ['Entire Apartment'];
       return countKeys;
     }
 
     const priceKeys = Object.keys(roomTypePrices || {}).filter(k => k && k.trim().length > 0);
     if (priceKeys.length > 0) {
       if (priceKeys.includes('Entire Resort')) return ['Entire Resort'];
+      if (priceKeys.includes('Entire Apartment')) return ['Entire Apartment'];
       return priceKeys;
     }
 
     const groupedKeys = Object.keys(groupedRooms);
     if (groupedKeys.length > 0) {
       if (groupedKeys.includes('Entire Resort')) return ['Entire Resort'];
+      if (groupedKeys.includes('Entire Apartment')) return ['Entire Apartment'];
       return groupedKeys;
     }
 
-    return ['Deluxe Room', 'Superior Room', 'Executive Suite'];
-  }, [roomTypeCounts, roomTypePrices, groupedRooms]);
+    return isApartment
+      ? ['Ground Floor', '1st Floor', '2nd Floor']
+      : ['Deluxe Room', 'Superior Room', 'Executive Suite'];
+  }, [roomTypeCounts, roomTypePrices, groupedRooms, isApartment]);
 
   const [selectedHotelRoomType, setSelectedHotelRoomType] = useState<string>('');
 
@@ -347,6 +354,21 @@ const BookingCard = ({
       bed = 'Multiple King & Queen Beds (Full Resort)';
       sqft = '5000 sq.ft';
       view = 'Full Resort Landscape';
+    } else if (t.includes('entire apartment')) {
+      guestsCount = 6;
+      bed = 'Multiple King & Queen Beds (Full Apartment)';
+      sqft = '1800 sq.ft';
+      view = 'City View';
+    } else if (t.includes('penthouse')) {
+      guestsCount = 6;
+      bed = '2 King Beds';
+      sqft = '2500 sq.ft';
+      view = 'Panoramic City View';
+    } else if (t.includes('floor')) {
+      guestsCount = 4;
+      bed = '2 Queen Beds';
+      sqft = '1200 sq.ft';
+      view = 'City View';
     } else if (t.includes('executive') || t.includes('suite') || t.includes('presidential')) {
       guestsCount = 3;
       bed = '1 King Bed';
@@ -391,10 +413,11 @@ const BookingCard = ({
   // Check if bulk booking is allowed for this property type
   const isBulkBookingAllowed = useMemo(() => {
     const type = safePropertyType.toLowerCase().trim();
-    const disallowedTypes = ['home stay', 'homestay', 'villa', 'apartment', 'flat'];
+    const disallowedTypes = ['home stay', 'homestay', 'villa'];
     if (disallowedTypes.some(disallowed => type.includes(disallowed))) return false;
-    // Entire Resort NEVER allows bulk booking
-    if (hotelRoomTypes.includes('Entire Resort') || selectedHotelRoomType === 'Entire Resort') return false;
+    // Entire Resort or Entire Apartment NEVER allows bulk booking
+    if (hotelRoomTypes.includes('Entire Resort') || selectedHotelRoomType === 'Entire Resort' ||
+        hotelRoomTypes.includes('Entire Apartment') || selectedHotelRoomType === 'Entire Apartment') return false;
     return !disallowedTypes.some(disallowed => type.includes(disallowed));
   }, [safePropertyType, hotelRoomTypes, selectedHotelRoomType]);
 
@@ -1186,7 +1209,7 @@ const BookingCard = ({
                 }`}
               >
                 <Icon name="UserGroupIcon" size={15} />
-                <span>{bookingType === 'bulk' ? 'Single Room' : 'Bulk Booking'}</span>
+                <span>{bookingType === 'bulk' ? (isApartment ? 'Single Floor' : 'Single Room') : 'Bulk Booking'}</span>
               </button>
             </div>
 
@@ -1343,9 +1366,9 @@ const BookingCard = ({
               </div>
             </div>
 
-            {/* SELECT ROOM Title */}
+            {/* SELECT ROOM / FLOOR Title */}
             <div className="text-[11px] font-extrabold tracking-wider uppercase text-sky-400 mb-3">
-              SELECT ROOM
+              {isApartment ? 'SELECT FLOOR' : 'SELECT ROOM'}
             </div>
 
             {/* Room Type Cards */}
@@ -1380,7 +1403,7 @@ const BookingCard = ({
                       </h4>
                       {roomsLeft > 0 ? (
                         <div className="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#ffd1dc] text-[#d63384] whitespace-nowrap">
-                          Only {roomsLeft} room{roomsLeft > 1 ? 's' : ''} left
+                          Only {roomsLeft} {isApartment ? (roomsLeft > 1 ? 'units' : 'unit') : (roomsLeft > 1 ? 'rooms' : 'room')} left
                         </div>
                       ) : (
                         <div className="shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-red-950/40 text-red-400 border border-red-800/40 whitespace-nowrap">
