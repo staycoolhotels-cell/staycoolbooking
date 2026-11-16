@@ -13,37 +13,97 @@ const CancellationPolicyPage = () => {
             icon: 'ShieldCheckIcon'
         },
         {
-            title: '2. Cancellation & Refund Schedule',
+            title: '2. Cancellation & Refund Schedules (Host Selected)',
             content: (
                 <div className="space-y-8">
-                    <div className="space-y-4">
-                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Cancellation Policy Overview:</p>
-                        <div className="grid sm:grid-cols-2 gap-4">
-                            <div className="bg-emerald-400/5 border border-emerald-400/20 px-6 py-5 rounded-2xl flex items-center justify-between gap-4 transition-all hover:bg-white/[0.04]">
+                    <p className="text-sm text-zinc-400 leading-relaxed">
+                        Hosts choose between two cancellation policy models when listing their property: <strong className="text-white">Standard Policy</strong> or <strong className="text-white">Tiered Policy</strong>. The specific policy applicable to each property is displayed on its listing page, during checkout, and on your booking confirmation & invoice.
+                    </p>
+
+                    {/* Policy Option 1: Standard Policy */}
+                    <div className="p-6 bg-zinc-900/60 border border-zinc-800 rounded-3xl space-y-4">
+                        <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center border border-sky-500/20">
+                                    <Icon name="ShieldCheckIcon" size={16} className="text-sky-400" />
+                                </div>
                                 <div>
-                                    <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest block mb-1">With Free Cancellation (₹70)</span>
+                                    <h4 className="text-base font-bold text-white">Policy 1: Standard Cancellation Policy</h4>
+                                    <p className="text-xs text-zinc-400">Flat refund model applied to properties with Standard Policy</p>
+                                </div>
+                            </div>
+                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                                Flat 70% Base
+                            </span>
+                        </div>
+
+                        <div className="grid sm:grid-cols-2 gap-4 pt-1">
+                            <div className="bg-emerald-400/5 border border-emerald-400/20 px-5 py-4 rounded-2xl flex items-center justify-between gap-4">
+                                <div>
+                                    <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest block mb-1">With Free Protection (₹70)</span>
                                     <span className="text-2xl font-bold text-emerald-400">100% Refund</span>
                                     <p className="text-xs text-zinc-400 mt-1">Full refund of booking amount when cancelled before check-in.</p>
                                 </div>
-                                <div className="w-10 h-10 rounded-xl bg-emerald-400/10 flex items-center justify-center border border-emerald-400/20 shadow-inner flex-shrink-0">
+                                <div className="w-10 h-10 rounded-xl bg-emerald-400/10 flex items-center justify-center border border-emerald-400/20 flex-shrink-0">
                                     <Icon name="ShieldCheckIcon" size={20} className="text-emerald-400" />
                                 </div>
                             </div>
 
-                            <div className="bg-sky-400/5 border border-sky-400/20 px-6 py-5 rounded-2xl flex items-center justify-between gap-4 transition-all hover:bg-white/[0.04]">
+                            <div className="bg-sky-400/5 border border-sky-400/20 px-5 py-4 rounded-2xl flex items-center justify-between gap-4">
                                 <div>
                                     <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Standard (Without ₹70)</span>
                                     <span className="text-2xl font-bold text-sky-400">70% Refund</span>
-                                    <p className="text-xs text-zinc-400 mt-1">70% refund of booking amount when cancelled before check-in.</p>
+                                    <p className="text-xs text-zinc-400 mt-1">70% refund of booking amount when cancelled prior to check-in (30% retained: 15% host, 15% admin).</p>
                                 </div>
-                                <div className="w-10 h-10 rounded-xl bg-sky-400/10 flex items-center justify-center border border-sky-400/20 shadow-inner flex-shrink-0">
+                                <div className="w-10 h-10 rounded-xl bg-sky-400/10 flex items-center justify-center border border-sky-400/20 flex-shrink-0">
                                     <Icon name="CheckIcon" size={20} className="text-sky-400" />
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Policy Details Section */}
+                    {/* Policy Option 2: Tiered Policy */}
+                    <div className="p-6 bg-zinc-900/60 border border-zinc-800 rounded-3xl space-y-4">
+                        <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center border border-amber-500/20">
+                                    <Icon name="ClockIcon" size={16} className="text-amber-400" />
+                                </div>
+                                <div>
+                                    <h4 className="text-base font-bold text-white">Policy 2: Tiered Cancellation Policy</h4>
+                                    <p className="text-xs text-zinc-400">Time-based refund schedule based on days before check-in</p>
+                                </div>
+                            </div>
+                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                Time-Based
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                            <div className="p-3.5 bg-black/40 border border-white/5 rounded-2xl flex flex-col justify-between">
+                                <span className="text-[10px] text-zinc-400 font-medium">10+ Days Before</span>
+                                <span className="text-xl font-bold text-emerald-400 mt-1">100%</span>
+                                <span className="text-[10px] text-zinc-500 mt-0.5">Guest Refund</span>
+                            </div>
+                            <div className="p-3.5 bg-black/40 border border-white/5 rounded-2xl flex flex-col justify-between">
+                                <span className="text-[10px] text-zinc-400 font-medium">5 – 9 Days Before</span>
+                                <span className="text-xl font-bold text-sky-400 mt-1">70%</span>
+                                <span className="text-[10px] text-zinc-500 mt-0.5">Guest Refund</span>
+                            </div>
+                            <div className="p-3.5 bg-black/40 border border-white/5 rounded-2xl flex flex-col justify-between">
+                                <span className="text-[10px] text-zinc-400 font-medium">2 – 4 Days Before</span>
+                                <span className="text-xl font-bold text-amber-400 mt-1">50%</span>
+                                <span className="text-[10px] text-zinc-500 mt-0.5">Guest Refund</span>
+                            </div>
+                            <div className="p-3.5 bg-black/40 border border-white/5 rounded-2xl flex flex-col justify-between">
+                                <span className="text-[10px] text-zinc-400 font-medium">&lt; 2 Days Before</span>
+                                <span className="text-xl font-bold text-rose-400 mt-1">30%</span>
+                                <span className="text-[10px] text-zinc-500 mt-0.5">Guest Refund</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Common Rules Breakdown */}
                     <div className="p-6 bg-sky-500/5 border border-sky-500/10 rounded-3xl relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 blur-[50px] -mr-16 -mt-16 group-hover:bg-sky-500/20 transition-colors" />
                         <div className="relative z-10">
@@ -51,21 +111,14 @@ const CancellationPolicyPage = () => {
                                 <div className="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center border border-sky-500/20">
                                     <Icon name="ShieldCheckIcon" size={16} className="text-sky-400" />
                                 </div>
-                                <span className="text-[11px] font-black text-sky-400 uppercase tracking-[0.2em]">Policy Breakdown</span>
+                                <span className="text-[11px] font-black text-sky-400 uppercase tracking-[0.2em]">Universal Rules & Protections</span>
                             </div>
                             <ul className="space-y-4">
                                 <li className="flex items-start gap-3">
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 flex-shrink-0" />
                                     <p className="text-sm text-zinc-400 leading-relaxed">
                                         <strong className="text-zinc-100 block mb-0.5">Free Cancellation Protection (₹70)</strong>
-                                        Guests who select the ₹70 Free Cancellation option receive a 100% full refund of the base booking price if cancelled before check-in. The ₹70 protection fee is non-refundable.
-                                    </p>
-                                </li>
-                                <li className="flex items-start gap-3">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-2 flex-shrink-0" />
-                                    <p className="text-sm text-zinc-400 leading-relaxed">
-                                        <strong className="text-zinc-100 block mb-0.5">Standard Cancellation (70% Refund)</strong>
-                                        If the ₹70 protection is not selected, guests receive a 70% refund of the booking price upon cancellation prior to check-in (standard 30% cancellation fee applies).
+                                        Available at booking checkout. If selected, guests receive a 100% full refund of the base booking price if cancelled anytime before check-in. The ₹70 protection fee is non-refundable.
                                     </p>
                                 </li>
                                 <li className="flex items-start gap-3">

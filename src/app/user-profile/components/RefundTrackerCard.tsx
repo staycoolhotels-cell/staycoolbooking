@@ -31,13 +31,16 @@ export const RefundTrackerCard: React.FC<RefundTrackerCardProps> = ({
     if (booking.refund_amount) {
       computedRefundAmount = Number(booking.refund_amount);
     } else {
+      const propPolicy = (booking as any).cancellation_policy || (booking.properties as any)?.cancellation_policy || 'Standard';
       const dist = calculateRefundDistribution(
         Number(booking.total_price || 0),
         booking.check_in,
         cancelDateObj,
         booking.created_at,
         booking.has_free_cancellation,
-        booking.free_cancellation_fee || 0
+        booking.free_cancellation_fee || 0,
+        undefined,
+        propPolicy
       );
       computedRefundAmount = dist.guestRefundAmount;
       appliedPolicy = dist.appliedPolicy;

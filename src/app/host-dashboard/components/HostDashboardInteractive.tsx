@@ -940,7 +940,7 @@ const HostDashboardInteractive = ({
       }];
       const finalRules = formData.rules.length > 0 ? formData.rules : ['N/A'];
       const finalSafetyItems = formData.safetyItems.length > 0 ? formData.safetyItems : ['N/A'];
-      const finalCancellationPolicy = formData.cancellationPolicy || 'N/A';
+      const finalCancellationPolicy = (formData.cancellationPolicy && formData.cancellationPolicy !== 'N/A') ? formData.cancellationPolicy : 'Standard';
 
       // Calculate minimum room type price if room types are present and prune unselected room types
       let finalPrice = parseFloat(String(formData.price)) || 0;

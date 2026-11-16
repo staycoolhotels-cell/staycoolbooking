@@ -139,7 +139,7 @@ const AddPropertyModal = ({
     pan_url: '',
     noc: [],
     noc_url: '',
-    cancellationPolicy: 'Tiered',
+    cancellationPolicy: 'Standard',
     rules: [],
     safetyItems: [],
     bedrooms: 1,
@@ -383,7 +383,7 @@ const AddPropertyModal = ({
         pan_url: propertyToEdit.pan_url || '',
         noc: [],
         noc_url: propertyToEdit.noc_url || '',
-        cancellationPolicy: propertyToEdit.cancellation_policy || 'Tiered',
+        cancellationPolicy: propertyToEdit.cancellation_policy ? (propertyToEdit.cancellation_policy.toLowerCase().includes('tier') ? 'Tiered' : 'Standard') : 'Standard',
         rules: propertyToEdit.rules || [],
         safetyItems: propertyToEdit.safety_items || [],
         bedrooms: ['Tent', 'Dormitory', 'Hotel', 'Resort'].includes(propertyToEdit.tier || '') ? 0 : (propertyToEdit.bedrooms || 1),
@@ -453,7 +453,7 @@ const AddPropertyModal = ({
         pan_url: '',
         noc: [],
         noc_url: '',
-        cancellationPolicy: 'Tiered',
+        cancellationPolicy: 'Standard',
         rules: [],
         safetyItems: [],
         bedrooms: 1,
@@ -2260,21 +2260,105 @@ const AddPropertyModal = ({
             {currentStep === 2 && (
               <div className="space-y-6 md:space-y-8 animate-fade-in">
                 <div>
-                  <h3 className="text-lg md:text-xl font-semibold text-white mb-3 md:mb-4">Cancellation Policy</h3>
-                  <div className="grid grid-cols-2 gap-2.5 md:gap-4">
-                    {['Tiered'].map((policy) => (
-                      <div
-                        key={policy}
-                        onClick={() => setFormData(prev => ({ ...prev, cancellationPolicy: policy }))}
-                        className={`p-2.5 md:p-4 border rounded-lg cursor-pointer transition-all ${formData.cancellationPolicy === policy
-                          ? 'bg-primary border-primary text-white shadow-[0_0_15px_rgba(14,165,233,0.3)]'
-                          : 'bg-zinc-800 border-zinc-700 hover:border-primary/50'
-                          }`}
-                      >
-                        <p className="font-semibold text-sm md:text-base text-center">{policy}</p>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg md:text-xl font-semibold text-white">Cancellation Policy</h3>
+                    <span className="text-xs text-sky-400 font-medium">Select one policy for this listing</span>
                   </div>
+                  <p className="text-xs text-zinc-400 mb-4">
+                    Choose how cancellation refunds are processed for guests booking your property:
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Standard Policy Card */}
+                    <div
+                      onClick={() => setFormData(prev => ({ ...prev, cancellationPolicy: 'Standard' }))}
+                      className={`p-4 md:p-5 border rounded-2xl cursor-pointer transition-all flex flex-col justify-between ${
+                        formData.cancellationPolicy !== 'Tiered'
+                          ? 'bg-sky-500/10 border-sky-500 text-white shadow-[0_0_20px_rgba(14,165,233,0.25)] ring-1 ring-sky-500/50'
+                          : 'bg-zinc-900/60 border-zinc-800 hover:border-zinc-700 text-zinc-300'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-base text-white flex items-center gap-2">
+                            <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${formData.cancellationPolicy !== 'Tiered' ? 'border-sky-400' : 'border-zinc-600'}`}>
+                              {formData.cancellationPolicy !== 'Tiered' && <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />}
+                            </span>
+                            Standard Policy
+                          </span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            Flat 70% Refund
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-400 mb-3 leading-relaxed">
+                          Simple flat refund model for guests cancelling prior to check-in.
+                        </p>
+                        <div className="space-y-1.5 text-[11px] text-zinc-400 bg-black/30 p-3 rounded-xl border border-white/5">
+                          <div className="flex justify-between items-center text-zinc-300">
+                            <span>Before Check-in:</span>
+                            <span className="font-bold text-sky-400">70% Guest Refund</span>
+                          </div>
+                          <div className="flex justify-between items-center text-zinc-400">
+                            <span>Retained Penalty:</span>
+                            <span>30% (Split 50/50 Host & Admin)</span>
+                          </div>
+                          <div className="flex justify-between items-center text-zinc-400">
+                            <span>With Free Protection (₹70):</span>
+                            <span className="text-emerald-400 font-medium">100% Refund</span>
+                          </div>
+                          <div className="flex justify-between items-center text-zinc-500 text-[10px]">
+                            <span>No-Show / After Check-in:</span>
+                            <span className="text-rose-400 font-medium">0% Refund</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tiered Policy Card */}
+                    <div
+                      onClick={() => setFormData(prev => ({ ...prev, cancellationPolicy: 'Tiered' }))}
+                      className={`p-4 md:p-5 border rounded-2xl cursor-pointer transition-all flex flex-col justify-between ${
+                        formData.cancellationPolicy === 'Tiered'
+                          ? 'bg-sky-500/10 border-sky-500 text-white shadow-[0_0_20px_rgba(14,165,233,0.25)] ring-1 ring-sky-500/50'
+                          : 'bg-zinc-900/60 border-zinc-800 hover:border-zinc-700 text-zinc-300'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-base text-white flex items-center gap-2">
+                            <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${formData.cancellationPolicy === 'Tiered' ? 'border-sky-400' : 'border-zinc-600'}`}>
+                              {formData.cancellationPolicy === 'Tiered' && <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />}
+                            </span>
+                            Tiered Policy
+                          </span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                            Time-Based
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-400 mb-3 leading-relaxed">
+                          Tiered refund schedule based on how many days before check-in the guest cancels.
+                        </p>
+                        <div className="space-y-1.5 text-[11px] text-zinc-400 bg-black/30 p-3 rounded-xl border border-white/5">
+                          <div className="flex justify-between items-center text-zinc-300">
+                            <span>10+ Days Before Check-in:</span>
+                            <span className="font-bold text-emerald-400">100% Refund</span>
+                          </div>
+                          <div className="flex justify-between items-center text-zinc-300">
+                            <span>5 – 9 Days Before Check-in:</span>
+                            <span className="font-bold text-sky-400">70% Refund</span>
+                          </div>
+                          <div className="flex justify-between items-center text-zinc-300">
+                            <span>2 – 4 Days Before Check-in:</span>
+                            <span className="font-bold text-amber-400">50% Refund</span>
+                          </div>
+                          <div className="flex justify-between items-center text-zinc-300">
+                            <span>&lt; 2 Days Before Check-in:</span>
+                            <span className="font-bold text-rose-400">30% Refund</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
 
                 <div>

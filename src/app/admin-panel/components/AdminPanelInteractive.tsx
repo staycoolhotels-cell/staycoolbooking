@@ -503,11 +503,13 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
             let refundPercentage = undefined;
 
             if (isRefund && booking.cancelled_at && booking.check_in) {
+              const propPolicy = booking.cancellation_policy || booking.property?.cancellation_policy || 'Standard';
               const policyResult = getRefundPercentage(
                 booking.check_in,
                 booking.cancelled_at,
                 booking.created_at,
-                booking.has_free_cancellation
+                booking.has_free_cancellation,
+                propPolicy
               );
               cancellationLead = policyResult.daysBefore;
               appliedPolicy = policyResult.policy;

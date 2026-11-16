@@ -70,13 +70,17 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
     })();
 
     const cancelDateObj = booking.cancelled_at ? new Date(booking.cancelled_at) : new Date(booking.created_at || Date.now());
+    const resolvedPolicy = (booking as any).cancellation_policy || booking.properties?.cancellation_policy || 'Standard';
+    const isTieredPolicy = resolvedPolicy.toLowerCase().includes('tier');
     const computedRefund = calculateRefundDistribution(
         Number(booking.total_price || 0),
         booking.check_in,
         cancelDateObj,
         booking.created_at,
         booking.has_free_cancellation,
-        booking.free_cancellation_fee || 0
+        booking.free_cancellation_fee || 0,
+        undefined,
+        resolvedPolicy
     );
     const refundTransaction = transactions.find(t => t.id === booking.id && t.type === 'refund');
     const refundAmount = (booking as any).refund_amount || refundTransaction?.amount || computedRefund.guestRefundAmount || 0;
@@ -336,6 +340,29 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                             </div>
                         </div>
 
+                        {/* Cancellation Policy Strip */}
+                        <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl mb-4">
+                            <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                                    <Icon name="CalendarDaysIcon" size={12} className="text-sky-400" />
+                                    Cancellation Policy
+                                </span>
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+                                    isTieredPolicy
+                                        ? 'bg-sky-500/20 text-sky-300 border-sky-500/30'
+                                        : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                                }`}>
+                                    {isTieredPolicy ? 'Tiered Policy' : 'Standard Policy'}
+                                </span>
+                            </div>
+                            <p className="text-[11px] text-zinc-400">
+                                {isTieredPolicy
+                                    ? 'Tiered Refund: 100% (10+ d), 70% (5-9 d), 50% (2-4 d), 30% (<2 d).'
+                                    : 'Standard Refund: 70% refund of booking price before check-in.'}
+                                {booking.has_free_cancellation && ' Free Cancellation Active (100% refund).'}
+                            </p>
+                        </div>
+
                         {/* Invoice Section */}
                         {isPaymentPending ? (
                             <div className="bg-zinc-900/50 p-4 rounded-xl border border-amber-500/20 flex items-center justify-between">
@@ -403,6 +430,7 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                                 checkOut: format(new Date(booking.check_out), 'dd MMM yyyy'),
                                                 nights: nights,
                                                 appliedPolicy: computedRefund.appliedPolicy,
+                                                cancellation_policy: resolvedPolicy,
                                                 daysBeforeCheckIn: computedRefund.daysBeforeCheckIn,
                                                 refundPercentage: computedRefund.guestRefundPercent,
                                                 cancellationDate: booking.cancelled_at ? format(new Date(booking.cancelled_at), 'dd MMM yyyy') : undefined,

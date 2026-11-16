@@ -61,7 +61,7 @@ export async function addProperty(prevState: unknown, formData: FormData) {
   const bedrooms = parseInt(formData.get('bedrooms') as string) || 0;
   const bathrooms = parseFloat(formData.get('bathrooms') as string) || 0;
   const max_guests = parseInt(formData.get('max_guests') as string) || parseInt(formData.get('capacity') as string) || 0;
-  const cancellation_policy = (formData.get('cancellation_policy') || formData.get('cancellationPolicy')) as string || 'Flexible';
+  const cancellation_policy = (formData.get('cancellation_policy') || formData.get('cancellationPolicy')) as string || 'Standard';
   const amenities = JSON.parse(formData.get('amenities') as string || '[]'); // Assuming amenities come as a JSON string
   const rules = JSON.parse(formData.get('rules') as string || '[]'); // Assuming rules come as a JSON string
 

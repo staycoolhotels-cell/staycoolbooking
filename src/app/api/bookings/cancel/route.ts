@@ -28,7 +28,7 @@ export async function POST(req: Request) {
                 has_free_cancellation,
                 free_cancellation_fee,
                 property:properties!property_id (
-                    id, title, host_id
+                    id, title, host_id, cancellation_policy
                 ),
                 payment_transfer:payment_transfers!booking_id (*)
             `)
@@ -56,6 +56,8 @@ export async function POST(req: Request) {
         const commissionRate = 10;
 
 
+        const propertyPolicy = (booking as any).cancellation_policy || (booking.property as any)?.cancellation_policy || 'Standard';
+
         const { 
             guestRefundAmount, 
             hostShare: newHostAmount, 
@@ -68,7 +70,9 @@ export async function POST(req: Request) {
             now,
             booking.created_at,
             booking.has_free_cancellation,
-            Number(booking.free_cancellation_fee || 0)
+            Number(booking.free_cancellation_fee || 0),
+            undefined,
+            propertyPolicy
         );
 
         // 3. Initiate Razorpay Refunds / Reversals

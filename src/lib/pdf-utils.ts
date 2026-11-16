@@ -32,7 +32,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
   // 1. Dark Header & Accent Bar
   doc.setFillColor(31, 33, 40); // Charcoal Black
   doc.rect(0, 0, 210, 50, 'F');
-  
+
   // Accent Bar (Sky Blue normally, Amber if pending, Rose if refund)
   if (isRefund) {
     doc.setFillColor(225, 29, 72);
@@ -50,7 +50,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
       if (typeof window === 'undefined') return reject(new Error('Window not available'));
       const img = new Image();
       let timer: any = null;
-      img.crossOrigin = 'anonymous'; 
+      img.crossOrigin = 'anonymous';
       img.onload = () => {
         if (timer) clearTimeout(timer);
         resolve(img);
@@ -67,11 +67,11 @@ export const generateInvoicePDF = async (t: Transaction) => {
 
     const logo = await loadImage('/assets/images/logo.png');
     const secondaryLogo = await loadImage('/assets/Picsart_26-03-22_23-32-24-684.png');
-    
+
     // Calculate aspect ratios to prevent squashing
     const logoRatio = (logo.naturalWidth || logo.width || 1) / (logo.naturalHeight || logo.height || 1);
     const secRatio = (secondaryLogo.naturalWidth || secondaryLogo.width || 1) / (secondaryLogo.naturalHeight || secondaryLogo.height || 1);
-    
+
     const targetH = 10; // Reset height
     const logoW = targetH * logoRatio;
     const secW = targetH * secRatio;
@@ -95,16 +95,16 @@ export const generateInvoicePDF = async (t: Transaction) => {
     doc.setTextColor(14, 165, 233);
   }
 
-  const title = isRefund 
-    ? (isHostView ? 'HOST CANCELLATION' : 'REFUND INVOICE') 
-    : isPendingPayment 
-      ? 'PROFORMA INVOICE' 
+  const title = isRefund
+    ? (isHostView ? 'HOST CANCELLATION' : 'REFUND INVOICE')
+    : isPendingPayment
+      ? 'PROFORMA INVOICE'
       : (isHostView ? 'HOST PAYOUT STATEMENT' : 'TAX INVOICE');
 
-  const subTitle = isRefund 
-    ? (isHostView ? 'HOST CANCELLATION COMPENSATION' : 'CREDIT NOTE & CANCELLATION SETTLEMENT') 
-    : isPendingPayment 
-      ? 'AWAITING PAYMENT - NOT A TAX RECEIPT' 
+  const subTitle = isRefund
+    ? (isHostView ? 'HOST CANCELLATION COMPENSATION' : 'CREDIT NOTE & CANCELLATION SETTLEMENT')
+    : isPendingPayment
+      ? 'AWAITING PAYMENT - NOT A TAX RECEIPT'
       : (isHostView ? 'OFFICIAL HOST EARNINGS & REMITTANCE' : 'OFFICIAL ACCOMMODATION RECEIPT');
 
   // Prevent title from overlapping with the logo on the left (ensuring a clean >= 10mm gap)
@@ -150,8 +150,8 @@ export const generateInvoicePDF = async (t: Transaction) => {
   // Host earnings & commission values (zero guest service fee; commission deducted from host only)
   const hostGrossEarnings = Math.max(0, breakdown.accommodation + breakdown.upgrades - breakdown.discount);
   const hostCommission = Math.round(hostGrossEarnings * 0.10);
-  const hostPayout = t.hostPayoutAmount !== undefined 
-    ? safeNum(t.hostPayoutAmount) 
+  const hostPayout = t.hostPayoutAmount !== undefined
+    ? safeNum(t.hostPayoutAmount)
     : Math.max(0, hostGrossEarnings - hostCommission);
 
   const netRefundablePool = t.netRefundablePool !== undefined ? safeNum(t.netRefundablePool) : (breakdown.accommodation || originalTotal);
@@ -164,20 +164,20 @@ export const generateInvoicePDF = async (t: Transaction) => {
   const finalRefundAmount = t.refundAmount !== undefined ? safeNum(t.refundAmount) : Math.max(0, originalTotal - totalRetained);
 
   // Exact 3-Way Distribution values
-  const guestRefund = t.guestRefundAmount !== undefined 
-    ? safeNum(t.guestRefundAmount) 
+  const guestRefund = t.guestRefundAmount !== undefined
+    ? safeNum(t.guestRefundAmount)
     : (t.refundAmount !== undefined ? safeNum(t.refundAmount) : finalRefundAmount);
 
-  const hostShare = t.hostShare !== undefined 
-    ? safeNum(t.hostShare) 
+  const hostShare = t.hostShare !== undefined
+    ? safeNum(t.hostShare)
     : Math.round(retainedPenalty / 2);
 
-  const adminShare = t.adminShare !== undefined 
-    ? safeNum(t.adminShare) 
+  const adminShare = t.adminShare !== undefined
+    ? safeNum(t.adminShare)
     : Math.max(0, originalTotal - guestRefund - hostShare);
 
-  const adminRevenue = t.adminCommissionAmount !== undefined 
-    ? safeNum(t.adminCommissionAmount) 
+  const adminRevenue = t.adminCommissionAmount !== undefined
+    ? safeNum(t.adminCommissionAmount)
     : Math.max(0, originalTotal - hostPayout);
 
   const rawGuestName = t.guestName || (t as any)?.guest?.name || (t as any)?.guest_name || (t as any)?.fullName || (t as any)?.name;
@@ -224,6 +224,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
   if (t.checkIn && t.checkOut) rightY += 4.5;
   if (t.nights) rightY += 4.5;
   if (t.paymentMethod) rightY += 4.5;
+  rightY += 4.5; // Cancellation Policy
   rightY += 4.5; // Status
   if (isRefund) {
     if (t.cancellationDate) rightY += 4.5;
@@ -345,6 +346,8 @@ export const generateInvoicePDF = async (t: Transaction) => {
   if (t.bookingDate) renderRefLine('Booking Date:', `${t.bookingDate}`);
   if (t.checkIn && t.checkOut) renderRefLine('Stay Period:', `${t.checkIn} - ${t.checkOut}`);
   if (t.nights) renderRefLine('Total Duration:', `${nights} ${nights === 1 ? 'Night' : 'Nights'}`);
+  const isTieredPolicy = (t.cancellation_policy || '').toLowerCase().includes('tier');
+  renderRefLine('Cancellation Policy:', isTieredPolicy ? 'Tiered Policy' : 'Standard Policy', true, [14, 165, 233]);
   renderRefLine('Status:', isRefund ? 'REFUNDED' : 'CONFIRMED / PAID', true, isRefund ? [225, 29, 72] : [16, 185, 129]);
 
   if (isRefund) {
@@ -390,15 +393,15 @@ export const generateInvoicePDF = async (t: Transaction) => {
       margin: { left: 16, right: 16 },
       head: [['Room Type', 'Units', 'Unit Rate', 'Total']],
       body: roomTableBody,
-      headStyles: { 
-        fillColor: [241, 245, 249], 
+      headStyles: {
+        fillColor: [241, 245, 249],
         textColor: [14, 165, 233],
         fontStyle: 'bold',
         fontSize: 8,
         cellPadding: { top: 3, bottom: 3, left: 4, right: 4 }
       },
-      styles: { 
-        fontSize: 8.5, 
+      styles: {
+        fontSize: 8.5,
         textColor: [51, 65, 85],
         cellPadding: 3.5,
         valign: 'middle'
@@ -495,8 +498,8 @@ export const generateInvoicePDF = async (t: Transaction) => {
     margin: { left: 16, right: 16 },
     head: [[isHostView ? 'Earnings Component' : 'Item Description', 'Base Price', 'Nights / Qty', 'Line Total']],
     body: tableBody,
-    headStyles: { 
-      fillColor: [241, 245, 249], 
+    headStyles: {
+      fillColor: [241, 245, 249],
       textColor: [14, 165, 233],
       fontStyle: 'bold',
       fontSize: 8.5,
@@ -562,7 +565,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
       margin: { left: 16, right: 16 },
       head: [['Settlement Component', 'Policy Reference / Terms', 'Settlement Amount']],
       body: settlementRows,
-      headStyles: { 
+      headStyles: {
         fillColor: [255, 241, 242], // rose-50
         textColor: [225, 29, 72], // rose-600
         fontStyle: 'bold',
@@ -589,7 +592,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
         if (data.section === 'body') {
           doc.setDrawColor(254, 226, 226);
           doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
-          
+
           // Accent on first column
           if (data.column.index === 0) {
             const isLastRow = data.row.index === settlementRows.length - 1;
@@ -636,7 +639,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
         margin: { left: 16, right: 16 },
         head: [['Participant / Beneficiary', 'Settlement Nature & Accounting Notes', 'Category / Share', 'Distributed Amount']],
         body: threeWayRefundRows,
-        headStyles: { 
+        headStyles: {
           fillColor: [255, 241, 242],
           textColor: [225, 29, 72],
           fontStyle: 'bold',
@@ -664,7 +667,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
           if (data.section === 'body') {
             doc.setDrawColor(254, 226, 226);
             doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
-            
+
             if (data.column.index === 0) {
               const isGuest = data.row.index === 0;
               const isHost = data.row.index === 1;
@@ -708,7 +711,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
         margin: { left: 16, right: 16 },
         head: [['Settlement Component', 'Settlement Nature & Accounting Notes', 'Category / Share', 'Amount']],
         body: hostPaidRows,
-        headStyles: { 
+        headStyles: {
           fillColor: [240, 249, 255], // sky-50
           textColor: [14, 165, 233], // sky-600
           fontStyle: 'bold',
@@ -736,7 +739,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
           if (data.section === 'body') {
             doc.setDrawColor(224, 242, 254);
             doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
-            
+
             if (data.column.index === 0) {
               const isGross = data.row.index === 0;
               const isComm = data.row.index === 1;
@@ -776,7 +779,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
         margin: { left: 16, right: 16 },
         head: [['Participant / Account', 'Settlement Description & Accounting Notes', 'Distribution Type', 'Settlement Amount']],
         body: threeWayPaidRows,
-        headStyles: { 
+        headStyles: {
           fillColor: [240, 249, 255], // sky-50
           textColor: [14, 165, 233], // sky-600
           fontStyle: 'bold',
@@ -804,7 +807,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
           if (data.section === 'body') {
             doc.setDrawColor(224, 242, 254);
             doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
-            
+
             if (data.column.index === 0) {
               const isGuest = data.row.index === 0;
               const isHost = data.row.index === 1;
@@ -1083,7 +1086,9 @@ export const generateInvoicePDF = async (t: Transaction) => {
 
   const defaultTerms = [
     "1. The guest is responsible for maintaining property conditions throughout the stay duration.",
-    "2. 100% full refund with Free Cancellation (₹70) or 70% refund standard if cancelled before check-in.",
+    isTieredPolicy
+      ? "2. Cancellation Policy (Tiered): >=10 days: 100% refund, 5-9 days: 70%, 2-4 days: 50%, <2 days: 30% refund. 100% refund with Free Cancellation (Rs.70)."
+      : "2. Cancellation Policy (Standard): 70% refund before check-in. 100% full refund with Free Cancellation (Rs.70).",
     "3. StayCool platform service fees are 100% retained by Admin and non-refundable upon cancellation.",
     "4. StayCool No-Show Rule: If guest fails to arrive on scheduled check-in date & time, it is treated as a No-Show with no refund, unless applicable policy applies.",
     "5. StayCool provides facilitation and is not a direct party to the accommodation contract."
@@ -1092,7 +1097,9 @@ export const generateInvoicePDF = async (t: Transaction) => {
   const hostTerms = [
     "1. Host payout is remitted directly to registered host bank account via Razorpay Route upon guest check-in.",
     "2. StayCool 10% platform commission is automatically deducted from gross accommodation revenue.",
-    "3. Cancellations are settled per policy rules with 50% retained penalty distributed to the host.",
+    isTieredPolicy
+      ? "3. Cancellation Settlement (Tiered): Penalties retained per schedule (>=10d: 0%, 5-9d: 30%, 2-4d: 50%, <2d: 70%) split 50/50 with host."
+      : "3. Cancellation Settlement (Standard): 30% retained penalty split 50/50 with host (Host receives 15% of base accommodation).",
     "4. Host is responsible for ensuring property availability and amenities match the booking listing.",
     "5. For payout inquiries or account support, contact support@staycool.com."
   ];
@@ -1115,7 +1122,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
     try {
       const loadImage = (url: string) => new Promise<HTMLImageElement>((resolve, reject) => {
         const img = new Image();
-        img.crossOrigin = 'anonymous'; 
+        img.crossOrigin = 'anonymous';
         img.onload = () => resolve(img);
         img.onerror = (err) => reject(err);
         img.src = url;
@@ -1146,7 +1153,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
     try {
       const loadImage = (url: string) => new Promise<HTMLImageElement>((resolve, reject) => {
         const img = new Image();
-        img.crossOrigin = 'anonymous'; 
+        img.crossOrigin = 'anonymous';
         img.onload = () => resolve(img);
         img.onerror = (err) => reject(err);
         img.src = url;
@@ -1228,9 +1235,9 @@ export const exportTransactionsToPDF = async (transactions: Transaction[]) => {
   // 1. Dark Header & Accent Bar
   doc.setFillColor(31, 33, 40);
   doc.rect(0, 0, 210, 50, 'F');
-  
+
   // Pink Accent Bar
-  doc.setFillColor(255, 77, 109); 
+  doc.setFillColor(255, 77, 109);
   doc.rect(0, 50, 210, 4, 'F');
 
   // Overlay Title
@@ -1263,9 +1270,9 @@ export const exportTransactionsToPDF = async (transactions: Transaction[]) => {
     startY: 65,
     head: [['SL.', 'Property', 'Date', 'Guest', 'Amount', 'Status']],
     body: tableData,
-    headStyles: { 
-      fillColor: [240, 242, 245], 
-      textColor: [31, 33, 40], 
+    headStyles: {
+      fillColor: [240, 242, 245],
+      textColor: [31, 33, 40],
       fontStyle: 'bold',
       fontSize: 9
     },

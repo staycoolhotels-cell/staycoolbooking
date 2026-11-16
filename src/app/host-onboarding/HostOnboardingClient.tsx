@@ -42,7 +42,7 @@ export default function HostOnboardingClient({
           noc_url: formData.noc_url,
           image_url: formData.photo_urls[0] || '',
           images: formData.photo_urls.map((url, index) => ({ url, alt: `${formData.name} Photo ${index + 1}` })),
-          cancellation_policy: formData.cancellationPolicy,
+          cancellation_policy: formData.cancellationPolicy || 'Standard',
           rules: formData.rules,
           safety_items: formData.safetyItems,
           bedrooms: Number(formData.bedrooms) || 0,

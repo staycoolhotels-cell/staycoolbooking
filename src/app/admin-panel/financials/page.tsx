@@ -60,6 +60,7 @@ const FinancialsPage = async () => {
           room_type_prices,
           bulk_booking_discount,
           host_id,
+          cancellation_policy,
           host:users!host_id ( name, email, phone )
         ),
         booking_rooms(rooms(room_type))
@@ -132,13 +133,16 @@ const FinancialsPage = async () => {
     let netRefundablePool = undefined;
 
     if (isRefund) {
+      const propPolicy = b.cancellation_policy || b.property?.cancellation_policy || 'Standard';
       const dist = calculateRefundDistribution(
         amount,
         b.check_in || b.created_at,
         b.cancelled_at || new Date().toISOString(),
         b.created_at,
         b.has_free_cancellation,
-        Number(b.free_cancellation_fee || 0)
+        Number(b.free_cancellation_fee || 0),
+        serviceFee,
+        propPolicy
       );
       cancellationLead = dist.daysBeforeCheckIn;
       appliedPolicy = dist.appliedPolicy;
@@ -222,7 +226,8 @@ const FinancialsPage = async () => {
       taxes: 0,
       discount: b.booking_type === 'bulk' ? discountSavings : 0,
       upgrades: amenitiesTotal,
-      cancellation_fee: freeCancellationFee
+      cancellation_fee: freeCancellationFee,
+      cancellation_policy: b.cancellation_policy || b.property?.cancellation_policy || 'Standard'
     };
 
     return {

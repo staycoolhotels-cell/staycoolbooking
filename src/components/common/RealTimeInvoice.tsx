@@ -37,6 +37,7 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
     ? transaction.retainedServiceFee 
     : (breakdown.service_fee || Math.round(originalTotal * 0.1 / 1.1));
   const protectionFee = breakdown.cancellation_fee || 0;
+  const isTieredPolicy = (transaction.cancellation_policy || '').toLowerCase().includes('tier');
   const totalRetained = retainedPenalty + retainedServiceFee + protectionFee;
   const finalRefundAmount = transaction.refundAmount !== undefined 
     ? transaction.refundAmount 
@@ -204,7 +205,7 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
         </div>
 
         {/* Bottom: Booking & Stay Metadata Strip */}
-        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3.5 sm:p-4 grid grid-cols-2 sm:grid-cols-4 gap-3.5 text-xs">
+        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3.5 sm:p-4 grid grid-cols-2 sm:grid-cols-5 gap-3.5 text-xs">
           <div>
             <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Invoice#</p>
             <p className="text-white font-bold font-mono text-sm">{invoiceId}</p>
@@ -228,6 +229,16 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
             ) : (
               <p className="text-zinc-400 font-medium">Standard Stay</p>
             )}
+          </div>
+          <div>
+            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Cancellation Policy</p>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+              isTieredPolicy
+                ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20'
+                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+            }`}>
+              {isTieredPolicy ? 'Tiered' : 'Standard'}
+            </span>
           </div>
           <div>
             <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Room / Status</p>
@@ -427,7 +438,11 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em]">Terms & Conditions</p>
             <div className="space-y-1.5 text-[9px] leading-relaxed text-zinc-500">
               <p>• The guest is fully responsible for maintaining the property in good condition throughout the duration of their stay.</p>
-              <p>• 100% full refund with Free Cancellation (₹70) or 70% refund standard if cancelled before check-in.</p>
+              {isTieredPolicy ? (
+                <p>• <strong>Tiered Cancellation Policy:</strong> Cancel 10+ days before check-in for 100% refund, 5-9 days for 70% refund, 2-4 days for 50% refund, and less than 2 days for 30% refund. 100% full refund with Free Cancellation (₹70).</p>
+              ) : (
+                <p>• <strong>Standard Cancellation Policy:</strong> 70% refund of booking price if cancelled before check-in. 100% full refund with Free Cancellation (₹70).</p>
+              )}
               <p>• StayCool platform service fees are 100% retained by Admin and non-refundable upon cancellation.</p>
               <p>• <strong>StayCool No-Show Rule:</strong> If the guest fails to arrive at the property on the scheduled check-in date and check-in time, it will be considered a No-Show. No refund will be provided for No-Show bookings, unless StayCool&apos;s applicable refund policy applies.</p>
               <p>• Availability of luxury services and amenities is subject to change without prior notice.</p>

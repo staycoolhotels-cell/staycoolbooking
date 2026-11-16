@@ -64,13 +64,16 @@ const computePricing = (booking?: Booking) => {
   let cancelDateObj = new Date();
   if (isCancelled) {
     cancelDateObj = booking.cancelled_at ? new Date(booking.cancelled_at) : new Date(booking.created_at || Date.now());
+    const propPolicy = (booking as any).cancellation_policy || (booking.properties as any)?.cancellation_policy || 'Standard';
     refundInfo = calculateRefundDistribution(
       totalAmount,
       booking.check_in,
       cancelDateObj,
       booking.created_at,
       booking.has_free_cancellation,
-      freeCancellationFee
+      freeCancellationFee,
+      undefined,
+      propPolicy
     );
   }
 
@@ -135,7 +138,7 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
     setError(null);
     try {
       const result = await getGuestProfileForHost(userId);
-      
+
       if (result.success && result.data) {
         setGuest(result.data.guest);
         setPersonalInfo(result.data.personalInfo);
@@ -182,27 +185,25 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
           <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-indigo-500/20 via-emerald-500/10 to-transparent pointer-events-none" />
 
           <div className="relative z-10 p-4 sm:p-8 overflow-y-auto flex-1 max-h-[75vh] space-y-6 scrollbar-thin">
-            
+
             {/* Top Tab Bar Navigation */}
             <div className="flex items-center gap-1 bg-white/5 border border-white/10 p-1 rounded-xl">
               <button
                 onClick={() => setActiveTab('price_details')}
-                className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                  activeTab === 'price_details'
+                className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'price_details'
                     ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 shadow-md'
                     : 'text-zinc-400 hover:text-white'
-                }`}
+                  }`}
               >
                 <Icon name="BanknotesIcon" size={14} />
                 <span>Price Details</span>
               </button>
               <button
                 onClick={() => setActiveTab('guest_profile')}
-                className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                  activeTab === 'guest_profile'
+                className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'guest_profile'
                     ? 'bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 shadow-md'
                     : 'text-zinc-400 hover:text-white'
-                }`}
+                  }`}
               >
                 <Icon name="UserIcon" size={14} />
                 <span>Guest Profile</span>
@@ -236,9 +237,8 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-xs sm:text-sm font-semibold text-zinc-300">
                               Admin to Host Payout :{' '}
-                              <span className={`font-bold font-mono text-sm sm:text-base ${
-                                (pricing.refundInfo?.hostShare || 0) > 0 ? 'text-amber-400' : 'text-zinc-400'
-                              }`}>
+                              <span className={`font-bold font-mono text-sm sm:text-base ${(pricing.refundInfo?.hostShare || 0) > 0 ? 'text-amber-400' : 'text-zinc-400'
+                                }`}>
                                 ₹{(pricing.refundInfo?.hostShare || 0).toLocaleString('en-IN')}
                               </span>
                             </span>
@@ -507,9 +507,8 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
                         <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[9px] sm:text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
                           {guest?.role || 'Guest'}
                         </span>
-                        <span className={`px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-widest border ${
-                          guest?.status === 'active' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
-                        }`}>
+                        <span className={`px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-widest border ${guest?.status === 'active' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
+                          }`}>
                           {guest?.status || 'Pending'}
                         </span>
                       </div>
@@ -536,8 +535,8 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
                     <div className="p-3 sm:p-4 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl">
                       <p className="text-[9px] sm:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Languages</p>
                       <p className="text-xs sm:text-sm font-semibold text-zinc-200 truncate">
-                        {personalInfo?.languages && personalInfo.languages.length > 0 
-                          ? personalInfo.languages.join(', ') 
+                        {personalInfo?.languages && personalInfo.languages.length > 0
+                          ? personalInfo.languages.join(', ')
                           : 'English'}
                       </p>
                     </div>

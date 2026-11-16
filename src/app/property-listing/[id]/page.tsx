@@ -340,7 +340,7 @@ export default async function PropertyListingPage({ params }: { params: Promise<
         },
         cancellationPolicy: {
             title: 'Cancellation policy',
-            description: property.cancellation_policy || 'Free cancellation for 48 hours.',
+            description: property.cancellation_policy || 'Standard',
             linkText: 'Read more'
         },
         checkInTime: property.check_in_time || '12:00 PM',

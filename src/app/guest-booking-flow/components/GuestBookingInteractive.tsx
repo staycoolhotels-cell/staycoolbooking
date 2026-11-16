@@ -228,6 +228,10 @@ const GuestBookingInteractive = () => {
                         ? `${bookingCart[0]?.address_line1 || ''} ${bookingCart[0]?.address_line2 || ''}, ${bookingCart[0]?.city || ''}, ${bookingCart[0]?.state || ''}`.trim()
                         : bookingCart[0]?.location
                       }
+                      cancellationPolicy={bookingCart[0]?.cancellation_policy}
+                      hasFreeCancellation={filters.hasFreeCancellation}
+                      propertyName={bookingCart[0]?.title}
+                      checkInDate={filters.checkIn}
                     />
                     )}
                   </div>

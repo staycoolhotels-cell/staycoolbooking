@@ -159,13 +159,16 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
     let hostPenaltyShare = 0;
     if (booking.status === 'cancelled') {
       const cancelDate = booking.cancelled_at ? new Date(booking.cancelled_at) : new Date(booking.created_at || Date.now());
+      const propPolicy = (booking as any).cancellation_policy || (booking.properties as any)?.cancellation_policy || 'Standard';
       const dist = calculateRefundDistribution(
         totalAmount,
         booking.check_in,
         cancelDate,
         booking.created_at,
         booking.has_free_cancellation,
-        freeCancellationFee
+        freeCancellationFee,
+        undefined,
+        propPolicy
       );
       hostPenaltyShare = dist.hostShare;
     }
@@ -314,13 +317,16 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
         return;
       }
       const cancelDateObj = booking.cancelled_at ? new Date(booking.cancelled_at) : new Date(booking.created_at || Date.now());
+      const propPolicy = (booking as any).cancellation_policy || (booking.properties as any)?.cancellation_policy || 'Standard';
       const computedRefund = calculateRefundDistribution(
         Number(booking.total_price || 0),
         booking.check_in,
         cancelDateObj,
         booking.created_at,
         booking.has_free_cancellation,
-        booking.free_cancellation_fee || 0
+        booking.free_cancellation_fee || 0,
+        undefined,
+        propPolicy
       );
       const refundAmount = (booking as any).refund_amount || computedRefund.guestRefundAmount || 0;
 
@@ -353,6 +359,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
         checkOut: formatDate(booking.check_out),
         nights: nights,
         appliedPolicy: computedRefund.appliedPolicy,
+        cancellation_policy: propPolicy,
         daysBeforeCheckIn: computedRefund.daysBeforeCheckIn,
         refundPercentage: computedRefund.guestRefundPercent,
         cancellationDate: booking.cancelled_at ? formatDate(booking.cancelled_at) : undefined,

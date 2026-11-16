@@ -86,6 +86,7 @@ export interface Transaction {
   refundDate?: string;
   daysBeforeCheckIn?: number;
   appliedPolicy?: string;
+  cancellation_policy?: string;
   refundPercentage?: number;
   room_type?: string | null;
   checkIn?: string;
@@ -291,6 +292,7 @@ export interface Booking {
   cancelled_at?: string;
   has_free_cancellation?: boolean;
   free_cancellation_fee?: number;
+  cancellation_policy?: string;
   guest?: {
     name: string;
     avatar_url?: string;

@@ -335,6 +335,7 @@ const Step3_Payment = ({ bookingCart, filters, verificationData, onNext, onBack 
   }, 0);
 
   const freeCancellationFee = filters.hasFreeCancellation ? 70 : 0;
+  const isTieredPolicy = (property?.cancellation_policy || '').toLowerCase().includes('tier');
   const total = discountedSubtotal + serviceFee + amenitiesTotal + freeCancellationFee;
 
 
@@ -585,13 +586,19 @@ const Step3_Payment = ({ bookingCart, filters, verificationData, onNext, onBack 
 
               <div className={`p-3 rounded-xl border ${!filters.hasFreeCancellation ? 'bg-zinc-800/40 border-zinc-700 ring-1 ring-zinc-700/30' : 'bg-zinc-900/60 border-zinc-800'}`}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Standard (Without ₹70)</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                    {isTieredPolicy ? 'Tiered (Without ₹70)' : 'Standard (Without ₹70)'}
+                  </span>
                   {!filters.hasFreeCancellation && (
                     <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-zinc-700/50 text-zinc-300 border border-zinc-600">Active</span>
                   )}
                 </div>
-                <div className="text-base font-black text-sky-400">70% Refund</div>
-                <p className="text-[10px] text-zinc-400 mt-0.5">Cancel before check-in. Standard 30% cancellation fee applies.</p>
+                <div className="text-base font-black text-sky-400">
+                  {isTieredPolicy ? 'Up to 100% Refund' : '70% Refund'}
+                </div>
+                <p className="text-[10px] text-zinc-400 mt-0.5">
+                  {isTieredPolicy ? '≥10d: 100% | 5-9d: 70% | 2-4d: 50% | <2d: 30%.' : 'Cancel before check-in. Standard 30% cancellation fee applies.'}
+                </p>
               </div>
             </div>
 
@@ -610,7 +617,7 @@ const Step3_Payment = ({ bookingCart, filters, verificationData, onNext, onBack 
                 {filters.hasFreeCancellation ? (
                   <span className="text-sky-400 font-bold">• Free Cancellation (₹70) Active (100% refund before check-in)</span>
                 ) : (
-                  <span className="text-zinc-400">• Standard policy applies (70% refund before check-in)</span>
+                  <span className="text-zinc-400">• {isTieredPolicy ? 'Tiered schedule applies based on cancellation timing' : 'Standard policy applies (70% refund before check-in)'}</span>
                 )}
               </div>
             </div>
@@ -814,7 +821,9 @@ const Step3_Payment = ({ bookingCart, filters, verificationData, onNext, onBack 
               </a>
             </div>
             <p className="text-[10px] text-text-secondary leading-relaxed">
-              100% refund with Free Cancellation (₹70) or 70% refund standard before check-in. No-Show bookings are non-refundable.
+              {isTieredPolicy
+                ? 'Tiered policy: 100% (10+ d), 70% (5-9 d), 50% (2-4 d), 30% (<2 d), or 100% with Free Cancellation (₹70).'
+                : '100% refund with Free Cancellation (₹70) or 70% refund standard before check-in. No-Show bookings are non-refundable.'}
             </p>
           </div>
 

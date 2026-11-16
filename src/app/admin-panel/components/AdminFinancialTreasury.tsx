@@ -44,6 +44,7 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
                 city,
                 state,
                 postal_code,
+                cancellation_policy,
                 host:users!host_id(name, email, phone)
               )
             `)
@@ -95,13 +96,16 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
             let refundPercentage = undefined;
 
             if (isRefund) {
+              const propPolicy = b.cancellation_policy || b.property?.cancellation_policy || 'Standard';
               const dist = calculateRefundDistribution(
                 amount,
                 b.check_in || b.created_at,
                 b.cancelled_at || new Date().toISOString(),
                 b.created_at,
                 b.has_free_cancellation,
-                Number(b.free_cancellation_fee || 0)
+                Number(b.free_cancellation_fee || 0),
+                serviceFee,
+                propPolicy
               );
               daysBeforeCheckIn = dist.daysBeforeCheckIn;
               appliedPolicy = dist.appliedPolicy;
