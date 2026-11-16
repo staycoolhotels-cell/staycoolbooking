@@ -259,8 +259,9 @@ const AddPropertyModal = ({
     }
 
     // If Resort has "Entire Resort" or Apartment has "Entire Apartment" selected, set totalRooms to 1
-    const isEntireBuyout = (formData.type === 'Resort' && formData.roomTypes.includes('Entire Resort')) ||
-                           (formData.type === 'Apartment' && formData.roomTypes.includes('Entire Apartment'));
+    const formTypeLower = (formData.type || '').toLowerCase();
+    const isEntireBuyout = (formTypeLower === 'resort' && formData.roomTypes.includes('Entire Resort')) ||
+                           (formTypeLower === 'apartment' && formData.roomTypes.includes('Entire Apartment'));
     if (isEntireBuyout) {
       if (formData.totalRooms !== 1 || hasChanges) {
         setFormData(prev => ({ ...prev, totalRooms: 1, roomTypeCounts: updatedCounts }));
@@ -1075,8 +1076,8 @@ const AddPropertyModal = ({
                   
                   if (!roomTypes) return null;
 
-                  const isApartment = formData.type === 'Apartment';
-                  const isHotelOrResort = formData.type === 'Hotel' || formData.type === 'Resort' || isApartment;
+                  const isApartment = normalizedType === 'apartment';
+                  const isHotelOrResort = normalizedType === 'hotel' || normalizedType === 'resort' || isApartment;
 
                   return (
                     <div className="space-y-1.5 md:space-y-2 animate-fade-in py-2">
@@ -2567,7 +2568,7 @@ const AddPropertyModal = ({
                         <Building2 className="w-4 h-4 text-sky-400" />
                       </div>
                       <h4 className="text-xs md:text-sm font-black text-white uppercase tracking-[0.2em] italic">
-                        {formData.type === 'Apartment' ? 'Per-Floor Custom Rates' : 'Per-Room-Type Custom Rates'}
+                        {(formData.type || '').toLowerCase() === 'apartment' ? 'Per-Floor Custom Rates' : 'Per-Room-Type Custom Rates'}
                       </h4>
                     </div>
 
@@ -2605,7 +2606,7 @@ const AddPropertyModal = ({
                                     ) : null}
                                   </div>
                                   <p className="text-[10px] text-zinc-500 mt-0.5">
-                                    {formData.type === 'Apartment' ? 'Customize weekday and weekend pricing for this floor' : 'Customize weekday and weekend pricing for this room type'}
+                                    {(formData.type || '').toLowerCase() === 'apartment' ? 'Customize weekday and weekend pricing for this floor' : 'Customize weekday and weekend pricing for this room type'}
                                   </p>
                                 </div>
                               </div>
