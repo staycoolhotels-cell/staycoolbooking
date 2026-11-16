@@ -137,7 +137,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
     }
 
     const netAccommodationFromTotal = totalAmount > 0
-      ? Math.round((Math.max(0, totalAmount - amenitiesTotal - freeCancellationFee) / 1.1) / (discountPct < 1 ? (1 - discountPct) : 1))
+      ? Math.round(Math.max(0, totalAmount - amenitiesTotal - freeCancellationFee) / (discountPct < 1 ? (1 - discountPct) : 1))
       : 0;
 
     if (baseAccommodation === 0 || (netAccommodationFromTotal > 0 && Math.abs(baseAccommodation - netAccommodationFromTotal) > 50)) {

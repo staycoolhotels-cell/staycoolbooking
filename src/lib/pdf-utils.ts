@@ -86,6 +86,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
 
   const isHostView = t.audience === 'host';
   const isAdminView = t.audience === 'admin';
+  const isGuestView = !isHostView && !isAdminView;
 
   if (isRefund) {
     doc.setTextColor(225, 29, 72);
@@ -134,13 +135,22 @@ export const generateInvoicePDF = async (t: Transaction) => {
     return isNaN(n) ? fallback : n;
   };
 
+
   const rawBreakdown: any = t.breakdown || {};
   const originalTotal = safeNum(t.amount, 0);
   const nights = Math.max(1, safeNum(t.nights, 1));
 
+  // For Guest Invoice: Guests are charged ZERO platform service fee.
+  // The full accommodation amount paid by guest is displayed under Accommodation Charges.
+  const guestBaseAccommodation = safeNum(rawBreakdown.accommodation, 0) > 0
+    ? (safeNum(rawBreakdown.service_fee, 0) > 0
+        ? safeNum(rawBreakdown.accommodation) + safeNum(rawBreakdown.service_fee)
+        : safeNum(rawBreakdown.accommodation))
+    : originalTotal;
+
   const breakdown = {
-    accommodation: safeNum(rawBreakdown.accommodation, originalTotal),
-    service_fee: safeNum(rawBreakdown.service_fee, 0),
+    accommodation: isGuestView ? (guestBaseAccommodation || originalTotal) : safeNum(rawBreakdown.accommodation, originalTotal),
+    service_fee: isGuestView ? 0 : safeNum(rawBreakdown.service_fee, 0),
     taxes: safeNum(rawBreakdown.taxes, 0),
     discount: safeNum(rawBreakdown.discount, 0),
     upgrades: safeNum(rawBreakdown.upgrades, 0),
@@ -471,7 +481,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
       `${nights}`,
       `Rs.${breakdown.accommodation.toLocaleString('en-IN')}`
     ]);
-    if (breakdown.service_fee && breakdown.service_fee > 0) {
+    if (!isGuestView && breakdown.service_fee && breakdown.service_fee > 0) {
       tableBody.push([
         'Platform Service Fee',
         `Rs.${breakdown.service_fee.toLocaleString('en-IN')}`,
@@ -948,7 +958,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
     doc.setTextColor(15, 23, 42);
     doc.text(`Rs. ${breakdown.accommodation.toLocaleString('en-IN')}`, 194, startFooterY, { align: 'right' });
 
-    if (breakdown.service_fee && breakdown.service_fee > 0) {
+    if (!isGuestView && breakdown.service_fee && breakdown.service_fee > 0) {
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(100, 116, 139);
       doc.text('Platform Service Fee:', 130, startFooterY + 6);

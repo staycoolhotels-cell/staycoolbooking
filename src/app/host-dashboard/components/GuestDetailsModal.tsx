@@ -37,9 +37,9 @@ const computePricing = (booking?: Booking) => {
     });
   }
 
-  // Derive net accommodation directly from booking financial reality (totalAmount = (accommodation * (1 - discount) + amenities) * 1.1 + freeCancellation)
+  // Derive net accommodation directly from booking financial reality (totalAmount = accommodation * (1 - discount) + amenities + freeCancellation)
   const netAccommodationFromTotal = totalAmount > 0
-    ? Math.round((Math.max(0, totalAmount - amenitiesTotal - freeCancellationFee) / 1.1) / (discountPct < 1 ? (1 - discountPct) : 1))
+    ? Math.round(Math.max(0, totalAmount - amenitiesTotal - freeCancellationFee) / (discountPct < 1 ? (1 - discountPct) : 1))
     : 0;
 
   // If baseAccommodation wasn't in room_type or heavily deviates from totalAmount (e.g. stale standard_price fallback)

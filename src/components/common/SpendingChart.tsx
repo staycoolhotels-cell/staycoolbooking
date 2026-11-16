@@ -54,17 +54,9 @@ const SpendingChart = ({ transactions = [], mode }: SpendingChartProps) => {
         acc.service_fee += adminServiceFee;
         acc.taxes += (t.breakdown?.taxes ?? 0);
       } else {
-        // Guest Profile View: Accommodation Charges + Guest Service Fee
-        const serviceFee =
-          t.breakdown?.service_fee !== undefined
-            ? Number(t.breakdown.service_fee)
-            : t.serviceFee !== undefined
-            ? Number(t.serviceFee)
-            : Math.round((amount * 0.1) / 1.1);
-        const accommodation =
-          t.breakdown?.accommodation !== undefined
-            ? Number(t.breakdown.accommodation)
-            : Math.max(0, amount - serviceFee);
+        // Guest Profile View: Zero service fee charged to guests; 100% of payment is Accommodation
+        const serviceFee = 0;
+        const accommodation = amount;
         const taxes = Number(t.breakdown?.taxes ?? 0);
 
         acc.accommodation += accommodation;

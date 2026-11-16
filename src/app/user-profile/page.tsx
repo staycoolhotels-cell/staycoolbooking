@@ -169,10 +169,11 @@ export default async function ProfilePage() {
   ).map(b => {
     const isCancelledOrRefunded = b.status === 'cancelled' || b.status === 'refunded';
     const bTotalPrice = Number(b.total_price || 0);
-    const bServiceFee = (b.service_fee !== undefined && b.service_fee !== null)
-      ? Number(b.service_fee)
-      : Math.round((bTotalPrice * 0.1) / 1.1);
-    const bAccommodation = Math.max(0, bTotalPrice - bServiceFee);
+    // Guest pays 0 service fee (StayCool charges zero service fee to guests)
+    const bServiceFee = 0;
+    const freeCancellationFee = Number(b.free_cancellation_fee || 0);
+    const amenitiesTotal = (b.amenities || []).reduce((sum: number, a: any) => sum + (Number(a.price || 0) * Number(a.count || 1)), 0);
+    const bAccommodation = Math.max(0, bTotalPrice - freeCancellationFee - amenitiesTotal) || bTotalPrice;
     const resolvedGuestName = b.guest?.name || b.guestName || userData.name || user.user_metadata?.name || 'Valued Guest';
     const resolvedGuestEmail = b.guest?.email || user.email || '';
     const resolvedGuestPhone = b.guest?.phone || profile.phone || '';
@@ -207,8 +208,10 @@ export default async function ProfilePage() {
       room_type: b.room_type,
       breakdown: {
         accommodation: bAccommodation,
-        service_fee: bServiceFee,
-        taxes: 0
+        service_fee: 0,
+        taxes: 0,
+        upgrades: amenitiesTotal,
+        cancellation_fee: freeCancellationFee
       }
     };
   });

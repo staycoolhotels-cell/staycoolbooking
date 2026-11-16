@@ -31,11 +31,10 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
     const freeCancellationFee = Number(booking.free_cancellation_fee || 0);
 
     // Derive base accommodation from the booking total:
-    // totalPrice = (baseAccommodation * (1 - discountPct) + amenitiesTotal) * 1.1 + freeCancellationFee
-    const accommodationPoolFromTotal = totalPriceNum > 0
-        ? Math.round(Math.max(0, totalPriceNum - freeCancellationFee) / 1.1) - amenitiesTotal
-        : 0;
-    const expectedBase = Math.round(accommodationPoolFromTotal / (discountPct < 1 ? (1 - discountPct) : 1));
+    // Guest pays 0 service fee (StayCool charges zero fee to guests).
+    // totalPrice = baseAccommodation * (1 - discountPct) + amenitiesTotal + freeCancellationFee
+    const accommodationPoolFromTotal = Math.max(0, totalPriceNum - freeCancellationFee - amenitiesTotal);
+    const expectedBase = discountPct < 1 ? Math.round(accommodationPoolFromTotal / (1 - discountPct)) : accommodationPoolFromTotal;
 
     let baseAccommodationFromRoomType = 0;
     if (booking.room_type) {
@@ -51,11 +50,11 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
     if (baseAccommodationFromRoomType > 0 && Math.abs(baseAccommodationFromRoomType - expectedBase) <= 50) {
         baseAccommodation = baseAccommodationFromRoomType;
     } else if (baseAccommodation <= 0) {
-        baseAccommodation = baseAccommodationFromRoomType || Number(booking.properties?.standard_price || 0) * nights;
+        baseAccommodation = baseAccommodationFromRoomType || (Number(booking.properties?.standard_price || 0) * nights) || totalPriceNum;
     }
 
     const discountSavings = Math.round(baseAccommodation * discountPct);
-    const serviceFee = Math.max(0, totalPriceNum - (baseAccommodation - discountSavings + amenitiesTotal + freeCancellationFee));
+    const serviceFee = 0; // Guest service fee is ALWAYS 0
 
     const displayRoomType = (() => {
         if (booking.room_type) return booking.room_type;
@@ -396,8 +395,8 @@ const BookingDetailsModal = ({ booking, transactions = [], onClose, onStatusChan
                                             }
                                             const isCancelled = booking.status === 'cancelled' || booking.status === 'refunded';
                                             const computedBreakdown = {
-                                                accommodation: baseAccommodation,
-                                                service_fee: serviceFee,
+                                                accommodation: (discountSavings > 0 ? baseAccommodation : (totalPriceNum - amenitiesTotal - freeCancellationFee)) || totalPriceNum,
+                                                service_fee: 0,
                                                 taxes: 0,
                                                 discount: booking.booking_type === 'bulk' ? discountSavings : 0,
                                                 upgrades: amenitiesTotal,

@@ -13,19 +13,35 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
   const invoiceId = transaction.invoice_id || (transaction.id ? transaction.id.split('-')[0].toUpperCase() : 'N/A');
   const date = transaction.date || new Date().toLocaleDateString();
 
-  const breakdown = transaction.breakdown || {
-    accommodation: transaction.amount || 0,
-    service_fee: 0,
-    taxes: 0,
-    discount: 0,
-    upgrades: 0,
-    cancellation_fee: 0
+  const originalTotal = transaction.amount || 0;
+  const isHostOrAdmin = transaction.audience === 'host' || transaction.audience === 'admin';
+  const isGuestInvoice = !isHostOrAdmin;
+  const rawBreakdown: any = transaction.breakdown || {};
+
+  const safeNum = (v: any, fallback = 0) => {
+    const n = Number(v);
+    return isNaN(n) ? fallback : n;
   };
 
-  const originalTotal = transaction.amount || 0;
+  // For Guest Invoice: Guest service fee is 0. Accommodation is the full booking payment.
+  const guestBaseAccommodation = safeNum(rawBreakdown.accommodation, 0) > 0
+    ? (safeNum(rawBreakdown.service_fee, 0) > 0
+        ? safeNum(rawBreakdown.accommodation) + safeNum(rawBreakdown.service_fee)
+        : safeNum(rawBreakdown.accommodation))
+    : originalTotal;
+
+  const breakdown = {
+    accommodation: isGuestInvoice ? (guestBaseAccommodation || originalTotal) : (rawBreakdown.accommodation || originalTotal),
+    service_fee: isGuestInvoice ? 0 : (rawBreakdown.service_fee || 0),
+    taxes: rawBreakdown.taxes || 0,
+    discount: rawBreakdown.discount || 0,
+    upgrades: rawBreakdown.upgrades || 0,
+    cancellation_fee: rawBreakdown.cancellation_fee || 0
+  };
+
   const netRefundablePool = transaction.netRefundablePool !== undefined 
     ? transaction.netRefundablePool 
-    : (breakdown.accommodation || Math.round(originalTotal / 1.1));
+    : (breakdown.accommodation || originalTotal);
   const refundPercent = transaction.refundPercentage !== undefined 
     ? transaction.refundPercentage 
     : (netRefundablePool > 0 && transaction.refundAmount !== undefined ? Math.round((transaction.refundAmount / netRefundablePool) * 100) : 50);
@@ -35,7 +51,7 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
     : Math.max(0, netRefundablePool - eligibleRefund);
   const retainedServiceFee = transaction.retainedServiceFee !== undefined 
     ? transaction.retainedServiceFee 
-    : (breakdown.service_fee || Math.round(originalTotal * 0.1 / 1.1));
+    : (isGuestInvoice ? 0 : (breakdown.service_fee || 0));
   const protectionFee = breakdown.cancellation_fee || 0;
   const isTieredPolicy = (transaction.cancellation_policy || '').toLowerCase().includes('tier');
   const totalRetained = retainedPenalty + retainedServiceFee + protectionFee;
@@ -308,7 +324,7 @@ const RealTimeInvoice = ({ transaction, onClose }: RealTimeInvoiceProps) => {
                 const rows = [
                   { name: 'Accommodation Charges', price: breakdown.accommodation, isDiscount: false }
                 ];
-                if (breakdown.service_fee && breakdown.service_fee > 0) {
+                if (!isGuestInvoice && breakdown.service_fee && breakdown.service_fee > 0) {
                   rows.push({ name: 'Platform Service Fee', price: breakdown.service_fee, isDiscount: false });
                 }
                 if (breakdown.discount && breakdown.discount > 0) {
