@@ -186,7 +186,7 @@ const CancellationPolicyPage = () => {
                     </div>
 
                     <p className="font-sans text-zinc-500 mb-12 text-lg">
-                        Last updated: March 1, 2026
+                        Last updated: November 16, 2026
                     </p>
 
                     <div className="prose prose-invert max-w-none">
