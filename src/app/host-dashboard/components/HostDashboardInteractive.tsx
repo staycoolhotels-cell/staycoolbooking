@@ -1021,7 +1021,7 @@ const HostDashboardInteractive = ({
           postal_code: formData.postalCode,
           country: formData.country,
           location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
-          total_rooms: (['Home Stay', 'Villa'].includes(String(formData.type)) || (formData.roomTypes && (formData.roomTypes.includes('Entire Resort') || formData.roomTypes.includes('Entire Apartment')))) ? 1 : (Number(formData.totalRooms) || 0),
+          total_rooms: (['home stay', 'villa'].includes(String(formData.type || '').toLowerCase()) || (formData.roomTypes && (formData.roomTypes.includes('Entire Resort') || formData.roomTypes.includes('Entire Apartment')))) ? 1 : (Number(formData.totalRooms) || 0),
           room_types: formData.roomTypes,
           room_type_amenities: {
             ...finalRoomTypeAmenities,
@@ -1035,7 +1035,7 @@ const HostDashboardInteractive = ({
           latitude: formData.latitude,
           longitude: formData.longitude,
           show_specific_location: true,
-          bulk_booking_discount: (['Home Stay', 'Villa'].includes(String(formData.type)) || (formData.roomTypes && (formData.roomTypes.includes('Entire Resort') || formData.roomTypes.includes('Entire Apartment')))) ? 0 : (Number(formData.bulkBookingDiscount) || 0),
+          bulk_booking_discount: (['home stay', 'villa'].includes(String(formData.type || '').toLowerCase()) || (formData.roomTypes && (formData.roomTypes.includes('Entire Resort') || formData.roomTypes.includes('Entire Apartment')))) ? 0 : (Number(formData.bulkBookingDiscount) || 0),
           standard_price: finalPrice,
           updated_at: new Date().toISOString(),
         };
@@ -1103,7 +1103,7 @@ const HostDashboardInteractive = ({
             postal_code: formData.postalCode || '',
             country: formData.country || '',
             location: formData.city && formData.state ? `${formData.city}, ${formData.state}` : (formData.location || 'Unknown Location'),
-            total_rooms: (['Home Stay', 'Villa'].includes(String(formData.type)) || (formData.roomTypes && (formData.roomTypes.includes('Entire Resort') || formData.roomTypes.includes('Entire Apartment')))) ? 1 : (Number(formData.totalRooms) || 0),
+            total_rooms: (['home stay', 'villa'].includes(String(formData.type || '').toLowerCase()) || (formData.roomTypes && (formData.roomTypes.includes('Entire Resort') || formData.roomTypes.includes('Entire Apartment')))) ? 1 : (Number(formData.totalRooms) || 0),
             room_types: formData.roomTypes,
             room_type_amenities: {
               ...finalRoomTypeAmenities,
@@ -1117,7 +1117,7 @@ const HostDashboardInteractive = ({
             latitude: formData.latitude || null,
             longitude: formData.longitude || null,
             show_specific_location: true,
-            bulk_booking_discount: (['Home Stay', 'Villa'].includes(String(formData.type)) || (formData.roomTypes && (formData.roomTypes.includes('Entire Resort') || formData.roomTypes.includes('Entire Apartment')))) ? 0 : (Number(formData.bulkBookingDiscount) || 0),
+            bulk_booking_discount: (['home stay', 'villa'].includes(String(formData.type || '').toLowerCase()) || (formData.roomTypes && (formData.roomTypes.includes('Entire Resort') || formData.roomTypes.includes('Entire Apartment')))) ? 0 : (Number(formData.bulkBookingDiscount) || 0),
             standard_price: finalPrice,
           };
 

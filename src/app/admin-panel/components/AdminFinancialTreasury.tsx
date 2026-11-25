@@ -64,7 +64,7 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
           const mapped: Transaction[] = bookingsData.map((b: any) => {
             const rawAmount = Number(b.total_price ?? b.amount ?? b.price ?? b.grand_total ?? 0);
             const amount = isNaN(rawAmount) ? 0 : rawAmount;
-            const serviceFee = b.service_fee || Math.round((amount * 0.1) / 1.1);
+            const serviceFee = 0;
             const statusStr = (b.status || '').toLowerCase();
             const isRefund = statusStr === 'cancelled' || statusStr === 'refunded' || statusStr === 'failed';
 
@@ -123,15 +123,15 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
             let adminCommissionAmount = undefined;
 
             if (!isRefund) {
-              if (transfer && Number(transfer.host_amount) > 0) {
+              const standardHostPayout = Math.round(amount * 0.90);
+              const standardAdminCommission = Math.max(0, amount - standardHostPayout);
+
+              if (transfer && Number(transfer.host_amount) > 0 && Number(transfer.host_amount) >= Math.round(amount * 0.85)) {
                 hostPayoutAmount = Math.round(Number(transfer.host_amount));
                 adminCommissionAmount = Math.round(Number(transfer.platform_commission || (amount - hostPayoutAmount)));
               } else {
-                const guestFee = serviceFee || Math.round((amount * 0.1) / 1.1);
-                const hostRevenue = Math.max(0, amount - guestFee);
-                const hostCommission = Math.round(hostRevenue * 0.10);
-                hostPayoutAmount = Math.max(0, hostRevenue - hostCommission);
-                adminCommissionAmount = Math.max(0, amount - hostPayoutAmount);
+                hostPayoutAmount = standardHostPayout;
+                adminCommissionAmount = standardAdminCommission;
               }
             }
 
@@ -175,8 +175,8 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
               retainedServiceFee,
               netRefundablePool,
               breakdown: {
-                accommodation: Math.round(amount / 1.1),
-                service_fee: serviceFee,
+                accommodation: amount,
+                service_fee: 0,
                 taxes: 0,
                 cancellation_fee: Number(b.free_cancellation_fee || 0)
               }
@@ -211,17 +211,14 @@ const AdminFinancialTreasury = ({ transactions = [] }: AdminFinancialTreasuryPro
 
   const totalRevenue = paymentList.reduce((acc, t) => acc + (t.amount || 0), 0);
 
-  // Platform earnings from confirmed/completed bookings (guest commission + host commission)
+  // Platform earnings from confirmed/completed bookings (10% platform commission from host)
   const earningsFromPayments = paymentList.reduce(
     (acc, t) => {
-      if (t.adminCommissionAmount !== undefined && t.adminCommissionAmount !== null) {
+      const amt = Number(t.amount || 0);
+      if (t.adminCommissionAmount !== undefined && t.adminCommissionAmount !== null && Number(t.adminCommissionAmount) <= Math.round(amt * 0.15)) {
         return acc + Number(t.adminCommissionAmount);
       }
-      const amt = Number(t.amount || 0);
-      const guestFee = Number(t.serviceFee) || Math.round((amt * 0.1) / 1.1);
-      const hostRev = Math.max(0, amt - guestFee);
-      const hostComm = Math.round(hostRev * 0.10);
-      return acc + (guestFee + hostComm);
+      return acc + Math.round(amt * 0.10);
     },
     0
   );

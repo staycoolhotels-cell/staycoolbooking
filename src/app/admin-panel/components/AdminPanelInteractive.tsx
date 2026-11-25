@@ -339,7 +339,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
   }, [adminData]);
 
 
-  // Calculate Admin Revenue: Guest 10% Service Fee + Host 10% Commission (20% total)
+  // Calculate Admin Revenue: 10% Host Commission (StayCool charges 0% guest service fee)
   const calculatedAdminRevenue = React.useMemo(() => {
     return transactions.length > 0
       ? transactions
@@ -349,14 +349,11 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
             return type !== 'refund' && st !== 'refunded' && st !== 'failed';
           })
           .reduce((sum, t) => {
-            if (t.adminCommissionAmount !== undefined && t.adminCommissionAmount !== null) {
+            const amt = Number(t.amount || 0);
+            if (t.adminCommissionAmount !== undefined && t.adminCommissionAmount !== null && Number(t.adminCommissionAmount) <= Math.round(amt * 0.15)) {
               return sum + Number(t.adminCommissionAmount);
             }
-            const amt = Number(t.amount || 0);
-            const guestFee = Number(t.serviceFee) || Math.round((amt * 0.1) / 1.1);
-            const hostRev = Math.max(0, amt - guestFee);
-            const hostComm = Math.round(hostRev * 0.10);
-            return sum + (guestFee + hostComm);
+            return sum + Math.round(amt * 0.10);
           }, 0)
       : bookings
           .filter(b => {
@@ -365,10 +362,7 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
           })
           .reduce((sum, b) => {
             const amt = Number(b.total_price ?? (b as any).amount ?? (b as any).price ?? 0);
-            const guestFee = (b as any).service_fee ? Number((b as any).service_fee) : Math.round((amt * 0.1) / 1.1);
-            const hostRev = Math.max(0, amt - guestFee);
-            const hostComm = Math.round(hostRev * 0.10);
-            return sum + (guestFee + hostComm);
+            return sum + Math.round(amt * 0.10);
           }, 0);
   }, [transactions, bookings]);
 
@@ -440,10 +434,8 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
         const amt = Number(booking.total_price ?? (booking as any).amount ?? (booking as any).price ?? 0);
         if (!isNaN(amt)) {
           monthlyBookingRevenue[month] += amt;
-          const guestFee = (booking as any).service_fee ? Number((booking as any).service_fee) : Math.round((amt * 0.1) / 1.1);
-          const hostRev = Math.max(0, amt - guestFee);
-          const hostComm = Math.round(hostRev * 0.10);
-          monthlyAdminRevenue[month] += (guestFee + hostComm);
+          const hostComm = Math.round(amt * 0.10);
+          monthlyAdminRevenue[month] += hostComm;
         }
       }
     });
@@ -552,12 +544,12 @@ const AdminPanelInteractive = ({ adminData }: { adminData: { profiles: User[], a
 
             if (baseAccommodationFromRoomType > 0) {
               baseAccommodation = baseAccommodationFromRoomType;
-              calculatedServiceFee = Math.round(baseAccommodation * 0.1);
+              calculatedServiceFee = 0;
               discountSavings = Math.round(baseAccommodation * discountPct);
             } else {
-              const accommodationAndFee = amount - amenitiesTotalFromBooking - freeCancellationFee;
-              baseAccommodation = Math.round(accommodationAndFee / (1.1 - discountPct));
-              calculatedServiceFee = Math.round(baseAccommodation * 0.1);
+              const accommodationAndFee = Math.max(0, amount - amenitiesTotalFromBooking - freeCancellationFee);
+              baseAccommodation = accommodationAndFee;
+              calculatedServiceFee = 0;
               discountSavings = Math.round(baseAccommodation * discountPct);
             }
 

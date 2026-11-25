@@ -140,27 +140,28 @@ export const generateInvoicePDF = async (t: Transaction) => {
   const originalTotal = safeNum(t.amount, 0);
   const nights = Math.max(1, safeNum(t.nights, 1));
 
-  // For Guest Invoice: Guests are charged ZERO platform service fee.
+  // Across StayCool: Guests are charged ZERO platform service fee.
   // The full accommodation amount paid by guest is displayed under Accommodation Charges.
-  const guestBaseAccommodation = safeNum(rawBreakdown.accommodation, 0) > 0
+  // If legacy data stored service_fee separately, recombine it into accommodation.
+  const rawBaseAccommodation = safeNum(rawBreakdown.accommodation, 0) > 0
     ? (safeNum(rawBreakdown.service_fee, 0) > 0
         ? safeNum(rawBreakdown.accommodation) + safeNum(rawBreakdown.service_fee)
         : safeNum(rawBreakdown.accommodation))
     : originalTotal;
 
   const breakdown = {
-    accommodation: isGuestView ? (guestBaseAccommodation || originalTotal) : safeNum(rawBreakdown.accommodation, originalTotal),
-    service_fee: isGuestView ? 0 : safeNum(rawBreakdown.service_fee, 0),
+    accommodation: rawBaseAccommodation || originalTotal,
+    service_fee: 0,
     taxes: safeNum(rawBreakdown.taxes, 0),
     discount: safeNum(rawBreakdown.discount, 0),
     upgrades: safeNum(rawBreakdown.upgrades, 0),
     cancellation_fee: safeNum(rawBreakdown.cancellation_fee, 0)
   };
 
-  // Host earnings & commission values (zero guest service fee; commission deducted from host only)
+  // Host earnings & commission values (zero guest service fee; 10% commission deducted from host only)
   const hostGrossEarnings = Math.max(0, breakdown.accommodation + breakdown.upgrades - breakdown.discount);
   const hostCommission = Math.round(hostGrossEarnings * 0.10);
-  const hostPayout = t.hostPayoutAmount !== undefined
+  const hostPayout = t.hostPayoutAmount !== undefined && Number(t.hostPayoutAmount) > 0 && Number(t.hostPayoutAmount) >= Math.round(hostGrossEarnings * 0.85)
     ? safeNum(t.hostPayoutAmount)
     : Math.max(0, hostGrossEarnings - hostCommission);
 
@@ -168,7 +169,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
   const refundPercent = t.refundPercentage !== undefined ? safeNum(t.refundPercentage) : (netRefundablePool > 0 && t.refundAmount !== undefined ? Math.round((safeNum(t.refundAmount) / netRefundablePool) * 100) : 50);
   const eligibleRefund = Math.round((netRefundablePool * refundPercent) / 100);
   const retainedPenalty = t.retainedPenalty !== undefined ? safeNum(t.retainedPenalty) : Math.max(0, netRefundablePool - eligibleRefund);
-  const retainedServiceFee = t.retainedServiceFee !== undefined ? safeNum(t.retainedServiceFee) : (breakdown.service_fee || 0);
+  const retainedServiceFee = t.retainedServiceFee !== undefined ? safeNum(t.retainedServiceFee) : 0;
   const protectionFee = breakdown.cancellation_fee || 0;
   const totalRetained = retainedPenalty + retainedServiceFee + protectionFee;
   const finalRefundAmount = t.refundAmount !== undefined ? safeNum(t.refundAmount) : Math.max(0, originalTotal - totalRetained);
@@ -186,7 +187,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
     ? safeNum(t.adminShare)
     : Math.max(0, originalTotal - guestRefund - hostShare);
 
-  const adminRevenue = t.adminCommissionAmount !== undefined
+  const adminRevenue = t.adminCommissionAmount !== undefined && Number(t.adminCommissionAmount) <= hostCommission
     ? safeNum(t.adminCommissionAmount)
     : Math.max(0, originalTotal - hostPayout);
 
@@ -780,7 +781,7 @@ export const generateInvoicePDF = async (t: Transaction) => {
       const threeWayPaidRows: any[] = [
         ['1. Guest Total Paid (Gross)', 'Total gross amount collected from guest via Razorpay', '100% Gross Billed', `Rs. ${originalTotal.toLocaleString('en-IN')}`],
         ['2. Host Net Payout (To Host)', 'Accommodation & upgrades revenue after 10% platform commission', 'Net Host Payable', `Rs. ${hostPayout.toLocaleString('en-IN')}`],
-        ['3. Admin Platform Revenue (To Admin)', '10% Guest Service Fee + 10% Host Commission retained by StayCool', 'Platform Revenue', `Rs. ${adminRevenue.toLocaleString('en-IN')}`],
+        ['3. Admin Platform Revenue (To Admin)', '10% Platform Commission retained by StayCool', 'Platform Revenue', `Rs. ${adminRevenue.toLocaleString('en-IN')}`],
         ['Total Funds Reconciled', 'Balanced settlement across Guest, Host, and Admin', 'Balanced (100%)', `Rs. ${originalTotal.toLocaleString('en-IN')}`]
       ];
 

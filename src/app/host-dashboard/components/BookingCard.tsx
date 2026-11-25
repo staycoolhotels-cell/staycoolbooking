@@ -418,8 +418,8 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
               const cfg = ps === 'completed'
                 ? { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400', dot: 'bg-emerald-400 animate-pulse', statusText: 'Settled' }
                 : ps === 'failed'
-                ? { bg: 'bg-rose-500/10', border: 'border-rose-500/20', text: 'text-rose-400', dot: 'bg-rose-400', statusText: 'Failed' }
-                : { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400', dot: 'bg-amber-400 animate-pulse', statusText: 'Pending' };
+                  ? { bg: 'bg-rose-500/10', border: 'border-rose-500/20', text: 'text-rose-400', dot: 'bg-rose-400', statusText: 'Failed' }
+                  : { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400', dot: 'bg-amber-400 animate-pulse', statusText: 'Pending' };
               return (
                 <span
                   title={ps === 'failed' && failReason ? failReason : undefined}
@@ -547,13 +547,12 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
                     <span className="text-sm md:text-base font-black text-white shrink-0">
                       {roomDetails.price}
                     </span>
-                    <span className={`text-[9px] md:text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                      booking.status === 'cancelled'
+                    <span className={`text-[9px] md:text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${booking.status === 'cancelled'
                         ? hostPricing.hostPenaltyShare > 0
                           ? 'text-amber-400 bg-amber-500/15 border border-amber-500/30'
                           : 'text-rose-400 bg-rose-500/15 border border-rose-500/30'
                         : 'text-emerald-400 bg-emerald-500/15 border border-emerald-500/30'
-                    }`}>
+                      }`}>
                       {booking.status === 'cancelled'
                         ? hostPricing.hostPenaltyShare > 0
                           ? `Payout: +₹${hostPricing.hostPenaltyShare.toLocaleString('en-IN')}`
@@ -774,7 +773,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
         onConfirm={async () => {
           const type = confirmModal.type;
           setConfirmModal({ isOpen: false, type: null });
-          
+
           setIsRejecting(true);
           try {
             await rejectBooking(booking.id);
@@ -786,7 +785,7 @@ const BookingCard = ({ booking, onAction }: BookingCardProps) => {
           }
         }}
         title={confirmModal.type === 'reject' ? "Reject Reservation?" : "Cancel Reservation?"}
-        description={confirmModal.type === 'reject' 
+        description={confirmModal.type === 'reject'
           ? "Are you sure you want to reject this booking? This will notify the guest and release the dates."
           : "Are you sure you want to cancel this confirmed booking? This may impact your hosting metrics."
         }

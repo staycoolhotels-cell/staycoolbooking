@@ -725,9 +725,19 @@ const AddPropertyModal = ({
         updatedFormData.weekendPrice = minWeekendPrice > 0 ? String(minWeekendPrice) : '';
       }
 
-      if (formData.roomTypes.includes('Entire Resort') || ['Home Stay', 'Apartment', 'Villa'].includes(formData.type)) {
+      const formTypeNorm = (formData.type || '').toLowerCase();
+      const isSingleBuyout = ['home stay', 'villa'].includes(formTypeNorm) ||
+                             (formData.roomTypes && (formData.roomTypes.includes('Entire Resort') || formData.roomTypes.includes('Entire Apartment')));
+
+      if (isSingleBuyout) {
         updatedFormData.bulkBookingDiscount = 0;
         updatedFormData.totalRooms = 1;
+      } else {
+        updatedFormData.bulkBookingDiscount = isBulkDiscountEnabled ? (Number(formData.bulkBookingDiscount) || 10) : 0;
+        const totalUnitsCount = Object.values(updatedFormData.roomTypeCounts || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+        if (totalUnitsCount > 0) {
+          updatedFormData.totalRooms = totalUnitsCount;
+        }
       }
       
       const propertyNameSlug = (formData.name || 'property')

@@ -110,8 +110,8 @@ export default async function AdminPanelPage() {
   const mappedTransactions = (bookingsWithDetails || []).map(b => {
     const rawAmount = Number(b.total_price ?? b.amount ?? b.price ?? b.grand_total ?? 0);
     const amount = isNaN(rawAmount) ? 0 : rawAmount;
-    const serviceFee = b.service_fee || (amount * 0.1);
-    const netRevenue = amount - serviceFee;
+    const serviceFee = 0;
+    const netRevenue = amount;
 
     const guestEmail = b.guest?.email || '';
     const guestPhone = b.guest?.phone || phoneMap[b.guest_id] || '';
@@ -168,15 +168,15 @@ export default async function AdminPanelPage() {
     let adminCommissionAmount = undefined;
 
     if (!isRefund) {
-      if (transfer && Number(transfer.host_amount) > 0) {
+      const standardHostPayout = Math.round(amount * 0.90);
+      const standardAdminCommission = Math.max(0, amount - standardHostPayout);
+
+      if (transfer && Number(transfer.host_amount) > 0 && Number(transfer.host_amount) >= Math.round(amount * 0.85)) {
         hostPayoutAmount = Math.round(Number(transfer.host_amount));
         adminCommissionAmount = Math.round(Number(transfer.platform_commission || (amount - hostPayoutAmount)));
       } else {
-        const guestFee = serviceFee || Math.round((amount * 0.1) / 1.1);
-        const hostRevenue = Math.max(0, amount - guestFee);
-        const hostCommission = Math.round(hostRevenue * 0.10);
-        hostPayoutAmount = Math.max(0, hostRevenue - hostCommission);
-        adminCommissionAmount = Math.max(0, amount - hostPayoutAmount);
+        hostPayoutAmount = standardHostPayout;
+        adminCommissionAmount = standardAdminCommission;
       }
     }
 

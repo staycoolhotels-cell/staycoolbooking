@@ -32,19 +32,16 @@ const SpendingChart = ({ transactions = [], mode }: SpendingChartProps) => {
       const amount = Number(t.amount || 0);
 
       if (isAdminMode) {
-        // Admin Panel: Total Service Fee = 10% Guest Service Fee + 10% Host Commission (Total Admin Revenue)
+        // Admin Panel: Total Service Fee = 10% Host Commission (Total Admin Revenue)
         let adminServiceFee = 0;
-        if (t.adminCommissionAmount !== undefined && t.adminCommissionAmount !== null) {
+        if (t.adminCommissionAmount !== undefined && t.adminCommissionAmount !== null && Number(t.adminCommissionAmount) <= Math.round(amount * 0.15)) {
           adminServiceFee = Number(t.adminCommissionAmount);
         } else {
-          const guestFee = Number(t.serviceFee) || Math.round((amount * 0.1) / 1.1);
-          const hostRev = Math.max(0, amount - guestFee);
-          const hostComm = Math.round(hostRev * 0.10);
-          adminServiceFee = guestFee + hostComm;
+          adminServiceFee = Math.round(amount * 0.10);
         }
 
         let hostPayout = 0;
-        if (t.hostPayoutAmount !== undefined && t.hostPayoutAmount !== null) {
+        if (t.hostPayoutAmount !== undefined && t.hostPayoutAmount !== null && Number(t.hostPayoutAmount) >= Math.round(amount * 0.85)) {
           hostPayout = Number(t.hostPayoutAmount);
         } else {
           hostPayout = Math.max(0, amount - adminServiceFee);
@@ -96,7 +93,7 @@ const SpendingChart = ({ transactions = [], mode }: SpendingChartProps) => {
         <div className="bg-zinc-900/95 backdrop-blur-md border border-sky-500/20 rounded-lg p-2.5 shadow-xl shadow-sky-900/20">
           <p className="label text-sky-100 font-medium">{`${entry.name} : ₹${formattedVal}`}</p>
           {isAdminMode && isFee && (
-            <p className="text-[10px] text-zinc-400 mt-0.5 font-sans">Guest 10% Fee + Host 10% Commission</p>
+            <p className="text-[10px] text-zinc-400 mt-0.5 font-sans">10% Platform Commission</p>
           )}
         </div>
       );
