@@ -171,7 +171,9 @@ export async function verifyUser(_prevState: unknown, formData: FormData) {
       console.warn('Could not update users table profile with phone, trying name only:', userUpdateError.message);
       try {
         await adminSupabase.from('users').update({ name: fullName }).eq('id', user.id);
-      } catch (_) {}
+      } catch (nameUpdateErr) {
+        console.warn('Fallback name update note:', nameUpdateErr);
+      }
     }
 
     // 2b. Sync phone and name to Auth metadata & user_personal_info
@@ -299,7 +301,9 @@ export async function createBooking(bookingDetails: {
             ...(trimmedName ? { name: trimmedName } : {}),
             ...(validPhone ? { phone: validPhone } : {})
           }).eq('id', user.id);
-        } catch (_) {}
+        } catch (profileUpdateErr) {
+          console.warn('Profile direct update note:', profileUpdateErr);
+        }
 
         await Promise.allSettled([
           adminSupabase.auth.admin.updateUserById(user.id, {

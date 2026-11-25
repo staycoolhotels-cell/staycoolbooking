@@ -142,7 +142,7 @@ export async function getGuestProfileForHost(guestId: string) {
         const metaName = authMeta.name || authMeta.full_name || (personalInfo as any)?.fullName;
 
         let resolvedPhone = finalGuest.phone || metaPhone;
-        let resolvedName = (finalGuest.name && finalGuest.name !== 'Guest User') ? finalGuest.name : metaName;
+        const resolvedName = (finalGuest.name && finalGuest.name !== 'Guest User') ? finalGuest.name : metaName;
 
         // If phone still missing, check recent activity verification log
         if (!resolvedPhone) {
@@ -167,14 +167,18 @@ export async function getGuestProfileForHost(guestId: string) {
           // Asynchronously persist to users table
           try {
             await supabaseAdmin.from('users').update({ phone: resolvedPhone }).eq('id', guestId);
-          } catch (_) {}
+          } catch (phoneErr) {
+            console.warn('[getGuestProfileForHost] Phone persist note:', phoneErr);
+          }
         }
 
         if (resolvedName && (!finalGuest.name || finalGuest.name === 'Guest User')) {
           finalGuest.name = resolvedName;
           try {
             await supabaseAdmin.from('users').update({ name: resolvedName }).eq('id', guestId);
-          } catch (_) {}
+          } catch (nameErr) {
+            console.warn('[getGuestProfileForHost] Name persist note:', nameErr);
+          }
         }
       } catch (e) {
         console.warn('[getGuestProfileForHost] Note during contact enrichment:', e);
@@ -219,7 +223,9 @@ export async function getGuestProfileForHost(guestId: string) {
     if (verificationData && (!verificationData.phoneVerified && isPhoneVerified)) {
       try {
         await supabaseAdmin.from('user_verifications').update({ phoneVerified: true }).eq('user_id', guestId);
-      } catch (_) {}
+      } catch (verifErr) {
+        console.warn('[getGuestProfileForHost] Auto-sync verif note:', verifErr);
+      }
     }
 
     // 4. Fetch Booking Count
