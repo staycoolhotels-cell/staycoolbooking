@@ -631,20 +631,6 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
                           <span className="text-[9px] sm:text-[10px] font-black text-zinc-500 uppercase tracking-widest shrink-0">Unverified</span>
                         )}
                       </div>
-
-                      <div className="flex items-center justify-between gap-2 p-3 bg-white/5 border border-white/5 rounded-xl">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <Icon name="IdentificationIcon" size={16} className="text-zinc-500 shrink-0" />
-                          <span className="text-xs sm:text-sm text-zinc-200 font-medium truncate">Identity Document</span>
-                        </div>
-                        {verifications?.isIdVerified ? (
-                          <span className="text-[9px] sm:text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1 shrink-0">
-                            Verified <Icon name="CheckCircleIcon" size={13} />
-                          </span>
-                        ) : (
-                          <span className="text-[9px] sm:text-[10px] font-black text-zinc-500 uppercase tracking-widest shrink-0">Unverified</span>
-                        )}
-                      </div>
                     </div>
                   </div>
                 </div>
