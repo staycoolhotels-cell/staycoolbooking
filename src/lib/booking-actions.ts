@@ -134,22 +134,7 @@ export async function verifyUser(_prevState: unknown, formData: FormData) {
 
     const adminSupabase = createServiceClient();
 
-    // 1. Update user profile with full name and phone number
-    const updateData: { name: string; phone: string } = {
-      name: fullName,
-      phone: cleanPhone.length === 10 ? cleanPhone : phone
-    };
-
-    const { error: userUpdateError } = await adminSupabase
-      .from('users')
-      .update(updateData)
-      .eq('id', user.id);
-
-    if (userUpdateError) {
-      console.warn('Could not update users table profile:', userUpdateError.message);
-    }
-
-    // 2. If a document file was uploaded, handle upload optionally
+    // 1. If a document file was uploaded, handle upload optionally
     let fileUrl: string | null = null;
     if (file && typeof file === 'object' && (file as any).size > 0 && (file as any).name) {
       try {
@@ -170,6 +155,41 @@ export async function verifyUser(_prevState: unknown, formData: FormData) {
         console.warn('Optional file upload skipped:', fErr);
       }
     }
+
+    // 2. Update user profile with full name and phone number
+    const updateData: { name: string; phone: string } = {
+      name: fullName,
+      phone: cleanPhone.length === 10 ? cleanPhone : phone
+    };
+
+    const { error: userUpdateError } = await adminSupabase
+      .from('users')
+      .update(updateData)
+      .eq('id', user.id);
+
+    if (userUpdateError) {
+      console.warn('Could not update users table profile with phone, trying name only:', userUpdateError.message);
+      try {
+        await adminSupabase.from('users').update({ name: fullName }).eq('id', user.id);
+      } catch (_) {}
+    }
+
+    // 2b. Sync phone and name to Auth metadata & user_personal_info
+    await Promise.allSettled([
+      adminSupabase.auth.admin.updateUserById(user.id, {
+        user_metadata: { name: fullName, full_name: fullName, phone: cleanPhone }
+      }),
+      adminSupabase.from('user_personal_info').upsert({
+        user_id: user.id,
+        phone: cleanPhone
+      }, { onConflict: 'user_id' }),
+      adminSupabase.from('user_verifications').upsert({
+        user_id: user.id,
+        phoneVerified: true,
+        emailVerified: true,
+        ...(fileUrl ? { idVerified: true } : {})
+      }, { onConflict: 'user_id' })
+    ]);
 
     // 3. Check if verification record exists and mark as approved
     const { data: existingVerifications } = await adminSupabase
@@ -267,18 +287,37 @@ export async function createBooking(bookingDetails: {
     } = bookingDetails;
 
     // If guest provided full name or phone during verification step, update profile immediately
-    if (fullName?.trim()) {
+    if (fullName?.trim() || phone) {
       try {
         const adminSupabase = createServiceClient();
         const cleanPhone = phone ? phone.replace(/\D/g, '') : undefined;
-        await adminSupabase.from('users').update({
-          name: fullName.trim(),
-          ...(cleanPhone && cleanPhone.length >= 10 ? { phone: cleanPhone } : {})
-        }).eq('id', user.id);
+        const validPhone = cleanPhone && cleanPhone.length >= 10 ? cleanPhone : undefined;
+        const trimmedName = fullName?.trim() || undefined;
 
-        await adminSupabase.auth.admin.updateUserById(user.id, {
-          user_metadata: { name: fullName.trim(), full_name: fullName.trim() }
-        }).catch(() => {});
+        try {
+          await adminSupabase.from('users').update({
+            ...(trimmedName ? { name: trimmedName } : {}),
+            ...(validPhone ? { phone: validPhone } : {})
+          }).eq('id', user.id);
+        } catch (_) {}
+
+        await Promise.allSettled([
+          adminSupabase.auth.admin.updateUserById(user.id, {
+            user_metadata: {
+              ...(trimmedName ? { name: trimmedName, full_name: trimmedName } : {}),
+              ...(validPhone ? { phone: validPhone } : {})
+            }
+          }),
+          validPhone ? adminSupabase.from('user_personal_info').upsert({
+            user_id: user.id,
+            phone: validPhone
+          }, { onConflict: 'user_id' }) : Promise.resolve(),
+          validPhone ? adminSupabase.from('user_verifications').upsert({
+            user_id: user.id,
+            phoneVerified: true,
+            emailVerified: true
+          }, { onConflict: 'user_id' }) : Promise.resolve()
+        ]);
       } catch (profErr) {
         console.warn('Profile sync in createBooking skipped:', profErr);
       }

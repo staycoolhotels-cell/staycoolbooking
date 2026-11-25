@@ -133,20 +133,94 @@ export async function getGuestProfileForHost(guestId: string) {
       .eq('user_id', guestId)
       .maybeSingle();
 
-    // 3. Fetch Verification Status
-    const { data: verificationData } = await supabaseAdmin
-      .from('user_verifications')
-      .select('*')
-      .eq('user_id', guestId)
-      .maybeSingle();
+    // 2b. Enrich missing phone or name from Auth user metadata, Personal Info, or Recent Activities
+    if (!finalGuest.phone || !finalGuest.name || finalGuest.name === 'Guest User') {
+      try {
+        const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(guestId);
+        const authMeta = authUser?.user_metadata || {};
+        const metaPhone = authUser?.phone || authMeta.phone || authMeta.phoneNumber || authMeta.contact || (personalInfo as any)?.phone;
+        const metaName = authMeta.name || authMeta.full_name || (personalInfo as any)?.fullName;
 
-    const verifications = verificationData ? {
-      user_id: verificationData.user_id,
-      isEmailVerified: verificationData.emailVerified || false,
-      isPhoneVerified: verificationData.phoneVerified || false,
-      isIdVerified: verificationData.idVerified || false,
+        let resolvedPhone = finalGuest.phone || metaPhone;
+        let resolvedName = (finalGuest.name && finalGuest.name !== 'Guest User') ? finalGuest.name : metaName;
+
+        // If phone still missing, check recent activity verification log
+        if (!resolvedPhone) {
+          const { data: actLogs } = await supabaseAdmin
+            .from('activities')
+            .select('description')
+            .eq('user_id', guestId)
+            .ilike('description', '%Phone:%')
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (actLogs && actLogs.length > 0) {
+            const match = actLogs[0].description.match(/Phone:\s*([0-9]{10})/i);
+            if (match && match[1]) {
+              resolvedPhone = match[1];
+            }
+          }
+        }
+
+        if (resolvedPhone && !finalGuest.phone) {
+          finalGuest.phone = resolvedPhone;
+          // Asynchronously persist to users table
+          try {
+            await supabaseAdmin.from('users').update({ phone: resolvedPhone }).eq('id', guestId);
+          } catch (_) {}
+        }
+
+        if (resolvedName && (!finalGuest.name || finalGuest.name === 'Guest User')) {
+          finalGuest.name = resolvedName;
+          try {
+            await supabaseAdmin.from('users').update({ name: resolvedName }).eq('id', guestId);
+          } catch (_) {}
+        }
+      } catch (e) {
+        console.warn('[getGuestProfileForHost] Note during contact enrichment:', e);
+      }
+    }
+
+    // 3. Fetch Verification Status (check both user_verifications and verifications tables)
+    const [{ data: verificationData }, { data: legacyVerifications }] = await Promise.all([
+      supabaseAdmin
+        .from('user_verifications')
+        .select('*')
+        .eq('user_id', guestId)
+        .maybeSingle(),
+      supabaseAdmin
+        .from('verifications')
+        .select('*')
+        .eq('user_id', guestId)
+    ]);
+
+    const hasPhone = Boolean(finalGuest?.phone || (personalInfo as any)?.phone);
+    const hasEmail = Boolean(finalGuest?.email);
+    const hasLegacyPhoneApproved = legacyVerifications?.some((v: any) => 
+      (v.doc_type === 'phone' || v.doc_type === 'id') && v.status === 'approved'
+    );
+    const hasLegacyIdApproved = legacyVerifications?.some((v: any) => 
+      v.doc_type === 'id' && v.status === 'approved'
+    );
+
+    const isEmailVerified = Boolean(verificationData?.emailVerified || hasEmail);
+    const isPhoneVerified = Boolean(verificationData?.phoneVerified || hasLegacyPhoneApproved || hasPhone);
+    const isIdVerified = Boolean(verificationData?.idVerified || hasLegacyIdApproved);
+
+    const verifications = {
+      user_id: guestId,
+      isEmailVerified,
+      isPhoneVerified,
+      isIdVerified,
       isPaymentMethodVerified: false 
-    } : null;
+    };
+
+    // Auto-sync verification record if needed
+    if (verificationData && (!verificationData.phoneVerified && isPhoneVerified)) {
+      try {
+        await supabaseAdmin.from('user_verifications').update({ phoneVerified: true }).eq('user_id', guestId);
+      } catch (_) {}
+    }
 
     // 4. Fetch Booking Count
     const { count: bookingCount } = await supabaseAdmin

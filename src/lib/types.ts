@@ -254,6 +254,7 @@ export interface PersonalInfo {
   nationality: string;
   gender: string;
   occupation: string;
+  phone?: string;
 }
 
 export interface Preferences {

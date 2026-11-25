@@ -52,11 +52,13 @@ const Step2_Verification = ({ onNext, onBack, verificationData, setVerificationD
         ]);
       }
 
-      // 2. Trigger server action in background for verifications log
+      // 2. Trigger server action to persist to database with admin privileges
       const formData = new FormData();
       formData.append('fullName', trimmedName);
       formData.append('phone', cleanPhone);
-      verifyUser(undefined, formData).catch(() => {});
+      await verifyUser(undefined, formData).catch((err) => {
+        console.warn('verifyUser server action note:', err);
+      });
     } catch (err: any) {
       console.warn('Profile save note:', err);
     } finally {

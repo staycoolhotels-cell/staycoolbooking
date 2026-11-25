@@ -159,6 +159,10 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
 
   const pricing = computePricing(booking);
 
+  const resolvedGuestName = guest?.name || (booking as any)?.guest?.name || (booking as any)?.guestName || (booking as any)?.fullName || 'Guest User';
+  const resolvedGuestEmail = guest?.email || (booking as any)?.guest?.email || (booking as any)?.guestEmail || '';
+  const resolvedGuestPhone = guest?.phone || (personalInfo as any)?.phone || (booking as any)?.guest?.phone || (booking as any)?.phone || (booking as any)?.guestPhone || '';
+
   return createPortal(
     <AnimatePresence>
       <div
@@ -501,15 +505,32 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <h2 className="text-lg sm:text-2xl font-heading font-black text-white break-words">{guest?.name || 'Guest User'}</h2>
-                      <p className="text-xs sm:text-sm text-zinc-400 font-medium break-all">{guest?.email}</p>
+                      <h2 className="text-lg sm:text-2xl font-heading font-black text-white break-words">{resolvedGuestName}</h2>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
+                        {resolvedGuestEmail && (
+                          <p className="text-xs sm:text-sm text-zinc-400 font-medium break-all flex items-center gap-1.5">
+                            <Icon name="EnvelopeIcon" size={13} className="text-zinc-500 shrink-0" />
+                            <span>{resolvedGuestEmail}</span>
+                          </p>
+                        )}
+                        {resolvedGuestPhone && (
+                          <a 
+                            href={`tel:${resolvedGuestPhone}`} 
+                            className="text-xs sm:text-sm text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1.5 transition-colors"
+                            title="Call guest"
+                          >
+                            <Icon name="PhoneIcon" size={13} className="text-sky-400 shrink-0" />
+                            <span>+91 {resolvedGuestPhone.replace(/^\+91/, '').trim()}</span>
+                          </a>
+                        )}
+                      </div>
                       <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2">
                         <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[9px] sm:text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
                           {guest?.role || 'Guest'}
                         </span>
                         <span className={`px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-widest border ${guest?.status === 'active' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
                           }`}>
-                          {guest?.status || 'Pending'}
+                          {guest?.status || 'Active'}
                         </span>
                       </div>
                     </div>
@@ -517,6 +538,18 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
 
                   {/* Personal Info Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5">
+                    <div className="p-3 sm:p-4 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl">
+                      <p className="text-[9px] sm:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Mobile Number</p>
+                      {resolvedGuestPhone ? (
+                        <a href={`tel:${resolvedGuestPhone}`} className="text-xs sm:text-sm font-semibold text-sky-400 hover:text-sky-300 flex items-center gap-1.5 truncate">
+                          <Icon name="PhoneIcon" size={13} className="text-sky-400 shrink-0" />
+                          <span>+91 {resolvedGuestPhone.replace(/^\+91/, '').trim()}</span>
+                        </a>
+                      ) : (
+                        <p className="text-xs sm:text-sm font-semibold text-zinc-400 truncate">Not provided</p>
+                      )}
+                    </div>
+
                     <div className="p-3 sm:p-4 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl">
                       <p className="text-[9px] sm:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Location</p>
                       <p className="text-xs sm:text-sm font-semibold text-zinc-200 truncate">{personalInfo?.location || 'Not provided'}</p>
@@ -532,7 +565,7 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
                       <p className="text-xs sm:text-sm font-semibold text-zinc-200 truncate">{bookingCount} Bookings</p>
                     </div>
 
-                    <div className="p-3 sm:p-4 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl">
+                    <div className="p-3 sm:p-4 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl sm:col-span-2">
                       <p className="text-[9px] sm:text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Languages</p>
                       <p className="text-xs sm:text-sm font-semibold text-zinc-200 truncate">
                         {personalInfo?.languages && personalInfo.languages.length > 0
@@ -562,9 +595,14 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
                       <div className="flex items-center justify-between gap-2 p-3 bg-white/5 border border-white/5 rounded-xl">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <Icon name="EnvelopeIcon" size={16} className="text-zinc-500 shrink-0" />
-                          <span className="text-xs sm:text-sm text-zinc-200 font-medium truncate">Email Address</span>
+                          <div className="min-w-0">
+                            <span className="text-xs sm:text-sm text-zinc-200 font-medium block truncate">Email Address</span>
+                            {resolvedGuestEmail && (
+                              <span className="text-[11px] text-zinc-400 font-mono block truncate">{resolvedGuestEmail}</span>
+                            )}
+                          </div>
                         </div>
-                        {verifications?.isEmailVerified ? (
+                        {verifications?.isEmailVerified || resolvedGuestEmail ? (
                           <span className="text-[9px] sm:text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1 shrink-0">
                             Verified <Icon name="CheckCircleIcon" size={13} />
                           </span>
@@ -576,9 +614,16 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
                       <div className="flex items-center justify-between gap-2 p-3 bg-white/5 border border-white/5 rounded-xl">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <Icon name="PhoneIcon" size={16} className="text-zinc-500 shrink-0" />
-                          <span className="text-xs sm:text-sm text-zinc-200 font-medium truncate">Phone Number</span>
+                          <div className="min-w-0">
+                            <span className="text-xs sm:text-sm text-zinc-200 font-medium block truncate">Phone Number</span>
+                            {resolvedGuestPhone ? (
+                              <span className="text-[11px] text-sky-400 font-mono block truncate">+91 {resolvedGuestPhone.replace(/^\+91/, '').trim()}</span>
+                            ) : (
+                              <span className="text-[11px] text-zinc-500 block">Not provided</span>
+                            )}
+                          </div>
                         </div>
-                        {verifications?.isPhoneVerified ? (
+                        {verifications?.isPhoneVerified || resolvedGuestPhone ? (
                           <span className="text-[9px] sm:text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1 shrink-0">
                             Verified <Icon name="CheckCircleIcon" size={13} />
                           </span>
