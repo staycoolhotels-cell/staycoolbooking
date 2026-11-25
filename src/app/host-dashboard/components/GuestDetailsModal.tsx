@@ -88,7 +88,24 @@ const computePricing = (booking?: Booking) => {
 
   const cancelDateFormatted = format(cancelDateObj, 'dd MMM');
   const refundInitiatedDateFormatted = format(cancelDateObj, 'dd MMM');
-  const estimatedCreditRangeFormatted = `${format(addDays(cancelDateObj, 2), 'dd MMM')} - ${format(addDays(cancelDateObj, 7), 'dd MMM')}`;
+  const creditDateObj = addDays(cancelDateObj, 2);
+  const creditedDateFormatted = format(creditDateObj, 'dd MMM');
+  const estimatedCreditRangeFormatted = `${format(creditDateObj, 'dd MMM')} - ${format(addDays(cancelDateObj, 7), 'dd MMM')}`;
+
+  const refundStatus = ((booking as any)?.refund_status || '').toLowerCase();
+  const payoutStatus = ((booking as any)?.payout_status || (booking as any)?.payoutStatus || '').toLowerCase();
+  const isFailed = refundStatus === 'failed' || payoutStatus === 'failed';
+
+  const isPastCreditDate = isCancelled && Date.now() >= creditDateObj.getTime();
+  const isHostSettled = !isFailed && (
+    refundStatus === 'completed' ||
+    refundStatus === 'refunded' ||
+    refundStatus === 'processed' ||
+    payoutStatus === 'completed' ||
+    payoutStatus === 'paid' ||
+    payoutStatus === 'settled' ||
+    isPastCreditDate
+  );
 
   return {
     isCancelled,
@@ -106,7 +123,10 @@ const computePricing = (booking?: Booking) => {
     checkOutShort,
     cancelDateFormatted,
     refundInitiatedDateFormatted,
-    estimatedCreditRangeFormatted
+    creditedDateFormatted,
+    estimatedCreditRangeFormatted,
+    isHostSettled,
+    isFailed
   };
 };
 
@@ -254,18 +274,35 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
                           <div className="flex items-center gap-2 mt-1 text-[11px] text-zinc-400 flex-wrap font-medium">
                             <span className="flex items-center gap-1">
                               <Icon name="UserIcon" size={12} className="text-zinc-500 shrink-0" />
-                              <span>Guest: <strong className="text-zinc-200">{guest?.name || 'All Guests'}</strong></span>
+                              <span>Guest: <strong className="text-zinc-200">{resolvedGuestName || guest?.name || 'All Guests'}</strong></span>
                             </span>
                             <span className="text-zinc-600">•</span>
                             <span className="text-zinc-400">
                               Status: <strong className="text-rose-400 font-mono">Cancelled</strong>
                             </span>
+                            {pricing.isHostSettled && (
+                              <>
+                                <span className="text-zinc-600">•</span>
+                                <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                                  <Icon name="CheckCircleIcon" size={12} />
+                                  Payout Settled
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
 
-                        <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-rose-500/10 border border-rose-500/25 text-rose-400 shrink-0">
-                          Cancelled
-                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-rose-500/10 border border-rose-500/25 text-rose-400">
+                            Cancelled
+                          </span>
+                          {pricing.isHostSettled && (
+                            <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 flex items-center gap-1">
+                              <Icon name="CheckBadgeIcon" size={11} />
+                              Settled
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* 3-Step Horizontal Stepper for Host Settlement */}
@@ -273,8 +310,8 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
                         <div className="relative flex items-start justify-between">
                           {/* Connecting Progress Line (Behind circles) */}
                           <div className="absolute top-3 sm:top-3.5 left-[16%] right-[16%] h-[2px] bg-zinc-700/60 -z-0">
-                            {/* Progress fill from Step 1 to Step 2 */}
-                            <div className={`h-full ${(pricing.refundInfo?.hostShare || 0) > 0 ? 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.4)]' : 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]'} w-1/2 transition-all duration-500`} />
+                            {/* Progress fill */}
+                            <div className={`h-full ${pricing.isHostSettled ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)] w-full' : (pricing.refundInfo?.hostShare || 0) > 0 ? 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.4)] w-1/2' : 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)] w-1/2'} transition-all duration-500`} />
                           </div>
 
                           {/* Step 1: Cancelled */}
@@ -292,10 +329,10 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
 
                           {/* Step 2: Compensation / Payout Initiated */}
                           <div className="relative z-10 flex flex-col items-center text-center w-1/3">
-                            <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full ${(pricing.refundInfo?.hostShare || 0) > 0 ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]'} text-white flex items-center justify-center font-bold text-[10px] sm:text-xs border-2 border-[#111422]`}>
+                            <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full ${pricing.isHostSettled ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : (pricing.refundInfo?.hostShare || 0) > 0 ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]'} text-white flex items-center justify-center font-bold text-[10px] sm:text-xs border-2 border-[#111422]`}>
                               <Icon name="CheckIcon" size={12} />
                             </div>
-                            <p className="text-[11px] sm:text-xs font-semibold text-zinc-200 mt-1.5 leading-tight">
+                            <p className={`text-[11px] sm:text-xs font-semibold ${pricing.isHostSettled ? 'text-emerald-400' : 'text-zinc-200'} mt-1.5 leading-tight`}>
                               {(pricing.refundInfo?.hostShare || 0) > 0 ? 'Payout Initiated' : 'Refund Processed'}
                             </p>
                             <p className="text-[9px] sm:text-[10px] text-zinc-400 mt-0.5 font-medium">
@@ -305,14 +342,18 @@ const GuestDetailsModal: React.FC<GuestDetailsModalProps> = ({ userId, isOpen, o
 
                           {/* Step 3: Credited to account */}
                           <div className="relative z-10 flex flex-col items-center text-center w-1/3">
-                            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-600 flex items-center justify-center font-bold text-[10px] sm:text-xs shadow-sm">
-                              3
+                            <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full ${pricing.isHostSettled ? 'bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)] border-2 border-[#111422]' : 'bg-zinc-800 text-zinc-400 border border-zinc-600 shadow-sm'} flex items-center justify-center font-bold text-[10px] sm:text-xs`}>
+                              {pricing.isHostSettled ? (
+                                <Icon name="CheckIcon" size={12} />
+                              ) : (
+                                '3'
+                              )}
                             </div>
-                            <p className="text-[11px] sm:text-xs font-semibold text-zinc-400 mt-1.5 leading-tight">
+                            <p className={`text-[11px] sm:text-xs font-semibold ${pricing.isHostSettled ? 'text-emerald-400' : 'text-zinc-400'} mt-1.5 leading-tight`}>
                               {(pricing.refundInfo?.hostShare || 0) > 0 ? 'Credited to Bank' : 'Completed'}
                             </p>
-                            <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-0.5 font-medium whitespace-nowrap">
-                              {(pricing.refundInfo?.hostShare || 0) > 0 ? pricing.estimatedCreditRangeFormatted : 'No Host Share'}
+                            <p className="text-[9px] sm:text-[10px] text-zinc-400 mt-0.5 font-medium whitespace-nowrap">
+                              {pricing.isHostSettled ? pricing.creditedDateFormatted : ((pricing.refundInfo?.hostShare || 0) > 0 ? pricing.estimatedCreditRangeFormatted : 'No Host Share')}
                             </p>
                           </div>
                         </div>

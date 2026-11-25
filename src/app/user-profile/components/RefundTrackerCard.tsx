@@ -49,10 +49,20 @@ export const RefundTrackerCard: React.FC<RefundTrackerCardProps> = ({
 
   const cancelDateFormatted = format(cancelDateObj, 'dd MMM');
   const refundInitiatedDateFormatted = format(cancelDateObj, 'dd MMM');
-  const estimatedCreditRangeFormatted = `${format(addDays(cancelDateObj, 2), 'dd MMM')} - ${format(addDays(cancelDateObj, 7), 'dd MMM')}`;
+  const creditDateObj = addDays(cancelDateObj, 2);
+  const creditedDateFormatted = format(creditDateObj, 'dd MMM');
+  const estimatedCreditRangeFormatted = `${format(creditDateObj, 'dd MMM')} - ${format(addDays(cancelDateObj, 7), 'dd MMM')}`;
   const displayName = guestName || booking?.guest?.name || 'Valued Guest';
 
-  const isCompleted = booking?.refund_status === 'completed' || booking?.refund_status === 'refunded';
+  const refundStatus = (booking?.refund_status || '').toLowerCase();
+  const isFailed = refundStatus === 'failed';
+  const isPastCreditDate = booking?.status === 'cancelled' && Date.now() >= creditDateObj.getTime();
+  const isCompleted = !isFailed && (
+    refundStatus === 'completed' || 
+    refundStatus === 'refunded' ||
+    refundStatus === 'processed' ||
+    isPastCreditDate
+  );
 
   return (
     <div className={`bg-[#111422] border border-white/10 rounded-xl p-3 sm:p-3.5 shadow-lg space-y-3 ${className}`}>
@@ -140,8 +150,8 @@ export const RefundTrackerCard: React.FC<RefundTrackerCardProps> = ({
             <p className={`text-[11px] sm:text-xs font-semibold ${isCompleted ? 'text-emerald-400' : 'text-zinc-400'} mt-1.5 leading-tight`}>
               Refunded to account
             </p>
-            <p className="text-[9px] sm:text-[10px] text-zinc-500 mt-0.5 font-medium whitespace-nowrap">
-              {estimatedCreditRangeFormatted}
+            <p className="text-[9px] sm:text-[10px] text-zinc-400 mt-0.5 font-medium whitespace-nowrap">
+              {isCompleted ? creditedDateFormatted : estimatedCreditRangeFormatted}
             </p>
           </div>
         </div>
